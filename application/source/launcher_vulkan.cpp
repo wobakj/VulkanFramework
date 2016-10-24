@@ -98,7 +98,8 @@ void LauncherVulkan::initialize() {
   std::string define{std::string{"VK_LAYER_PATH="} + VULKAN_LAYER_DIR}; 
   putenv(&define[0]);
 
-  createInstance();
+  // createInstance();
+  m_instance.create();
   createSurface();
   pickPhysicalDevice();
   createLogicalDevice();
@@ -141,8 +142,6 @@ void LauncherVulkan::draw() {
   vk::Semaphore b{m_sema_render_done};
   uint32_t imageIndex;
   m_device->acquireNextImageKHR(m_swap_chain.get(), std::numeric_limits<uint64_t>::max(), a, VK_NULL_HANDLE, &imageIndex);
-
-
 
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
@@ -675,7 +674,7 @@ bool checkDeviceExtensionSupport(vk::PhysicalDevice device) {
 bool LauncherVulkan::isDeviceSuitable(vk::PhysicalDevice device) {
   // VkPhysicalDeviceProperties deviceProperties;
   // vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
+  // std::cout << "Device name " << deviceProperties.deviceName << std::endl;
   // VkPhysicalDeviceFeatures deviceFeatures;
   // vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
@@ -696,7 +695,12 @@ bool LauncherVulkan::isDeviceSuitable(vk::PhysicalDevice device) {
 
 void LauncherVulkan::pickPhysicalDevice() {
   auto devices = m_instance->enumeratePhysicalDevices();
-
+  std::cout << "devices:" << std::endl;
+  for (const auto& device : devices) {
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    std::cout << "  " << deviceProperties.deviceName << std::endl;
+  }
   for (const auto& device : devices) {
     if (isDeviceSuitable(device)) {
         m_physical_device = device;
@@ -707,25 +711,6 @@ void LauncherVulkan::pickPhysicalDevice() {
       throw std::runtime_error("failed to find a suitable GPU!");
   }
 }
-
-std::vector<const char*> getRequiredExtensions(bool enableValidationLayers) {
-    std::vector<const char*> extensions;
-
-    unsigned int glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    for (unsigned int i = 0; i < glfwExtensionCount; i++) {
-        extensions.push_back(glfwExtensions[i]);
-    }
-
-    if (enableValidationLayers) {
-        extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    }
-
-    return extensions;
-}
-
 
 bool checkValidationLayerSupport(std::vector<const char*> const& validationLayers) {
   auto availableLayers = vk::enumerateInstanceLayerProperties();
@@ -747,42 +732,6 @@ bool checkValidationLayerSupport(std::vector<const char*> const& validationLayer
   return true;
 }
 
-void LauncherVulkan::createInstance() {
-  vk::ApplicationInfo appInfo = {};
-  appInfo.pApplicationName = "Hello Triangle";
-  appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.pEngineName = "No Engine";
-  appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_0;
-
-  vk::InstanceCreateInfo createInfo = {};
-  createInfo.pApplicationInfo = &appInfo;
-
-  bool validate = true;
-  if (validate) {
-    if (!checkValidationLayerSupport(m_validation_layers)) {
-      throw std::runtime_error("validation layers requested, but not available!");
-    }
-    else {
-        createInfo.enabledLayerCount = uint32_t(m_validation_layers.size());
-        createInfo.ppEnabledLayerNames = m_validation_layers.data();
-    }
-  }
-   else {
-    createInfo.enabledLayerCount = 0;
-  }
-
-  auto extensions = getRequiredExtensions(validate);
-  createInfo.enabledExtensionCount = uint32_t(extensions.size());
-  createInfo.ppEnabledExtensionNames = extensions.data();
-
-  m_instance = vk::createInstance(createInfo, nullptr);
-  // crate and attach debug callback
-  if(validate) {
-    m_debug_report.attach(m_instance.get());
-  }
-}
- 
 void LauncherVulkan::mainLoop() {
   // do before framebuffer_resize call as it requires the projection uniform location
   // throw exception if shader compilation was unsuccessfull

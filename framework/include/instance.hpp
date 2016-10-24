@@ -36,7 +36,7 @@ bool checkValidationLayerSupport(std::vector<std::string> const& validationLayer
       std::cout << layerProperties.layerName << std::endl;
       if (layerName == layerProperties.layerName) {
         layerFound = true;
-        std::cout << "fpound" << std::endl;
+        std::cout << "found" << std::endl;
         break;
       }
     }
@@ -73,20 +73,19 @@ class Instance {
     vk::InstanceCreateInfo createInfo = {};
     createInfo.pApplicationInfo = &appInfo;
 
+    std::vector<char const*> layers(m_layers.size());
     if (m_validate) {
       if (!checkValidationLayerSupport(m_layers)) {
         throw std::runtime_error("validation layers requested, but not available!");
       }
       else {
-        std::vector<char const*> layers({"VK_LAYER_LUNARG_standard_validation"});
-        // std::vector<char const*> layers(m_layers.size());
-        // unsigned i = 0;
-        // for(auto const& layer : m_layers) {
-        //   layers[i] = layer.c_str();
-        //   ++i;
-        // }
-          createInfo.enabledLayerCount = uint32_t(m_layers.size());
-          createInfo.ppEnabledLayerNames = layers.data();
+        unsigned i = 0;
+        for(auto const& layer : m_layers) {
+          layers[i] = layer.c_str();
+          ++i;
+        }
+        createInfo.enabledLayerCount = uint32_t(m_layers.size());
+        createInfo.ppEnabledLayerNames = layers.data();
       }
     }
      else {
@@ -98,7 +97,7 @@ class Instance {
     createInfo.ppEnabledExtensionNames = extensions.data();
 
     m_instance = vk::createInstance(createInfo, nullptr);
-    // crate and attach debug callback
+    // create and attach debug callback
     if(m_validate) {
       m_debug_report.attach(m_instance);
     }

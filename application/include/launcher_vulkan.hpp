@@ -5,6 +5,7 @@
 
 #include "deleter.hpp"
 #include "wrapper.hpp"
+#include "instance.hpp"
 #include "debug_reporter.hpp"
 
 #include <string>
@@ -83,7 +84,7 @@ class LauncherVulkan {
   // path to the resource folders
   std::string m_resource_path;
   const std::vector<const char*> m_validation_layers;
-  Wrapper<vk::Instance> m_instance;
+  Instance m_instance;
   DebugReporter m_debug_report;
   vk::PhysicalDevice m_physical_device;
   vk::Queue m_queue_graphics;
