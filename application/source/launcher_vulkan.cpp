@@ -224,7 +224,7 @@ void LauncherVulkan::createCommandBuffers() {
 
 
 void LauncherVulkan::createCommandPool() {
-  QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physical_device);
+  QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
 
   VkCommandPoolCreateInfo poolInfo = {};
   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -487,91 +487,18 @@ void LauncherVulkan::createImageViews() {
   }
 }
 
-VkExtent2D LauncherVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
-  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-    return capabilities.currentExtent;
-  } else {
-    VkExtent2D actualExtent = {m_window_width, m_window_height};
-
-    actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-    actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
-    
-    return actualExtent;
-  }
-}
-
-VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
-  if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
-    return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-  }
-
-  for (const auto& availableFormat : availableFormats) {
-    if (availableFormat.format == vk::Format::eB8G8R8A8Unorm && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
-        return availableFormat;
-    }
-  }
-
-  return availableFormats[0];
-}
-
-vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes) {
-    for (const auto& availablePresentMode : availablePresentModes) {
-        if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
-            return availablePresentMode;
-        }
-    }
-
-    return vk::PresentModeKHR::eFifo;
-}
-
 void LauncherVulkan::createSurface() {
   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface!");
   }
 }
 
-QueueFamilyIndices LauncherVulkan::findQueueFamilies(vk::PhysicalDevice device) {
-  QueueFamilyIndices indices;
-
-  auto queueFamilies = device.getQueueFamilyProperties();
-  
-  int i = 0;
-  for (const auto& queueFamily : queueFamilies) {
-    if (queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
-        indices.graphicsFamily = i;
-    }
-    
-    VkBool32 presentSupport = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &presentSupport);
-    if (queueFamily.queueCount > 0 && presentSupport) {
-      indices.presentFamily = i;
-    }
-
-    if (indices.isComplete()) {
-      break;
-    }
-
-    i++;
-  }
-  return indices;
-}
-
-SwapChainSupportDetails LauncherVulkan::querySwapChainSupport(vk::PhysicalDevice device) {
-  SwapChainSupportDetails details;
-  vk::SurfaceKHR surf{m_surface};
-  details.capabilities = device.getSurfaceCapabilitiesKHR(surf);
-  details.formats = device.getSurfaceFormatsKHR(surf);
-  details.presentModes = device.getSurfacePresentModesKHR(surf);
-
-  return details;
-}
-
 void LauncherVulkan::createSwapChain() {
-  SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physical_device);
+  SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physical_device, vk::SurfaceKHR{m_surface});
 
   vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
   vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-  m_extent_swap = chooseSwapExtent(swapChainSupport.capabilities);
+  m_extent_swap = chooseSwapExtent(swapChainSupport.capabilities, VkExtent2D{m_window_width, m_window_height});
   m_format_swap = surfaceFormat.format;
 
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -588,7 +515,7 @@ void LauncherVulkan::createSwapChain() {
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
 
-  QueueFamilyIndices indices = findQueueFamilies(m_physical_device);
+  QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
   uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t) indices.presentFamily};
 
   if (indices.graphicsFamily != indices.presentFamily) {
@@ -619,7 +546,7 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 void LauncherVulkan::createLogicalDevice() {
-  QueueFamilyIndices indices = findQueueFamilies(m_physical_device);
+  QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
 
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
   std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
@@ -659,7 +586,7 @@ void LauncherVulkan::createLogicalDevice() {
 }
 
 
-bool checkDeviceExtensionSupport(vk::PhysicalDevice device) {
+bool checkDeviceExtensionSupport(vk::PhysicalDevice device, std::vector<const char*> const& deviceExtensions) {
     auto availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
@@ -680,13 +607,13 @@ bool LauncherVulkan::isDeviceSuitable(vk::PhysicalDevice device) {
 
   // return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
   //        deviceFeatures.geometryShader;
-  QueueFamilyIndices indices = findQueueFamilies(device);
+  QueueFamilyIndices indices = findQueueFamilies(device, vk::SurfaceKHR{m_surface});
 
-  bool extensionsSupported = checkDeviceExtensionSupport(device);
+  bool extensionsSupported = checkDeviceExtensionSupport(device, deviceExtensions);
 
   bool swapChainAdequate = false;
   if (extensionsSupported) {
-      SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+      SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, vk::SurfaceKHR{m_surface});
       swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
   }
 
@@ -712,26 +639,6 @@ void LauncherVulkan::pickPhysicalDevice() {
   }
 }
 
-bool checkValidationLayerSupport(std::vector<const char*> const& validationLayers) {
-  auto availableLayers = vk::enumerateInstanceLayerProperties();
-
-  for (const char* layerName : validationLayers) {
-    bool layerFound = false;
-    for (const auto& layerProperties : availableLayers) {
-      std::cout << layerProperties.layerName << std::endl;
-      if (strcmp(layerName, layerProperties.layerName) == 0) {
-        layerFound = true;
-        break;
-      }
-    }
-
-    if (!layerFound) {
-        return false;
-    }
-  }
-  return true;
-}
-
 void LauncherVulkan::mainLoop() {
   // do before framebuffer_resize call as it requires the projection uniform location
   // throw exception if shader compilation was unsuccessfull
@@ -743,6 +650,7 @@ void LauncherVulkan::mainLoop() {
   
   // rendering loop
   while (!glfwWindowShouldClose(m_window)) {
+    vkDeviceWaitIdle(m_device.get());
     // query input
     glfwPollEvents();
     // clear buffer
@@ -755,7 +663,6 @@ void LauncherVulkan::mainLoop() {
     // display fps
     show_fps();
   }
-  vkDeviceWaitIdle(m_device.get());
 
   quit(EXIT_SUCCESS);
 }

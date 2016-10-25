@@ -7,6 +7,7 @@
 #include "wrapper.hpp"
 #include "instance.hpp"
 #include "debug_reporter.hpp"
+#include "swap_chain.hpp"
 
 #include <string>
 #include <vector>
@@ -15,20 +16,20 @@
 class Application;
 class GLFWwindow;
 
-struct QueueFamilyIndices {
-    int graphicsFamily = -1;
-    int presentFamily = -1;
+// struct QueueFamilyIndices {
+//     int graphicsFamily = -1;
+//     int presentFamily = -1;
 
-    bool isComplete() {
-      return graphicsFamily >= 0 && presentFamily >= 0;
-    }
-};
+//     bool isComplete() {
+//       return graphicsFamily >= 0 && presentFamily >= 0;
+//     }
+// };
 
-struct SwapChainSupportDetails {
-    vk::SurfaceCapabilitiesKHR capabilities;
-    std::vector<vk::SurfaceFormatKHR> formats;
-    std::vector<vk::PresentModeKHR> presentModes;
-};
+// struct SwapChainSupportDetails {
+//     vk::SurfaceCapabilitiesKHR capabilities;
+//     std::vector<vk::SurfaceFormatKHR> formats;
+//     std::vector<vk::PresentModeKHR> presentModes;
+// };
 
 class LauncherVulkan {
  public:
@@ -48,11 +49,8 @@ class LauncherVulkan {
   void createShaderModule(const std::vector<char>& code, Deleter<VkShaderModule>& shaderModule);
   void createGraphicsPipeline();
   void createImageViews();
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
   void createSwapChain();
-  SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device);
   bool isDeviceSuitable(vk::PhysicalDevice device);
-  QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
   void createSurface();
   void createLogicalDevice();
   void pickPhysicalDevice(); 
