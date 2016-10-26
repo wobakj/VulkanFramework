@@ -105,7 +105,9 @@ void LauncherVulkan::initialize() {
   m_instance.create();
   createSurface();
   m_physical_device = m_instance.pickPhysicalDevice(m_surface.get(), deviceExtensions);
-  createLogicalDevice();
+  
+  QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
+  createLogicalDevice(m_physical_device, indices, deviceExtensions);
   createSwapChain();
   createRenderPass();
   createGraphicsPipeline();
@@ -477,48 +479,13 @@ void LauncherVulkan::createSwapChain() {
   m_swap_chain.create(m_device, m_physical_device, vk::SurfaceKHR{m_surface}, VkExtent2D{m_window_width, m_window_height});
 }
 
-void LauncherVulkan::createLogicalDevice() {
-  QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
+void LauncherVulkan::createLogicalDevice(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& indices, std::vector<const char*> const& deviceExtensions) {
 
-  std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-  std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
+  m_device.create(m_physical_device, indices.graphicsFamily, indices.presentFamily, deviceExtensions);
 
-  float queuePriority = 1.0f;
-  for (int queueFamily : uniqueQueueFamilies) {
-      VkDeviceQueueCreateInfo queueCreateInfo = {};
-      queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-      queueCreateInfo.queueFamilyIndex = queueFamily;
-      queueCreateInfo.queueCount = 1;
-      queueCreateInfo.pQueuePriorities = &queuePriority;
-      queueCreateInfos.push_back(queueCreateInfo);
-  }
-  
-  VkPhysicalDeviceFeatures deviceFeatures = {};
-  VkDeviceCreateInfo createInfo = {};
-  createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  createInfo.pQueueCreateInfos = queueCreateInfos.data();
-  createInfo.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
-  createInfo.pEnabledFeatures = &deviceFeatures;
-
-  createInfo.enabledExtensionCount = uint32_t(deviceExtensions.size());
-  createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-
-  if (true) {
-      createInfo.enabledLayerCount = uint32_t(m_validation_layers.size());
-      createInfo.ppEnabledLayerNames = m_validation_layers.data();
-  } else {
-      createInfo.enabledLayerCount = 0;
-  }
-  vk::DeviceCreateInfo a{createInfo};
-  m_physical_device.createDevice(&a, nullptr, &m_device.get());
-
-  m_queue_graphics = m_device->getQueue(indices.graphicsFamily, 0);
-  m_queue_present = m_device->getQueue(indices.presentFamily, 0);
+  m_queue_graphics = m_device.m_queue_graphics;
+  m_queue_present = m_device.m_queue_present;
 }
-
-
-
 
 void LauncherVulkan::mainLoop() {
   // do before framebuffer_resize call as it requires the projection uniform location

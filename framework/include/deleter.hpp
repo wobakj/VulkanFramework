@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.hpp>
 #include <functional>
 #include <wrapper.hpp>
+#include <device.hpp>
 
 template <typename T>
 class Deleter {
@@ -17,6 +18,10 @@ public:
 
     Deleter(const Deleter<VkInstance>& instance, std::function<void(VkInstance, T, VkAllocationCallbacks*)> deletef) {
         this->deleter = [&instance, deletef](T obj) { deletef(instance, obj, nullptr); };
+    }
+
+    Deleter(const Device& device, std::function<void(VkDevice, T, VkAllocationCallbacks*)> deletef) {
+        this->deleter = [&device, deletef](T obj) { deletef(device.get(), obj, nullptr); };
     }
 
     Deleter(const Deleter<VkDevice>& device, std::function<void(VkDevice, T, VkAllocationCallbacks*)> deletef) {

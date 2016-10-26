@@ -161,6 +161,46 @@ vk::PhysicalDevice pickPhysicalDevice(vk::SurfaceKHR const& surface, std::vector
   return phys_device;
 }
 
+// Device createLogicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions) {
+//   QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
+
+//   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+//   std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
+
+//   float queuePriority = 1.0f;
+//   for (int queueFamily : uniqueQueueFamilies) {
+//       VkDeviceQueueCreateInfo queueCreateInfo = {};
+//       queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+//       queueCreateInfo.queueFamilyIndex = queueFamily;
+//       queueCreateInfo.queueCount = 1;
+//       queueCreateInfo.pQueuePriorities = &queuePriority;
+//       queueCreateInfos.push_back(queueCreateInfo);
+//   }
+  
+//   VkPhysicalDeviceFeatures deviceFeatures = {};
+//   VkDeviceCreateInfo createInfo = {};
+//   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+//   createInfo.pQueueCreateInfos = queueCreateInfos.data();
+//   createInfo.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
+//   createInfo.pEnabledFeatures = &deviceFeatures;
+
+//   createInfo.enabledExtensionCount = uint32_t(deviceExtensions.size());
+//   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+
+
+//   if (true) {
+//       createInfo.enabledLayerCount = uint32_t(m_validation_layers.size());
+//       createInfo.ppEnabledLayerNames = m_validation_layers.data();
+//   } else {
+//       createInfo.enabledLayerCount = 0;
+//   }
+//   vk::DeviceCreateInfo a{createInfo};
+//   m_physical_device.createDevice(&a, nullptr, &m_device.get());
+
+//   m_queue_graphics = m_device->getQueue(indices.graphicsFamily, 0);
+//   m_queue_present = m_device->getQueue(indices.presentFamily, 0);
+// }
+
 
   // }
 

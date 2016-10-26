@@ -5,12 +5,14 @@
 
 #include "deleter.hpp"
 #include "wrapper.hpp"
+#include "device.hpp"
 #include "instance.hpp"
 #include "debug_reporter.hpp"
 #include "swap_chain.hpp"
 
 #include <string>
 #include <vector>
+#include <memory>
 
 // forward declarations
 class Application;
@@ -53,7 +55,9 @@ class LauncherVulkan {
   // bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions);
 
   void createSurface();
-  void createLogicalDevice();
+  // void createLogicalDevice();
+  void createLogicalDevice(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& indices, std::vector<const char*> const& deviceExtensions);
+
   // void pickPhysicalDevice(); 
   void createInstance();
   // update viewport and field of view
@@ -99,8 +103,8 @@ class LauncherVulkan {
   
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
-  Wrapper<vk::Device> m_device;
   SwapChain m_swap_chain;
+  Device m_device;
   // Deleter<VkDevice> m_device;
 
   // Application* m_application;
