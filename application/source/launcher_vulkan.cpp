@@ -23,6 +23,10 @@ void glfw_error(int error, const char* description);
 void pickPhysicalDevice();
 static std::vector<char> readFile(const std::string& filename);
 
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
 LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
  :m_camera_fov{glm::radians(60.0f)}
  ,m_window_width{640u}
@@ -100,7 +104,7 @@ void LauncherVulkan::initialize() {
   // createInstance();
   m_instance.create();
   createSurface();
-  pickPhysicalDevice();
+  m_physical_device = m_instance.pickPhysicalDevice(m_surface.get(), deviceExtensions);
   createLogicalDevice();
   createSwapChain();
   createRenderPass();
@@ -473,9 +477,6 @@ void LauncherVulkan::createSwapChain() {
   m_swap_chain.create(m_device, m_physical_device, vk::SurfaceKHR{m_surface}, VkExtent2D{m_window_width, m_window_height});
 }
 
-const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
 void LauncherVulkan::createLogicalDevice() {
   QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
 
@@ -517,58 +518,7 @@ void LauncherVulkan::createLogicalDevice() {
 }
 
 
-bool checkDeviceExtensionSupport(vk::PhysicalDevice device, std::vector<const char*> const& deviceExtensions) {
-    auto availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
 
-    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-
-    for (const auto& extension : availableExtensions) {
-        requiredExtensions.erase(extension.extensionName);
-    }
-
-    return requiredExtensions.empty();
-}
-
-bool LauncherVulkan::isDeviceSuitable(vk::PhysicalDevice device) {
-  // VkPhysicalDeviceProperties deviceProperties;
-  // vkGetPhysicalDeviceProperties(device, &deviceProperties);
-  // std::cout << "Device name " << deviceProperties.deviceName << std::endl;
-  // VkPhysicalDeviceFeatures deviceFeatures;
-  // vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-  // return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-  //        deviceFeatures.geometryShader;
-  QueueFamilyIndices indices = findQueueFamilies(device, vk::SurfaceKHR{m_surface});
-
-  bool extensionsSupported = checkDeviceExtensionSupport(device, deviceExtensions);
-
-  bool swapChainAdequate = false;
-  if (extensionsSupported) {
-      SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, vk::SurfaceKHR{m_surface});
-      swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-  }
-
-  return indices.isComplete() && extensionsSupported && swapChainAdequate;
-}
-
-void LauncherVulkan::pickPhysicalDevice() {
-  auto devices = m_instance->enumeratePhysicalDevices();
-  std::cout << "devices:" << std::endl;
-  for (const auto& device : devices) {
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    std::cout << "  " << deviceProperties.deviceName << std::endl;
-  }
-  for (const auto& device : devices) {
-    if (isDeviceSuitable(device)) {
-        m_physical_device = device;
-        break;
-    }
-  }
-  if (!m_physical_device) {
-      throw std::runtime_error("failed to find a suitable GPU!");
-  }
-}
 
 void LauncherVulkan::mainLoop() {
   // do before framebuffer_resize call as it requires the projection uniform location

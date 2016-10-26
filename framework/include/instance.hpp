@@ -2,9 +2,11 @@
 #define INSTANCE_HPP
 
 #include <debug_reporter.hpp>
+#include <swap_chain.hpp>
 #include <vulkan/vulkan.hpp>
 #include <iostream>
 #include <vector>
+#include <set>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -48,6 +50,39 @@ bool checkValidationLayerSupport(std::vector<std::string> const& validationLayer
   return true;
 }
 
+bool checkDeviceExtensionSupport(vk::PhysicalDevice device, std::vector<const char*> const& deviceExtensions) {
+    auto availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
+
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+    for (const auto& extension : availableExtensions) {
+        requiredExtensions.erase(extension.extensionName);
+    }
+
+    return requiredExtensions.empty();
+}
+
+bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions) {
+  // VkPhysicalDeviceProperties deviceProperties;
+  // vkGetPhysicalDeviceProperties(device, &deviceProperties);
+  // std::cout << "Device name " << deviceProperties.deviceName << std::endl;
+  // VkPhysicalDeviceFeatures deviceFeatures;
+  // vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+  // return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
+  //        deviceFeatures.geometryShader;
+  QueueFamilyIndices indices = findQueueFamilies(device, surface);
+
+  bool extensionsSupported = checkDeviceExtensionSupport(device, deviceExtensions);
+
+  bool swapChainAdequate = false;
+  if (extensionsSupported) {
+      SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
+      swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+  }
+
+  return indices.isComplete() && extensionsSupported && swapChainAdequate;
+}
 
 class Instance {
  public:
@@ -102,6 +137,32 @@ class Instance {
       m_debug_report.attach(m_instance);
     }
   }
+
+  // Device createDevice(std::vector<const char*> extensions, vk::Surface const& surf) {
+
+vk::PhysicalDevice pickPhysicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions) {
+  vk::PhysicalDevice phys_device{};
+  auto devices = m_instance.enumeratePhysicalDevices();
+  std::cout << "devices:" << std::endl;
+  for (const auto& device : devices) {
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    std::cout << "  " << deviceProperties.deviceName << std::endl;
+  }
+  for (const auto& device : devices) {
+    if (isDeviceSuitable(device, surface, deviceExtensions)) {
+        phys_device = device;
+        break;
+    }
+  }
+  if (!phys_device) {
+      throw std::runtime_error("failed to find a suitable GPU!");
+  }
+  return phys_device;
+}
+
+
+  // }
 
 
   ~Instance() {

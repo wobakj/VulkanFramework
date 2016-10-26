@@ -49,10 +49,12 @@ class LauncherVulkan {
   void createShaderModule(const std::vector<char>& code, Deleter<VkShaderModule>& shaderModule);
   void createGraphicsPipeline();
   void createSwapChain();
-  bool isDeviceSuitable(vk::PhysicalDevice device);
+  // bool isDeviceSuitable(vk::PhysicalDevice device);
+  // bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions);
+
   void createSurface();
   void createLogicalDevice();
-  void pickPhysicalDevice(); 
+  // void pickPhysicalDevice(); 
   void createInstance();
   // update viewport and field of view
   void update_projection(GLFWwindow* window, int width, int height);
