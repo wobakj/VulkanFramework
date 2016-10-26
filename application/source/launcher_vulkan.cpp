@@ -35,7 +35,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_instance{}
  ,m_physical_device{VK_NULL_HANDLE}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
- ,m_swap_chain{m_device.get(), vkDestroySwapchainKHR}
  ,m_pipeline_layout{m_device.get(), vkDestroyPipelineLayout}
  ,m_render_pass{m_device.get(), vkDestroyRenderPass}
  ,m_pipeline{m_device.get(), vkDestroyPipeline}
@@ -104,7 +103,6 @@ void LauncherVulkan::initialize() {
   pickPhysicalDevice();
   createLogicalDevice();
   createSwapChain();
-  createImageViews();
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
@@ -235,11 +233,11 @@ void LauncherVulkan::createCommandPool() {
 }
 
 void LauncherVulkan::createFramebuffers() {
-   m_framebuffers.resize(m_views_swap.size(), Deleter<VkFramebuffer>{m_device, vkDestroyFramebuffer});
-
-  for (size_t i = 0; i < m_views_swap.size(); i++) {
+   m_framebuffers.resize(m_swap_chain.views().size(), Deleter<VkFramebuffer>{m_device, vkDestroyFramebuffer});
+   // std::cout << "num view " << m_swap_chain.views();
+  for (size_t i = 0; i < m_swap_chain.views().size(); i++) {
     VkImageView attachments[] = {
-        m_views_swap[i]
+        m_swap_chain.views()[i]
     };
 
     VkFramebufferCreateInfo framebufferInfo = {};
@@ -259,7 +257,7 @@ void LauncherVulkan::createFramebuffers() {
 
 void LauncherVulkan::createRenderPass() {
   vk::AttachmentDescription colorAttachment = {};
-  colorAttachment.format = m_format_swap;
+  colorAttachment.format = m_swap_chain.format();
   colorAttachment.samples = vk::SampleCountFlagBits::e1;
 
   colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
@@ -462,31 +460,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   vkCreateGraphicsPipelines(m_device.get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, m_pipeline.replace());
 }
 
-void LauncherVulkan::createImageViews() {
-  m_views_swap.resize(m_images_swap.size(), Deleter<VkImageView>{m_device, vkDestroyImageView});
-  for (uint32_t i = 0; i < m_images_swap.size(); i++) {
-    vk::ImageViewCreateInfo createInfo = {};
-    createInfo.image = m_images_swap[i];
-
-    createInfo.viewType = vk::ImageViewType::e2D;
-    createInfo.format = m_format_swap;
-
-    createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-    createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-    createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-    createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-
-    createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-    createInfo.subresourceRange.baseMipLevel = 0;
-    createInfo.subresourceRange.levelCount = 1;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount = 1;
-
-    vk::ImageView view = m_device->createImageView(createInfo, nullptr);
-    m_views_swap[i] = view;
-  }
-}
-
 void LauncherVulkan::createSurface() {
   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface!");
@@ -494,52 +467,12 @@ void LauncherVulkan::createSurface() {
 }
 
 void LauncherVulkan::createSwapChain() {
+
   SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physical_device, vk::SurfaceKHR{m_surface});
 
-  vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-  vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
   m_extent_swap = chooseSwapExtent(swapChainSupport.capabilities, VkExtent2D{m_window_width, m_window_height});
-  m_format_swap = surfaceFormat.format;
 
-  uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-  if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-      imageCount = swapChainSupport.capabilities.maxImageCount;
-  }
-
-  vk::SwapchainCreateInfoKHR createInfo = {};
-  createInfo.surface = m_surface;
-  createInfo.minImageCount = imageCount;
-  createInfo.imageFormat = surfaceFormat.format;
-  createInfo.imageColorSpace = surfaceFormat.colorSpace;
-  createInfo.imageExtent = m_extent_swap;
-  createInfo.imageArrayLayers = 1;
-  createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-
-  QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
-  uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t) indices.presentFamily};
-
-  if (indices.graphicsFamily != indices.presentFamily) {
-      createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
-      createInfo.queueFamilyIndexCount = 2;
-      createInfo.pQueueFamilyIndices = queueFamilyIndices;
-  }
-  else {
-      createInfo.imageSharingMode = vk::SharingMode::eExclusive;
-      createInfo.queueFamilyIndexCount = 0; // Optional
-      createInfo.pQueueFamilyIndices = nullptr; // Optional
-  }
-  createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-  createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-
-  createInfo.presentMode = presentMode;
-  createInfo.clipped = VK_TRUE;
-
-  createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-  vk::SwapchainKHR swap = m_device->createSwapchainKHR(createInfo, nullptr);
-  m_swap_chain = swap;
-
-  m_images_swap = m_device->getSwapchainImagesKHR(swap);
+  m_swap_chain.create(m_device, m_physical_device, vk::SurfaceKHR{m_surface}, VkExtent2D{m_window_width, m_window_height});
 }
 
 const std::vector<const char*> deviceExtensions = {

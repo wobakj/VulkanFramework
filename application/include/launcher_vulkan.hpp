@@ -48,7 +48,6 @@ class LauncherVulkan {
   void createRenderPass();
   void createShaderModule(const std::vector<char>& code, Deleter<VkShaderModule>& shaderModule);
   void createGraphicsPipeline();
-  void createImageViews();
   void createSwapChain();
   bool isDeviceSuitable(vk::PhysicalDevice device);
   void createSurface();
@@ -88,11 +87,7 @@ class LauncherVulkan {
   vk::Queue m_queue_graphics;
   vk::Queue m_queue_present;
   Deleter<VkSurfaceKHR> m_surface;
-  Deleter<VkSwapchainKHR> m_swap_chain;
-  std::vector<vk::Image> m_images_swap;
-  vk::Format m_format_swap;
   vk::Extent2D m_extent_swap;
-  std::vector<Deleter<VkImageView>> m_views_swap;
   Deleter<VkPipelineLayout> m_pipeline_layout;
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
@@ -103,6 +98,7 @@ class LauncherVulkan {
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
   Wrapper<vk::Device> m_device;
+  SwapChain m_swap_chain;
   // Deleter<VkDevice> m_device;
 
   // Application* m_application;

@@ -94,25 +94,15 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
       return vk::PresentModeKHR::eFifo;
   }
 
-class SwapChain {
- public:
-  SwapChain(vk::Device dev, vk::PhysicalDevice phys_dev, vk::SurfaceKHR surface, VkExtent2D extend)
-   :m_swapchain{VK_NULL_HANDLE}
-   ,m_device{dev}
-   ,m_extent_swap{extend}
-  {
-    create(phys_dev, surface);
-  }
 
-
-void createImageViews() {
-  m_views_swap.resize(m_images_swap.size(), Deleter<VkImageView>{m_device, vkDestroyImageView});
-  for (uint32_t i = 0; i < m_images_swap.size(); i++) {
+std::vector<Deleter<VkImageView>> createImageViews(vk::Device device, std::vector<vk::Image> const& images, vk::Format const& format) {
+  std::vector<Deleter<VkImageView>> views(images.size(), Deleter<VkImageView>{device, vkDestroyImageView});
+  for (uint32_t i = 0; i < images.size(); i++) {
     vk::ImageViewCreateInfo createInfo = {};
-    createInfo.image = m_images_swap[i];
+    createInfo.image = images[i];
 
     createInfo.viewType = vk::ImageViewType::e2D;
-    createInfo.format = m_format_swap;
+    createInfo.format = format;
 
     createInfo.components.r = vk::ComponentSwizzle::eIdentity;
     createInfo.components.g = vk::ComponentSwizzle::eIdentity;
@@ -125,12 +115,26 @@ void createImageViews() {
     createInfo.subresourceRange.baseArrayLayer = 0;
     createInfo.subresourceRange.layerCount = 1;
 
-    vk::ImageView view = m_device.createImageView(createInfo, nullptr);
-    m_views_swap[i] = view;
+    vk::ImageView view = device.createImageView(createInfo, nullptr);
+    views[i] = view;
   }
+  return views;
 }
 
-  void create(vk::PhysicalDevice phys_device, vk::SurfaceKHR surface) {
+class SwapChain {
+ public:
+  
+
+  SwapChain(vk::Device dev = VK_NULL_HANDLE, vk::PhysicalDevice phys_dev = VK_NULL_HANDLE, vk::SurfaceKHR surface = VK_NULL_HANDLE, VkExtent2D extend = {0,0})
+   :m_swapchain{VK_NULL_HANDLE}
+   ,m_device{dev}
+   ,m_extent_swap{extend}
+  {}
+  
+  void create(vk::Device dev, vk::PhysicalDevice phys_device, vk::SurfaceKHR surface, VkExtent2D extend) {
+    m_device = dev;
+    m_extent_swap = extend;
+
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(phys_device, surface);
 
     vk::PresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -173,10 +177,9 @@ void createImageViews() {
 
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    vk::SwapchainKHR swap = m_device.createSwapchainKHR(createInfo, nullptr);
-    m_swapchain = swap;
-
-    createImageViews();
+    m_swapchain = m_device.createSwapchainKHR(createInfo, nullptr);
+    m_images_swap = m_device.getSwapchainImagesKHR(m_swapchain);
+    m_views_swap = createImageViews(m_device, m_images_swap, m_format_swap);
   }
 
 
@@ -209,11 +212,23 @@ void createImageViews() {
     return &m_swapchain;
   }
 
+  std::vector<Deleter<VkImageView>> const& views() const {
+    return m_views_swap;
+  }
+
+  std::vector<vk::Image> const& images() const {
+    return m_images_swap;
+  }
+
+  vk::Format format() const {
+    return m_format_swap;
+  }
+
+  std::vector<vk::Image> m_images_swap;
  private:
   vk::SwapchainKHR m_swapchain;
   vk::Device m_device;
 
-  std::vector<vk::Image> m_images_swap;
   vk::Format m_format_swap;
   vk::Extent2D m_extent_swap;
   std::vector<Deleter<VkImageView>> m_views_swap;
