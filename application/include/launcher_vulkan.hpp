@@ -51,14 +51,8 @@ class LauncherVulkan {
   void createShaderModule(const std::vector<char>& code, Deleter<VkShaderModule>& shaderModule);
   void createGraphicsPipeline();
   void createSwapChain();
-  // bool isDeviceSuitable(vk::PhysicalDevice device);
-  // bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions);
 
   void createSurface();
-  // void createLogicalDevice();
-  void createLogicalDevice(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& indices, std::vector<const char*> const& deviceExtensions);
-
-  // void pickPhysicalDevice(); 
   void createInstance();
   // update viewport and field of view
   void update_projection(GLFWwindow* window, int width, int height);
@@ -90,10 +84,7 @@ class LauncherVulkan {
   Instance m_instance;
   DebugReporter m_debug_report;
   vk::PhysicalDevice m_physical_device;
-  vk::Queue m_queue_graphics;
-  vk::Queue m_queue_present;
   Deleter<VkSurfaceKHR> m_surface;
-  vk::Extent2D m_extent_swap;
   Deleter<VkPipelineLayout> m_pipeline_layout;
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
@@ -105,7 +96,6 @@ class LauncherVulkan {
   Deleter<VkSemaphore> m_sema_render_done;
   SwapChain m_swap_chain;
   Device m_device;
-  // Deleter<VkDevice> m_device;
 
   // Application* m_application;
 };

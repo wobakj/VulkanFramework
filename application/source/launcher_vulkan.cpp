@@ -101,14 +101,13 @@ void LauncherVulkan::initialize() {
   std::string define{std::string{"VK_LAYER_PATH="} + VULKAN_LAYER_DIR}; 
   putenv(&define[0]);
 
-  // createInstance();
   m_instance.create();
   createSurface();
-  m_physical_device = m_instance.pickPhysicalDevice(m_surface.get(), deviceExtensions);
-  
-  QueueFamilyIndices indices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
-  createLogicalDevice(m_physical_device, indices, deviceExtensions);
-  createSwapChain();
+  m_device = m_instance.createLogicalDevice(vk::SurfaceKHR{m_surface}, deviceExtensions);
+  m_physical_device = m_device.physical();
+
+  m_swap_chain.create(m_device, m_physical_device, vk::SurfaceKHR{m_surface}, VkExtent2D{m_window_width, m_window_height});
+
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
@@ -162,7 +161,7 @@ void LauncherVulkan::draw() {
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  m_queue_graphics.submit(submitInfos, VK_NULL_HANDLE);
+  m_device.queueGraphics().submit(submitInfos, VK_NULL_HANDLE);
 
   vk::PresentInfoKHR presentInfo = {};
   presentInfo.waitSemaphoreCount = 1;
@@ -175,7 +174,7 @@ void LauncherVulkan::draw() {
 
   presentInfo.pResults = nullptr; // Optional
 
-  m_queue_present.presentKHR(presentInfo);
+  m_device.queuePresent().presentKHR(presentInfo);
 }
 
 void LauncherVulkan::createSemaphores() {
@@ -209,7 +208,7 @@ void LauncherVulkan::createCommandBuffers() {
     renderPassInfo.framebuffer = m_framebuffers[i];
 
     renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
-    renderPassInfo.renderArea.extent = m_extent_swap;
+    renderPassInfo.renderArea.extent = m_swap_chain.extend();
 
     vk::ClearValue clearColor = vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}};
     renderPassInfo.clearValueCount = 1;
@@ -226,13 +225,10 @@ void LauncherVulkan::createCommandBuffers() {
   }
 }
 
-
 void LauncherVulkan::createCommandPool() {
-  QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physical_device, vk::SurfaceKHR{m_surface});
-
   VkCommandPoolCreateInfo poolInfo = {};
   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+  poolInfo.queueFamilyIndex = m_device.indexGraphics();
   poolInfo.flags = 0; // Optional
 
   vkCreateCommandPool(m_device.get(), &poolInfo, nullptr, m_command_pool.replace());
@@ -251,8 +247,8 @@ void LauncherVulkan::createFramebuffers() {
     framebufferInfo.renderPass = m_render_pass;
     framebufferInfo.attachmentCount = 1;
     framebufferInfo.pAttachments = attachments;
-    framebufferInfo.width = m_extent_swap.width;
-    framebufferInfo.height = m_extent_swap.height;
+    framebufferInfo.width = m_swap_chain.extend().width;
+    framebufferInfo.height = m_swap_chain.extend().height;
     framebufferInfo.layers = 1;
 
     vkCreateFramebuffer(m_device.get(), &framebufferInfo, nullptr, m_framebuffers[i].replace());
@@ -349,14 +345,14 @@ void LauncherVulkan::createGraphicsPipeline() {
   vk::Viewport viewport = {};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = (float) m_extent_swap.width;
-  viewport.height = (float) m_extent_swap.height;
+  viewport.width = (float) m_swap_chain.extend().width;
+  viewport.height = (float) m_swap_chain.extend().height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   vk::Rect2D scissor{};
   scissor.offset = vk::Offset2D{0, 0};
-  scissor.extent = m_extent_swap;
+  scissor.extent = m_swap_chain.extend();
 
   vk::PipelineViewportStateCreateInfo viewportState = {};
   // viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -471,20 +467,6 @@ void LauncherVulkan::createSurface() {
 }
 
 void LauncherVulkan::createSwapChain() {
-
-  SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physical_device, vk::SurfaceKHR{m_surface});
-
-  m_extent_swap = chooseSwapExtent(swapChainSupport.capabilities, VkExtent2D{m_window_width, m_window_height});
-
-  m_swap_chain.create(m_device, m_physical_device, vk::SurfaceKHR{m_surface}, VkExtent2D{m_window_width, m_window_height});
-}
-
-void LauncherVulkan::createLogicalDevice(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& indices, std::vector<const char*> const& deviceExtensions) {
-
-  m_device.create(m_physical_device, indices.graphicsFamily, indices.presentFamily, deviceExtensions);
-
-  m_queue_graphics = m_device.m_queue_graphics;
-  m_queue_present = m_device.m_queue_present;
 }
 
 void LauncherVulkan::mainLoop() {

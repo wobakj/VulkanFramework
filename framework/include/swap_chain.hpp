@@ -1,6 +1,8 @@
 #ifndef SWAP_CHAIN_HPP
 #define SWAP_CHAIN_HPP
 
+#include "deleter.hpp"
+
 #include <vulkan/vulkan.hpp>
 #include <iostream>
 #include <vector>
@@ -20,7 +22,7 @@ struct SwapChainSupportDetails {
     std::vector<vk::PresentModeKHR> presentModes;
 };
 
-QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
+inline QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
   QueueFamilyIndices indices;
 
   auto queueFamilies = device.getQueueFamilyProperties();
@@ -47,9 +49,8 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
 }
 
 
-  SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
+ inline  SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
     SwapChainSupportDetails details;
-    // vk::SurfaceKHR surface{m_surface};
     details.capabilities = device.getSurfaceCapabilitiesKHR(surface);
     details.formats = device.getSurfaceFormatsKHR(surface);
     details.presentModes = device.getSurfacePresentModesKHR(surface);
@@ -57,7 +58,7 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
     return details;
   }
 
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, VkExtent2D extent) {
+  inline VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, VkExtent2D extent) {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
       return capabilities.currentExtent;
     } else {
@@ -70,7 +71,7 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
     }
   }
 
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
+  inline VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
     if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
       return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
     }
@@ -84,7 +85,7 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
     return availableFormats[0];
   }
 
-  vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes) {
+  inline vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes) {
       for (const auto& availablePresentMode : availablePresentModes) {
           if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
               return availablePresentMode;
@@ -95,7 +96,7 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
   }
 
 
-std::vector<Deleter<VkImageView>> createImageViews(vk::Device device, std::vector<vk::Image> const& images, vk::Format const& format) {
+inline std::vector<Deleter<VkImageView>> createImageViews(vk::Device device, std::vector<vk::Image> const& images, vk::Format const& format) {
   std::vector<Deleter<VkImageView>> views(images.size(), Deleter<VkImageView>{device, vkDestroyImageView});
   for (uint32_t i = 0; i < images.size(); i++) {
     vk::ImageViewCreateInfo createInfo = {};
@@ -124,13 +125,38 @@ std::vector<Deleter<VkImageView>> createImageViews(vk::Device device, std::vecto
 class SwapChain {
  public:
   
+  SwapChain(SwapChain const&) = delete;
+  SwapChain& operator=(SwapChain const&) = delete;
 
   SwapChain(vk::Device dev = VK_NULL_HANDLE, vk::PhysicalDevice phys_dev = VK_NULL_HANDLE, vk::SurfaceKHR surface = VK_NULL_HANDLE, VkExtent2D extend = {0,0})
    :m_swapchain{VK_NULL_HANDLE}
    ,m_device{dev}
+   ,m_format_swap{vk::Format::eUndefined}
    ,m_extent_swap{extend}
+   ,m_images_swap{}
+   ,m_views_swap{}
   {}
-  
+ 
+  SwapChain(SwapChain && chain)
+   :SwapChain{}
+   {
+    swap(chain);
+   }
+
+   SwapChain& operator=(SwapChain&& chain) {
+    swap(chain);
+    return *this;
+   }
+
+   void swap(SwapChain& chain) {
+    std::swap(m_swapchain, chain.m_swapchain);
+    std::swap(m_device, chain.m_device);
+    std::swap(m_format_swap, chain.m_format_swap);
+    std::swap(m_extent_swap, chain.m_extent_swap);
+    std::swap(m_images_swap, chain.m_images_swap);
+    std::swap(m_views_swap, chain.m_views_swap);
+   }
+
   void create(vk::Device dev, vk::PhysicalDevice phys_device, vk::SurfaceKHR surface, VkExtent2D extend) {
     m_device = dev;
     m_extent_swap = extend;
@@ -224,13 +250,15 @@ class SwapChain {
     return m_format_swap;
   }
 
-  std::vector<vk::Image> m_images_swap;
+  vk::Extent2D const& extend() const {
+    return m_extent_swap;
+  }
  private:
   vk::SwapchainKHR m_swapchain;
   vk::Device m_device;
-
   vk::Format m_format_swap;
   vk::Extent2D m_extent_swap;
+  std::vector<vk::Image> m_images_swap;
   std::vector<Deleter<VkImageView>> m_views_swap;
 };
 
