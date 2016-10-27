@@ -7,96 +7,100 @@
 #include <vector>
 #include <set>
 
-  Device::Device()
-   :Wrapper<vk::Device>{}
-   ,m_queue_graphics{VK_NULL_HANDLE}
-   ,m_queue_present{VK_NULL_HANDLE}
-   ,m_index_graphics{-1}
-   ,m_index_present{-1}
-   ,m_extensions{}
-  {}
+Device::Device()
+ :Wrapper<vk::Device>{}
+ ,m_queue_graphics{VK_NULL_HANDLE}
+ ,m_queue_present{VK_NULL_HANDLE}
+ ,m_index_graphics{-1}
+ ,m_index_present{-1}
+ ,m_extensions{}
+{}
 
-  void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions) {
-    m_phys_device = phys_dev;
-    m_index_graphics = graphics;
-    m_index_present = present;
-    m_extensions = deviceExtensions;
+void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions) {
+  m_phys_device = phys_dev;
+  m_index_graphics = graphics;
+  m_index_present = present;
+  m_extensions = deviceExtensions;
 
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<int> uniqueQueueFamilies = {graphics, present};
+  std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+  std::set<int> uniqueQueueFamilies = {graphics, present};
 
-    float queuePriority = 1.0f;
-    for (int queueFamily : uniqueQueueFamilies) {
-      VkDeviceQueueCreateInfo queueCreateInfo = {};
-      queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-      queueCreateInfo.queueFamilyIndex = queueFamily;
-      queueCreateInfo.queueCount = 1;
-      queueCreateInfo.pQueuePriorities = &queuePriority;
-      queueCreateInfos.push_back(queueCreateInfo);
-    }
-    
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    VkDeviceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
-    createInfo.pEnabledFeatures = &deviceFeatures;
-
-    createInfo.enabledExtensionCount = uint32_t(deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-    vk::DeviceCreateInfo a{createInfo};
-    phys_dev.createDevice(&a, nullptr, &get());
-
-    m_queue_graphics = get().getQueue(graphics, 0);
-    m_queue_present = get().getQueue(present, 0);
-    // throw std::exception();
+  float queuePriority = 1.0f;
+  for (int queueFamily : uniqueQueueFamilies) {
+    VkDeviceQueueCreateInfo queueCreateInfo = {};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = queueFamily;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+    queueCreateInfos.push_back(queueCreateInfo);
   }
+  
+  VkPhysicalDeviceFeatures deviceFeatures = {};
+  VkDeviceCreateInfo createInfo = {};
+  createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  createInfo.pQueueCreateInfos = queueCreateInfos.data();
+  createInfo.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
+  createInfo.pEnabledFeatures = &deviceFeatures;
 
-  SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
-    SwapChain chain{};
-    chain.create(get(), m_phys_device, surf, extend);
-    return chain; 
-  }
+  createInfo.enabledExtensionCount = uint32_t(deviceExtensions.size());
+  createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  Device::Device(Device && dev)
-   :Device{}
-   {
-    swap(dev);
-   }
+  vk::DeviceCreateInfo a{createInfo};
+  phys_dev.createDevice(&a, nullptr, &get());
 
-   Device& Device::operator=(Device&& dev) {
-    swap(dev);
-    return *this;
-   }
+  m_queue_graphics = get().getQueue(graphics, 0);
+  m_queue_present = get().getQueue(present, 0);
+  // throw std::exception();
+}
 
-   void Device::swap(Device& dev) {
-    // std::swap(m_device, dev.m_device);
-    std::swap(get(), dev.get());
-    std::swap(m_phys_device, dev.m_phys_device);
-    std::swap(m_queue_graphics, dev.m_queue_graphics);
-    std::swap(m_queue_present, dev.m_queue_present);
-    std::swap(m_index_graphics, dev.m_index_graphics);
-    std::swap(m_index_present, dev.m_index_present);
-    std::swap(m_extensions, dev.m_extensions);
-   }
+SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
+  SwapChain chain{};
+  chain.create(get(), m_phys_device, surf, extend);
+  return chain; 
+}
 
-   vk::PhysicalDevice const& Device::physical() const {
-    return m_phys_device;
-   }
+Device::Device(Device && dev)
+ :Device{}
+ {
+  swap(dev);
+ }
 
-  vk::Queue const& Device::queueGraphics() const {
-    return m_queue_graphics;
-  }
+void Device::destroy() {
+  get().destroy();
+}
 
-  vk::Queue const& Device::queuePresent() const {
-    return m_queue_present;
-  }
+ Device& Device::operator=(Device&& dev) {
+  swap(dev);
+  return *this;
+ }
 
-  int const& Device::indexGraphics() const {
-    return m_index_graphics;
-  }
+ void Device::swap(Device& dev) {
+  // std::swap(m_device, dev.m_device);
+  std::swap(get(), dev.get());
+  std::swap(m_phys_device, dev.m_phys_device);
+  std::swap(m_queue_graphics, dev.m_queue_graphics);
+  std::swap(m_queue_present, dev.m_queue_present);
+  std::swap(m_index_graphics, dev.m_index_graphics);
+  std::swap(m_index_present, dev.m_index_present);
+  std::swap(m_extensions, dev.m_extensions);
+ }
 
-  int const& Device::indexPresent() const {
-    return m_index_present;
-  }
+ vk::PhysicalDevice const& Device::physical() const {
+  return m_phys_device;
+ }
+
+vk::Queue const& Device::queueGraphics() const {
+  return m_queue_graphics;
+}
+
+vk::Queue const& Device::queuePresent() const {
+  return m_queue_present;
+}
+
+int const& Device::indexGraphics() const {
+  return m_index_graphics;
+}
+
+int const& Device::indexPresent() const {
+  return m_index_present;
+}

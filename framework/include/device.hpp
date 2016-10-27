@@ -39,6 +39,8 @@ class Device : public Wrapper<vk::Device> {
   int const& indexPresent() const;
 
  private:
+  void destroy() override;
+
   vk::PhysicalDevice m_phys_device;
   vk::Queue m_queue_graphics;
   vk::Queue m_queue_present;

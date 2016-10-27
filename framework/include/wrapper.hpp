@@ -66,9 +66,7 @@ public:
     object = obj;
   }
   
-  virtual void destroy() {
-    object.destroy();
-  }
+  virtual void destroy() = 0;
  private:
   T object;
 

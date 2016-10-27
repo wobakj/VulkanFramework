@@ -2,6 +2,7 @@
 #define SWAP_CHAIN_HPP
 
 #include "deleter.hpp"
+#include "wrapper.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <iostream>
@@ -121,14 +122,14 @@ inline std::vector<Deleter<VkImageView>> createImageViews(vk::Device device, std
   return views;
 }
 
-class SwapChain {
+class SwapChain : public Wrapper<vk::SwapchainKHR> {
  public:
   
   SwapChain(SwapChain const&) = delete;
   SwapChain& operator=(SwapChain const&) = delete;
 
   SwapChain(vk::Device dev = VK_NULL_HANDLE, vk::PhysicalDevice phys_dev = VK_NULL_HANDLE, vk::SurfaceKHR surface = VK_NULL_HANDLE, VkExtent2D extend = {0,0})
-   :m_swapchain{VK_NULL_HANDLE}
+   :Wrapper<vk::SwapchainKHR>{}
    ,m_device{dev}
    ,m_format_swap{vk::Format::eUndefined}
    ,m_extent_swap{extend}
@@ -148,7 +149,7 @@ class SwapChain {
    }
 
    void swap(SwapChain& chain) {
-    std::swap(m_swapchain, chain.m_swapchain);
+    std::swap(get(), chain.get());
     std::swap(m_device, chain.m_device);
     std::swap(m_format_swap, chain.m_format_swap);
     std::swap(m_extent_swap, chain.m_extent_swap);
@@ -169,7 +170,7 @@ class SwapChain {
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
+      imageCount = swapChainSupport.capabilities.maxImageCount;
     }
 
     vk::SwapchainCreateInfoKHR createInfo = {};
@@ -202,39 +203,9 @@ class SwapChain {
 
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    m_swapchain = m_device.createSwapchainKHR(createInfo, nullptr);
-    m_images_swap = m_device.getSwapchainImagesKHR(m_swapchain);
+    get() = m_device.createSwapchainKHR(createInfo, nullptr);
+    m_images_swap = m_device.getSwapchainImagesKHR(get());
     m_views_swap = createImageViews(m_device, m_images_swap, m_format_swap);
-  }
-
-
-  ~SwapChain() {
-    destroy();
-  }
-
-  void destroy() { 
-    if (m_swapchain) {
-      m_device.destroySwapchainKHR(m_swapchain);
-    }
-  }
-
-  operator vk::SwapchainKHR() const {
-      return m_swapchain;
-  }
-
-  vk::SwapchainKHR const& get() const {
-      return m_swapchain;
-  }
-  vk::SwapchainKHR& get() {
-      return m_swapchain;
-  }
-
-  vk::SwapchainKHR* operator->() {
-    return &m_swapchain;
-  }
-
-  vk::SwapchainKHR const* operator->() const {
-    return &m_swapchain;
   }
 
   std::vector<Deleter<VkImageView>> const& views() const {
@@ -253,7 +224,11 @@ class SwapChain {
     return m_extent_swap;
   }
  private:
-  vk::SwapchainKHR m_swapchain;
+
+  void destroy() override { 
+    m_device.destroySwapchainKHR(get());
+  }
+
   vk::Device m_device;
   vk::Format m_format_swap;
   vk::Extent2D m_extent_swap;
