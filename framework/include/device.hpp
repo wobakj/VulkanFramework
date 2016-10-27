@@ -1,7 +1,7 @@
 #ifndef DEVICE_HPP
 #define DEVICE_HPP
 
-// #include "swap_chain.hpp"
+#include "wrapper.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <iostream>
@@ -10,7 +10,7 @@
 
 class SwapChain;
 
-class Device {
+class Device : public Wrapper<vk::Device> {
  public:
   
   Device();
@@ -20,7 +20,7 @@ class Device {
 
   void create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions);
   
-  SwapChain createSwapChain() const;
+  SwapChain createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const;
 
   Device(Device && dev);
 
@@ -30,22 +30,6 @@ class Device {
 
    vk::PhysicalDevice const& physical() const;
 
-   void set(vk::Device const& dev);
-
-  ~Device();
-
-  void destroy();
-
-  operator vk::Device() const;
-
-  vk::Device const& get() const;
-
-  vk::Device& get();
-
-  vk::Device* operator->();
-
-  vk::Device const* operator->() const;
-
   vk::Queue const& queueGraphics() const;
 
   vk::Queue const& queuePresent() const;
@@ -53,9 +37,6 @@ class Device {
   int const& indexGraphics() const;
 
   int const& indexPresent() const;
-
-  vk::Device m_device;
-  // vk::Instance m_instance;
 
  private:
   vk::PhysicalDevice m_phys_device;

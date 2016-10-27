@@ -50,7 +50,6 @@ class LauncherVulkan {
   void createRenderPass();
   void createShaderModule(const std::vector<char>& code, Deleter<VkShaderModule>& shaderModule);
   void createGraphicsPipeline();
-  void createSwapChain();
 
   void createSurface();
   void createInstance();
@@ -83,7 +82,6 @@ class LauncherVulkan {
   const std::vector<const char*> m_validation_layers;
   Instance m_instance;
   DebugReporter m_debug_report;
-  vk::PhysicalDevice m_physical_device;
   Deleter<VkSurfaceKHR> m_surface;
   Deleter<VkPipelineLayout> m_pipeline_layout;
   Deleter<VkRenderPass> m_render_pass;

@@ -7,65 +7,77 @@
 template <typename T>
 class Wrapper {
 public:
-    Wrapper()
-     :object{VK_NULL_HANDLE}
-   {}
+  Wrapper()
+   :object{VK_NULL_HANDLE}
+ {}
 
-    Wrapper(T& t)
-     :object{t} 
-    {}
+  Wrapper(T& t)
+   :object{t} 
+  {}
 
-    ~Wrapper() {
-        cleanup();
-    }
+  virtual ~Wrapper() {
+      cleanup();
+  }
 
-    const T* operator &() const {
-        return &object;
-    }
-
-    T* replace() {
-        cleanup();
-        return &object;
-    }
-
-    operator T() const {
-        return object;
-    }
-
-    T const& get() const {
-        return object;
-    }
-    T& get() {
-        return object;
-    }
-
-    T* operator->() {
+  const T* operator &() const {
       return &object;
-    }
+  }
 
-    T const* operator->() const {
+  T* replace() {
+      cleanup();
       return &object;
-    }
+  }
 
-    void operator=(T rhs) {
-        cleanup();
-        object = rhs;
-    }
+  operator T() const {
+      return object;
+  }
 
-    template<typename V>
-    bool operator==(V rhs) {
-        return object == T(rhs);
-    }
+  T const& get() const {
+      return object;
+  }
 
-private:
-    T object;
+  T const* operator->() const {
+    return &object;
+  }
 
-    void cleanup() {
-        if (object) {
-          object.destroy();
-        }
-        object = VK_NULL_HANDLE;
-    }
+  void operator=(T rhs) {
+      cleanup();
+      object = rhs;
+  }
+
+  // template<typename V>
+  // bool operator==(V rhs) {
+  //     return object == T(rhs);
+  // }
+  T& get() {
+      return object;
+  }
+
+  T* operator->() {
+    return &object;
+  }
+ protected:
+  T* operator &() {
+      return &object;
+  }
+
+
+  void set(T const& obj) {
+    object = obj;
+  }
+  
+  virtual void destroy() {
+    object.destroy();
+  }
+ private:
+  T object;
+
+  void cleanup() {
+      if (object) {
+        destroy();
+      }
+      object = VK_NULL_HANDLE;
+  }
 };
 
 #endif

@@ -48,7 +48,6 @@ inline QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::Surfa
   return indices;
 }
 
-
  inline  SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
     SwapChainSupportDetails details;
     details.capabilities = device.getSurfaceCapabilitiesKHR(surface);

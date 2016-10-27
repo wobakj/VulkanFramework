@@ -8,7 +8,7 @@
 #include <set>
 
   Device::Device()
-   :m_device{VK_NULL_HANDLE}
+   :Wrapper<vk::Device>{}
    ,m_queue_graphics{VK_NULL_HANDLE}
    ,m_queue_present{VK_NULL_HANDLE}
    ,m_index_graphics{-1}
@@ -46,15 +46,16 @@
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
     vk::DeviceCreateInfo a{createInfo};
-    phys_dev.createDevice(&a, nullptr, &m_device);
+    phys_dev.createDevice(&a, nullptr, &get());
 
-    m_queue_graphics = m_device.getQueue(graphics, 0);
-    m_queue_present = m_device.getQueue(present, 0);
+    m_queue_graphics = get().getQueue(graphics, 0);
+    m_queue_present = get().getQueue(present, 0);
     // throw std::exception();
   }
 
-  SwapChain Device::createSwapChain() const {
+  SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
     SwapChain chain{};
+    chain.create(get(), m_phys_device, surf, extend);
     return chain; 
   }
 
@@ -70,7 +71,8 @@
    }
 
    void Device::swap(Device& dev) {
-    std::swap(m_device, dev.m_device);
+    // std::swap(m_device, dev.m_device);
+    std::swap(get(), dev.get());
     std::swap(m_phys_device, dev.m_phys_device);
     std::swap(m_queue_graphics, dev.m_queue_graphics);
     std::swap(m_queue_present, dev.m_queue_present);
@@ -82,35 +84,6 @@
    vk::PhysicalDevice const& Device::physical() const {
     return m_phys_device;
    }
-
-  Device::~Device() {
-    destroy();
-  }
-
-  void Device::destroy() { 
-    if (m_device) {
-      m_device.destroy();
-    }
-  }
-
-  Device::operator vk::Device() const {
-      return m_device;
-  }
-
-  vk::Device const& Device::get() const {
-      return m_device;
-  }
-  vk::Device& Device::get() {
-      return m_device;
-  }
-
-  vk::Device* Device::operator->() {
-    return &m_device;
-  }
-
-  vk::Device const* Device::operator->() const {
-    return &m_device;
-  }
 
   vk::Queue const& Device::queueGraphics() const {
     return m_queue_graphics;

@@ -37,14 +37,13 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_resource_path{resourcePath(argc, argv)}
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
  ,m_instance{}
- ,m_physical_device{VK_NULL_HANDLE}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
- ,m_pipeline_layout{m_device.get(), vkDestroyPipelineLayout}
- ,m_render_pass{m_device.get(), vkDestroyRenderPass}
- ,m_pipeline{m_device.get(), vkDestroyPipeline}
- ,m_command_pool{m_device.get(), vkDestroyCommandPool}
- ,m_sema_image_ready{m_device.get(), vkDestroySemaphore}
- ,m_sema_render_done{m_device.get(), vkDestroySemaphore}
+ ,m_pipeline_layout{m_device, vkDestroyPipelineLayout}
+ ,m_render_pass{m_device, vkDestroyRenderPass}
+ ,m_pipeline{m_device, vkDestroyPipeline}
+ ,m_command_pool{m_device, vkDestroyCommandPool}
+ ,m_sema_image_ready{m_device, vkDestroySemaphore}
+ ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
  // ,m_device{vkDestroyDevice}
  // ,m_application{}
@@ -104,9 +103,8 @@ void LauncherVulkan::initialize() {
   m_instance.create();
   createSurface();
   m_device = m_instance.createLogicalDevice(vk::SurfaceKHR{m_surface}, deviceExtensions);
-  m_physical_device = m_device.physical();
 
-  m_swap_chain.create(m_device, m_physical_device, vk::SurfaceKHR{m_surface}, VkExtent2D{m_window_width, m_window_height});
+  m_swap_chain = m_device.createSwapChain(vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height});
 
   createRenderPass();
   createGraphicsPipeline();
@@ -338,7 +336,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
 
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
-  // inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
@@ -355,14 +352,12 @@ void LauncherVulkan::createGraphicsPipeline() {
   scissor.extent = m_swap_chain.extend();
 
   vk::PipelineViewportStateCreateInfo viewportState = {};
-  // viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
   viewportState.viewportCount = 1;
   viewportState.pViewports = &viewport;
   viewportState.scissorCount = 1;
   viewportState.pScissors = &scissor;
 
   vk::PipelineRasterizationStateCreateInfo rasterizer = {};
-  // rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   rasterizer.depthClampEnable = VK_FALSE;
   rasterizer.rasterizerDiscardEnable = VK_FALSE;
   rasterizer.polygonMode = vk::PolygonMode::eFill;
@@ -376,7 +371,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
 
   vk::PipelineMultisampleStateCreateInfo multisampling = {};
-  // multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
   multisampling.sampleShadingEnable = VK_FALSE;
   multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
   multisampling.minSampleShading = 1.0f; // Optional
@@ -404,7 +398,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
 
   vk::PipelineColorBlendStateCreateInfo colorBlending = {};
-  // colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   colorBlending.logicOpEnable = VK_FALSE;
   colorBlending.logicOp = vk::LogicOp::eCopy; // Optional
   colorBlending.attachmentCount = 1;
@@ -435,7 +428,6 @@ void LauncherVulkan::createGraphicsPipeline() {
       m_pipeline_layout.replace());
 
   vk::GraphicsPipelineCreateInfo pipelineInfo = {};
-  // pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipelineInfo.stageCount = 2;
   pipelineInfo.pStages = shaderStages;
 
@@ -464,9 +456,6 @@ void LauncherVulkan::createSurface() {
   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface!");
   }
-}
-
-void LauncherVulkan::createSwapChain() {
 }
 
 void LauncherVulkan::mainLoop() {
