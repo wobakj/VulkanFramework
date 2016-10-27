@@ -1,8 +1,9 @@
 #ifndef INSTANCE_HPP
 #define INSTANCE_HPP
 
-#include <debug_reporter.hpp>
-#include <swap_chain.hpp>
+#include "debug_reporter.hpp"
+#include "wrapper.hpp"
+#include "swap_chain.hpp"
 #include <vulkan/vulkan.hpp>
 #include <iostream>
 #include <vector>
@@ -84,15 +85,10 @@ bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& su
   return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-class Instance {
+class Instance : public Wrapper<vk::Instance> {
  public:
-  // Instance()
-  //  :m_instance{VK_NULL_HANDLE}
-  //  ,m_layers{}
-  // {}
-
   Instance(bool validate = true)
-   :m_instance{VK_NULL_HANDLE}
+   :Wrapper<vk::Instance>{}
    ,m_validate{validate}
    ,m_layers{validate ? std::vector<std::string>{"VK_LAYER_LUNARG_standard_validation"} : std::vector<std::string>{}}
   {}
@@ -131,10 +127,10 @@ class Instance {
     createInfo.enabledExtensionCount = uint32_t(extensions.size());
     createInfo.ppEnabledExtensionNames = extensions.data();
 
-    m_instance = vk::createInstance(createInfo, nullptr);
+    get() = vk::createInstance(createInfo, nullptr);
     // create and attach debug callback
     if(m_validate) {
-      m_debug_report.attach(m_instance);
+      m_debug_report.attach(get());
     }
   }
 
@@ -142,7 +138,7 @@ class Instance {
 
 vk::PhysicalDevice pickPhysicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions) {
   vk::PhysicalDevice phys_device{};
-  auto devices = m_instance.enumeratePhysicalDevices();
+  auto devices = get().enumeratePhysicalDevices();
   std::cout << "devices:" << std::endl;
   for (const auto& device : devices) {
     VkPhysicalDeviceProperties deviceProperties;
@@ -170,41 +166,11 @@ Device createLogicalDevice(vk::SurfaceKHR const& surface, std::vector<const char
   return device;
 }
 
-
-  // }
-
-
-  ~Instance() {
-    destroy();
-  }
-
-  void destroy() { 
-    if (m_instance) {
-      m_instance.destroy();
-    }
-  }
-
-  operator vk::Instance() const {
-      return m_instance;
-  }
-
-  vk::Instance const& get() const {
-      return m_instance;
-  }
-  vk::Instance& get() {
-      return m_instance;
-  }
-
-  vk::Instance* operator->() {
-    return &m_instance;
-  }
-
-  vk::Instance const* operator->() const {
-    return &m_instance;
-  }
-
  private:
-  vk::Instance m_instance;
+  void destroy() override{ 
+    get().destroy();
+  }
+  // vk::Instance m_instance;
   bool m_validate;
   std::vector<std::string> m_layers;
   DebugReporter m_debug_report;
