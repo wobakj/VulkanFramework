@@ -28,8 +28,8 @@ public:
         this->deleter = [&device, deletef](T obj) { deletef(device, obj, nullptr); };
     }
 
-    template<typename U>
-    Deleter(Wrapper<U> const& instance, std::function<void(U const, T, VkAllocationCallbacks*)> deletef) {
+    template<typename U, typename V>
+    Deleter(Wrapper<U, V> const& instance, std::function<void(U const, T, VkAllocationCallbacks*)> deletef) {
         this->deleter = [&instance, deletef](T obj) { deletef(instance, obj, nullptr); };
     }
 

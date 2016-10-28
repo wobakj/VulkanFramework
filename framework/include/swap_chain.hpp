@@ -122,15 +122,14 @@ inline std::vector<Deleter<VkImageView>> createImageViews(vk::Device device, std
   return views;
 }
 
-class SwapChain : public Wrapper<vk::SwapchainKHR> {
+class SwapChain : public Wrapper<vk::SwapchainKHR, vk::SwapchainCreateInfoKHR> {
  public:
   
   SwapChain(SwapChain const&) = delete;
   SwapChain& operator=(SwapChain const&) = delete;
 
   SwapChain(vk::Device dev = VK_NULL_HANDLE, vk::PhysicalDevice phys_dev = VK_NULL_HANDLE, vk::SurfaceKHR surface = VK_NULL_HANDLE, VkExtent2D extend = {0,0})
-   :Wrapper<vk::SwapchainKHR>{}
-   ,m_info{}
+   :Wrapper<vk::SwapchainKHR, vk::SwapchainCreateInfoKHR>{}
    ,m_device{dev}
    ,m_images_swap{}
    ,m_views_swap{}
@@ -148,8 +147,7 @@ class SwapChain : public Wrapper<vk::SwapchainKHR> {
    }
 
    void swap(SwapChain& chain) {
-    std::swap(get(), chain.get());
-    std::swap(m_info, chain.m_info);
+    Wrapper<vk::SwapchainKHR, vk::SwapchainCreateInfoKHR>::swap(chain);
     std::swap(m_device, chain.m_device);
     std::swap(m_phys_device, chain.m_phys_device);
     std::swap(m_images_swap, chain.m_images_swap);
@@ -158,12 +156,12 @@ class SwapChain : public Wrapper<vk::SwapchainKHR> {
 
   void create(vk::Device dev, vk::PhysicalDevice phys_device, vk::SurfaceKHR surface, VkExtent2D extend) {
     m_device = dev;
-    m_info.surface = surface;
+    info().surface = surface;
     m_phys_device = phys_device;
 
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(phys_device, surface);
 
-    m_info.presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+    info().presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
@@ -171,43 +169,43 @@ class SwapChain : public Wrapper<vk::SwapchainKHR> {
       imageCount = swapChainSupport.capabilities.maxImageCount;
     }
 
-    m_info.minImageCount = imageCount;
-    m_info.imageFormat = surfaceFormat.format;
-    m_info.imageColorSpace = surfaceFormat.colorSpace;
-    m_info.imageArrayLayers = 1;
-    m_info.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+    info().minImageCount = imageCount;
+    info().imageFormat = surfaceFormat.format;
+    info().imageColorSpace = surfaceFormat.colorSpace;
+    info().imageArrayLayers = 1;
+    info().imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
 
-    QueueFamilyIndices indices = findQueueFamilies(m_phys_device, m_info.surface);
+    QueueFamilyIndices indices = findQueueFamilies(m_phys_device, info().surface);
     uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t) indices.presentFamily};
 
     if (indices.graphicsFamily != indices.presentFamily) {
-        m_info.imageSharingMode = vk::SharingMode::eConcurrent;
-        m_info.queueFamilyIndexCount = 2;
-        m_info.pQueueFamilyIndices = queueFamilyIndices;
+        info().imageSharingMode = vk::SharingMode::eConcurrent;
+        info().queueFamilyIndexCount = 2;
+        info().pQueueFamilyIndices = queueFamilyIndices;
     }
     else {
-        m_info.imageSharingMode = vk::SharingMode::eExclusive;
-        m_info.queueFamilyIndexCount = 0; // Optional
-        m_info.pQueueFamilyIndices = nullptr; // Optional
+        info().imageSharingMode = vk::SharingMode::eExclusive;
+        info().queueFamilyIndexCount = 0; // Optional
+        info().pQueueFamilyIndices = nullptr; // Optional
     }
-    m_info.preTransform = swapChainSupport.capabilities.currentTransform;
-    m_info.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-    m_info.clipped = VK_TRUE;
+    info().preTransform = swapChainSupport.capabilities.currentTransform;
+    info().compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+    info().clipped = VK_TRUE;
 
     recreate(extend);
   }
 
   void recreate(vk::Extent2D const& extend) {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_phys_device, m_info.surface);
-    m_info.imageExtent = chooseSwapExtent(swapChainSupport.capabilities, extend);
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_phys_device, info().surface);
+    info().imageExtent = chooseSwapExtent(swapChainSupport.capabilities, extend);
 
-    m_info.oldSwapchain = get();
+    info().oldSwapchain = get();
 
-    auto new_chain = m_device.createSwapchainKHR(m_info, nullptr);
+    auto new_chain = m_device.createSwapchainKHR(info(), nullptr);
     replace(std::move(new_chain));
 
     m_images_swap = m_device.getSwapchainImagesKHR(get());
-    m_views_swap = createImageViews(m_device, m_images_swap, m_info.imageFormat);
+    m_views_swap = createImageViews(m_device, m_images_swap, info().imageFormat);
   }
 
   std::vector<Deleter<VkImageView>> const& views() const {
@@ -219,11 +217,11 @@ class SwapChain : public Wrapper<vk::SwapchainKHR> {
   }
 
   vk::Format format() const {
-    return m_info.imageFormat;
+    return info().imageFormat;
   }
 
   vk::Extent2D const& extend() const {
-    return m_info.imageExtent;
+    return info().imageExtent;
   }
  private:
 
@@ -231,7 +229,6 @@ class SwapChain : public Wrapper<vk::SwapchainKHR> {
     m_device.destroySwapchainKHR(get());
   }
 
-  vk::SwapchainCreateInfoKHR m_info;
   vk::Device m_device;
   vk::PhysicalDevice m_phys_device;
   std::vector<vk::Image> m_images_swap;

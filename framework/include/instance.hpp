@@ -85,10 +85,10 @@ bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& su
   return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-class Instance : public Wrapper<vk::Instance> {
+class Instance : public Wrapper<vk::Instance, vk::InstanceCreateInfo> {
  public:
   Instance(bool validate = true)
-   :Wrapper<vk::Instance>{}
+   :Wrapper<vk::Instance, vk::InstanceCreateInfo>{}
    ,m_validate{validate}
    ,m_layers{validate ? std::vector<std::string>{"VK_LAYER_LUNARG_standard_validation"} : std::vector<std::string>{}}
   {}

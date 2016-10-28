@@ -10,7 +10,7 @@
 
 class SwapChain;
 
-class Device : public Wrapper<vk::Device> {
+class Device : public Wrapper<vk::Device, vk::DeviceCreateInfo> {
  public:
   
   Device();

@@ -8,7 +8,7 @@
 #include <set>
 
 Device::Device()
- :Wrapper<vk::Device>{}
+ :Wrapper<vk::Device, vk::DeviceCreateInfo>{}
  ,m_queue_graphics{VK_NULL_HANDLE}
  ,m_queue_present{VK_NULL_HANDLE}
  ,m_index_graphics{-1}

@@ -4,16 +4,17 @@
 #include <vulkan/vulkan.h>
 #include <functional>
 
-template <typename T>
+template <typename T, typename U>
 class Wrapper {
 public:
   Wrapper()
-   :object{VK_NULL_HANDLE}
+   :m_object{VK_NULL_HANDLE}
+   ,m_info{}
  {}
 
-  Wrapper(T const& t) = delete;
+  explicit Wrapper(T const& t) = delete;
 
-  Wrapper(T&& t)
+  explicit Wrapper(T&& t)
    :Wrapper{} 
   {
     swap(t);
@@ -24,12 +25,12 @@ public:
   }
 
   const T* operator &() const {
-      return &object;
+      return &m_object;
   }
 
   T* replace() {
       cleanup();
-      return &object;
+      return &m_object;
   }
 
   void replace(T&& rhs) {
@@ -38,15 +39,15 @@ public:
   void replace(T const& rhs) = delete;
 
   operator T() const {
-      return object;
+      return m_object;
   }
 
   T const& get() const {
-      return object;
+      return m_object;
   }
 
   T const* operator->() const {
-    return &object;
+    return &m_object;
   }
 
   T& operator=(T rhs) {
@@ -54,42 +55,51 @@ public:
     return *this;
   }
 
-  void swap(T& rhs) {
-    cleanup();
-    object = rhs;
-    rhs = VK_NULL_HANDLE;
-  }
-
   // template<typename V>
   // bool operator==(V rhs) {
-  //     return object == T(rhs);
+  //     return m_object == T(rhs);
   // }
   T& get() {
-      return object;
+      return m_object;
   }
 
   T* operator->() {
-    return &object;
+    return &m_object;
   }
+  U const& info() const {
+      return m_info;
+  }
+
  protected:
   T* operator &() {
-      return &object;
+      return &m_object;
+  }
+  U& info() {
+      return m_info;
   }
 
 
-  void set(T const& obj) {
-    object = obj;
-  }
-  
   virtual void destroy() = 0;
+
+  void swap(Wrapper& rhs) {
+    std::swap(m_object, rhs.m_object);
+    std::swap(m_info, rhs.m_info);
+  }
  private:
-  T object;
+  T m_object;
+  U m_info;
+
+  void swap(T& rhs) {
+    cleanup();
+    m_object = rhs;
+    rhs = VK_NULL_HANDLE;
+  }
 
   void cleanup() {
-      if (object) {
+      if (m_object) {
         destroy();
       }
-      object = VK_NULL_HANDLE;
+      m_object = VK_NULL_HANDLE;
   }
 };
 
