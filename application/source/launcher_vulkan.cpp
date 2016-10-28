@@ -45,7 +45,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
- // ,m_device{vkDestroyDevice}
  // ,m_application{}
 {}
 
@@ -73,12 +72,6 @@ void LauncherVulkan::initialize() {
     std::exit(EXIT_FAILURE);
   }
 
-  // set OGL version explicitly 
-  // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-  // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-  // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
-  // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   // create m_window, if unsuccessfull, quit
@@ -112,10 +105,7 @@ void LauncherVulkan::initialize() {
   createCommandPool();
   createCommandBuffers();
   createSemaphores();
-  // use the windows context
-  // glfwMakeContextCurrent(m_window);
-  // // disable vsync
-  // glfwSwapInterval(0);
+
   // // set user pointer to access this instance statically
   // glfwSetWindowUserPointer(m_window, this);
   // // register key input function
@@ -125,29 +115,16 @@ void LauncherVulkan::initialize() {
   // glfwSetKeyCallback(m_window, key_func);
   // // allow free mouse movement
   // glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  // // register resizing function
-  // auto resize_func = [](GLFWwindow* w, int a, int b) {
-  //       static_cast<LauncherVulkan*>(glfwGetWindowUserPointer(w))->update_projection(w, a, b);
-  // };
-  // glfwSetFramebufferSizeCallback(m_window, resize_func);
-
-  // initialize glindings in this context
-  // glbinding::Binding::initialize();
-
-  // activate error checking after each gl function call
-  // watch_gl_errors();
 }
 
 void LauncherVulkan::draw() {
-  vk::Semaphore a{m_sema_image_ready};
-  vk::Semaphore b{m_sema_render_done};
   uint32_t imageIndex;
-  m_device->acquireNextImageKHR(m_swap_chain.get(), std::numeric_limits<uint64_t>::max(), a, VK_NULL_HANDLE, &imageIndex);
+  m_device->acquireNextImageKHR(m_swap_chain.get(), std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
 
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
-  vk::Semaphore waitSemaphores[] = {m_sema_image_ready.get()};
-  vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  vk::Semaphore waitSemaphores[]{m_sema_image_ready.get()};
+  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
   submitInfos[0].setWaitSemaphoreCount(1);
   submitInfos[0].setPWaitSemaphores(waitSemaphores);
   submitInfos[0].setPWaitDstStageMask(waitStages);
@@ -155,17 +132,17 @@ void LauncherVulkan::draw() {
   submitInfos[0].setCommandBufferCount(1);
   submitInfos[0].setPCommandBuffers(&m_command_buffers[imageIndex]);
 
-  vk::Semaphore signalSemaphores[] = {m_sema_render_done.get()};
+  vk::Semaphore signalSemaphores[]{m_sema_render_done.get()};
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
   m_device.queueGraphics().submit(submitInfos, VK_NULL_HANDLE);
 
-  vk::PresentInfoKHR presentInfo = {};
+  vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = signalSemaphores;
 
-  vk::SwapchainKHR swapChains[] = {m_swap_chain.get()};
+  vk::SwapchainKHR swapChains[]{m_swap_chain.get()};
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains;
   presentInfo.pImageIndices = &imageIndex;
@@ -177,14 +154,8 @@ void LauncherVulkan::draw() {
 
 void LauncherVulkan::createSemaphores() {
   vk::SemaphoreCreateInfo semaphoreInfo;
-
-  vk::Semaphore a{m_sema_image_ready};
-  vk::Semaphore b{m_sema_render_done};
-  m_device->createSemaphore(&semaphoreInfo, nullptr, &a);
-  m_device->createSemaphore(&semaphoreInfo, nullptr, &b);
-
-  m_sema_image_ready = a; 
-  m_sema_render_done = b; 
+  m_sema_image_ready = m_device->createSemaphore(semaphoreInfo);
+  m_sema_render_done = m_device->createSemaphore(semaphoreInfo);
 }
 
 void LauncherVulkan::createCommandBuffers() {
@@ -201,7 +172,7 @@ void LauncherVulkan::createCommandBuffers() {
 
     m_command_buffers[i].begin(beginInfo);
 
-    vk::RenderPassBeginInfo renderPassInfo = {};
+    vk::RenderPassBeginInfo renderPassInfo{};
     renderPassInfo.renderPass = m_render_pass;
     renderPassInfo.framebuffer = m_framebuffers[i];
 
@@ -224,24 +195,21 @@ void LauncherVulkan::createCommandBuffers() {
 }
 
 void LauncherVulkan::createCommandPool() {
-  VkCommandPoolCreateInfo poolInfo = {};
-  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  vk::CommandPoolCreateInfo poolInfo{};
   poolInfo.queueFamilyIndex = m_device.indexGraphics();
-  poolInfo.flags = 0; // Optional
 
-  vkCreateCommandPool(m_device.get(), &poolInfo, nullptr, m_command_pool.replace());
+  m_command_pool = m_device->createCommandPool(poolInfo);
 }
 
 void LauncherVulkan::createFramebuffers() {
    m_framebuffers.resize(m_swap_chain.views().size(), Deleter<VkFramebuffer>{m_device, vkDestroyFramebuffer});
    // std::cout << "num view " << m_swap_chain.views();
   for (size_t i = 0; i < m_swap_chain.views().size(); i++) {
-    VkImageView attachments[] = {
-        m_swap_chain.views()[i]
+    vk::ImageView attachments[] = {
+      vk::ImageView{m_swap_chain.views()[i]}
     };
 
-    VkFramebufferCreateInfo framebufferInfo = {};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    vk::FramebufferCreateInfo framebufferInfo{};
     framebufferInfo.renderPass = m_render_pass;
     framebufferInfo.attachmentCount = 1;
     framebufferInfo.pAttachments = attachments;
@@ -249,14 +217,12 @@ void LauncherVulkan::createFramebuffers() {
     framebufferInfo.height = m_swap_chain.extend().height;
     framebufferInfo.layers = 1;
 
-    vkCreateFramebuffer(m_device.get(), &framebufferInfo, nullptr, m_framebuffers[i].replace());
+    m_framebuffers[i] = m_device->createFramebuffer(framebufferInfo);
   }
-
 }
 
-
 void LauncherVulkan::createRenderPass() {
-  vk::AttachmentDescription colorAttachment = {};
+  vk::AttachmentDescription colorAttachment{};
   colorAttachment.format = m_swap_chain.format();
   colorAttachment.samples = vk::SampleCountFlagBits::e1;
 
@@ -269,7 +235,7 @@ void LauncherVulkan::createRenderPass() {
   colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
   colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
 
-  vk::AttachmentReference colorAttachmentRef = {};
+  vk::AttachmentReference colorAttachmentRef{};
   colorAttachmentRef.attachment = 0;
   colorAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;
 
@@ -277,13 +243,13 @@ void LauncherVulkan::createRenderPass() {
   subPass.colorAttachmentCount = 1;
   subPass.pColorAttachments = &colorAttachmentRef;
 
-  vk::RenderPassCreateInfo renderPassInfo = {};
+  vk::RenderPassCreateInfo renderPassInfo{};
   renderPassInfo.attachmentCount = 1;
   renderPassInfo.pAttachments = &colorAttachment;
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subPass;
   
-  vk::SubpassDependency dependency = {};
+  vk::SubpassDependency dependency{};
   dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass = 0;
   dependency.srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
@@ -294,17 +260,16 @@ void LauncherVulkan::createRenderPass() {
   renderPassInfo.dependencyCount = 1;
   renderPassInfo.pDependencies = &dependency;
 
-  vk::RenderPass pass = m_device->createRenderPass(renderPassInfo, nullptr);
-  m_render_pass = pass;
+  m_render_pass = m_device->createRenderPass(renderPassInfo, nullptr);
 }
 
-void LauncherVulkan::createShaderModule(const std::vector<char>& code, Deleter<VkShaderModule>& shaderModule) {
-  VkShaderModuleCreateInfo createInfo = {};
-  createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+vk::ShaderModule LauncherVulkan::createShaderModule(const std::vector<char>& code) {
+  vk::ShaderModuleCreateInfo createInfo{};
   createInfo.codeSize = code.size();
   createInfo.pCode = (uint32_t*) code.data();
+  vk::ShaderModule shaderModule = m_device->createShaderModule(createInfo);
 
-  vkCreateShaderModule(m_device.get(), &createInfo, nullptr, shaderModule.replace());
+  return shaderModule;
 }
 
 void LauncherVulkan::createGraphicsPipeline() {
@@ -314,8 +279,8 @@ void LauncherVulkan::createGraphicsPipeline() {
   Deleter<VkShaderModule> vertShaderModule{m_device.get(), vkDestroyShaderModule};
   Deleter<VkShaderModule> fragShaderModule{m_device.get(), vkDestroyShaderModule};
 
-  createShaderModule(vertShaderCode, vertShaderModule);
-  createShaderModule(fragShaderCode, fragShaderModule);
+  vertShaderModule = createShaderModule(vertShaderCode);
+  fragShaderModule = createShaderModule(fragShaderCode);
 
   vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -337,75 +302,36 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
-  inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-  vk::Viewport viewport = {};
-  viewport.x = 0.0f;
-  viewport.y = 0.0f;
+  vk::Viewport viewport{};
   viewport.width = (float) m_swap_chain.extend().width;
   viewport.height = (float) m_swap_chain.extend().height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   vk::Rect2D scissor{};
-  scissor.offset = vk::Offset2D{0, 0};
   scissor.extent = m_swap_chain.extend();
 
-  vk::PipelineViewportStateCreateInfo viewportState = {};
+  vk::PipelineViewportStateCreateInfo viewportState{};
   viewportState.viewportCount = 1;
   viewportState.pViewports = &viewport;
   viewportState.scissorCount = 1;
   viewportState.pScissors = &scissor;
 
-  vk::PipelineRasterizationStateCreateInfo rasterizer = {};
-  rasterizer.depthClampEnable = VK_FALSE;
-  rasterizer.rasterizerDiscardEnable = VK_FALSE;
-  rasterizer.polygonMode = vk::PolygonMode::eFill;
+  vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = vk::CullModeFlagBits::eBack;
   rasterizer.frontFace = vk::FrontFace::eClockwise;
 
-  rasterizer.depthBiasEnable = VK_FALSE;
-  rasterizer.depthBiasConstantFactor = 0.0f; // Optional
-  rasterizer.depthBiasClamp = 0.0f; // Optional
-  rasterizer.depthBiasSlopeFactor = 0.0f; // Optional
+  vk::PipelineMultisampleStateCreateInfo multisampling{};
 
-  vk::PipelineMultisampleStateCreateInfo multisampling = {};
-  multisampling.sampleShadingEnable = VK_FALSE;
-  multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
-  multisampling.minSampleShading = 1.0f; // Optional
-  multisampling.pSampleMask = nullptr; /// Optional
-  multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
-  multisampling.alphaToOneEnable = VK_FALSE; // Optional
-
-  vk::PipelineColorBlendAttachmentState colorBlendAttachment = {};
+  vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment.blendEnable = VK_FALSE;
-  colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eOne; // Optional
-  colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eZero; // Optional
-  colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd; // Optional
-  colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne; // Optional
-  colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero; // Optional
-  colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd; // Optional
 
-
-  colorBlendAttachment.blendEnable = VK_TRUE;
-  colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
-  colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
-
-  vk::PipelineColorBlendStateCreateInfo colorBlending = {};
-  colorBlending.logicOpEnable = VK_FALSE;
-  colorBlending.logicOp = vk::LogicOp::eCopy; // Optional
+  vk::PipelineColorBlendStateCreateInfo colorBlending{};
   colorBlending.attachmentCount = 1;
   colorBlending.pAttachments = &colorBlendAttachment;
-  colorBlending.blendConstants[0] = 0.0f; // Optional
-  colorBlending.blendConstants[1] = 0.0f; // Optional
-  colorBlending.blendConstants[2] = 0.0f; // Optional
-  colorBlending.blendConstants[3] = 0.0f; // Optional
 
   // VkDynamicState dynamicStates[] = {
   //   VK_DYNAMIC_STATE_VIEWPORT,
@@ -417,17 +343,10 @@ void LauncherVulkan::createGraphicsPipeline() {
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
 
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 0; // Optional
-  pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
-  pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-  pipelineLayoutInfo.pPushConstantRanges = 0; // Optional
+  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+  m_pipeline_layout = m_device->createPipelineLayout(pipelineLayoutInfo);
 
-  vkCreatePipelineLayout(m_device.get(), &pipelineLayoutInfo, nullptr,
-      m_pipeline_layout.replace());
-
-  vk::GraphicsPipelineCreateInfo pipelineInfo = {};
+  vk::GraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.stageCount = 2;
   pipelineInfo.pStages = shaderStages;
 
@@ -448,8 +367,7 @@ void LauncherVulkan::createGraphicsPipeline() {
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
   pipelineInfo.basePipelineIndex = -1; // Optional
 
-  auto pipe = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo);
-  m_pipeline = pipe[0];
+  m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
 }
 
 void LauncherVulkan::createSurface() {
@@ -464,8 +382,6 @@ void LauncherVulkan::mainLoop() {
   update_shader_programs(true);
 
   // enable depth testing
-  // glEnable(GL_DEPTH_TEST);
-  // glDepthFunc(GL_LESS);
   
   // rendering loop
   while (!glfwWindowShouldClose(m_window)) {
@@ -473,7 +389,6 @@ void LauncherVulkan::mainLoop() {
     // query input
     glfwPollEvents();
     // clear buffer
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // draw geometry
     draw();
     // m_application->render();

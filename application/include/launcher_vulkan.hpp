@@ -48,7 +48,7 @@ class LauncherVulkan {
   void createCommandPool();
   void createFramebuffers();
   void createRenderPass();
-  void createShaderModule(const std::vector<char>& code, Deleter<VkShaderModule>& shaderModule);
+  vk::ShaderModule createShaderModule(const std::vector<char>& code);
   void createGraphicsPipeline();
 
   void createSurface();

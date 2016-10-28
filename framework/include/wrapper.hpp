@@ -11,9 +11,13 @@ public:
    :object{VK_NULL_HANDLE}
  {}
 
-  Wrapper(T& t)
-   :object{t} 
-  {}
+  Wrapper(T const& t) = delete;
+
+  Wrapper(T&& t)
+   :Wrapper{} 
+  {
+    swap(t);
+  }
 
   virtual ~Wrapper() {
       cleanup();
@@ -28,6 +32,11 @@ public:
       return &object;
   }
 
+  void replace(T&& rhs) {
+      swap(rhs);
+  }
+  void replace(T const& rhs) = delete;
+
   operator T() const {
       return object;
   }
@@ -40,9 +49,15 @@ public:
     return &object;
   }
 
-  void operator=(T rhs) {
-      cleanup();
-      object = rhs;
+  T& operator=(T rhs) {
+    swap(rhs);
+    return *this;
+  }
+
+  void swap(T& rhs) {
+    cleanup();
+    object = rhs;
+    rhs = VK_NULL_HANDLE;
   }
 
   // template<typename V>
