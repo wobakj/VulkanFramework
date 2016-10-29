@@ -25,11 +25,17 @@ class Device : public WrapDevice {
 
   Device(Device && dev);
 
-   Device& operator=(Device&& dev);
+  Device& operator=(Device&& dev);
 
-   void swap(Device& dev);
+  void swap(Device& dev);
+  // buffer functions
+  std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
+  std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
 
-   vk::PhysicalDevice const& physical() const;
+  void copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size);
+
+  // getter
+  vk::PhysicalDevice const& physical() const;
 
   vk::Queue const& queueGraphics() const;
 

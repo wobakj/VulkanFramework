@@ -404,80 +404,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
 }
 
-uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
-  auto memProperties = device.getMemoryProperties();
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-      return i;
-    }
-  }
-  throw std::runtime_error("failed to find suitable memory type!");
-  return 0;
-}
-
-std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) {
-
-  vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = vk::SharingMode::eExclusive;
-  vk::Buffer buffer = device->createBuffer(bufferInfo);
-
-  auto memRequirements = device->getBufferMemoryRequirements(buffer);
-
-  vk::MemoryAllocateInfo allocInfo{};
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(device.physical(), memRequirements.memoryTypeBits, memProperties);
-  vk::DeviceMemory memory = device->allocateMemory(allocInfo);
-
-  device->bindBufferMemory(buffer, memory, 0);
-  return std::make_pair(buffer, memory);
-}
-
-void copyBuffer(Device const& device, VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) {
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = device.pool();
-  allocInfo.commandBufferCount = 1;
-
-  vk::CommandBuffer commandBuffer = device->allocateCommandBuffers(allocInfo)[0];
-  vk::CommandBufferBeginInfo beginInfo{};
-  beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-
-  commandBuffer.begin(beginInfo);
-  vk::BufferCopy copyRegion{};
-  copyRegion.size = size;
-  commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
-  commandBuffer.end();
-
-  vk::SubmitInfo submitInfo{};
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
-
-  device.queueGraphics().submit(1, &submitInfo, VK_NULL_HANDLE);
-  device.queueGraphics().waitIdle();
-  device->freeCommandBuffers(device.pool(), {commandBuffer});
-}
-
-std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(Device const& device, void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) {
-  Deleter<VkBuffer> buffer_stage{device, vkDestroyBuffer};
-  Deleter<VkDeviceMemory> memory_stage{device, vkFreeMemory};
-  auto buff_mem_stage = createBuffer(device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-  buffer_stage = std::move(buff_mem_stage.first);
-  memory_stage = std::move(buff_mem_stage.second);
-  
-  void* buff_ptr = device->mapMemory(memory_stage.get(), 0, size);
-  std::memcpy(buff_ptr, data, (size_t) size);
-  device->unmapMemory(memory_stage.get());
-
-  auto buff_mem = createBuffer(device, size, usage | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  // m_vertexBuffer = std::move(buff_mem.first);
-  // m_vertexBufferMemory = std::move(buff_mem.second);
-
-  copyBuffer(device, buffer_stage.get(), buff_mem.first, size);
-
-  return buff_mem;
-}
 void LauncherVulkan::createVertexBuffer() {
   std::vector<float> vertex_data{
     0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
@@ -487,7 +413,7 @@ void LauncherVulkan::createVertexBuffer() {
 
   model_test = model{vertex_data, model::POSITION | model::NORMAL};
 
-  auto buff_mem = createBuffer(m_device, model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
+  auto buff_mem = m_device.createBuffer(model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
   m_vertexBuffer = std::move(buff_mem.first);
   m_vertexBufferMemory = std::move(buff_mem.second);
 }
