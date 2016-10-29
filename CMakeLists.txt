@@ -124,7 +124,7 @@ foreach(_SHADER ${SHADERS})
   list(APPEND SHADER_OUTPUTS ${_SHADER_OUT})
   add_custom_command(
     OUTPUT ${_SHADER_OUT}
-    COMMAND "${VULKAN_DIR}/bin/glslangValidator" -V ${_SHADER} -o ${_SHADER_OUT} -s
+    COMMAND "${VULKAN_DIR}/bin/glslangValidator" -V ${_SHADER} -o ${_SHADER_OUT}
     DEPENDS ${_SHADER}
     COMMENT "compiling ${_NAME}.${_EXT} to ${_NAME_OUT}" 
   )

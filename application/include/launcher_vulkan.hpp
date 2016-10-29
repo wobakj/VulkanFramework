@@ -50,7 +50,7 @@ class LauncherVulkan {
   vk::ShaderModule createShaderModule(const std::vector<char>& code);
   void createGraphicsPipeline();
   void recreateSwapChain();
-
+  void createVertexBuffer();
   void createSurface();
   void createInstance();
   // update viewport and field of view
@@ -63,6 +63,7 @@ class LauncherVulkan {
   void show_fps();
   // free resources
   void quit(int status);
+  uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags const& properties);
 
   // vertical field of view of camera
   const float m_camera_fov;
@@ -88,9 +89,10 @@ class LauncherVulkan {
   Deleter<VkPipeline> m_pipeline;
   std::vector<Deleter<VkFramebuffer>> m_framebuffers;
   std::vector<vk::CommandBuffer> m_command_buffers;
-  
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
+  Deleter<VkBuffer> m_vertexBuffer;
+  Deleter<VkDeviceMemory> m_vertexBufferMemory;
   SwapChain m_swap_chain;
   Device m_device;
 

@@ -28,6 +28,39 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+struct Vertex {
+  glm::fvec2 pos;
+  glm::fvec3 color;
+
+  static vk::VertexInputBindingDescription getBindingDescription() {
+    vk::VertexInputBindingDescription bindingDescription{};
+    bindingDescription.binding = 0;
+    bindingDescription.stride = sizeof(Vertex);
+    bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+    return bindingDescription;
+  }
+
+  static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions() {
+    std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
+    attributeDescriptions[0].binding = 0;
+    attributeDescriptions[0].location = 0;
+    attributeDescriptions[0].format = vk::Format::eR32G32Sfloat;
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = vk::Format::eR32G32B32Sfloat;
+    attributeDescriptions[1].offset = offsetof(Vertex, color);
+    return attributeDescriptions;
+  }
+};
+
+const std::vector<Vertex> vertices = {
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
+
 LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
  :m_camera_fov{glm::radians(60.0f)}
  ,m_window_width{640u}
@@ -44,6 +77,8 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
+ ,m_vertexBuffer{m_device, vkDestroyBuffer}
+ ,m_vertexBufferMemory{m_device, vkFreeMemory}
  ,m_device{}
  // ,m_application{}
 {}
@@ -102,6 +137,7 @@ void LauncherVulkan::initialize() {
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
+  createVertexBuffer();
   createCommandBuffers();
   createSemaphores();
 
@@ -200,7 +236,14 @@ void LauncherVulkan::createCommandBuffers() {
     m_command_buffers[i].beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
     m_command_buffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-    m_command_buffers[i].draw(3, 1, 0, 0);
+
+    vk::Buffer vertexBuffers[] = {m_vertexBuffer.get()};
+    vk::DeviceSize offsets[] = {0};
+    m_command_buffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
+
+    m_command_buffers[i].draw(std::uint32_t(vertices.size()), 1, 0, 0);
+
+    // m_command_buffers[i].draw(3, 1, 0, 0);
 
     m_command_buffers[i].endRenderPass();
 
@@ -286,11 +329,14 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
+  auto bindingDescription = Vertex::getBindingDescription();
+  auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.vertexBindingDescriptionCount = 0;
-  vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-  vertexInputInfo.vertexAttributeDescriptionCount = 0;
-  vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+  vertexInputInfo.vertexBindingDescriptionCount = 1;
+  vertexInputInfo.vertexAttributeDescriptionCount = std::uint32_t(attributeDescriptions.size());
+  vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+  vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -360,6 +406,38 @@ void LauncherVulkan::createGraphicsPipeline() {
   pipelineInfo.basePipelineIndex = -1; // Optional
 
   m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
+}
+
+uint32_t LauncherVulkan::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
+  auto memProperties = m_device.physical().getMemoryProperties();
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+    if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+      return i;
+    }
+  }
+  throw std::runtime_error("failed to find suitable memory type!");
+  return 0;
+}
+
+void LauncherVulkan::createVertexBuffer() {
+  vk::BufferCreateInfo bufferInfo{};
+  bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+  bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+  bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+  m_vertexBuffer = m_device->createBuffer(bufferInfo);
+
+  auto memRequirements = m_device->getBufferMemoryRequirements(m_vertexBuffer.get());
+
+  vk::MemoryAllocateInfo allocInfo{};
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  m_vertexBufferMemory = m_device->allocateMemory(allocInfo);
+
+  m_device->bindBufferMemory(m_vertexBuffer.get(), m_vertexBufferMemory.get(), 0);
+
+  void* data = m_device->mapMemory(m_vertexBufferMemory.get(), 0, bufferInfo.size);
+  std::memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+  m_device->unmapMemory(m_vertexBufferMemory.get());
 }
 
 void LauncherVulkan::createSurface() {
