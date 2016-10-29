@@ -39,8 +39,11 @@ class Device : public WrapDevice {
 
   int const& indexPresent() const;
 
+  vk::CommandPool const& pool() const;
+
  private:
   void destroy() override;
+  void createCommandPool();
 
   vk::PhysicalDevice m_phys_device;
   vk::Queue m_queue_graphics;
@@ -48,6 +51,7 @@ class Device : public WrapDevice {
   int m_index_graphics;
   int m_index_present;
   std::vector<const char*> m_extensions;
+  vk::CommandPool m_command_pool;
 };
 
 #endif

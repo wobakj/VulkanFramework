@@ -14,6 +14,7 @@ Device::Device()
  ,m_index_graphics{-1}
  ,m_index_present{-1}
  ,m_extensions{}
+ ,m_command_pool{VK_NULL_HANDLE}
 {}
 
 void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions) {
@@ -49,6 +50,15 @@ void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int presen
   m_queue_graphics = get().getQueue(graphics, 0);
   m_queue_present = get().getQueue(present, 0);
   // throw std::exception();
+
+  createCommandPool();
+}
+
+void Device::createCommandPool() {
+  vk::CommandPoolCreateInfo poolInfo{};
+  poolInfo.queueFamilyIndex = m_index_graphics;
+
+  m_command_pool = get().createCommandPool(poolInfo);
 }
 
 SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
@@ -64,6 +74,7 @@ Device::Device(Device && dev)
  }
 
 void Device::destroy() {
+  get().destroyCommandPool(m_command_pool);
   get().destroy();
 }
 
@@ -81,11 +92,16 @@ void Device::destroy() {
   std::swap(m_index_graphics, dev.m_index_graphics);
   std::swap(m_index_present, dev.m_index_present);
   std::swap(m_extensions, dev.m_extensions);
+  std::swap(m_command_pool, dev.m_command_pool);
  }
 
  vk::PhysicalDevice const& Device::physical() const {
   return m_phys_device;
  }
+
+vk::CommandPool const& Device::pool() const {
+  return m_command_pool;
+}
 
 vk::Queue const& Device::queueGraphics() const {
   return m_queue_graphics;

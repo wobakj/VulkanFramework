@@ -29,9 +29,8 @@ public:
     }
 
     template<typename U, typename V>
-    Deleter(Wrapper<U, V> const& instance, std::function<void(U&, T, VkAllocationCallbacks*)> deletef) {
-        U base = instance.get();
-        this->deleter = [base, deletef](T obj) { std::cout << "deleting from wrapper "<< std::endl; deletef(base, obj, nullptr); };
+    Deleter(Wrapper<U, V> const& base, std::function<void(Wrapper<U, V> const&, T, VkAllocationCallbacks*)> deletef) {
+        this->deleter = [&base, deletef](T obj) { std::cout << "deleting from wrapper "<< std::endl; deletef(base.get(), obj, nullptr); };
     }
 
     // Deleter(Wrapper<VkDevice> const& device, std::function<void(VkDevice const, T, VkAllocationCallbacks*)> deletef) {

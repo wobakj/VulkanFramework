@@ -45,7 +45,6 @@ class LauncherVulkan {
   void draw();
   void createSemaphores();
   void createCommandBuffers();
-  void createCommandPool();
   void createFramebuffers();
   void createRenderPass();
   vk::ShaderModule createShaderModule(const std::vector<char>& code);
@@ -88,7 +87,6 @@ class LauncherVulkan {
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
   std::vector<Deleter<VkFramebuffer>> m_framebuffers;
-  Deleter<VkCommandPool> m_command_pool;
   std::vector<vk::CommandBuffer> m_command_buffers;
   
   Deleter<VkSemaphore> m_sema_image_ready;

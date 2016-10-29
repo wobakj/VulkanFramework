@@ -41,7 +41,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_pipeline_layout{m_device, vkDestroyPipelineLayout}
  ,m_render_pass{m_device, vkDestroyRenderPass}
  ,m_pipeline{m_device, vkDestroyPipeline}
- ,m_command_pool{m_device, vkDestroyCommandPool}
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
@@ -102,7 +101,6 @@ void LauncherVulkan::initialize() {
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
-  createCommandPool();
   createCommandBuffers();
   createSemaphores();
 
@@ -159,18 +157,17 @@ void LauncherVulkan::draw() {
 }
 
 void LauncherVulkan::createSemaphores() {
-  vk::SemaphoreCreateInfo semaphoreInfo;
-  m_sema_image_ready = m_device->createSemaphore(semaphoreInfo);
-  m_sema_render_done = m_device->createSemaphore(semaphoreInfo);
+  m_sema_image_ready = m_device->createSemaphore({});
+  m_sema_render_done = m_device->createSemaphore({});
 }
 
 void LauncherVulkan::createCommandBuffers() {
   if (!m_command_buffers.empty()) {
-    m_device->freeCommandBuffers(m_command_pool.get(), m_command_buffers);
+    m_device->freeCommandBuffers(m_device.pool(), m_command_buffers);
   }
 
   vk::CommandBufferAllocateInfo allocInfo = {};
-  allocInfo.setCommandPool(m_command_pool.get());
+  allocInfo.setCommandPool(m_device.pool());
   allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
   allocInfo.setCommandBufferCount((uint32_t) m_framebuffers.size());
 
@@ -202,13 +199,6 @@ void LauncherVulkan::createCommandBuffers() {
 
     m_command_buffers[i].end();
   }
-}
-
-void LauncherVulkan::createCommandPool() {
-  vk::CommandPoolCreateInfo poolInfo{};
-  poolInfo.queueFamilyIndex = m_device.indexGraphics();
-
-  m_command_pool = m_device->createCommandPool(poolInfo);
 }
 
 void LauncherVulkan::createFramebuffers() {
