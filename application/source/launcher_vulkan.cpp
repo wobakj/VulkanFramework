@@ -459,6 +459,25 @@ void copyBuffer(Device const& device, VkBuffer const& srcBuffer, VkBuffer const&
   device->freeCommandBuffers(device.pool(), {commandBuffer});
 }
 
+std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(Device const& device, void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) {
+  Deleter<VkBuffer> buffer_stage{device, vkDestroyBuffer};
+  Deleter<VkDeviceMemory> memory_stage{device, vkFreeMemory};
+  auto buff_mem_stage = createBuffer(device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  buffer_stage = std::move(buff_mem_stage.first);
+  memory_stage = std::move(buff_mem_stage.second);
+  
+  void* buff_ptr = device->mapMemory(memory_stage.get(), 0, size);
+  std::memcpy(buff_ptr, data, (size_t) size);
+  device->unmapMemory(memory_stage.get());
+
+  auto buff_mem = createBuffer(device, size, usage | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  // m_vertexBuffer = std::move(buff_mem.first);
+  // m_vertexBufferMemory = std::move(buff_mem.second);
+
+  copyBuffer(device, buffer_stage.get(), buff_mem.first, size);
+
+  return buff_mem;
+}
 void LauncherVulkan::createVertexBuffer() {
   std::vector<float> vertex_data{
     0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
@@ -467,23 +486,10 @@ void LauncherVulkan::createVertexBuffer() {
   };
 
   model_test = model{vertex_data, model::POSITION | model::NORMAL};
-  vk::DeviceSize size = model_test.vertex_num * model_test.vertex_bytes;
 
-  Deleter<VkBuffer> buffer_stage{m_device, vkDestroyBuffer};
-  Deleter<VkDeviceMemory> memory_stage{m_device, vkFreeMemory};
-  auto buff_mem_stage = createBuffer(m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-  buffer_stage = std::move(buff_mem_stage.first);
-  memory_stage = std::move(buff_mem_stage.second);
-  
-  void* data = m_device->mapMemory(memory_stage.get(), 0, size);
-  std::memcpy(data, model_test.data.data(), (size_t) size);
-  m_device->unmapMemory(memory_stage.get());
-
-  auto buff_mem = createBuffer(m_device, size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  auto buff_mem = createBuffer(m_device, model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
   m_vertexBuffer = std::move(buff_mem.first);
   m_vertexBufferMemory = std::move(buff_mem.second);
-
-  copyBuffer(m_device, buffer_stage.get(), m_vertexBuffer.get(), size);
 }
 
 void LauncherVulkan::createSurface() {
