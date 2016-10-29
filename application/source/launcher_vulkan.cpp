@@ -1,6 +1,8 @@
 #include "launcher_vulkan.hpp"
-#include <vulkan/vulkan.hpp>
+#include "shader_loader.hpp"
+
 // c++ warpper
+#include <vulkan/vulkan.hpp>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -21,7 +23,6 @@
 std::string resourcePath(int argc, char* argv[]);
 void glfw_error(int error, const char* description);
 void pickPhysicalDevice();
-static std::vector<char> readFile(const std::string& filename);
 
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -123,7 +124,13 @@ void LauncherVulkan::initialize() {
 
 void LauncherVulkan::draw() {
   uint32_t imageIndex;
-  m_device->acquireNextImageKHR(m_swap_chain.get(), std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
+  auto result = m_device->acquireNextImageKHR(m_swap_chain.get(), std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
+  if (result == vk::Result::eErrorOutOfDateKHR) {
+      recreateSwapChain();
+      return;
+  } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+      throw std::runtime_error("failed to acquire swap chain image!");
+  }
 
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
@@ -260,14 +267,12 @@ vk::ShaderModule LauncherVulkan::createShaderModule(const std::vector<char>& cod
 }
 
 void LauncherVulkan::createGraphicsPipeline() {
-  auto vertShaderCode = readFile(m_resource_path + "shaders/simple_vert.spv");
-  auto fragShaderCode = readFile(m_resource_path + "shaders/simple_frag.spv");
 
   Deleter<VkShaderModule> vertShaderModule{m_device, vkDestroyShaderModule};
   Deleter<VkShaderModule> fragShaderModule{m_device, vkDestroyShaderModule};
 
-  vertShaderModule = createShaderModule(vertShaderCode);
-  fragShaderModule = createShaderModule(fragShaderCode);
+  vertShaderModule = shader_loader::module(m_resource_path + "shaders/simple_vert.spv", m_device);
+  fragShaderModule = shader_loader::module(m_resource_path + "shaders/simple_frag.spv", m_device);
 
   vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -497,23 +502,6 @@ void LauncherVulkan::quit(int status) {
 
 void glfw_error(int error, const char* description) {
   std::cerr << "GLFW Error " << error << " : "<< description << std::endl;
-}
-
-static std::vector<char> readFile(const std::string& filename) {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-  if (!file.is_open()) {
-      throw std::runtime_error("failed to open file!");
-  }
-  size_t fileSize = (size_t) file.tellg();
-  std::vector<char> buffer(fileSize);
-
-  file.seekg(0);
-  file.read(buffer.data(), fileSize);
-
-  file.close();
-
-  return buffer;
 }
 
 // exe entry point
