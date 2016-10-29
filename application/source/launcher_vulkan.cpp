@@ -147,10 +147,10 @@ void LauncherVulkan::initialize() {
   glfwSetFramebufferSizeCallback(m_window, resize_func);
 
   // // register key input function
-  // auto key_func = [](GLFWwindow* w, int a, int b, int c, int d) {
-  //       static_cast<LauncherVulkan*>(glfwGetWindowUserPointer(w))->key_callback(w, a, b, c, d);
-  // };
-  // glfwSetKeyCallback(m_window, key_func);
+  auto key_func = [](GLFWwindow* w, int a, int b, int c, int d) {
+        static_cast<LauncherVulkan*>(glfwGetWindowUserPointer(w))->key_callback(w, a, b, c, d);
+  };
+  glfwSetKeyCallback(m_window, key_func);
   // // allow free mouse movement
   // glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
@@ -404,8 +404,8 @@ void LauncherVulkan::createGraphicsPipeline() {
   m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
 }
 
-uint32_t LauncherVulkan::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
-  auto memProperties = m_device.physical().getMemoryProperties();
+uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
+  auto memProperties = device.getMemoryProperties();
   for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
     if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
       return i;
@@ -415,33 +415,75 @@ uint32_t LauncherVulkan::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyF
   return 0;
 }
 
-void LauncherVulkan::createVertexBuffer() {
-  std::vector<float> vertex_data{
-  0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
-  0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
-  -0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0
-};
-
-  model_test = model{vertex_data, model::POSITION | model::NORMAL};
+std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) {
 
   vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.size = model_test.vertex_num * model_test.vertex_bytes;
-  bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+  bufferInfo.size = size;
+  bufferInfo.usage = usage;
   bufferInfo.sharingMode = vk::SharingMode::eExclusive;
-  m_vertexBuffer = m_device->createBuffer(bufferInfo);
+  vk::Buffer buffer = device->createBuffer(bufferInfo);
 
-  auto memRequirements = m_device->getBufferMemoryRequirements(m_vertexBuffer.get());
+  auto memRequirements = device->getBufferMemoryRequirements(buffer);
 
   vk::MemoryAllocateInfo allocInfo{};
   allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-  m_vertexBufferMemory = m_device->allocateMemory(allocInfo);
+  allocInfo.memoryTypeIndex = findMemoryType(device.physical(), memRequirements.memoryTypeBits, memProperties);
+  vk::DeviceMemory memory = device->allocateMemory(allocInfo);
 
-  m_device->bindBufferMemory(m_vertexBuffer.get(), m_vertexBufferMemory.get(), 0);
+  device->bindBufferMemory(buffer, memory, 0);
+  return std::make_pair(buffer, memory);
+}
 
-  void* data = m_device->mapMemory(m_vertexBufferMemory.get(), 0, bufferInfo.size);
-  std::memcpy(data, model_test.data.data(), (size_t) bufferInfo.size);
-  m_device->unmapMemory(m_vertexBufferMemory.get());
+void copyBuffer(Device const& device, VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) {
+  vk::CommandBufferAllocateInfo allocInfo{};
+  allocInfo.level = vk::CommandBufferLevel::ePrimary;
+  allocInfo.commandPool = device.pool();
+  allocInfo.commandBufferCount = 1;
+
+  vk::CommandBuffer commandBuffer = device->allocateCommandBuffers(allocInfo)[0];
+  vk::CommandBufferBeginInfo beginInfo{};
+  beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
+  commandBuffer.begin(beginInfo);
+  vk::BufferCopy copyRegion{};
+  copyRegion.size = size;
+  commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
+  commandBuffer.end();
+
+  vk::SubmitInfo submitInfo{};
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffer;
+
+  device.queueGraphics().submit(1, &submitInfo, VK_NULL_HANDLE);
+  device.queueGraphics().waitIdle();
+  device->freeCommandBuffers(device.pool(), {commandBuffer});
+}
+
+void LauncherVulkan::createVertexBuffer() {
+  std::vector<float> vertex_data{
+    0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
+    0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
+    -0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0
+  };
+
+  model_test = model{vertex_data, model::POSITION | model::NORMAL};
+  vk::DeviceSize size = model_test.vertex_num * model_test.vertex_bytes;
+
+  Deleter<VkBuffer> buffer_stage{m_device, vkDestroyBuffer};
+  Deleter<VkDeviceMemory> memory_stage{m_device, vkFreeMemory};
+  auto buff_mem_stage = createBuffer(m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  buffer_stage = std::move(buff_mem_stage.first);
+  memory_stage = std::move(buff_mem_stage.second);
+  
+  void* data = m_device->mapMemory(memory_stage.get(), 0, size);
+  std::memcpy(data, model_test.data.data(), (size_t) size);
+  m_device->unmapMemory(memory_stage.get());
+
+  auto buff_mem = createBuffer(m_device, size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_vertexBuffer = std::move(buff_mem.first);
+  m_vertexBufferMemory = std::move(buff_mem.second);
+
+  copyBuffer(m_device, buffer_stage.get(), m_vertexBuffer.get(), size);
 }
 
 void LauncherVulkan::createSurface() {
@@ -553,7 +595,7 @@ void LauncherVulkan::key_callback(GLFWwindow* m_window, int key, int scancode, i
     glfwSetWindowShouldClose(m_window, 1);
   }
   else if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-    update_shader_programs(false);
+    // update_shader_programs(false);
   }
 }
 

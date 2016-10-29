@@ -32,6 +32,7 @@ class GLFWwindow;
 //     std::vector<vk::SurfaceFormatKHR> formats;
 //     std::vector<vk::PresentModeKHR> presentModes;
 // };
+uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties);
 
 class LauncherVulkan {
  public:
@@ -63,7 +64,6 @@ class LauncherVulkan {
   void show_fps();
   // free resources
   void quit(int status);
-  uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags const& properties);
 
   // vertical field of view of camera
   const float m_camera_fov;
