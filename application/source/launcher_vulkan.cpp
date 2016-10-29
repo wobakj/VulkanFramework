@@ -24,39 +24,6 @@
 // helper functions
 std::string resourcePath(int argc, char* argv[]);
 void glfw_error(int error, const char* description);
-void pickPhysicalDevice();
-
-const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-model_t model_test{};
-
-vk::VertexInputBindingDescription model_to_bind(model_t const& m) {
-  vk::VertexInputBindingDescription bindingDescription{};
-  bindingDescription.binding = 0;
-  bindingDescription.stride = m.vertex_bytes;
-  bindingDescription.inputRate = vk::VertexInputRate::eVertex;
-  return bindingDescription;  
-}
-
-std::vector<vk::VertexInputAttributeDescription> model_to_attr(model_t const& model_) {
-  std::vector<vk::VertexInputAttributeDescription> attributeDescriptions{};
-
-  int attrib_index = 0;
-  for(model_t::attribute const& attribute : model_t::VERTEX_ATTRIBS) {
-    if(model_.offsets.find(attribute) != model_.offsets.end()) {
-      vk::VertexInputAttributeDescription desc{};
-      desc.binding = 0;
-      desc.location = attrib_index;
-      desc.format = attribute.type;
-      desc.offset = model_.offsets.at(attribute);
-      attributeDescriptions.emplace_back(std::move(desc));
-      ++attrib_index;
-    }
-  }
-  return attributeDescriptions;  
-}
 
 LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
  :m_camera_fov{glm::radians(60.0f)}
@@ -125,6 +92,10 @@ void LauncherVulkan::initialize() {
 
   m_instance.create();
   createSurface();
+
+  std::vector<const char*> deviceExtensions = {
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME
+  };
   m_device = m_instance.createLogicalDevice(vk::SurfaceKHR{m_surface}, deviceExtensions);
 
   m_swap_chain = m_device.createSwapChain(vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height});
@@ -232,13 +203,11 @@ void LauncherVulkan::createCommandBuffers() {
 
     m_command_buffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
 
-    vk::Buffer vertexBuffers[] = {m_buffer_vertex};
-    // vk::Buffer vertexBuffers[] = {m_vertexBuffer.get()};
-    vk::DeviceSize offsets[] = {0};
-    m_command_buffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
-    m_command_buffers[i].bindIndexBuffer(m_buffer_index, 0, vk::IndexType::eUint32);
+    m_command_buffers[i].bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
 
-    m_command_buffers[i].drawIndexed(std::uint32_t(model_test.indices.size()), 1, 0, 0, 0);
+    m_command_buffers[i].bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
+
+    m_command_buffers[i].drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
     // m_command_buffers[i].draw(model_test.vertex_num, 1, 0, 0);
 
     m_command_buffers[i].endRenderPass();
@@ -296,15 +265,6 @@ void LauncherVulkan::createRenderPass() {
   m_render_pass = m_device->createRenderPass(renderPassInfo, nullptr);
 }
 
-vk::ShaderModule LauncherVulkan::createShaderModule(const std::vector<char>& code) {
-  vk::ShaderModuleCreateInfo createInfo{};
-  createInfo.codeSize = code.size();
-  createInfo.pCode = (uint32_t*) code.data();
-  vk::ShaderModule shaderModule = m_device->createShaderModule(createInfo);
-
-  return shaderModule;
-}
-
 void LauncherVulkan::createGraphicsPipeline() {
 
   Deleter<VkShaderModule> vertShaderModule{m_device, vkDestroyShaderModule};
@@ -324,16 +284,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   fragShaderStageInfo.pName = "main";
 
   vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-
-  auto bindingDescription = model_to_bind(model_test);
-  auto attributeDescriptions = model_to_attr(model_test);
-
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
-  vertexInputInfo.vertexAttributeDescriptionCount = std::uint32_t(attributeDescriptions.size());
-  vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-  vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -385,7 +335,8 @@ void LauncherVulkan::createGraphicsPipeline() {
   pipelineInfo.stageCount = 2;
   pipelineInfo.pStages = shaderStages;
 
-  pipelineInfo.pVertexInputState = &vertexInputInfo;
+  auto vert_info = m_model.inputInfo();
+  pipelineInfo.pVertexInputState = &vert_info;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
   pipelineInfo.pViewportState = &viewportState;
   pipelineInfo.pRasterizationState = &rasterizer;
@@ -415,10 +366,8 @@ void LauncherVulkan::createVertexBuffer() {
     0, 1, 2
   };
 
-  model_test = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
-
-  m_buffer_vertex = m_device.createBuffer(model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
-  m_buffer_index = m_device.createBuffer(model_test.indices.data(), model_test.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer);
+  model_t tri = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
+  m_model = Model{m_device, tri};
 }
 
 void LauncherVulkan::createSurface() {

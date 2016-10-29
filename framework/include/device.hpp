@@ -30,8 +30,8 @@ class Device : public WrapDevice {
 
   void swap(Device& dev);
   // buffer functions
-  Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
-  Buffer createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
+  Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const;
+  Buffer createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const;
 
   void copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) const;
 

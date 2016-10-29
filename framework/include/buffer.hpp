@@ -15,13 +15,10 @@ class Buffer : public WrapperBuffer {
   Buffer();
   Buffer(Device const& dev, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
   Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
-  Buffer(Buffer const&) = delete;
-  Buffer& operator=(Buffer const&) = delete;
-
-  void create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions);
-  
   Buffer(Buffer && dev);
-
+  Buffer(Buffer const&) = delete;
+  
+  Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);
 
   void swap(Buffer& dev);

@@ -120,19 +120,7 @@ int const& Device::indexPresent() const {
   return m_index_present;
 }
 
-
-uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
-  auto memProperties = device.getMemoryProperties();
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-      return i;
-    }
-  }
-  throw std::runtime_error("failed to find suitable memory type!");
-  return 0;
-}
-
-Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) {
+Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const {
   return Buffer{*this, size, usage, memProperties};
 }
 
@@ -161,6 +149,6 @@ void Device::copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, Vk
   get().freeCommandBuffers(pool(), {commandBuffer});
 }
 
-Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) {
+Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
   return Buffer{*this, data, size, usage};
 }

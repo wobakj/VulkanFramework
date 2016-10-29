@@ -6,6 +6,7 @@
 #include "deleter.hpp"
 #include "wrapper.hpp"
 #include "device.hpp"
+#include "model.hpp"
 #include "instance.hpp"
 #include "buffer.hpp"
 #include "debug_reporter.hpp"
@@ -49,7 +50,6 @@ class LauncherVulkan {
   void createCommandBuffers();
   void createFramebuffers();
   void createRenderPass();
-  vk::ShaderModule createShaderModule(const std::vector<char>& code);
   void createGraphicsPipeline();
   void recreateSwapChain();
   void createVertexBuffer();
@@ -92,10 +92,9 @@ class LauncherVulkan {
   std::vector<vk::CommandBuffer> m_command_buffers;
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
-  Buffer m_buffer_vertex;
-  Buffer m_buffer_index;
   SwapChain m_swap_chain;
   Device m_device;
+  Model m_model;
 
   // Application* m_application;
 };
