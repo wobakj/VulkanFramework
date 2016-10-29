@@ -1,5 +1,7 @@
 #include "launcher_vulkan.hpp"
+
 #include "shader_loader.hpp"
+#include "model.hpp"
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>
@@ -28,38 +30,33 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-struct Vertex {
-  glm::fvec2 pos;
-  glm::fvec3 color;
+model model_test{};
 
-  static vk::VertexInputBindingDescription getBindingDescription() {
-    vk::VertexInputBindingDescription bindingDescription{};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof(Vertex);
-    bindingDescription.inputRate = vk::VertexInputRate::eVertex;
-    return bindingDescription;
+vk::VertexInputBindingDescription model_to_bind(model const& m) {
+  vk::VertexInputBindingDescription bindingDescription{};
+  bindingDescription.binding = 0;
+  bindingDescription.stride = m.vertex_bytes;
+  bindingDescription.inputRate = vk::VertexInputRate::eVertex;
+  return bindingDescription;  
+}
+
+std::vector<vk::VertexInputAttributeDescription> model_to_attr(model const& model_) {
+  std::vector<vk::VertexInputAttributeDescription> attributeDescriptions{};
+
+  int attrib_index = 0;
+  for(model::attribute const& attribute : model::VERTEX_ATTRIBS) {
+    if(model_.offsets.find(attribute) != model_.offsets.end()) {
+      vk::VertexInputAttributeDescription desc{};
+      desc.binding = 0;
+      desc.location = attrib_index;
+      desc.format = attribute.type;
+      desc.offset = model_.offsets.at(attribute);
+      attributeDescriptions.emplace_back(std::move(desc));
+      ++attrib_index;
+    }
   }
-
-  static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions() {
-    std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = vk::Format::eR32G32Sfloat;
-    attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = vk::Format::eR32G32B32Sfloat;
-    attributeDescriptions[1].offset = offsetof(Vertex, color);
-    return attributeDescriptions;
-  }
-};
-
-const std::vector<Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
-};
+  return attributeDescriptions;  
+}
 
 LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
  :m_camera_fov{glm::radians(60.0f)}
@@ -135,9 +132,9 @@ void LauncherVulkan::initialize() {
   m_swap_chain = m_device.createSwapChain(vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height});
 
   createRenderPass();
+  createVertexBuffer();
   createGraphicsPipeline();
   createFramebuffers();
-  createVertexBuffer();
   createCommandBuffers();
   createSemaphores();
 
@@ -241,9 +238,7 @@ void LauncherVulkan::createCommandBuffers() {
     vk::DeviceSize offsets[] = {0};
     m_command_buffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
 
-    m_command_buffers[i].draw(std::uint32_t(vertices.size()), 1, 0, 0);
-
-    // m_command_buffers[i].draw(3, 1, 0, 0);
+    m_command_buffers[i].draw(model_test.vertex_num, 1, 0, 0);
 
     m_command_buffers[i].endRenderPass();
 
@@ -329,8 +324,9 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-  auto bindingDescription = Vertex::getBindingDescription();
-  auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
+  auto bindingDescription = model_to_bind(model_test);
+  auto attributeDescriptions = model_to_attr(model_test);
 
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -420,8 +416,16 @@ uint32_t LauncherVulkan::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyF
 }
 
 void LauncherVulkan::createVertexBuffer() {
+  std::vector<float> vertex_data{
+  0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
+  0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
+  -0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0
+};
+
+  model_test = model{vertex_data, model::POSITION | model::NORMAL};
+
   vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+  bufferInfo.size = model_test.vertex_num * model_test.vertex_bytes;
   bufferInfo.usage = vk::BufferUsageFlagBits::eVertexBuffer;
   bufferInfo.sharingMode = vk::SharingMode::eExclusive;
   m_vertexBuffer = m_device->createBuffer(bufferInfo);
@@ -436,7 +440,7 @@ void LauncherVulkan::createVertexBuffer() {
   m_device->bindBufferMemory(m_vertexBuffer.get(), m_vertexBufferMemory.get(), 0);
 
   void* data = m_device->mapMemory(m_vertexBufferMemory.get(), 0, bufferInfo.size);
-  std::memcpy(data, vertices.data(), (size_t) bufferInfo.size);
+  std::memcpy(data, model_test.data.data(), (size_t) bufferInfo.size);
   m_device->unmapMemory(m_vertexBufferMemory.get());
 }
 

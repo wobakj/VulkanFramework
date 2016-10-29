@@ -14,7 +14,7 @@ struct model {
   // type holding info about a vertex/model attribute
   struct attribute {
 
-    attribute(attrib_flag_t f, std::size_t s, vk::Format t)
+    attribute(attrib_flag_t f, std::uint32_t s, vk::Format t)
      :flag{f}
      ,size{s}
      ,type{t}
@@ -28,7 +28,7 @@ struct model {
     // ugly enum to use as flag, must be unique power of two
     attrib_flag_t flag;
     // size in bytes
-    std::size_t size;
+    std::uint32_t size;
     // Gl type
     vk::Format type;
     // offset from element beginning
@@ -52,10 +52,10 @@ struct model {
   std::vector<float> data;
   std::vector<std::uint32_t> indices;
   // byte offsets of individual element attributes
-  std::map<attrib_flag_t, void*> offsets;
+  std::map<attrib_flag_t, std::uint32_t> offsets;
   // size of one vertex element in bytes
-  std::size_t vertex_bytes;
-  std::size_t vertex_num;
+  std::uint32_t vertex_bytes;
+  std::uint32_t vertex_num;
 };
 
 #endif
