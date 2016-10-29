@@ -1,7 +1,7 @@
 #include "launcher_vulkan.hpp"
 
 #include "shader_loader.hpp"
-#include "model.hpp"
+#include "model_t.hpp"
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>
@@ -30,9 +30,9 @@ const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-model model_test{};
+model_t model_test{};
 
-vk::VertexInputBindingDescription model_to_bind(model const& m) {
+vk::VertexInputBindingDescription model_to_bind(model_t const& m) {
   vk::VertexInputBindingDescription bindingDescription{};
   bindingDescription.binding = 0;
   bindingDescription.stride = m.vertex_bytes;
@@ -40,11 +40,11 @@ vk::VertexInputBindingDescription model_to_bind(model const& m) {
   return bindingDescription;  
 }
 
-std::vector<vk::VertexInputAttributeDescription> model_to_attr(model const& model_) {
+std::vector<vk::VertexInputAttributeDescription> model_to_attr(model_t const& model_) {
   std::vector<vk::VertexInputAttributeDescription> attributeDescriptions{};
 
   int attrib_index = 0;
-  for(model::attribute const& attribute : model::VERTEX_ATTRIBS) {
+  for(model_t::attribute const& attribute : model_t::VERTEX_ATTRIBS) {
     if(model_.offsets.find(attribute) != model_.offsets.end()) {
       vk::VertexInputAttributeDescription desc{};
       desc.binding = 0;
@@ -415,10 +415,10 @@ void LauncherVulkan::createVertexBuffer() {
     0, 1, 2
   };
 
-  model_test = model{vertex_data, model::POSITION | model::NORMAL, indices};
+  model_test = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
 
   m_buffer_vertex = m_device.createBuffer(model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
-  m_buffer_index = m_device.createBuffer(model_test.indices.data(), model_test.indices.size() * model::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer);
+  m_buffer_index = m_device.createBuffer(model_test.indices.data(), model_test.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer);
 }
 
 void LauncherVulkan::createSurface() {

@@ -10,9 +10,9 @@ namespace model_loader {
 
 void generate_normals(tinyobj::mesh_t& model);
 
-std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model);
+std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model_t);
 
-model obj(std::string const& name, model::attrib_flag_t import_attribs){
+model_t obj(std::string const& name, model_t::attrib_flag_t import_attribs){
   std::vector<tinyobj::shape_t> shapes;
   std::vector<tinyobj::material_t> materials;
 
@@ -27,7 +27,7 @@ model obj(std::string const& name, model::attrib_flag_t import_attribs){
     }
   }
 
-  model::attrib_flag_t attributes{model::POSITION | import_attribs};
+  model_t::attrib_flag_t attributes{model_t::POSITION | import_attribs};
 
   std::vector<float> vertex_data;
   std::vector<unsigned> triangles;
@@ -37,7 +37,7 @@ model obj(std::string const& name, model::attrib_flag_t import_attribs){
   for (auto& shape : shapes) {
     tinyobj::mesh_t& curr_mesh = shape.mesh;
     // prevent MSVC warning due to Win BOOL implementation
-    bool has_normals = (import_attribs & model::NORMAL) != 0;
+    bool has_normals = (import_attribs & model_t::NORMAL) != 0;
     if(has_normals) {
       // generate normals if necessary
       if (curr_mesh.normals.empty()) {
@@ -45,21 +45,21 @@ model obj(std::string const& name, model::attrib_flag_t import_attribs){
       }
     }
 
-    bool has_uvs = (import_attribs & model::TEXCOORD) != 0;
+    bool has_uvs = (import_attribs & model_t::TEXCOORD) != 0;
     if(has_uvs) {
       if (curr_mesh.texcoords.empty()) {
         has_uvs = false;
-        attributes ^= model::TEXCOORD;
+        attributes ^= model_t::TEXCOORD;
         std::cerr << "Shape has no texcoords" << std::endl;
       }
     }
 
-    bool has_tangents = import_attribs & model::TANGENT;
+    bool has_tangents = import_attribs & model_t::TANGENT;
     std::vector<glm::fvec3> tangents;
     if (has_tangents) {
       if (!has_uvs) {
         has_tangents = false;
-        attributes ^= model::TANGENT;
+        attributes ^= model_t::TANGENT;
         std::cerr << "Shape has no texcoords" << std::endl;
       }
       else {
@@ -99,7 +99,7 @@ model obj(std::string const& name, model::attrib_flag_t import_attribs){
     vertex_offset += unsigned(curr_mesh.positions.size() / 3);
   }
 
-  return model{vertex_data, attributes, triangles};
+  return model_t{vertex_data, attributes, triangles};
 }
 
 void generate_normals(tinyobj::mesh_t& model) {
