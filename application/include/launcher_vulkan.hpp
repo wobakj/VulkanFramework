@@ -7,6 +7,7 @@
 #include "wrapper.hpp"
 #include "device.hpp"
 #include "instance.hpp"
+#include "buffer.hpp"
 #include "debug_reporter.hpp"
 #include "swap_chain.hpp"
 
@@ -91,8 +92,7 @@ class LauncherVulkan {
   std::vector<vk::CommandBuffer> m_command_buffers;
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
-  Deleter<VkBuffer> m_vertexBuffer;
-  Deleter<VkDeviceMemory> m_vertexBufferMemory;
+  Buffer m_buffer_vertex;
   SwapChain m_swap_chain;
   Device m_device;
 

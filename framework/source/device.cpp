@@ -1,9 +1,10 @@
 #include "device.hpp"
 
+#include "buffer.hpp"
+#include "swap_chain.hpp"
+
 #include <vulkan/vulkan.hpp>
 #include <iostream>
-#include "device.hpp"
-#include "swap_chain.hpp"
 #include <vector>
 #include <set>
 
@@ -131,26 +132,11 @@ uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, v
   return 0;
 }
 
-std::pair<vk::Buffer, vk::DeviceMemory> Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) {
-
-  vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = vk::SharingMode::eExclusive;
-  vk::Buffer buffer = get().createBuffer(bufferInfo);
-
-  auto memRequirements = get().getBufferMemoryRequirements(buffer);
-
-  vk::MemoryAllocateInfo allocInfo{};
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(physical(), memRequirements.memoryTypeBits, memProperties);
-  vk::DeviceMemory memory = get().allocateMemory(allocInfo);
-
-  get().bindBufferMemory(buffer, memory, 0);
-  return std::make_pair(buffer, memory);
+Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) {
+  return Buffer{*this, size, usage, memProperties};
 }
 
-void Device::copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) {
+void Device::copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) const {
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
   allocInfo.commandPool = pool();
@@ -175,22 +161,6 @@ void Device::copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, Vk
   get().freeCommandBuffers(pool(), {commandBuffer});
 }
 
-std::pair<vk::Buffer, vk::DeviceMemory> Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) {
-  Deleter<VkBuffer> buffer_stage{*this, vkDestroyBuffer};
-  Deleter<VkDeviceMemory> memory_stage{*this, vkFreeMemory};
-  auto buff_mem_stage = createBuffer(size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-  buffer_stage = std::move(buff_mem_stage.first);
-  memory_stage = std::move(buff_mem_stage.second);
-  
-  void* buff_ptr = get().mapMemory(memory_stage.get(), 0, size);
-  std::memcpy(buff_ptr, data, (size_t) size);
-  get().unmapMemory(memory_stage.get());
-
-  auto buff_mem = createBuffer(size, usage | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  // m_vertexBuffer = std::move(buff_mem.first);
-  // m_vertexBufferMemory = std::move(buff_mem.second);
-
-  copyBuffer(buffer_stage.get(), buff_mem.first, size);
-
-  return buff_mem;
+Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) {
+  return Buffer{*this, data, size, usage};
 }

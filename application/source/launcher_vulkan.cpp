@@ -74,8 +74,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
- ,m_vertexBuffer{m_device, vkDestroyBuffer}
- ,m_vertexBufferMemory{m_device, vkFreeMemory}
  ,m_device{}
  // ,m_application{}
 {}
@@ -234,7 +232,8 @@ void LauncherVulkan::createCommandBuffers() {
 
     m_command_buffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
 
-    vk::Buffer vertexBuffers[] = {m_vertexBuffer.get()};
+    vk::Buffer vertexBuffers[] = {m_buffer_vertex};
+    // vk::Buffer vertexBuffers[] = {m_vertexBuffer.get()};
     vk::DeviceSize offsets[] = {0};
     m_command_buffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
 
@@ -413,9 +412,7 @@ void LauncherVulkan::createVertexBuffer() {
 
   model_test = model{vertex_data, model::POSITION | model::NORMAL};
 
-  auto buff_mem = m_device.createBuffer(model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
-  m_vertexBuffer = std::move(buff_mem.first);
-  m_vertexBufferMemory = std::move(buff_mem.second);
+  m_buffer_vertex = m_device.createBuffer(model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
 }
 
 void LauncherVulkan::createSurface() {

@@ -9,6 +9,7 @@
 #include <set>
 
 class SwapChain;
+class Buffer;
 
 using WrapDevice = Wrapper<vk::Device, vk::DeviceCreateInfo>;
 class Device : public WrapDevice {
@@ -29,10 +30,10 @@ class Device : public WrapDevice {
 
   void swap(Device& dev);
   // buffer functions
-  std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
-  std::pair<vk::Buffer, vk::DeviceMemory> createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
+  Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
+  Buffer createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
 
-  void copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size);
+  void copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) const;
 
   // getter
   vk::PhysicalDevice const& physical() const;
