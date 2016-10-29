@@ -73,7 +73,7 @@ void LauncherVulkan::initialize() {
   }
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+  // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   // create m_window, if unsuccessfull, quit
   m_window = glfwCreateWindow(m_window_width, m_window_height, "Vulkan Framework", NULL, NULL);
   if (!m_window) {
@@ -107,7 +107,13 @@ void LauncherVulkan::initialize() {
   createSemaphores();
 
   // // set user pointer to access this instance statically
-  // glfwSetWindowUserPointer(m_window, this);
+  glfwSetWindowUserPointer(m_window, this);
+  // register resizing function
+  auto resize_func = [](GLFWwindow* w, int a, int b) {
+        static_cast<LauncherVulkan*>(glfwGetWindowUserPointer(w))->update_projection(w, a, b);
+  };
+  glfwSetFramebufferSizeCallback(m_window, resize_func);
+
   // // register key input function
   // auto key_func = [](GLFWwindow* w, int a, int b, int c, int d) {
   //       static_cast<LauncherVulkan*>(glfwGetWindowUserPointer(w))->key_callback(w, a, b, c, d);
@@ -159,6 +165,10 @@ void LauncherVulkan::createSemaphores() {
 }
 
 void LauncherVulkan::createCommandBuffers() {
+  if (!m_command_buffers.empty()) {
+    m_device->freeCommandBuffers(m_command_pool.get(), m_command_buffers);
+  }
+
   vk::CommandBufferAllocateInfo allocInfo = {};
   allocInfo.setCommandPool(m_command_pool.get());
   allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
@@ -263,8 +273,8 @@ void LauncherVulkan::createGraphicsPipeline() {
   auto vertShaderCode = readFile(m_resource_path + "shaders/simple_vert.spv");
   auto fragShaderCode = readFile(m_resource_path + "shaders/simple_frag.spv");
 
-  Deleter<VkShaderModule> vertShaderModule{m_device.get(), vkDestroyShaderModule};
-  Deleter<VkShaderModule> fragShaderModule{m_device.get(), vkDestroyShaderModule};
+  Deleter<VkShaderModule> vertShaderModule{m_device, vkDestroyShaderModule};
+  Deleter<VkShaderModule> fragShaderModule{m_device, vkDestroyShaderModule};
 
   vertShaderModule = createShaderModule(vertShaderCode);
   fragShaderModule = createShaderModule(fragShaderCode);
@@ -388,11 +398,23 @@ void LauncherVulkan::mainLoop() {
   quit(EXIT_SUCCESS);
 }
 
+
+void LauncherVulkan::recreateSwapChain() {
+  m_device->waitIdle();
+
+  m_swap_chain.recreate(vk::Extent2D{m_window_width, m_window_height});
+  createRenderPass();
+  createGraphicsPipeline();
+  createFramebuffers();
+  createCommandBuffers();
+}
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view
 void LauncherVulkan::update_projection(GLFWwindow* m_window, int width, int height) {
   // resize framebuffer
   // glViewport(0, 0, width, height);
+  m_window_width = width;
+  m_window_height = height;
 
   float aspect = float(width) / float(height);
   float fov_y = m_camera_fov;
@@ -402,6 +424,10 @@ void LauncherVulkan::update_projection(GLFWwindow* m_window, int width, int heig
   }
   // projection is hor+ 
   glm::fmat4 camera_projection = glm::perspective(fov_y, aspect, 0.1f, 10.0f);
+
+  if (width > 0 && height > 0) {
+    recreateSwapChain();
+  }
   // upload matrix to gpu
   // m_application->setProjection(camera_projection);
 }

@@ -53,7 +53,7 @@ void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int presen
 
 SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
   SwapChain chain{};
-  chain.create(get(), m_phys_device, surf, extend);
+  chain.create(*this, m_phys_device, surf, extend);
   return chain; 
 }
 

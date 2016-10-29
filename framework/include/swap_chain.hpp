@@ -3,6 +3,7 @@
 
 #include "deleter.hpp"
 #include "wrapper.hpp"
+#include "device.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <iostream>
@@ -164,9 +165,9 @@ class SwapChain : public WrapperSwap {
   SwapChain(SwapChain const&) = delete;
   SwapChain& operator=(SwapChain const&) = delete;
 
-  SwapChain(vk::Device dev = VK_NULL_HANDLE, vk::PhysicalDevice phys_dev = VK_NULL_HANDLE, vk::SurfaceKHR surface = VK_NULL_HANDLE, VkExtent2D extent = {0,0})
+  SwapChain()
    :WrapperSwap{}
-   ,m_device{dev}
+   ,m_device{nullptr}
    // ,m_images_swap{}
    ,m_views_swap{}
   {}
@@ -186,12 +187,11 @@ class SwapChain : public WrapperSwap {
     WrapperSwap::swap(chain);
     std::swap(m_device, chain.m_device);
     std::swap(m_phys_device, chain.m_phys_device);
-    // std::swap(m_images_swap, chain.m_images_swap);
     std::swap(m_views_swap, chain.m_views_swap);
    }
 
-  void create(vk::Device dev, vk::PhysicalDevice phys_device, vk::SurfaceKHR surface, VkExtent2D extent) {
-    m_device = dev;
+  void create(Device const& dev, vk::PhysicalDevice const& phys_device, vk::SurfaceKHR const& surface, VkExtent2D const& extent) {
+    m_device = &dev;
     info().surface = surface;
     m_phys_device = phys_device;
 
@@ -237,16 +237,17 @@ class SwapChain : public WrapperSwap {
     info().imageExtent = chooseSwapExtent(swapChainSupport.capabilities, extent);
     // set chain to replace
     info().oldSwapchain = get();
-    auto new_chain = m_device.createSwapchainKHR(info(), nullptr);
+    auto new_chain = (*m_device)->createSwapchainKHR(info(), nullptr);
     // destroy old chain
     replace(std::move(new_chain));
 
-    auto m_images_swap = m_device.getSwapchainImagesKHR(get());
+    auto m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
     auto image_info = chain_to_img(info());
 
-    m_views_swap = {m_images_swap.size(), Deleter<VkImageView>{m_device, vkDestroyImageView}};
+    m_views_swap.clear();
+    m_views_swap = {m_images_swap.size(), Deleter<VkImageView>{*m_device, vkDestroyImageView}};
     for (uint32_t i = 0; i < m_images_swap.size(); i++) {
-      m_views_swap[i] = createImageView(m_device, m_images_swap[i], image_info);
+      m_views_swap[i] = createImageView(*m_device, m_images_swap[i], image_info);
     }
   }
 
@@ -276,12 +277,12 @@ class SwapChain : public WrapperSwap {
  private:
 
   void destroy() override { 
-    m_device.destroySwapchainKHR(get());
+    (*m_device)->destroySwapchainKHR(get());
   }
 
-  vk::Device m_device;
+  // vk::Device m_device;
+  Device const* m_device;
   vk::PhysicalDevice m_phys_device;
-  // std::vector<vk::Image> m_images_swap;
   std::vector<Deleter<VkImageView>> m_views_swap;
 };
 

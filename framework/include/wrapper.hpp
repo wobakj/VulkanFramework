@@ -29,9 +29,9 @@ public:
     cleanup();
   }
 
-  const T* operator &() const {
-    return &m_object;
-  }
+  // const T* operator &() const {
+  //   return &m_object;
+  // }
 
   T* replace() {
     cleanup();

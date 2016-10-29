@@ -50,6 +50,7 @@ class LauncherVulkan {
   void createRenderPass();
   vk::ShaderModule createShaderModule(const std::vector<char>& code);
   void createGraphicsPipeline();
+  void recreateSwapChain();
 
   void createSurface();
   void createInstance();
@@ -68,8 +69,8 @@ class LauncherVulkan {
   const float m_camera_fov;
 
   // initial window dimensions
-  const unsigned m_window_width;
-  const unsigned m_window_height;
+  unsigned m_window_width;
+  unsigned m_window_height;
   // the rendering window
   GLFWwindow* m_window;
 
