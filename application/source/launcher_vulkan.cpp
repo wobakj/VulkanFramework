@@ -177,7 +177,7 @@ void LauncherVulkan::createCommandBuffers() {
     renderPassInfo.framebuffer = m_framebuffers[i];
 
     renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
-    renderPassInfo.renderArea.extent = m_swap_chain.extend();
+    renderPassInfo.renderArea.extent = m_swap_chain.extent();
 
     vk::ClearValue clearColor = vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}};
     renderPassInfo.clearValueCount = 1;
@@ -202,22 +202,9 @@ void LauncherVulkan::createCommandPool() {
 }
 
 void LauncherVulkan::createFramebuffers() {
-   m_framebuffers.resize(m_swap_chain.views().size(), Deleter<VkFramebuffer>{m_device, vkDestroyFramebuffer});
-   // std::cout << "num view " << m_swap_chain.views();
-  for (size_t i = 0; i < m_swap_chain.views().size(); i++) {
-    vk::ImageView attachments[] = {
-      vk::ImageView{m_swap_chain.views()[i]}
-    };
-
-    vk::FramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.renderPass = m_render_pass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments = attachments;
-    framebufferInfo.width = m_swap_chain.extend().width;
-    framebufferInfo.height = m_swap_chain.extend().height;
-    framebufferInfo.layers = 1;
-
-    m_framebuffers[i] = m_device->createFramebuffer(framebufferInfo);
+   m_framebuffers.resize(m_swap_chain.numImages(), Deleter<VkFramebuffer>{m_device, vkDestroyFramebuffer});
+  for (size_t i = 0; i < m_swap_chain.numImages(); i++) {
+    m_framebuffers[i] = m_device->createFramebuffer(view_to_fb(m_swap_chain.view(i), m_swap_chain.imgInfo(), m_render_pass.get()));
   }
 }
 
@@ -304,13 +291,13 @@ void LauncherVulkan::createGraphicsPipeline() {
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
 
   vk::Viewport viewport{};
-  viewport.width = (float) m_swap_chain.extend().width;
-  viewport.height = (float) m_swap_chain.extend().height;
+  viewport.width = (float) m_swap_chain.extent().width;
+  viewport.height = (float) m_swap_chain.extent().height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
   vk::Rect2D scissor{};
-  scissor.extent = m_swap_chain.extend();
+  scissor.extent = m_swap_chain.extent();
 
   vk::PipelineViewportStateCreateInfo viewportState{};
   viewportState.viewportCount = 1;

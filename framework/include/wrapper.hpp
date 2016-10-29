@@ -10,40 +10,46 @@ public:
   Wrapper()
    :m_object{VK_NULL_HANDLE}
    ,m_info{}
+   ,m_owner{false}
  {}
 
-  explicit Wrapper(T const& t) = delete;
+  explicit Wrapper(T const& t)
+   :m_object{t}
+   ,m_info{}
+   ,m_owner{false}
+  {}
 
   explicit Wrapper(T&& t)
    :Wrapper{} 
   {
-    swap(t);
+    swapObject(t);
   }
 
   virtual ~Wrapper() {
-      cleanup();
+    cleanup();
   }
 
   const T* operator &() const {
-      return &m_object;
+    return &m_object;
   }
 
   T* replace() {
-      cleanup();
-      return &m_object;
+    cleanup();
+    return &m_object;
   }
 
   void replace(T&& rhs) {
-      swap(rhs);
+    swapObject(rhs);
   }
+  
   void replace(T const& rhs) = delete;
 
   operator T() const {
-      return m_object;
+    return m_object;
   }
 
   T const& get() const {
-      return m_object;
+    return m_object;
   }
 
   T const* operator->() const {
@@ -60,46 +66,51 @@ public:
   //     return m_object == T(rhs);
   // }
   T& get() {
-      return m_object;
+    return m_object;
   }
 
   T* operator->() {
     return &m_object;
   }
   U const& info() const {
-      return m_info;
+    return m_info;
   }
 
  protected:
   T* operator &() {
-      return &m_object;
+    return &m_object;
   }
   U& info() {
-      return m_info;
+    return m_info;
   }
-
 
   virtual void destroy() = 0;
 
   void swap(Wrapper& rhs) {
     std::swap(m_object, rhs.m_object);
     std::swap(m_info, rhs.m_info);
+    std::swap(m_owner, rhs.m_owner);
   }
+
  private:
   T m_object;
   U m_info;
+  bool m_owner;
 
-  void swap(T& rhs) {
+  void swapObject(T& rhs) {
     cleanup();
     m_object = rhs;
     rhs = VK_NULL_HANDLE;
+    m_owner = true;
   }
 
   void cleanup() {
+    if (m_owner) { 
       if (m_object) {
         destroy();
       }
       m_object = VK_NULL_HANDLE;
+    }
   }
 };
 

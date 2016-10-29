@@ -22,22 +22,20 @@ void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int presen
   m_index_present = present;
   m_extensions = deviceExtensions;
 
-  std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+  std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
   std::set<int> uniqueQueueFamilies = {graphics, present};
 
   float queuePriority = 1.0f;
   for (int queueFamily : uniqueQueueFamilies) {
-    VkDeviceQueueCreateInfo queueCreateInfo = {};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    vk::DeviceQueueCreateInfo queueCreateInfo{};
     queueCreateInfo.queueFamilyIndex = queueFamily;
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &queuePriority;
     queueCreateInfos.push_back(queueCreateInfo);
   }
   
-  VkPhysicalDeviceFeatures deviceFeatures = {};
-  VkDeviceCreateInfo createInfo = {};
-  createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  vk::PhysicalDeviceFeatures deviceFeatures{};
+  vk::DeviceCreateInfo createInfo{};
   createInfo.pQueueCreateInfos = queueCreateInfos.data();
   createInfo.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
   createInfo.pEnabledFeatures = &deviceFeatures;
