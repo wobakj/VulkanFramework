@@ -93,6 +93,7 @@ class LauncherVulkan {
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
   Buffer m_buffer_vertex;
+  Buffer m_buffer_index;
   SwapChain m_swap_chain;
   Device m_device;
 

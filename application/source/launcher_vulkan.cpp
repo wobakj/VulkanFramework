@@ -236,8 +236,10 @@ void LauncherVulkan::createCommandBuffers() {
     // vk::Buffer vertexBuffers[] = {m_vertexBuffer.get()};
     vk::DeviceSize offsets[] = {0};
     m_command_buffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
+    m_command_buffers[i].bindIndexBuffer(m_buffer_index, 0, vk::IndexType::eUint32);
 
-    m_command_buffers[i].draw(model_test.vertex_num, 1, 0, 0);
+    m_command_buffers[i].drawIndexed(std::uint32_t(model_test.indices.size()), 1, 0, 0, 0);
+    // m_command_buffers[i].draw(model_test.vertex_num, 1, 0, 0);
 
     m_command_buffers[i].endRenderPass();
 
@@ -409,10 +411,14 @@ void LauncherVulkan::createVertexBuffer() {
     0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
     -0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0
   };
+  std::vector<std::uint32_t> indices {
+    0, 1, 2
+  };
 
-  model_test = model{vertex_data, model::POSITION | model::NORMAL};
+  model_test = model{vertex_data, model::POSITION | model::NORMAL, indices};
 
   m_buffer_vertex = m_device.createBuffer(model_test.data.data(), model_test.vertex_num * model_test.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
+  m_buffer_index = m_device.createBuffer(model_test.indices.data(), model_test.indices.size() * model::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer);
 }
 
 void LauncherVulkan::createSurface() {
