@@ -124,7 +124,7 @@ Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags con
   return Buffer{*this, size, usage, memProperties};
 }
 
-void Device::copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) const {
+void Device::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size) const {
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
   allocInfo.commandPool = pool();

@@ -33,7 +33,7 @@ class Device : public WrapDevice {
   Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const;
   Buffer createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const;
 
-  void copyBuffer(VkBuffer const& srcBuffer, VkBuffer const& dstBuffer, VkDeviceSize const& size) const;
+  void copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size) const;
 
   // getter
   vk::PhysicalDevice const& physical() const;

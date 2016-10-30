@@ -21,6 +21,8 @@ class Buffer : public WrapperBuffer {
   Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);
 
+  void setData(void* data, vk::DeviceSize const& size);
+
   void swap(Buffer& dev);
   
  private:

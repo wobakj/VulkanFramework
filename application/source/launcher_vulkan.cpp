@@ -20,10 +20,17 @@
 #include <set>
 #include <vector>
 #include <fstream>
+#include <chrono>
 
 // helper functions
 std::string resourcePath(int argc, char* argv[]);
 void glfw_error(int error, const char* description);
+
+struct UniformBufferObject {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
 
 LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
  :m_camera_fov{glm::radians(60.0f)}
@@ -36,12 +43,14 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
  ,m_instance{}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
+ ,m_descriptorSetLayout{m_device, vkDestroyDescriptorSetLayout}
  ,m_pipeline_layout{m_device, vkDestroyPipelineLayout}
  ,m_render_pass{m_device, vkDestroyRenderPass}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
+ ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  // ,m_application{}
 {}
 
@@ -102,6 +111,9 @@ void LauncherVulkan::initialize() {
 
   createRenderPass();
   createVertexBuffer();
+  createUniformBuffers();
+  createDescriptorSetLayout();
+  createDescriptorPool();
   createGraphicsPipeline();
   createFramebuffers();
   createCommandBuffers();
@@ -165,6 +177,20 @@ void LauncherVulkan::draw() {
   m_device.queuePresent().presentKHR(presentInfo);
 }
 
+void LauncherVulkan::createDescriptorSetLayout() {
+  vk::DescriptorSetLayoutBinding uboLayoutBinding{};
+  uboLayoutBinding.binding = 0;
+  uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
+  uboLayoutBinding.descriptorCount = 1;
+  uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+
+  vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.bindingCount = 1;
+  layoutInfo.pBindings = &uboLayoutBinding;
+
+  m_descriptorSetLayout = m_device->createDescriptorSetLayout(layoutInfo);
+}
+
 void LauncherVulkan::createSemaphores() {
   m_sema_image_ready = m_device->createSemaphore({});
   m_sema_render_done = m_device->createSemaphore({});
@@ -202,7 +228,7 @@ void LauncherVulkan::createCommandBuffers() {
     m_command_buffers[i].beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
     m_command_buffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-
+    m_command_buffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.get(), 0, 1, &m_descriptorSet, 0, nullptr);
     m_command_buffers[i].bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
 
     m_command_buffers[i].bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
@@ -305,8 +331,10 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-  rasterizer.frontFace = vk::FrontFace::eClockwise;
+  // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+  rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+  // rasterizer.frontFace = vk::FrontFace::eClockwise;
+  rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
 
   vk::PipelineMultisampleStateCreateInfo multisampling{};
 
@@ -327,8 +355,12 @@ void LauncherVulkan::createGraphicsPipeline() {
   // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
+  vk::DescriptorSetLayout setLayouts[] = {m_descriptorSetLayout.get()};
 
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+  pipelineLayoutInfo.setLayoutCount = 1;
+  pipelineLayoutInfo.pSetLayouts = setLayouts;
+
   m_pipeline_layout = m_device->createPipelineLayout(pipelineLayoutInfo);
 
   vk::GraphicsPipelineCreateInfo pipelineInfo{};
@@ -376,6 +408,65 @@ void LauncherVulkan::createSurface() {
   }
 }
 
+void LauncherVulkan::createDescriptorPool() {
+  vk::DescriptorPoolSize poolSize{};
+  poolSize.type = vk::DescriptorType::eUniformBuffer;
+  poolSize.descriptorCount = 1;
+
+  vk::DescriptorPoolCreateInfo poolInfo{};
+  poolInfo.poolSizeCount = 1;
+  poolInfo.pPoolSizes = &poolSize;
+  poolInfo.maxSets = 1;
+
+  m_descriptorPool = m_device->createDescriptorPool(poolInfo);
+
+  vk::DescriptorSetLayout layouts[] = {m_descriptorSetLayout.get()};
+  vk::DescriptorSetAllocateInfo allocInfo{};
+  allocInfo.descriptorPool = m_descriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = layouts;
+
+  m_descriptorSet = m_device->allocateDescriptorSets(allocInfo)[0];
+
+  vk::DescriptorBufferInfo bufferInfo{};
+  bufferInfo.buffer = m_buffer_uniform;
+  bufferInfo.offset = 0;
+  bufferInfo.range = sizeof(UniformBufferObject);
+
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = m_descriptorSet;
+  descriptorWrite.dstBinding = 0;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = &bufferInfo;
+  m_device->updateDescriptorSets({descriptorWrite}, 0);
+}
+
+void LauncherVulkan::createUniformBuffers() {
+  VkDeviceSize size = sizeof(UniformBufferObject);
+  m_buffer_uniform_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+
+  m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+}
+
+void LauncherVulkan::updateUniformBuffer() {
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float time = float(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) / 1000.0f;
+
+  UniformBufferObject ubo{};
+  ubo.model = glm::rotate(glm::mat4(), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  ubo.proj = glm::perspective(glm::radians(45.0f), float(m_swap_chain.extent().width) / float(m_swap_chain.extent().height), 0.1f, 10.0f);
+  ubo.proj[1][1] *= -1;
+
+  m_buffer_uniform_stage.setData(&ubo, sizeof(ubo));
+
+  m_device.copyBuffer(m_buffer_uniform_stage, m_buffer_uniform, sizeof(ubo));
+}
+
 void LauncherVulkan::mainLoop() {
   // do before framebuffer_resize call as it requires the projection uniform location
   // throw exception if shader compilation was unsuccessfull
@@ -390,6 +481,7 @@ void LauncherVulkan::mainLoop() {
     glfwPollEvents();
     // clear buffer
     // draw geometry
+    updateUniformBuffer();
     draw();
     // m_application->render();
     // swap draw buffer to front

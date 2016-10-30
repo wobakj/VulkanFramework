@@ -47,6 +47,7 @@ class LauncherVulkan {
  private:
   void draw();
   void createSemaphores();
+  void createUniformBuffers();
   void createCommandBuffers();
   void createFramebuffers();
   void createRenderPass();
@@ -55,6 +56,9 @@ class LauncherVulkan {
   void createVertexBuffer();
   void createSurface();
   void createInstance();
+  void createDescriptorSetLayout();
+  void updateUniformBuffer();
+  void createDescriptorPool();
   // update viewport and field of view
   void update_projection(GLFWwindow* window, int width, int height);
   // load shader programs and update uniform locations
@@ -85,6 +89,7 @@ class LauncherVulkan {
   Instance m_instance;
   DebugReporter m_debug_report;
   Deleter<VkSurfaceKHR> m_surface;
+  Deleter<VkDescriptorSetLayout> m_descriptorSetLayout;
   Deleter<VkPipelineLayout> m_pipeline_layout;
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
@@ -95,7 +100,10 @@ class LauncherVulkan {
   SwapChain m_swap_chain;
   Device m_device;
   Model m_model;
-
+  Buffer m_buffer_uniform; 
+  Buffer m_buffer_uniform_stage; 
+  Deleter<VkDescriptorPool> m_descriptorPool;
+  vk::DescriptorSet m_descriptorSet;
   // Application* m_application;
 };
 

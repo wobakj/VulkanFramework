@@ -33,11 +33,10 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
 {
   m_device = &device;
 
-  vk::BufferCreateInfo bufferInfo{};
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = vk::SharingMode::eExclusive;
-  get() = device->createBuffer(bufferInfo);
+  info().size = size;
+  info().usage = usage;
+  info().sharingMode = vk::SharingMode::eExclusive;
+  get() = device->createBuffer(info());
 
   auto memRequirements = device->getBufferMemoryRequirements(get());
 
@@ -56,15 +55,19 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
   // create staging buffer and upload data
   Buffer buffer_stage{device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   
-  void* buff_ptr = device->mapMemory(buffer_stage.m_memory, 0, size);
-  std::memcpy(buff_ptr, data, (size_t) size);
-  device->unmapMemory(buffer_stage.m_memory);
+  buffer_stage.setData(data, size);
   // create storage buffer and transfer data
   Buffer buffer_store{device, size, usage | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
 
   device.copyBuffer(buffer_stage.get(), buffer_store.get(), size);
   // assign filled buffer to this
   swap(buffer_store);
+}
+
+void Buffer::setData(void* data, vk::DeviceSize const& size) {
+  void* buff_ptr = (*m_device)->mapMemory(m_memory, 0, size);
+  std::memcpy(buff_ptr, data, (size_t)size);
+  (*m_device)->unmapMemory(m_memory);
 }
 
 void Buffer::destroy() {
@@ -78,8 +81,7 @@ void Buffer::destroy() {
  }
 
  void Buffer::swap(Buffer& dev) {
-  // std::swap(m_device, dev.m_device);
-  std::swap(get(), dev.get());
+  WrapperBuffer::swap(dev);
   std::swap(m_memory, dev.m_memory);
   std::swap(m_mem_info, dev.m_mem_info);
   std::swap(m_device, dev.m_device);
