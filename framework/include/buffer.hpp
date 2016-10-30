@@ -25,12 +25,16 @@ class Buffer : public WrapperBuffer {
 
   void swap(Buffer& dev);
   
+  vk::DescriptorBufferInfo const& descriptorInfo() const;
+  void writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const;
+
  private:
   void destroy() override;
 
   vk::DeviceMemory m_memory;
   vk::MemoryAllocateInfo m_mem_info;
   Device const* m_device;
+  vk::DescriptorBufferInfo m_desc_info;
 };
 
 #endif

@@ -355,6 +355,7 @@ void LauncherVulkan::createGraphicsPipeline() {
   // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
+// descriptor layouts
   vk::DescriptorSetLayout setLayouts[] = {m_descriptorSetLayout.get()};
 
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -428,19 +429,7 @@ void LauncherVulkan::createDescriptorPool() {
 
   m_descriptorSet = m_device->allocateDescriptorSets(allocInfo)[0];
 
-  vk::DescriptorBufferInfo bufferInfo{};
-  bufferInfo.buffer = m_buffer_uniform;
-  bufferInfo.offset = 0;
-  bufferInfo.range = sizeof(UniformBufferObject);
-
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = m_descriptorSet;
-  descriptorWrite.dstBinding = 0;
-  descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pBufferInfo = &bufferInfo;
-  m_device->updateDescriptorSets({descriptorWrite}, 0);
+  m_buffer_uniform.writeToSet(m_descriptorSet, 0);
 }
 
 void LauncherVulkan::createUniformBuffers() {

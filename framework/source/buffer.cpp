@@ -20,6 +20,7 @@ Buffer::Buffer()
  ,m_memory{VK_NULL_HANDLE}
  ,m_mem_info{}
  ,m_device{nullptr}
+ ,m_desc_info{}
 {}
 
 Buffer::Buffer(Buffer && dev)
@@ -46,6 +47,10 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
   m_memory = device->allocateMemory(allocInfo);
 
   device->bindBufferMemory(get(), m_memory, 0);
+
+  m_desc_info.buffer = get();
+  m_desc_info.offset = 0;
+  m_desc_info.range = size;
 }
 
 Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) 
@@ -80,9 +85,25 @@ void Buffer::destroy() {
   return *this;
  }
 
+vk::DescriptorBufferInfo const& Buffer::descriptorInfo() const {
+  return m_desc_info;
+}
+
+void Buffer::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = set;
+  descriptorWrite.dstBinding = binding;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = &m_desc_info;
+  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+}
+
  void Buffer::swap(Buffer& dev) {
   WrapperBuffer::swap(dev);
   std::swap(m_memory, dev.m_memory);
   std::swap(m_mem_info, dev.m_mem_info);
   std::swap(m_device, dev.m_device);
+  std::swap(m_desc_info, dev.m_desc_info);
  }
