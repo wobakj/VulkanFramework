@@ -125,30 +125,45 @@ Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags con
 }
 
 void Device::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size) const {
+  vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+
+  vk::BufferCopy copyRegion{};
+  copyRegion.size = size;
+  commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
+
+  endSingleTimeCommands(commandBuffer);
+}
+
+Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
+  return Buffer{*this, data, size, usage};
+}
+
+vk::CommandBuffer Device::beginSingleTimeCommands() const {
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
   allocInfo.commandPool = pool();
   allocInfo.commandBufferCount = 1;
 
   vk::CommandBuffer commandBuffer = get().allocateCommandBuffers(allocInfo)[0];
+
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
   commandBuffer.begin(beginInfo);
-  vk::BufferCopy copyRegion{};
-  copyRegion.size = size;
-  commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
+
+  return commandBuffer;
+}
+
+void Device::endSingleTimeCommands(vk::CommandBuffer& commandBuffer) const {
   commandBuffer.end();
 
   vk::SubmitInfo submitInfo{};
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &commandBuffer;
 
-  m_queue_graphics.submit(1, &submitInfo, VK_NULL_HANDLE);
-  m_queue_graphics.waitIdle();
-  get().freeCommandBuffers(pool(), {commandBuffer});
-}
+  queueGraphics().submit({submitInfo}, VK_NULL_HANDLE);
+  queueGraphics().waitIdle();
 
-Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
-  return Buffer{*this, data, size, usage};
+  get().freeCommandBuffers(pool(), {commandBuffer});
+  commandBuffer = VK_NULL_HANDLE;
 }

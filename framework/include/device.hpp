@@ -34,6 +34,9 @@ class Device : public WrapDevice {
   Buffer createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const;
 
   void copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size) const;
+  // helper functions to create commandbuffer for staging an formating
+  vk::CommandBuffer beginSingleTimeCommands() const;
+  void endSingleTimeCommands(vk::CommandBuffer& commandBuffer) const;
 
   // getter
   vk::PhysicalDevice const& physical() const;

@@ -64,8 +64,6 @@ class LauncherVulkan {
   void createTextureSampler();
   std::pair<vk::Image, vk::DeviceMemory> createImage(std::uint32_t wdith, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags);
 
-  vk::CommandBuffer beginSingleTimeCommands();
-  void endSingleTimeCommands(vk::CommandBuffer& commandBuffer);
   void transitionImageLayout(vk::Image image, vk::Format const& format, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
   void copyImage(vk::Image srcImage, vk::Image dstImage, uint32_t width, uint32_t height);
   

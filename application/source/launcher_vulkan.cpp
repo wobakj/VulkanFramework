@@ -427,35 +427,6 @@ void LauncherVulkan::createSurface() {
   }
 }
 
-vk::CommandBuffer LauncherVulkan::beginSingleTimeCommands() {
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = m_device.pool();
-  allocInfo.commandBufferCount = 1;
-
-  vk::CommandBuffer commandBuffer = m_device->allocateCommandBuffers(allocInfo)[0];
-
-  vk::CommandBufferBeginInfo beginInfo{};
-  beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-
-  commandBuffer.begin(beginInfo);
-
-  return commandBuffer;
-}
-
-void LauncherVulkan::endSingleTimeCommands(vk::CommandBuffer& commandBuffer) {
-  vkEndCommandBuffer(commandBuffer);
-
-  vk::SubmitInfo submitInfo{};
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
-
-  m_device.queueGraphics().submit({submitInfo}, VK_NULL_HANDLE);
-  m_device.queueGraphics().waitIdle();
-
-  m_device->freeCommandBuffers(m_device.pool(), {commandBuffer});
-}
-
 void LauncherVulkan::copyImage(vk::Image srcImage, vk::Image dstImage, uint32_t width, uint32_t height) {
   vk::ImageSubresourceLayers subResource{};
   subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -472,17 +443,17 @@ void LauncherVulkan::copyImage(vk::Image srcImage, vk::Image dstImage, uint32_t 
   region.extent.height = height;
   region.extent.depth = 1;
 
-  vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+  vk::CommandBuffer commandBuffer = m_device.beginSingleTimeCommands();
   commandBuffer.copyImage(
     srcImage, vk::ImageLayout::eTransferSrcOptimal,
     dstImage, vk::ImageLayout::eTransferDstOptimal,
     1, &region
   );
-  endSingleTimeCommands(commandBuffer);
+  m_device.endSingleTimeCommands(commandBuffer);
 }
 
 void LauncherVulkan::transitionImageLayout(vk::Image image, vk::Format const& format, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) {
-  vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+  vk::CommandBuffer commandBuffer = m_device.beginSingleTimeCommands();
   
   vk::ImageMemoryBarrier barrier{};
   barrier.oldLayout = oldLayout;
@@ -517,7 +488,7 @@ void LauncherVulkan::transitionImageLayout(vk::Image image, vk::Format const& fo
     {},
     {barrier}
   );
-  endSingleTimeCommands(commandBuffer);
+  m_device.endSingleTimeCommands(commandBuffer);
 }
 
 std::pair<vk::Image, vk::DeviceMemory> LauncherVulkan::createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) {
