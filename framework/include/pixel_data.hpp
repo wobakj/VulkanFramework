@@ -6,6 +6,25 @@
 #include <vector>
 #include <cstdint>
 
+inline std::uint8_t num_channels(vk::Format const& format) {
+  if (format == vk::Format::eR8Unorm) {
+    return 1;
+  }
+  else if (format == vk::Format::eR8G8Unorm) {
+    return 2;
+  }
+  else if (format == vk::Format::eR8G8B8Unorm) {
+    return 3;
+  }
+  else if (format == vk::Format::eR8G8B8A8Unorm) {
+    return 4;
+  }
+  else {
+    throw std::logic_error("unsupported format, incorrect format");
+    return 0;
+  }
+}
+
 // holds texture data and format information
 struct pixel_data {
   pixel_data()
@@ -16,7 +35,7 @@ struct pixel_data {
    ,format{vk::Format::eUndefined}
   {}
 
-  pixel_data(std::vector<std::uint8_t> dat, vk::Format f, std::size_t w, std::size_t h = 1, std::size_t d = 1)
+  pixel_data(std::vector<std::uint8_t> dat, vk::Format f, std::uint32_t w, std::uint32_t h = 1, std::uint32_t d = 1)
    :pixels(dat)
    ,width{w}
    ,height{h}
@@ -29,9 +48,9 @@ struct pixel_data {
   }
 
   std::vector<std::uint8_t> pixels;
-  std::size_t width;
-  std::size_t height;
-  std::size_t depth;
+  std::uint32_t width;
+  std::uint32_t height;
+  std::uint32_t depth;
 
   // channel format
   vk::Format format; 

@@ -1,6 +1,8 @@
 #include "launcher_vulkan.hpp"
 
 #include "shader_loader.hpp"
+#include "texture_loader.hpp"
+#include "model_loader.hpp"
 #include "model_t.hpp"
 
 // c++ warpper
@@ -64,7 +66,7 @@ std::string resourcePath(int argc, char* argv[]) {
   else {
     std::string exe_path{argv[0]};
     resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
-    resource_path += "/../resources/";
+    resource_path += "/../../resources/";
   }
 
   return resource_path;
@@ -229,8 +231,8 @@ void LauncherVulkan::createCommandBuffers() {
 
     m_command_buffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
     m_command_buffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.get(), 0, 1, &m_descriptorSet, 0, nullptr);
-    m_command_buffers[i].bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
 
+    m_command_buffers[i].bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
     m_command_buffers[i].bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
 
     m_command_buffers[i].drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
@@ -296,8 +298,8 @@ void LauncherVulkan::createGraphicsPipeline() {
   Deleter<VkShaderModule> vertShaderModule{m_device, vkDestroyShaderModule};
   Deleter<VkShaderModule> fragShaderModule{m_device, vkDestroyShaderModule};
 
-  vertShaderModule = shader_loader::module(m_resource_path + "shaders/simple_vert.spv", m_device);
-  fragShaderModule = shader_loader::module(m_resource_path + "shaders/simple_frag.spv", m_device);
+  vertShaderModule = shader_loader::module("../resources/shaders/simple_vert.spv", m_device);
+  fragShaderModule = shader_loader::module("../resources/shaders/simple_frag.spv", m_device);
 
   vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -331,10 +333,7 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
-  // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-  rasterizer.cullMode = vk::CullModeFlagBits::eNone;
-  // rasterizer.frontFace = vk::FrontFace::eClockwise;
-  rasterizer.frontFace = vk::FrontFace::eCounterClockwise;
+  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
 
   vk::PipelineMultisampleStateCreateInfo multisampling{};
 
@@ -398,8 +397,10 @@ void LauncherVulkan::createVertexBuffer() {
   std::vector<std::uint32_t> indices {
     0, 1, 2
   };
+  // model_t tri = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
 
-  model_t tri = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
+  model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL);
+
   m_model = Model{m_device, tri};
 }
 
@@ -407,6 +408,43 @@ void LauncherVulkan::createSurface() {
   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface!");
   }
+}
+
+void LauncherVulkan::createTextureImage() {
+  Deleter<VkImage> stagingImage{m_device, vkDestroyImage};
+  Deleter<VkDeviceMemory> stagingImageMemory{m_device, vkFreeMemory};
+  
+  pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
+
+  vk::DeviceSize size = pix_data .width * pix_data.height * num_channels(pix_data.format); 
+  vk::ImageCreateInfo imageInfo{};
+  imageInfo.imageType = vk::ImageType::e2D;
+  imageInfo.extent.width = pix_data.width;
+  imageInfo.extent.height = pix_data.height;
+  imageInfo.extent.depth = 1;
+  imageInfo.mipLevels = 1;
+  imageInfo.arrayLayers = 1;
+  imageInfo.format = pix_data.format;
+  imageInfo.tiling = vk::ImageTiling::eLinear;
+  imageInfo.initialLayout = vk::ImageLayout::ePreinitialized;
+  imageInfo.usage = vk::ImageUsageFlagBits::eTransferSrc;
+  imageInfo.sharingMode = vk::SharingMode::eExclusive;
+
+  stagingImage = m_device->createImage(imageInfo);
+
+  vk::MemoryRequirements memRequirements = m_device->getImageMemoryRequirements(stagingImage.get());
+
+  vk::MemoryAllocateInfo allocInfo = {};
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex = findMemoryType(m_device.physical(), memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+  stagingImageMemory = m_device->allocateMemory(allocInfo);
+
+  m_device->bindImageMemory(stagingImage.get(), stagingImageMemory.get(), 0);
+  // void* data;
+  // m_device->mapMemory(stagingImageMemory, 0, imageSize, 0, &data);
+  //     memcpy(data, pixels, (size_t) imageSize);
+  // vkUnmapMemory(device, stagingImageMemory);
 }
 
 void LauncherVulkan::createDescriptorPool() {

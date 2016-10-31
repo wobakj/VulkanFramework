@@ -59,6 +59,7 @@ class LauncherVulkan {
   void createDescriptorSetLayout();
   void updateUniformBuffer();
   void createDescriptorPool();
+  void createTextureImage();
   // update viewport and field of view
   void update_projection(GLFWwindow* window, int width, int height);
   // load shader programs and update uniform locations

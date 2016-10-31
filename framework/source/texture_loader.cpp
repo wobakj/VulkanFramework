@@ -55,7 +55,7 @@ pixel_data file(std::string const& file_name) {
   std::memcpy(&texture_data[0], data_ptr, texture_data.size());
   stbi_image_free(data_ptr);
 
-  return pixel_data{texture_data, vk_format, std::size_t(width), std::size_t(height)};
+  return pixel_data{texture_data, vk_format, std::uint32_t(width), std::uint32_t(height)};
 }
 
 };

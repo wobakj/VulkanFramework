@@ -56,7 +56,9 @@ Model::Model(Device const& device, model_t const& model)
   m_attrib_info = model_to_attr(model);
 
   m_buffer_vertex = device.createBuffer(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
-  m_buffer_index = device.createBuffer(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer);
+  if(!model.indices.empty()) {
+    m_buffer_index = device.createBuffer(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer);
+  }
 }
 
  Model& Model::operator=(Model&& dev) {
