@@ -53,8 +53,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
- ,m_textureImage{m_device, vkDestroyImage}
- ,m_textureImageMemory{m_device, vkFreeMemory}
  ,m_textureImageView{m_device, vkDestroyImageView}
  ,m_textureSampler{m_device, vkDestroySampler}
  // ,m_application{}
@@ -427,31 +425,6 @@ void LauncherVulkan::createSurface() {
   }
 }
 
-void LauncherVulkan::copyImage(vk::Image srcImage, vk::Image dstImage, uint32_t width, uint32_t height) {
-  vk::ImageSubresourceLayers subResource{};
-  subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  subResource.baseArrayLayer = 0;
-  subResource.mipLevel = 0;
-  subResource.layerCount = 1;
-
-  vk::ImageCopy region{};
-  region.srcSubresource = subResource;
-  region.dstSubresource = subResource;
-  region.srcOffset = vk::Offset3D{0, 0, 0};
-  region.dstOffset = vk::Offset3D{0, 0, 0};
-  region.extent.width = width;
-  region.extent.height = height;
-  region.extent.depth = 1;
-
-  vk::CommandBuffer commandBuffer = m_device.beginSingleTimeCommands();
-  commandBuffer.copyImage(
-    srcImage, vk::ImageLayout::eTransferSrcOptimal,
-    dstImage, vk::ImageLayout::eTransferDstOptimal,
-    1, &region
-  );
-  m_device.endSingleTimeCommands(commandBuffer);
-}
-
 void LauncherVulkan::transitionImageLayout(vk::Image image, vk::Format const& format, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) {
   vk::CommandBuffer commandBuffer = m_device.beginSingleTimeCommands();
   
@@ -491,63 +464,23 @@ void LauncherVulkan::transitionImageLayout(vk::Image image, vk::Format const& fo
   m_device.endSingleTimeCommands(commandBuffer);
 }
 
-std::pair<vk::Image, vk::DeviceMemory> LauncherVulkan::createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) {
-  vk::Image stagingImage{};
-  vk::DeviceMemory stagingImageMemory{};
-  
-  vk::ImageCreateInfo imageInfo{};
-  imageInfo.imageType = vk::ImageType::e2D;
-  imageInfo.extent.width = width;
-  imageInfo.extent.height = height;
-  imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = 1;
-  imageInfo.arrayLayers = 1;
-  imageInfo.format = format;
-  imageInfo.tiling = tiling;
-  imageInfo.initialLayout = vk::ImageLayout::ePreinitialized;
-  imageInfo.usage = usage;
-  imageInfo.sharingMode = vk::SharingMode::eExclusive;
-
-  stagingImage = m_device->createImage(imageInfo);
-
-  vk::MemoryRequirements memRequirements = m_device->getImageMemoryRequirements(stagingImage);
-
-  vk::MemoryAllocateInfo allocInfo = {};
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(m_device.physical(), memRequirements.memoryTypeBits, mem_flags);
-
-  stagingImageMemory = m_device->allocateMemory(allocInfo);
-
-  m_device->bindImageMemory(stagingImage, stagingImageMemory, 0);
-
-  return std::make_pair(std::move(stagingImage), std::move(stagingImageMemory));
-}
-
   pixel_data pix_data{};
 void LauncherVulkan::createTextureImage() {
-  Deleter<VkImage> stagingImage{m_device, vkDestroyImage};
-  Deleter<VkDeviceMemory> stagingImageMemory{m_device, vkFreeMemory};
-  
   pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   vk::DeviceSize imageSize = pix_data .width * pix_data.height * num_channels(pix_data.format); 
 
-  auto img_mem_stage = createImage(pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-  stagingImage = std::move(img_mem_stage.first);
-  stagingImageMemory = std::move(img_mem_stage.second);
+  Image img_staging{m_device, pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
 
-  auto img_mem = createImage(pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  m_textureImage = std::move(img_mem.first);
-  m_textureImageMemory = std::move(img_mem.second);
+  m_image = Image{m_device, pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal};
 
-  void* data = m_device->mapMemory(stagingImageMemory.get(), 0, imageSize);
-  std::memcpy(data, pix_data.ptr(), size_t(imageSize));
-  m_device->unmapMemory(stagingImageMemory.get());
+  img_staging.setData(pix_data.ptr(), imageSize);
 
-  transitionImageLayout(stagingImage.get(), pix_data.format, vk::ImageLayout::ePreinitialized, vk::ImageLayout::eTransferSrcOptimal);
-  transitionImageLayout(m_textureImage.get(), pix_data.format, vk::ImageLayout::ePreinitialized, vk::ImageLayout::eTransferDstOptimal);
-  copyImage(stagingImage.get(), m_textureImage.get(), pix_data.width, pix_data.height);
-  transitionImageLayout(m_textureImage.get(), pix_data.format, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+  transitionImageLayout(img_staging, pix_data.format, vk::ImageLayout::ePreinitialized, vk::ImageLayout::eTransferSrcOptimal);
+  transitionImageLayout(m_image, pix_data.format, vk::ImageLayout::ePreinitialized, vk::ImageLayout::eTransferDstOptimal);
+  m_device.copyImage(img_staging, m_image, pix_data.width, pix_data.height);
+
+  transitionImageLayout(m_image, pix_data.format, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 vk::ImageView createImageView(vk::Device const& device, vk::Image const& img, vk::Format const& format) {
@@ -564,7 +497,7 @@ vk::ImageView createImageView(vk::Device const& device, vk::Image const& img, vk
 }
 
 void LauncherVulkan::createTextureImageView() {
-  m_textureImageView = createImageView(m_device.get(), m_textureImage.get(), pix_data.format);
+  m_textureImageView = createImageView(m_device.get(), m_image, pix_data.format);
 }
 
 void LauncherVulkan::createTextureSampler() {

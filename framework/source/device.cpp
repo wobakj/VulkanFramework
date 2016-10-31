@@ -124,7 +124,7 @@ Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags con
   return Buffer{*this, size, usage, memProperties};
 }
 
-void Device::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size) const {
+void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size) const {
   vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
 
   vk::BufferCopy copyRegion{};
@@ -133,6 +133,32 @@ void Device::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer
 
   endSingleTimeCommands(commandBuffer);
 }
+
+void Device::copyImage(vk::Image const srcImage, vk::Image dstImage, uint32_t width, uint32_t height) const {
+  vk::ImageSubresourceLayers subResource{};
+  subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  subResource.baseArrayLayer = 0;
+  subResource.mipLevel = 0;
+  subResource.layerCount = 1;
+
+  vk::ImageCopy region{};
+  region.srcSubresource = subResource;
+  region.dstSubresource = subResource;
+  region.srcOffset = vk::Offset3D{0, 0, 0};
+  region.dstOffset = vk::Offset3D{0, 0, 0};
+  region.extent.width = width;
+  region.extent.height = height;
+  region.extent.depth = 1;
+
+  vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+  commandBuffer.copyImage(
+    srcImage, vk::ImageLayout::eTransferSrcOptimal,
+    dstImage, vk::ImageLayout::eTransferDstOptimal,
+    1, &region
+  );
+  endSingleTimeCommands(commandBuffer);
+}
+
 
 Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
   return Buffer{*this, data, size, usage};

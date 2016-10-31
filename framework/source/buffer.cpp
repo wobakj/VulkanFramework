@@ -69,7 +69,7 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
   swap(buffer_store);
 }
 
-void Buffer::setData(void* data, vk::DeviceSize const& size) {
+void Buffer::setData(void const* data, vk::DeviceSize const& size) {
   void* buff_ptr = (*m_device)->mapMemory(m_memory, 0, size);
   std::memcpy(buff_ptr, data, size_t(size));
   (*m_device)->unmapMemory(m_memory);
