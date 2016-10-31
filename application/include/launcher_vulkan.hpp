@@ -60,6 +60,15 @@ class LauncherVulkan {
   void updateUniformBuffer();
   void createDescriptorPool();
   void createTextureImage();
+  void createTextureImageView();
+  void createTextureSampler();
+  std::pair<vk::Image, vk::DeviceMemory> createImage(std::uint32_t wdith, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags);
+
+  vk::CommandBuffer beginSingleTimeCommands();
+  void endSingleTimeCommands(vk::CommandBuffer& commandBuffer);
+  void transitionImageLayout(vk::Image image, vk::Format const& format, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
+  void copyImage(vk::Image srcImage, vk::Image dstImage, uint32_t width, uint32_t height);
+  
   // update viewport and field of view
   void update_projection(GLFWwindow* window, int width, int height);
   // load shader programs and update uniform locations
@@ -105,6 +114,10 @@ class LauncherVulkan {
   Buffer m_buffer_uniform_stage; 
   Deleter<VkDescriptorPool> m_descriptorPool;
   vk::DescriptorSet m_descriptorSet;
+  Deleter<VkImage> m_textureImage;
+  Deleter<VkDeviceMemory> m_textureImageMemory;
+  Deleter<VkImageView> m_textureImageView;
+  Deleter<VkSampler> m_textureSampler;
   // Application* m_application;
 };
 
