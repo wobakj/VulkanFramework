@@ -4,6 +4,7 @@
 #include "deleter.hpp"
 #include "wrapper.hpp"
 #include "device.hpp"
+#include "image.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <iostream>
@@ -107,36 +108,6 @@ inline vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::Image
   fb_info.height = img_info.extent.height;
   fb_info.layers = img_info.arrayLayers;
   return fb_info;
-}
-
-inline vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
-  vk::ImageViewCreateInfo view_info{};
-  view_info.image = image;
-  if (img_info.imageType == vk::ImageType::e1D) {
-    view_info.viewType = vk::ImageViewType::e1D;
-  }
-  else if(img_info.imageType == vk::ImageType::e2D) {
-    view_info.viewType = vk::ImageViewType::e2D;
-  }
-  else if (img_info.imageType == vk::ImageType::e3D){
-    view_info.viewType = vk::ImageViewType::e3D;
-  }
-  else throw std::runtime_error("wrong image format");
-
-  view_info.format = img_info.format;
-
-  view_info.components.r = vk::ComponentSwizzle::eIdentity;
-  view_info.components.g = vk::ComponentSwizzle::eIdentity;
-  view_info.components.b = vk::ComponentSwizzle::eIdentity;
-  view_info.components.a = vk::ComponentSwizzle::eIdentity;
-
-  view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  view_info.subresourceRange.baseMipLevel = 0;
-  view_info.subresourceRange.levelCount = img_info.mipLevels;
-  view_info.subresourceRange.baseArrayLayer = 0;
-  view_info.subresourceRange.layerCount = img_info.arrayLayers;
-
-  return view_info;
 }
 
 inline vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& swap_info) {

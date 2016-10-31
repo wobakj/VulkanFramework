@@ -3,6 +3,36 @@
 #include <iostream>
 #include "device.hpp"
 
+vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
+  vk::ImageViewCreateInfo view_info{};
+  view_info.image = image;
+  if (img_info.imageType == vk::ImageType::e1D) {
+    view_info.viewType = vk::ImageViewType::e1D;
+  }
+  else if(img_info.imageType == vk::ImageType::e2D) {
+    view_info.viewType = vk::ImageViewType::e2D;
+  }
+  else if (img_info.imageType == vk::ImageType::e3D){
+    view_info.viewType = vk::ImageViewType::e3D;
+  }
+  else throw std::runtime_error("wrong image format");
+
+  view_info.format = img_info.format;
+
+  view_info.components.r = vk::ComponentSwizzle::eIdentity;
+  view_info.components.g = vk::ComponentSwizzle::eIdentity;
+  view_info.components.b = vk::ComponentSwizzle::eIdentity;
+  view_info.components.a = vk::ComponentSwizzle::eIdentity;
+
+  view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+  view_info.subresourceRange.baseMipLevel = 0;
+  view_info.subresourceRange.levelCount = img_info.mipLevels;
+  view_info.subresourceRange.baseArrayLayer = 0;
+  view_info.subresourceRange.layerCount = img_info.arrayLayers;
+
+  return view_info;
+}
+
 
 static uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
   auto memProperties = device.getMemoryProperties();
@@ -20,7 +50,7 @@ Image::Image()
  ,m_memory{VK_NULL_HANDLE}
  ,m_mem_info{}
  ,m_device{nullptr}
- ,m_desc_info{}
+ ,m_view{VK_NULL_HANDLE}
 {}
 
 Image::Image(Image && dev)
@@ -80,6 +110,8 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
   m_memory = device->allocateMemory(m_mem_info);
 
   device->bindImageMemory(get(), m_memory, 0);
+
+  // createView();
 }
 
 
@@ -105,6 +137,8 @@ Image::Image(Device const& device, pixel_data const& pixel_input, vk::ImageUsage
 
   // assign filled buffer to this
   swap(img_store);
+
+  createView();
 }
 
 void Image::setData(void const* data, vk::DeviceSize const& size) {
@@ -158,6 +192,9 @@ void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
 
 
 void Image::destroy() {
+  if (m_view) {
+    (*m_device)->destroyImageView(m_view);
+  }
   (*m_device)->freeMemory(m_memory);
   (*m_device)->destroyImage(get());
 }
@@ -167,18 +204,28 @@ void Image::destroy() {
   return *this;
  }
 
-vk::DescriptorImageInfo const& Image::descriptorInfo() const {
-  return m_desc_info;
+vk::ImageView const& Image::view() const {
+  return m_view;
 }
 
-void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
+void Image::createView() {
+  auto view_info = img_to_view(get(), info()); 
+  m_view = (*m_device)->createImageView(view_info);  
+}
+
+void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler) const {
+  vk::DescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  imageInfo.imageView = m_view;
+  imageInfo.sampler = sampler;
+
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
   descriptorWrite.dstArrayElement = 0;
   descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
   descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pImageInfo = &m_desc_info;
+  descriptorWrite.pImageInfo = &imageInfo;
 
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
@@ -188,5 +235,5 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
   std::swap(m_memory, dev.m_memory);
   std::swap(m_mem_info, dev.m_mem_info);
   std::swap(m_device, dev.m_device);
-  std::swap(m_desc_info, dev.m_desc_info);
+  std::swap(m_view, dev.m_view);
  }

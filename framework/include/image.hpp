@@ -7,7 +7,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-class SwapChain;
+vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 
 using WrapperImage = Wrapper<vk::Image, vk::ImageCreateInfo>;
 class Image : public WrapperImage {
@@ -30,16 +30,17 @@ class Image : public WrapperImage {
 
   void swap(Image& dev);
   
-  vk::DescriptorImageInfo const& descriptorInfo() const;
-  void writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const;
+  vk::ImageView const& view() const;
+  void writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler) const;
 
  private:
   void destroy() override;
+  void createView();
 
   vk::DeviceMemory m_memory;
   vk::MemoryAllocateInfo m_mem_info;
   Device const* m_device;
-  vk::DescriptorImageInfo m_desc_info;
+  vk::ImageView m_view;
 };
 
 #endif

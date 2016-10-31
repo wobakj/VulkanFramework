@@ -61,7 +61,6 @@ class LauncherVulkan {
   void updateUniformBuffer();
   void createDescriptorPool();
   void createTextureImage();
-  void createTextureImageView();
   void createTextureSampler();
 
   void transitionImageLayout(vk::Image image, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
@@ -111,7 +110,6 @@ class LauncherVulkan {
   Buffer m_buffer_uniform_stage; 
   Deleter<VkDescriptorPool> m_descriptorPool;
   vk::DescriptorSet m_descriptorSet;
-  Deleter<VkImageView> m_textureImageView;
   Deleter<VkSampler> m_textureSampler;
   Image m_image;
   // Application* m_application;

@@ -53,7 +53,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
- ,m_textureImageView{m_device, vkDestroyImageView}
  ,m_textureSampler{m_device, vkDestroySampler}
  // ,m_application{}
 {}
@@ -118,7 +117,6 @@ void LauncherVulkan::initialize() {
   createVertexBuffer();
   createUniformBuffers();
   createTextureImage();
-  createTextureImageView();
   createTextureSampler();
 
   createDescriptorSetLayout();
@@ -197,7 +195,6 @@ void LauncherVulkan::createDescriptorSetLayout() {
   samplerLayoutBinding.binding = 1;
   samplerLayoutBinding.descriptorCount = 1;
   samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-  samplerLayoutBinding.pImmutableSamplers = nullptr;
   samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
   std::vector<vk::DescriptorSetLayoutBinding>  bindings{uboLayoutBinding, samplerLayoutBinding};
 
@@ -425,27 +422,9 @@ void LauncherVulkan::createSurface() {
   }
 }
 
-  pixel_data pix_data{};
 void LauncherVulkan::createTextureImage() {
-  pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
+  pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
   m_image = Image{m_device, pix_data, vk::ImageUsageFlagBits::eSampled, vk::ImageLayout::eShaderReadOnlyOptimal};
-}
-
-vk::ImageView createImageView(vk::Device const& device, vk::Image const& img, vk::Format const& format) {
-  vk::ImageViewCreateInfo viewInfo{};
-  viewInfo.image = img;
-  viewInfo.viewType = vk::ImageViewType::e2D;
-  viewInfo.format = format;
-  viewInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  viewInfo.subresourceRange.baseMipLevel = 0;
-  viewInfo.subresourceRange.levelCount = 1;
-  viewInfo.subresourceRange.baseArrayLayer = 0;
-  viewInfo.subresourceRange.layerCount = 1;
-  return device.createImageView(viewInfo);  
-}
-
-void LauncherVulkan::createTextureImageView() {
-  m_textureImageView = createImageView(m_device.get(), m_image, pix_data.format);
 }
 
 void LauncherVulkan::createTextureSampler() {
@@ -487,20 +466,7 @@ void LauncherVulkan::createDescriptorPool() {
   m_descriptorSet = m_device->allocateDescriptorSets(allocInfo)[0];
 
   m_buffer_uniform.writeToSet(m_descriptorSet, 0);
-
-  vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-  imageInfo.imageView = m_textureImageView;
-  imageInfo.sampler = m_textureSampler;
-
-  vk::WriteDescriptorSet imageWrite{};
-  imageWrite.dstSet = m_descriptorSet;
-  imageWrite.dstBinding = 1;
-  imageWrite.dstArrayElement = 0;
-  imageWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-  imageWrite.descriptorCount = 1;
-  imageWrite.pImageInfo = &imageInfo;
-  m_device->updateDescriptorSets({imageWrite}, 0);
+  m_image.writeToSet(m_descriptorSet, 1, m_textureSampler.get());
 }
 
 void LauncherVulkan::createUniformBuffers() {
