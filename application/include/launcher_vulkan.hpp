@@ -64,7 +64,7 @@ class LauncherVulkan {
   void createTextureImageView();
   void createTextureSampler();
 
-  void transitionImageLayout(vk::Image image, vk::Format const& format, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
+  void transitionImageLayout(vk::Image image, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
   
   // update viewport and field of view
   void update_projection(GLFWwindow* window, int width, int height);

@@ -1,6 +1,8 @@
 #include "device.hpp"
 
 #include "buffer.hpp"
+#include "image.hpp"
+#include "pixel_data.hpp"
 #include "swap_chain.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -123,6 +125,17 @@ int const& Device::indexPresent() const {
 Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const {
   return Buffer{*this, size, usage, memProperties};
 }
+Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
+  return Buffer{*this, data, size, usage};
+}
+
+Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) const {
+  return Image{*this, width, height, format, tiling, usage, mem_flags};
+}
+
+Image Device::createImage(pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout) const {
+  return Image{*this, pixel_input, usage, layout};
+}
 
 void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size) const {
   vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -160,9 +173,6 @@ void Device::copyImage(vk::Image const srcImage, vk::Image dstImage, uint32_t wi
 }
 
 
-Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
-  return Buffer{*this, data, size, usage};
-}
 
 vk::CommandBuffer Device::beginSingleTimeCommands() const {
   vk::CommandBufferAllocateInfo allocInfo{};

@@ -425,62 +425,10 @@ void LauncherVulkan::createSurface() {
   }
 }
 
-void LauncherVulkan::transitionImageLayout(vk::Image image, vk::Format const& format, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) {
-  vk::CommandBuffer commandBuffer = m_device.beginSingleTimeCommands();
-  
-  vk::ImageMemoryBarrier barrier{};
-  barrier.oldLayout = oldLayout;
-  barrier.newLayout = newLayout;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  barrier.image = image;
-  barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
-
-  if (oldLayout == vk::ImageLayout::ePreinitialized && newLayout == vk::ImageLayout::eTransferSrcOptimal) {
-    barrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-    barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-  } else if (oldLayout == vk::ImageLayout::ePreinitialized && newLayout == vk::ImageLayout::eTransferDstOptimal) {
-    barrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-    barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-  } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-    barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-    barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  } else {
-    throw std::invalid_argument("unsupported layout transition!");
-  }
-
-  commandBuffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier}
-  );
-  m_device.endSingleTimeCommands(commandBuffer);
-}
-
   pixel_data pix_data{};
 void LauncherVulkan::createTextureImage() {
   pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
-
-  vk::DeviceSize imageSize = pix_data .width * pix_data.height * num_channels(pix_data.format); 
-
-  Image img_staging{m_device, pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-
-  m_image = Image{m_device, pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal};
-
-  img_staging.setData(pix_data.ptr(), imageSize);
-
-  transitionImageLayout(img_staging, pix_data.format, vk::ImageLayout::ePreinitialized, vk::ImageLayout::eTransferSrcOptimal);
-  transitionImageLayout(m_image, pix_data.format, vk::ImageLayout::ePreinitialized, vk::ImageLayout::eTransferDstOptimal);
-  m_device.copyImage(img_staging, m_image, pix_data.width, pix_data.height);
-
-  transitionImageLayout(m_image, pix_data.format, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_image = Image{m_device, pix_data, vk::ImageUsageFlagBits::eSampled, vk::ImageLayout::eShaderReadOnlyOptimal};
 }
 
 vk::ImageView createImageView(vk::Device const& device, vk::Image const& img, vk::Format const& format) {

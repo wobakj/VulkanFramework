@@ -83,27 +83,79 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
 }
 
 
-// Image::Image(Device const& device, void* data, vk::DeviceSize const& size, vk::ImageUsageFlags const& usage) 
-//  :Image{}
-// {
-//   m_device = &device;
-//   // create staging buffer and upload data
-//   Image buffer_stage{device, size, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  
-//   buffer_stage.setData(data, size);
-//   // create storage buffer and transfer data
-//   Image buffer_store{device, size, usage | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+Image::Image(Device const& device, pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout)
+ :Image{}
+{
+  m_device = &device;
+ 
+  vk::DeviceSize imageSize = pixel_input .width * pixel_input.height * num_channels(pixel_input.format); 
 
-//   device.copyImage(buffer_stage.get(), buffer_store.get(), size);
-//   // assign filled buffer to this
-//   swap(buffer_store);
-// }
+  // create staging buffer and upload data
+  Image img_staging{device, pixel_input.width, pixel_input.height, pixel_input.format, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  // create storage buffer and transfer data
+  Image img_store{device, pixel_input.width, pixel_input.height, pixel_input.format, vk::ImageTiling::eOptimal, usage | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+
+  img_staging.setData(pixel_input.ptr(), imageSize);
+
+  img_staging.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
+  img_store.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
+  device.copyImage(img_staging, img_store, pixel_input.width, pixel_input.height);
+
+  img_store.transitionToLayout(layout);
+
+  // assign filled buffer to this
+  swap(img_store);
+}
 
 void Image::setData(void const* data, vk::DeviceSize const& size) {
   void* buff_ptr = (*m_device)->mapMemory(m_memory, 0, size);
   std::memcpy(buff_ptr, data, size_t(size));
   (*m_device)->unmapMemory(m_memory);
 }
+
+void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
+  // get current layout form creation info
+  vk::ImageLayout const& oldLayout = info().initialLayout;
+  
+  vk::CommandBuffer commandBuffer = m_device->beginSingleTimeCommands();
+  vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = oldLayout;
+  barrier.newLayout = newLayout;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  barrier.image = get();
+  barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = 1;
+
+  if (oldLayout == vk::ImageLayout::ePreinitialized && newLayout == vk::ImageLayout::eTransferSrcOptimal) {
+    barrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+  } else if (oldLayout == vk::ImageLayout::ePreinitialized && newLayout == vk::ImageLayout::eTransferDstOptimal) {
+    barrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+  } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+    barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  } else {
+    throw std::invalid_argument("unsupported layout transition!");
+  }
+
+  commandBuffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier}
+  );
+  m_device->endSingleTimeCommands(commandBuffer);
+  // store new layout
+  info().initialLayout = newLayout;
+}
+
 
 void Image::destroy() {
   (*m_device)->freeMemory(m_memory);
