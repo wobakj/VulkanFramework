@@ -62,6 +62,7 @@ class LauncherVulkan {
   void createDescriptorPool();
   void createTextureImage();
   void createTextureSampler();
+  void createDepthResource();
 
   void transitionImageLayout(vk::Image image, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
   
@@ -111,6 +112,7 @@ class LauncherVulkan {
   Deleter<VkDescriptorPool> m_descriptorPool;
   vk::DescriptorSet m_descriptorSet;
   Deleter<VkSampler> m_textureSampler;
+  Image m_image_depth;
   Image m_image;
   // Application* m_application;
 };

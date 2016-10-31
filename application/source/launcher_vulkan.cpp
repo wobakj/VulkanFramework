@@ -118,7 +118,7 @@ void LauncherVulkan::initialize() {
   createUniformBuffers();
   createTextureImage();
   createTextureSampler();
-
+  createDepthResource();
   createDescriptorSetLayout();
   createDescriptorPool();
   createGraphicsPipeline();
@@ -248,7 +248,6 @@ void LauncherVulkan::createCommandBuffers() {
     m_command_buffers[i].bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
 
     m_command_buffers[i].drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
-    // m_command_buffers[i].draw(model_test.vertex_num, 1, 0, 0);
 
     m_command_buffers[i].endRenderPass();
 
@@ -420,6 +419,32 @@ void LauncherVulkan::createSurface() {
   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface!");
   }
+}
+
+vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
+  for (auto const& format : candidates) {
+    vk::FormatProperties props = physicalDevice.getFormatProperties(format);
+    if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features) {
+      return format;
+    } else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+  throw std::runtime_error("failed to find supported format!");
+  return vk::Format::eUndefined;
+}
+
+
+void LauncherVulkan::createDepthResource() {
+ auto depthFormat = findSupportedFormat(
+  m_device.physical(),
+    {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+    vk::ImageTiling::eOptimal,
+    vk::FormatFeatureFlagBits::eDepthStencilAttachment
+  );
+
+  m_image_depth = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_depth.transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 }
 
 void LauncherVulkan::createTextureImage() {

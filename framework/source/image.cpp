@@ -3,6 +3,17 @@
 #include <iostream>
 #include "device.hpp"
 
+bool is_depth(vk::Format const& format) {
+  return format == vk::Format::eD32Sfloat
+      || format == vk::Format::eD32SfloatS8Uint
+      || format == vk::Format::eD24UnormS8Uint
+      || format == vk::Format::eD16Unorm;
+}
+
+bool has_stencil(vk::Format const& format) {
+  return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
+}
+
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
   vk::ImageViewCreateInfo view_info{};
   view_info.image = image;
@@ -24,7 +35,12 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
   view_info.components.b = vk::ComponentSwizzle::eIdentity;
   view_info.components.a = vk::ComponentSwizzle::eIdentity;
 
-  view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+  if(is_depth(img_info.format)) {
+    view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+  }
+  else {
+    view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
   view_info.subresourceRange.baseMipLevel = 0;
   view_info.subresourceRange.levelCount = img_info.mipLevels;
   view_info.subresourceRange.baseArrayLayer = 0;
@@ -33,6 +49,33 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
   return view_info;
 }
 
+vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
+  if (layout == vk::ImageLayout::ePreinitialized) {
+    return vk::AccessFlagBits::eHostWrite;
+  }
+  else if (layout == vk::ImageLayout::eUndefined) {
+    return vk::AccessFlags{};
+  }
+  else if (layout == vk::ImageLayout::eTransferDstOptimal) {
+    return vk::AccessFlagBits::eTransferWrite;
+  }
+  else if (layout == vk::ImageLayout::eTransferSrcOptimal) {
+    return vk::AccessFlagBits::eTransferRead;
+  } 
+  else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+    return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  } 
+  else if (layout == vk::ImageLayout::eTransferDstOptimal) {
+    return vk::AccessFlagBits::eTransferWrite;
+  } 
+  else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+    return vk::AccessFlagBits::eShaderRead;
+  } 
+  else {
+    throw std::invalid_argument("unsupported layout for access mask!");
+    return vk::AccessFlags{};
+  }
+}
 
 static uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
   auto memProperties = device.getMemoryProperties();
@@ -59,30 +102,6 @@ Image::Image(Image && dev)
   swap(dev);
 }
 
-// Image::Image(Device const& device, vk::DeviceSize const& size, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties)
-//  :Image{}
-// {
-//   m_device = &device;
-
-//   info().size = size;
-//   info().usage = usage;
-//   info().sharingMode = vk::SharingMode::eExclusive;
-//   get() = device->createImage(info());
-
-//   auto memRequirements = device->getImageMemoryRequirements(get());
-
-//   vk::MemoryAllocateInfo allocInfo{};
-//   allocInfo.allocationSize = memRequirements.size;
-//   allocInfo.memoryTypeIndex = findMemoryType(device.physical(), memRequirements.memoryTypeBits, memProperties);
-//   m_memory = device->allocateMemory(allocInfo);
-
-//   device->bindImageMemory(get(), m_memory, 0);
-
-//   m_desc_info.buffer = get();
-//   m_desc_info.offset = 0;
-//   m_desc_info.range = size;
-// }
-
 Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) 
  :Image{}
 {  
@@ -96,7 +115,13 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
   info().arrayLayers = 1;
   info().format = format;
   info().tiling = tiling;
-  info().initialLayout = vk::ImageLayout::ePreinitialized;
+  // if memory is host visible, image is likely target of upload
+  if (mem_flags & vk::MemoryPropertyFlagBits::eHostVisible) {
+    info().initialLayout = vk::ImageLayout::ePreinitialized;
+  }
+  else {
+    info().initialLayout = vk::ImageLayout::eUndefined;
+  }
   info().usage = usage;
   info().sharingMode = vk::SharingMode::eExclusive;
 
@@ -111,7 +136,11 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
 
   device->bindImageMemory(get(), m_memory, 0);
 
-  // createView();
+  if ((usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
+      (usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
+      (usage ^ (vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc))) {
+    createView();
+  }
 }
 
 
@@ -159,24 +188,25 @@ void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
   barrier.image = get();
-  barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
 
-  if (oldLayout == vk::ImageLayout::ePreinitialized && newLayout == vk::ImageLayout::eTransferSrcOptimal) {
-    barrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-    barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
-  } else if (oldLayout == vk::ImageLayout::ePreinitialized && newLayout == vk::ImageLayout::eTransferDstOptimal) {
-    barrier.srcAccessMask = vk::AccessFlagBits::eHostWrite;
-    barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-  } else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-    barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-    barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  } else {
-    throw std::invalid_argument("unsupported layout transition!");
+  if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+
+    if (has_stencil(info().format)) {
+      barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  } 
+  else {
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
   }
+
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = info().mipLevels;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = info().arrayLayers;
+
+  barrier.srcAccessMask = layout_to_access(oldLayout);
+  barrier.dstAccessMask = layout_to_access(newLayout);
 
   commandBuffer.pipelineBarrier(
     vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe,
