@@ -110,6 +110,19 @@ inline vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::Image
   return fb_info;
 }
 
+inline vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass, std::vector<vk::ImageView> attachments) {
+  // vk::ImageView attachments[] = {view};
+  attachments.insert(attachments.begin(),view);
+  vk::FramebufferCreateInfo fb_info{};
+  fb_info.renderPass = pass;
+  fb_info.attachmentCount = std::uint32_t(attachments.size());
+  fb_info.pAttachments = attachments.data();
+  fb_info.width = img_info.extent.width;
+  fb_info.height = img_info.extent.height;
+  fb_info.layers = img_info.arrayLayers;
+  return fb_info;
+}
+
 inline vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& swap_info) {
   vk::ImageCreateInfo img_info{};
   img_info.imageType = vk::ImageType::e2D;

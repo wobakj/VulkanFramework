@@ -30,6 +30,7 @@ class Image : public WrapperImage {
 
   void swap(Image& dev);
   
+  vk::Format const& format() const;
   vk::ImageView const& view() const;
   void writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler) const;
 

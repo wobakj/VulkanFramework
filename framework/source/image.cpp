@@ -45,7 +45,6 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
   view_info.subresourceRange.levelCount = img_info.mipLevels;
   view_info.subresourceRange.baseArrayLayer = 0;
   view_info.subresourceRange.layerCount = img_info.arrayLayers;
-
   return view_info;
 }
 
@@ -236,6 +235,10 @@ void Image::destroy() {
 
 vk::ImageView const& Image::view() const {
   return m_view;
+}
+
+vk::Format const& Image::format() const {
+  return info().format;
 }
 
 void Image::createView() {
