@@ -1,7 +1,8 @@
 #include "buffer.hpp"
 
-#include <iostream>
 #include "device.hpp"
+
+#include <iostream>
 
 Buffer::Buffer()
  :WrapperBuffer{}

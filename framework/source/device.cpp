@@ -66,7 +66,7 @@ void Device::createCommandPool() {
 
 SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
   SwapChain chain{};
-  chain.create(*this, m_phys_device, surf, extend);
+  chain.create(*this, surf, extend);
   return chain; 
 }
 

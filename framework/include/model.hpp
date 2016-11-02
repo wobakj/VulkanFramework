@@ -1,11 +1,12 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
-#include "device.hpp"
 #include "buffer.hpp"
 #include "model_t.hpp"
 
 #include <vulkan/vulkan.hpp>
+
+class Device;
 
 class Model {
  public:  

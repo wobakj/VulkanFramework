@@ -446,19 +446,6 @@ void LauncherVulkan::createSurface() {
   }
 }
 
-vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
-  for (auto const& format : candidates) {
-    vk::FormatProperties props = physicalDevice.getFormatProperties(format);
-    if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features) {
-      return format;
-    } else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features) {
-      return format;
-    }
-  }
-  throw std::runtime_error("failed to find supported format!");
-  return vk::Format::eUndefined;
-}
-
 void LauncherVulkan::createDepthResource() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
@@ -473,7 +460,7 @@ void LauncherVulkan::createDepthResource() {
 
 void LauncherVulkan::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
-  m_image = Image{m_device, pix_data, vk::ImageUsageFlagBits::eSampled, vk::ImageLayout::eShaderReadOnlyOptimal};
+  m_image = m_device.createImage(pix_data, vk::ImageUsageFlagBits::eSampled, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void LauncherVulkan::createTextureSampler() {

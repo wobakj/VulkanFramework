@@ -2,12 +2,12 @@
 #define MEMORY_HPP
 
 #include "wrapper.hpp"
-#include "device.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 class Buffer;
 class Image;
+class Device;
 
 uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties);
 

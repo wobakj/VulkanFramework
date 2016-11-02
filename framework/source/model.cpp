@@ -1,7 +1,8 @@
 #include "model.hpp"
 
-#include <iostream>
 #include "device.hpp"
+
+#include <iostream>
 
 vk::VertexInputBindingDescription model_to_bind(model_t const& m) {
   vk::VertexInputBindingDescription bindingDescription{};

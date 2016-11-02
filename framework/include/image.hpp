@@ -2,13 +2,14 @@
 #define IMAGE_HPP
 
 #include "wrapper.hpp"
-#include "device.hpp"
 #include "pixel_data.hpp"
 #include "memory.hpp"
 
 #include <vulkan/vulkan.hpp>
+class Device;
 
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
+vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 
 using WrapperImage = Wrapper<vk::Image, vk::ImageCreateInfo>;
 class Image : public WrapperImage {

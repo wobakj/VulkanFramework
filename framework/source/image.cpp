@@ -1,7 +1,8 @@
 #include "image.hpp"
 
-#include <iostream>
 #include "device.hpp"
+
+#include <iostream>
 
 bool is_depth(vk::Format const& format) {
   return format == vk::Format::eD32Sfloat
@@ -74,6 +75,24 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
     throw std::invalid_argument("unsupported layout for access mask!");
     return vk::AccessFlags{};
   }
+}
+
+vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features) {
+  // prefer optimal tiling
+  for (auto const& format : candidates) {
+    vk::FormatProperties props = physicalDevice.getFormatProperties(format);
+    if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features) {
+      return format;
+    }
+  }
+  for (auto const& format : candidates) {
+    vk::FormatProperties props = physicalDevice.getFormatProperties(format);
+    if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features) {
+      return format;
+    } 
+  }
+  throw std::runtime_error("failed to find supported format!");
+  return vk::Format::eUndefined;
 }
 
 Image::Image()
