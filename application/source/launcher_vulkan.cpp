@@ -267,28 +267,9 @@ void LauncherVulkan::createFramebuffers() {
 }
 
 void LauncherVulkan::createRenderPass() {
-  vk::AttachmentDescription colorAttachment{};
-  colorAttachment.format = m_swap_chain.format();
-  colorAttachment.samples = vk::SampleCountFlagBits::e1;
 
-  colorAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-  colorAttachment.storeOp = vk::AttachmentStoreOp::eStore;
-
-  colorAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-  colorAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-
-  colorAttachment.initialLayout = vk::ImageLayout::eUndefined;
-  colorAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;
-
-  vk::AttachmentDescription depthAttachment{};
-  depthAttachment.format = m_image_depth.format();
-  depthAttachment.samples = vk::SampleCountFlagBits::e1;
-  depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
-  depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;
-  depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
-  depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  depthAttachment.initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
-  depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  auto colorAttachment = img_to_attachment(m_swap_chain.imgInfo());
+  auto depthAttachment = m_image_depth.toAttachment();
 
   vk::AttachmentReference colorAttachmentRef{};
   colorAttachmentRef.attachment = 0;
@@ -296,9 +277,9 @@ void LauncherVulkan::createRenderPass() {
 
   vk::AttachmentReference depthAttachmentRef{};
   depthAttachmentRef.attachment = 1;
-  depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  depthAttachmentRef.layout = m_image_depth.layout();
 
-  vk::SubpassDescription subPass = {};
+  vk::SubpassDescription subPass{};
   subPass.colorAttachmentCount = 1;
   subPass.pColorAttachments = &colorAttachmentRef;
   subPass.pDepthStencilAttachment = &depthAttachmentRef;

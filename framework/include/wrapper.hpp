@@ -1,5 +1,5 @@
-#ifndef WRAPER_HPP
-#define WRAPER_HPP
+#ifndef WRAPPER_HPP
+#define WRAPPER_HPP
 
 #include <vulkan/vulkan.h>
 #include <functional>

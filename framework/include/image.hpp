@@ -10,7 +10,7 @@ class Device;
 
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
-
+vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info, bool clear = true);
 using WrapperImage = Wrapper<vk::Image, vk::ImageCreateInfo>;
 class Image : public WrapperImage {
  public:
@@ -32,6 +32,8 @@ class Image : public WrapperImage {
 
   void swap(Image& dev);
   
+  vk::ImageLayout const& layout() const;
+  vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
   vk::ImageView const& view() const;
   void writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler) const;

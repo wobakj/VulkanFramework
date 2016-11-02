@@ -119,6 +119,7 @@ vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& swap_info) {
   img_info.sharingMode = swap_info.imageSharingMode;
   img_info.queueFamilyIndexCount = swap_info.queueFamilyIndexCount;
   img_info.pQueueFamilyIndices = swap_info.pQueueFamilyIndices;
+  img_info.initialLayout = vk::ImageLayout::ePresentSrcKHR;
   return img_info;
 }
 

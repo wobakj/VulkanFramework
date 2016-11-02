@@ -77,6 +77,43 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   }
 }
 
+vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info, bool clear) {
+  vk::AttachmentDescription attachment{};
+  attachment.format = img_info.format;
+  if(clear) {
+    attachment.loadOp = vk::AttachmentLoadOp::eClear;    
+    attachment.stencilLoadOp = vk::AttachmentLoadOp::eClear;
+  }
+  else {
+    attachment.loadOp = vk::AttachmentLoadOp::eLoad;
+    attachment.stencilLoadOp = vk::AttachmentLoadOp::eLoad;
+  }
+  // store data only when it is used afterwards
+  if ((img_info.usage & vk::ImageUsageFlagBits::eSampled) 
+   || (img_info.usage & vk::ImageUsageFlagBits::eStorage)
+   || (img_info.usage & vk::ImageUsageFlagBits::eInputAttachment)
+   || (img_info.usage & vk::ImageUsageFlagBits::eTransferSrc)
+   || img_info.initialLayout == vk::ImageLayout::ePresentSrcKHR) {
+    attachment.storeOp = vk::AttachmentStoreOp::eStore;
+    attachment.stencilStoreOp = vk::AttachmentStoreOp::eStore;
+  }
+  else {
+    attachment.storeOp = vk::AttachmentStoreOp::eDontCare;
+    attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+  }
+  // if image is cleared, initial layout doesnt matter as data is deleted 
+  if (clear) {
+    attachment.initialLayout = vk::ImageLayout::eUndefined;
+  }
+  else {
+    attachment.initialLayout = img_info.initialLayout;
+  }
+
+  attachment.finalLayout = img_info.initialLayout;
+
+  return attachment;
+}
+
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features) {
   // prefer optimal tiling
   for (auto const& format : candidates) {
@@ -232,12 +269,20 @@ void Image::destroy() {
   return *this;
  }
 
+vk::ImageLayout const& Image::layout() const {
+  return info().initialLayout;
+}
+
 vk::ImageView const& Image::view() const {
   return m_view;
 }
 
 vk::Format const& Image::format() const {
   return info().format;
+}
+
+vk::AttachmentDescription Image::toAttachment(bool clear) const {
+  return img_to_attachment(info(), clear);
 }
 
 void Image::createView() {
