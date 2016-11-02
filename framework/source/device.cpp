@@ -18,6 +18,8 @@ Device::Device()
  ,m_index_present{-1}
  ,m_extensions{}
  ,m_command_pool{VK_NULL_HANDLE}
+ ,m_command_pool_help{VK_NULL_HANDLE}
+ ,m_command_buffer_help{VK_NULL_HANDLE}
 {}
 
 void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions) {
@@ -54,14 +56,25 @@ void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int presen
   m_queue_present = get().getQueue(present, 0);
   // throw std::exception();
 
-  createCommandPool();
+  createCommandPools();
 }
 
-void Device::createCommandPool() {
+void Device::createCommandPools() {
   vk::CommandPoolCreateInfo poolInfo{};
   poolInfo.queueFamilyIndex = m_index_graphics;
 
+  poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
   m_command_pool = get().createCommandPool(poolInfo);
+  // allocate pool for one-time commands, reset when beginning buffer
+  poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+  m_command_pool_help = get().createCommandPool(poolInfo);
+  // create buffer for onetime commands
+  vk::CommandBufferAllocateInfo allocInfo{};
+  allocInfo.level = vk::CommandBufferLevel::ePrimary;
+  allocInfo.commandPool = m_command_pool_help;
+  allocInfo.commandBufferCount = 1;
+
+  m_command_buffer_help = get().allocateCommandBuffers(allocInfo)[0];
 }
 
 SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
@@ -78,6 +91,8 @@ Device::Device(Device && dev)
 
 void Device::destroy() {
   get().destroyCommandPool(m_command_pool);
+  get().destroyCommandPool(m_command_pool_help);
+  get().freeCommandBuffers(pool(), {m_command_buffer_help});
   get().destroy();
 }
 
@@ -96,6 +111,8 @@ void Device::destroy() {
   std::swap(m_index_present, dev.m_index_present);
   std::swap(m_extensions, dev.m_extensions);
   std::swap(m_command_pool, dev.m_command_pool);
+  std::swap(m_command_pool_help, dev.m_command_pool_help);
+  std::swap(m_command_buffer_help, dev.m_command_buffer_help);
  }
 
  vk::PhysicalDevice const& Device::physical() const {
@@ -104,6 +121,10 @@ void Device::destroy() {
 
 vk::CommandPool const& Device::pool() const {
   return m_command_pool;
+}
+
+vk::CommandPool const& Device::poolHelper() const {
+  return m_command_pool_help;
 }
 
 vk::Queue const& Device::queueGraphics() const {
@@ -138,13 +159,13 @@ Image Device::createImage(pixel_data const& pixel_input, vk::ImageUsageFlags con
 }
 
 void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size) const {
-  vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
 
   vk::BufferCopy copyRegion{};
   copyRegion.size = size;
   commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
 
-  endSingleTimeCommands(commandBuffer);
+  endSingleTimeCommands();
 }
 
 void Device::copyImage(vk::Image const srcImage, vk::Image dstImage, uint32_t width, uint32_t height) const {
@@ -163,43 +184,34 @@ void Device::copyImage(vk::Image const srcImage, vk::Image dstImage, uint32_t wi
   region.extent.height = height;
   region.extent.depth = 1;
 
-  vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
   commandBuffer.copyImage(
     srcImage, vk::ImageLayout::eTransferSrcOptimal,
     dstImage, vk::ImageLayout::eTransferDstOptimal,
     1, &region
   );
-  endSingleTimeCommands(commandBuffer);
+  endSingleTimeCommands();
 }
 
 
 
-vk::CommandBuffer Device::beginSingleTimeCommands() const {
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = pool();
-  allocInfo.commandBufferCount = 1;
-
-  vk::CommandBuffer commandBuffer = get().allocateCommandBuffers(allocInfo)[0];
-
+vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
-  commandBuffer.begin(beginInfo);
+  m_command_buffer_help.begin(beginInfo);
 
-  return commandBuffer;
+  return m_command_buffer_help;
 }
 
-void Device::endSingleTimeCommands(vk::CommandBuffer& commandBuffer) const {
-  commandBuffer.end();
+void Device::endSingleTimeCommands() const {
+  m_command_buffer_help.end();
 
   vk::SubmitInfo submitInfo{};
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
+  submitInfo.pCommandBuffers = &m_command_buffer_help;
 
   queueGraphics().submit({submitInfo}, VK_NULL_HANDLE);
   queueGraphics().waitIdle();
-
-  get().freeCommandBuffers(pool(), {commandBuffer});
-  commandBuffer = VK_NULL_HANDLE;
+  m_command_buffer_help.reset({});
 }

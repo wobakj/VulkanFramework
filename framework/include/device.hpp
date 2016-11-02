@@ -42,8 +42,8 @@ class Device : public WrapDevice {
   void copyImage(vk::Image const srcImage, vk::Image dstImage, uint32_t width, uint32_t height) const;
 
   // helper functions to create commandbuffer for staging an formating
-  vk::CommandBuffer beginSingleTimeCommands() const;
-  void endSingleTimeCommands(vk::CommandBuffer& commandBuffer) const;
+  vk::CommandBuffer const& beginSingleTimeCommands() const;
+  void endSingleTimeCommands() const;
 
   // getter
   vk::PhysicalDevice const& physical() const;
@@ -57,10 +57,11 @@ class Device : public WrapDevice {
   int const& indexPresent() const;
 
   vk::CommandPool const& pool() const;
+  vk::CommandPool const& poolHelper() const;
 
  private:
   void destroy() override;
-  void createCommandPool();
+  void createCommandPools();
 
   vk::PhysicalDevice m_phys_device;
   vk::Queue m_queue_graphics;
@@ -69,6 +70,8 @@ class Device : public WrapDevice {
   int m_index_present;
   std::vector<const char*> m_extensions;
   vk::CommandPool m_command_pool;
+  vk::CommandPool m_command_pool_help;
+  vk::CommandBuffer m_command_buffer_help;
 };
 
 #endif

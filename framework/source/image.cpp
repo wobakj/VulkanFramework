@@ -216,7 +216,7 @@ void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
   // get current layout form creation info
   vk::ImageLayout const& oldLayout = info().initialLayout;
   
-  vk::CommandBuffer commandBuffer = m_device->beginSingleTimeCommands();
+  vk::CommandBuffer const& commandBuffer = m_device->beginSingleTimeCommands();
   vk::ImageMemoryBarrier barrier{};
   barrier.oldLayout = oldLayout;
   barrier.newLayout = newLayout;
@@ -251,7 +251,7 @@ void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
     {},
     {barrier}
   );
-  m_device->endSingleTimeCommands(commandBuffer);
+  m_device->endSingleTimeCommands();
   // store new layout
   info().initialLayout = newLayout;
 }
