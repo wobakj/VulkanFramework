@@ -3,6 +3,7 @@
 
 #include "wrapper.hpp"
 #include "device.hpp"
+#include "memory.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -31,8 +32,9 @@ class Buffer : public WrapperBuffer {
  private:
   void destroy() override;
 
-  vk::DeviceMemory m_memory;
-  vk::MemoryAllocateInfo m_mem_info;
+  Memory m_memory;
+  // vk::DeviceMemory m_memory;
+  // vk::MemoryAllocateInfo m_mem_info;
   Device const* m_device;
   vk::DescriptorBufferInfo m_desc_info;
 };

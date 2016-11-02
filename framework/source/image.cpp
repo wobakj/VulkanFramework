@@ -76,21 +76,9 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   }
 }
 
-static uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
-  auto memProperties = device.getMemoryProperties();
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-      return i;
-    }
-  }
-  throw std::runtime_error("failed to find suitable memory type!");
-  return 0;
-}
-
 Image::Image()
  :WrapperImage{}
- ,m_memory{VK_NULL_HANDLE}
- ,m_mem_info{}
+ ,m_memory{}
  ,m_device{nullptr}
  ,m_view{VK_NULL_HANDLE}
 {}
@@ -127,13 +115,8 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
   get() = device->createImage(info());
 
   vk::MemoryRequirements memRequirements = device->getImageMemoryRequirements(get());
-
-  m_mem_info.allocationSize = memRequirements.size;
-  m_mem_info.memoryTypeIndex = findMemoryType(device.physical(), memRequirements.memoryTypeBits, mem_flags);
-
-  m_memory = device->allocateMemory(m_mem_info);
-
-  device->bindImageMemory(get(), m_memory, 0);
+  m_memory = Memory{device, memRequirements, mem_flags};
+  m_memory.bindImage(*this, 0);
 
   if ((usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
       (usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
@@ -170,9 +153,7 @@ Image::Image(Device const& device, pixel_data const& pixel_input, vk::ImageUsage
 }
 
 void Image::setData(void const* data, vk::DeviceSize const& size) {
-  void* buff_ptr = (*m_device)->mapMemory(m_memory, 0, size);
-  std::memcpy(buff_ptr, data, size_t(size));
-  (*m_device)->unmapMemory(m_memory);
+  m_memory.setData(data, size);
 }
 
 void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
@@ -224,7 +205,6 @@ void Image::destroy() {
   if (m_view) {
     (*m_device)->destroyImageView(m_view);
   }
-  (*m_device)->freeMemory(m_memory);
   (*m_device)->destroyImage(get());
 }
 
@@ -266,7 +246,6 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sample
  void Image::swap(Image& dev) {
   WrapperImage::swap(dev);
   std::swap(m_memory, dev.m_memory);
-  std::swap(m_mem_info, dev.m_mem_info);
   std::swap(m_device, dev.m_device);
   std::swap(m_view, dev.m_view);
  }

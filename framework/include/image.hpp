@@ -4,6 +4,7 @@
 #include "wrapper.hpp"
 #include "device.hpp"
 #include "pixel_data.hpp"
+#include "memory.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -38,8 +39,7 @@ class Image : public WrapperImage {
   void destroy() override;
   void createView();
 
-  vk::DeviceMemory m_memory;
-  vk::MemoryAllocateInfo m_mem_info;
+  Memory m_memory;
   Device const* m_device;
   vk::ImageView m_view;
 };
