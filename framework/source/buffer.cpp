@@ -25,7 +25,15 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
 
   info().size = size;
   info().usage = usage;
-  info().sharingMode = vk::SharingMode::eExclusive;
+  auto queueFamilies = device.ownerIndices();
+  if (queueFamilies.size() > 1) {
+    info().sharingMode = vk::SharingMode::eConcurrent;
+    info().queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
+    info().pQueueFamilyIndices = queueFamilies.data();
+  }
+  else {
+    info().sharingMode = vk::SharingMode::eExclusive;
+  }
   get() = device->createBuffer(info());
 
   auto memRequirements = device->getBufferMemoryRequirements(get());

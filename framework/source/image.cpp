@@ -166,7 +166,16 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
     info().initialLayout = vk::ImageLayout::eUndefined;
   }
   info().usage = usage;
-  info().sharingMode = vk::SharingMode::eExclusive;
+
+  auto queueFamilies = device.ownerIndices();
+  if (queueFamilies.size() > 1) {
+    info().sharingMode = vk::SharingMode::eConcurrent;
+    info().queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
+    info().pQueueFamilyIndices = queueFamilies.data();
+  }
+  else {
+    info().sharingMode = vk::SharingMode::eExclusive;
+  }
 
   get() = device->createImage(info());
 

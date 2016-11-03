@@ -212,11 +212,11 @@ void LauncherVulkan::createSemaphores() {
 
 void LauncherVulkan::createCommandBuffers() {
   if (!m_command_buffers.empty()) {
-    m_device->freeCommandBuffers(m_device.pool(), m_command_buffers);
+    m_device->freeCommandBuffers(m_device.pool("graphics"), m_command_buffers);
   }
 
-  vk::CommandBufferAllocateInfo allocInfo = {};
-  allocInfo.setCommandPool(m_device.pool());
+  vk::CommandBufferAllocateInfo allocInfo{};
+  allocInfo.setCommandPool(m_device.pool("graphics"));
   allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
   allocInfo.setCommandBufferCount((uint32_t) m_framebuffers.size());
 

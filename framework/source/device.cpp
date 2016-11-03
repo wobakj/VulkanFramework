@@ -11,12 +11,11 @@
 #include <set>
 
 Device::Device()
- :Wrapper<vk::Device, vk::DeviceCreateInfo>{}
+ :WrapperDevice{}
  ,m_queue_indices{}
  ,m_queues{}
+ ,m_pools{}
  ,m_extensions{}
- ,m_command_pool{VK_NULL_HANDLE}
- ,m_command_pool_help{VK_NULL_HANDLE}
  ,m_command_buffer_help{VK_NULL_HANDLE}
 {}
 
@@ -24,12 +23,16 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
  :Device{}
  {
   m_phys_device = phys_dev;
+  m_extensions = deviceExtensions;
   m_queue_indices.emplace("graphics", queues.graphicsFamily);
   m_queue_indices.emplace("present", queues.presentFamily);
-  m_extensions = deviceExtensions;
+  m_queue_indices.emplace("transfer", queues.graphicsFamily);
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-  std::set<int> uniqueQueueFamilies = {queues.graphicsFamily, queues.presentFamily};
+  std::set<int> uniqueQueueFamilies{};
+  for(auto const& index : m_queue_indices) {
+    uniqueQueueFamilies.emplace(index.second);
+  }
 
   float queuePriority = 1.0f;
   for (int queueFamily : uniqueQueueFamilies) {
@@ -41,20 +44,18 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   }
   
   vk::PhysicalDeviceFeatures deviceFeatures{};
-  vk::DeviceCreateInfo createInfo{};
-  createInfo.pQueueCreateInfos = queueCreateInfos.data();
-  createInfo.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
-  createInfo.pEnabledFeatures = &deviceFeatures;
+  info().pQueueCreateInfos = queueCreateInfos.data();
+  info().queueCreateInfoCount = uint32_t(queueCreateInfos.size());
+  info().pEnabledFeatures = &deviceFeatures;
 
-  createInfo.enabledExtensionCount = uint32_t(deviceExtensions.size());
-  createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+  info().enabledExtensionCount = uint32_t(deviceExtensions.size());
+  info().ppEnabledExtensionNames = deviceExtensions.data();
 
-  vk::DeviceCreateInfo a{createInfo};
-  phys_dev.createDevice(&a, nullptr, &get());
+  get() = phys_dev.createDevice(info());
 
-  m_queues.emplace("graphics", get().getQueue(queues.graphicsFamily, 0));
-  m_queues.emplace("present", get().getQueue(queues.presentFamily, 0));
-  // throw std::exception();
+  for(auto const& index : m_queue_indices) {
+    m_queues.emplace(index.first, get().getQueue(index.second, 0));   
+  }
 
   createCommandPools();
 }
@@ -62,20 +63,36 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
 void Device::createCommandPools() {
   vk::CommandPoolCreateInfo poolInfo{};
   poolInfo.queueFamilyIndex = getQueueIndex("graphics");
-
   poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-  m_command_pool = get().createCommandPool(poolInfo);
+
+  m_pools.emplace("graphics", get().createCommandPool(poolInfo));
   // allocate pool for one-time commands, reset when beginning buffer
+  poolInfo.queueFamilyIndex = getQueueIndex("transfer");
   poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-  m_command_pool_help = get().createCommandPool(poolInfo);
+
+  m_pools.emplace("transfer", get().createCommandPool(poolInfo));
   // create buffer for onetime commands
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = m_command_pool_help;
+  allocInfo.commandPool = pool("transfer");
   allocInfo.commandBufferCount = 1;
 
   m_command_buffer_help = get().allocateCommandBuffers(allocInfo)[0];
 }
+
+std::vector<uint32_t> Device::ownerIndices() const {
+  std::set<uint32_t> uniqueQueueFamilies{};
+  for(auto const& index : m_queue_indices) {
+    uniqueQueueFamilies.emplace(index.second);
+  }
+  std::vector<uint32_t> owners{};
+  for(auto const& index : uniqueQueueFamilies) {
+    owners.emplace_back(index);
+  }
+
+  return owners;
+}
+
 
 SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
   SwapChain chain{};
@@ -90,9 +107,10 @@ Device::Device(Device && dev)
  }
 
 void Device::destroy() {
-  get().destroyCommandPool(m_command_pool);
-  get().destroyCommandPool(m_command_pool_help);
-  get().freeCommandBuffers(pool(), {m_command_buffer_help});
+  for(auto& pool : m_pools) {
+    get().destroyCommandPool(pool.second);
+  }
+  get().freeCommandBuffers(pool("transfer"), {m_command_buffer_help});
   get().destroy();
 }
 
@@ -102,14 +120,12 @@ void Device::destroy() {
  }
 
  void Device::swap(Device& dev) {
-  // std::swap(m_device, dev.m_device);
-  std::swap(get(), dev.get());
+  WrapperDevice::swap(dev);
   std::swap(m_phys_device, dev.m_phys_device);
   std::swap(m_queues, dev.m_queues);
   std::swap(m_queue_indices, dev.m_queue_indices);
+  std::swap(m_pools, dev.m_pools);
   std::swap(m_extensions, dev.m_extensions);
-  std::swap(m_command_pool, dev.m_command_pool);
-  std::swap(m_command_pool_help, dev.m_command_pool_help);
   std::swap(m_command_buffer_help, dev.m_command_buffer_help);
  }
 
@@ -117,18 +133,13 @@ void Device::destroy() {
   return m_phys_device;
  }
 
-vk::CommandPool const& Device::pool() const {
-  return m_command_pool;
+vk::CommandPool const& Device::pool(std::string const& name) const {
+  return m_pools.at(name);
 }
-
-vk::CommandPool const& Device::poolHelper() const {
-  return m_command_pool_help;
-}
-
 vk::Queue const& Device::getQueue(std::string const& name) const {
   return m_queues.at(name);
 }
-int Device::getQueueIndex(std::string const& name) const {
+uint32_t Device::getQueueIndex(std::string const& name) const {
   return m_queue_indices.at(name);
 }
 
@@ -200,7 +211,7 @@ void Device::endSingleTimeCommands() const {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &m_command_buffer_help;
 
-  getQueue("graphics").submit({submitInfo}, VK_NULL_HANDLE);
-  getQueue("graphics").waitIdle();
+  getQueue("transfer").submit({submitInfo}, VK_NULL_HANDLE);
+  getQueue("transfer").waitIdle();
   m_command_buffer_help.reset({});
 }

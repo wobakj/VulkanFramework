@@ -15,8 +15,8 @@ class Image;
 struct pixel_data;
 class QueueFamilyIndices;
 
-using WrapDevice = Wrapper<vk::Device, vk::DeviceCreateInfo>;
-class Device : public WrapDevice {
+using WrapperDevice = Wrapper<vk::Device, vk::DeviceCreateInfo>;
+class Device : public WrapperDevice {
  public:
   
   Device();
@@ -51,21 +51,21 @@ class Device : public WrapDevice {
   vk::PhysicalDevice const& physical() const;
 
   vk::Queue const& getQueue(std::string const& name) const;
-  int getQueueIndex(std::string const& name) const;
+  uint32_t getQueueIndex(std::string const& name) const;
 
-  vk::CommandPool const& pool() const;
-  vk::CommandPool const& poolHelper() const;
+  vk::CommandPool const& pool(std::string const&) const;
+
+  std::vector<uint32_t> ownerIndices() const;
 
  private:
   void destroy() override;
   void createCommandPools();
 
   vk::PhysicalDevice m_phys_device;
-  std::map<std::string, int> m_queue_indices;
+  std::map<std::string, uint32_t> m_queue_indices;
   std::map<std::string, vk::Queue> m_queues;
+  std::map<std::string, vk::CommandPool> m_pools;
   std::vector<const char*> m_extensions;
-  vk::CommandPool m_command_pool;
-  vk::CommandPool m_command_pool_help;
   vk::CommandBuffer m_command_buffer_help;
 };
 
