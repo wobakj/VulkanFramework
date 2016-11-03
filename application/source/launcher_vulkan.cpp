@@ -168,7 +168,7 @@ void LauncherVulkan::draw() {
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  m_device.queueGraphics().submit(submitInfos, VK_NULL_HANDLE);
+  m_device.getQueue("graphics").submit(submitInfos, VK_NULL_HANDLE);
 
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
@@ -181,7 +181,7 @@ void LauncherVulkan::draw() {
 
   presentInfo.pResults = nullptr; // Optional
 
-  m_device.queuePresent().presentKHR(presentInfo);
+  m_device.getQueue("present").presentKHR(presentInfo);
 }
 
 void LauncherVulkan::createDescriptorSetLayout() {

@@ -12,10 +12,8 @@
 
 Device::Device()
  :Wrapper<vk::Device, vk::DeviceCreateInfo>{}
- ,m_queue_graphics{VK_NULL_HANDLE}
- ,m_queue_present{VK_NULL_HANDLE}
- ,m_index_graphics{-1}
- ,m_index_present{-1}
+ ,m_queue_indices{}
+ ,m_queues{}
  ,m_extensions{}
  ,m_command_pool{VK_NULL_HANDLE}
  ,m_command_pool_help{VK_NULL_HANDLE}
@@ -26,8 +24,8 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
  :Device{}
  {
   m_phys_device = phys_dev;
-  m_index_graphics = queues.graphicsFamily;
-  m_index_present = queues.presentFamily;
+  m_queue_indices.emplace("graphics", queues.graphicsFamily);
+  m_queue_indices.emplace("present", queues.presentFamily);
   m_extensions = deviceExtensions;
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -54,8 +52,8 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   vk::DeviceCreateInfo a{createInfo};
   phys_dev.createDevice(&a, nullptr, &get());
 
-  m_queue_graphics = get().getQueue(queues.graphicsFamily, 0);
-  m_queue_present = get().getQueue(queues.presentFamily, 0);
+  m_queues.emplace("graphics", get().getQueue(queues.graphicsFamily, 0));
+  m_queues.emplace("present", get().getQueue(queues.presentFamily, 0));
   // throw std::exception();
 
   createCommandPools();
@@ -63,7 +61,7 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
 
 void Device::createCommandPools() {
   vk::CommandPoolCreateInfo poolInfo{};
-  poolInfo.queueFamilyIndex = m_index_graphics;
+  poolInfo.queueFamilyIndex = getQueueIndex("graphics");
 
   poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
   m_command_pool = get().createCommandPool(poolInfo);
@@ -107,10 +105,8 @@ void Device::destroy() {
   // std::swap(m_device, dev.m_device);
   std::swap(get(), dev.get());
   std::swap(m_phys_device, dev.m_phys_device);
-  std::swap(m_queue_graphics, dev.m_queue_graphics);
-  std::swap(m_queue_present, dev.m_queue_present);
-  std::swap(m_index_graphics, dev.m_index_graphics);
-  std::swap(m_index_present, dev.m_index_present);
+  std::swap(m_queues, dev.m_queues);
+  std::swap(m_queue_indices, dev.m_queue_indices);
   std::swap(m_extensions, dev.m_extensions);
   std::swap(m_command_pool, dev.m_command_pool);
   std::swap(m_command_pool_help, dev.m_command_pool_help);
@@ -129,20 +125,11 @@ vk::CommandPool const& Device::poolHelper() const {
   return m_command_pool_help;
 }
 
-vk::Queue const& Device::queueGraphics() const {
-  return m_queue_graphics;
+vk::Queue const& Device::getQueue(std::string const& name) const {
+  return m_queues.at(name);
 }
-
-vk::Queue const& Device::queuePresent() const {
-  return m_queue_present;
-}
-
-int const& Device::indexGraphics() const {
-  return m_index_graphics;
-}
-
-int const& Device::indexPresent() const {
-  return m_index_present;
+int Device::getQueueIndex(std::string const& name) const {
+  return m_queue_indices.at(name);
 }
 
 Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const {
@@ -213,7 +200,7 @@ void Device::endSingleTimeCommands() const {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &m_command_buffer_help;
 
-  queueGraphics().submit({submitInfo}, VK_NULL_HANDLE);
-  queueGraphics().waitIdle();
+  getQueue("graphics").submit({submitInfo}, VK_NULL_HANDLE);
+  getQueue("graphics").waitIdle();
   m_command_buffer_help.reset({});
 }

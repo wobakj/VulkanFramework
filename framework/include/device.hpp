@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <set>
+#include <map>
 
 class SwapChain;
 class Buffer;
@@ -49,13 +50,8 @@ class Device : public WrapDevice {
   // getter
   vk::PhysicalDevice const& physical() const;
 
-  vk::Queue const& queueGraphics() const;
-
-  vk::Queue const& queuePresent() const;
-
-  int const& indexGraphics() const;
-
-  int const& indexPresent() const;
+  vk::Queue const& getQueue(std::string const& name) const;
+  int getQueueIndex(std::string const& name) const;
 
   vk::CommandPool const& pool() const;
   vk::CommandPool const& poolHelper() const;
@@ -65,10 +61,8 @@ class Device : public WrapDevice {
   void createCommandPools();
 
   vk::PhysicalDevice m_phys_device;
-  vk::Queue m_queue_graphics;
-  vk::Queue m_queue_present;
-  int m_index_graphics;
-  int m_index_present;
+  std::map<std::string, int> m_queue_indices;
+  std::map<std::string, vk::Queue> m_queues;
   std::vector<const char*> m_extensions;
   vk::CommandPool m_command_pool;
   vk::CommandPool m_command_pool_help;
