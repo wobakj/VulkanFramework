@@ -22,14 +22,16 @@ Device::Device()
  ,m_command_buffer_help{VK_NULL_HANDLE}
 {}
 
-void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions) {
+Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& queues, std::vector<const char*> const& deviceExtensions)
+ :Device{}
+ {
   m_phys_device = phys_dev;
-  m_index_graphics = graphics;
-  m_index_present = present;
+  m_index_graphics = queues.graphicsFamily;
+  m_index_present = queues.presentFamily;
   m_extensions = deviceExtensions;
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-  std::set<int> uniqueQueueFamilies = {graphics, present};
+  std::set<int> uniqueQueueFamilies = {queues.graphicsFamily, queues.presentFamily};
 
   float queuePriority = 1.0f;
   for (int queueFamily : uniqueQueueFamilies) {
@@ -52,8 +54,8 @@ void Device::create(vk::PhysicalDevice const& phys_dev, int graphics, int presen
   vk::DeviceCreateInfo a{createInfo};
   phys_dev.createDevice(&a, nullptr, &get());
 
-  m_queue_graphics = get().getQueue(graphics, 0);
-  m_queue_present = get().getQueue(present, 0);
+  m_queue_graphics = get().getQueue(queues.graphicsFamily, 0);
+  m_queue_present = get().getQueue(queues.presentFamily, 0);
   // throw std::exception();
 
   createCommandPools();

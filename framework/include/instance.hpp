@@ -4,6 +4,7 @@
 #include "debug_reporter.hpp"
 #include "wrapper.hpp"
 #include "swap_chain.hpp"
+#include "device.hpp"
 #include <vulkan/vulkan.hpp>
 #include <iostream>
 #include <vector>
@@ -161,9 +162,7 @@ Device createLogicalDevice(vk::SurfaceKHR const& surface, std::vector<const char
 
   auto const& phys_device = pickPhysicalDevice(surface, deviceExtensions);
   QueueFamilyIndices indices = findQueueFamilies(phys_device, surface);
-  Device device{};
-  device.create(phys_device, indices.graphicsFamily, indices.presentFamily, deviceExtensions);
-  return device;
+  return Device{phys_device, indices, deviceExtensions};
 }
 
  private:

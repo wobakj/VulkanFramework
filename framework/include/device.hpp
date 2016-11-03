@@ -12,17 +12,18 @@ class SwapChain;
 class Buffer;
 class Image;
 struct pixel_data;
+class QueueFamilyIndices;
 
 using WrapDevice = Wrapper<vk::Device, vk::DeviceCreateInfo>;
 class Device : public WrapDevice {
  public:
   
   Device();
+  Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& queues, std::vector<const char*> const& deviceExtensions);
 
   Device(Device const&) = delete;
   Device& operator=(Device const&) = delete;
 
-  void create(vk::PhysicalDevice const& phys_dev, int graphics, int present, std::vector<const char*> const& deviceExtensions);
   
   SwapChain createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const;
 

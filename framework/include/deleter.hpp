@@ -25,12 +25,12 @@ public:
     }
 
     Deleter(const Deleter<VkDevice>& device, std::function<void(VkDevice, T, VkAllocationCallbacks*)> deletef) {
-        this->deleter = [&device, deletef](T obj) { std::cout << "deleting from devicedelete "<< std::endl;deletef(device, obj, nullptr); };
+        this->deleter = [&device, deletef](T obj) {deletef(device, obj, nullptr); };
     }
 
     template<typename U, typename V>
     Deleter(Wrapper<U, V> const& base, std::function<void(Wrapper<U, V> const&, T, VkAllocationCallbacks*)> deletef) {
-        this->deleter = [&base, deletef](T obj) { std::cout << "deleting from wrapper "<< std::endl; deletef(base.get(), obj, nullptr); };
+        this->deleter = [&base, deletef](T obj) {deletef(base.get(), obj, nullptr); };
     }
 
     // Deleter(Wrapper<VkDevice> const& device, std::function<void(VkDevice const, T, VkAllocationCallbacks*)> deletef) {

@@ -223,7 +223,7 @@ void LauncherVulkan::createCommandBuffers() {
   m_command_buffers = m_device->allocateCommandBuffers(allocInfo);
 
   for (size_t i = 0; i < m_command_buffers.size(); i++) {
-    vk::CommandBufferBeginInfo beginInfo = {};
+    vk::CommandBufferBeginInfo beginInfo{};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 
     m_command_buffers[i].begin(beginInfo);
