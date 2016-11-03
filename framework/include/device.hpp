@@ -41,7 +41,7 @@ class Device : public WrapperDevice {
   // image functions
   Image createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) const; 
   Image createImage(pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout) const; 
-  void copyImage(vk::Image const srcImage, vk::Image dstImage, uint32_t width, uint32_t height) const;
+  void copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const;
 
   // helper functions to create commandbuffer for staging an formating
   vk::CommandBuffer const& beginSingleTimeCommands() const;

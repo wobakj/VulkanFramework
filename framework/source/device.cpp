@@ -93,7 +93,6 @@ std::vector<uint32_t> Device::ownerIndices() const {
   return owners;
 }
 
-
 SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
   SwapChain chain{};
   chain.create(*this, surf, extend);
@@ -168,8 +167,18 @@ void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::De
   endSingleTimeCommands();
 }
 
-void Device::copyImage(vk::Image const srcImage, vk::Image dstImage, uint32_t width, uint32_t height) const {
+void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const {
   vk::ImageSubresourceLayers subResource{};
+ if (is_depth(srcImage.format())) {
+    subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
+
+    if (has_stencil(srcImage.format())) {
+      subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  } 
+  else {
+    subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
   subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
   subResource.baseArrayLayer = 0;
   subResource.mipLevel = 0;
