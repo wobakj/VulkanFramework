@@ -8,6 +8,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <mutex>
 
 class SwapChain;
 class Buffer;
@@ -67,6 +68,8 @@ class Device : public WrapperDevice {
   std::map<std::string, vk::CommandPool> m_pools;
   std::vector<const char*> m_extensions;
   vk::CommandBuffer m_command_buffer_help;
+
+  mutable std::mutex m_mutex;
 };
 
 #endif

@@ -54,6 +54,8 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_device{}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
+ ,m_fence_draw{m_device, vkDestroyFence}
+ ,m_model_dirty{false}
  // ,m_application{}
 {}
 
@@ -144,6 +146,32 @@ void LauncherVulkan::initialize() {
 }
 
 void LauncherVulkan::draw() {
+  vkDeviceWaitIdle(m_device.get());
+
+  static bool first = true;
+  if (!first) {
+    if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
+      throw std::exception();
+    }
+    m_device->resetFences({m_fence_draw.get()});
+  }
+
+  if(m_mutex_model.try_lock()) {
+    if(m_model_dirty) {
+      std::swap(m_model, m_model_2);
+      createCommandBuffers();
+      m_model_dirty = false;
+
+      if(m_thread_load.joinable()) {
+        m_thread_load.join();
+      }
+      else {
+        throw std::runtime_error{"could not join thread"};
+      }
+    }
+    m_mutex_model.unlock();
+  }
+
   uint32_t imageIndex;
   auto result = m_device->acquireNextImageKHR(m_swap_chain.get(), std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
   if (result == vk::Result::eErrorOutOfDateKHR) {
@@ -168,7 +196,8 @@ void LauncherVulkan::draw() {
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  m_device.getQueue("graphics").submit(submitInfos, VK_NULL_HANDLE);
+  // m_device.getQueue("graphics").submit(submitInfos, VK_NULL_HANDLE);
+  m_device.getQueue("graphics").submit(submitInfos, m_fence_draw.get());
 
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
@@ -182,6 +211,7 @@ void LauncherVulkan::draw() {
   presentInfo.pResults = nullptr; // Optional
 
   m_device.getQueue("present").presentKHR(presentInfo);
+  first = false;
 }
 
 void LauncherVulkan::createDescriptorSetLayout() {
@@ -208,9 +238,13 @@ void LauncherVulkan::createDescriptorSetLayout() {
 void LauncherVulkan::createSemaphores() {
   m_sema_image_ready = m_device->createSemaphore({});
   m_sema_render_done = m_device->createSemaphore({});
+  m_fence_draw = m_device->createFence({});
+  m_fence_command = m_device->createFence({});
 }
 
 void LauncherVulkan::createCommandBuffers() {
+  vkDeviceWaitIdle(m_device.get());
+  
   if (!m_command_buffers.empty()) {
     m_device->freeCommandBuffers(m_device.pool("graphics"), m_command_buffers);
   }
@@ -256,6 +290,7 @@ void LauncherVulkan::createCommandBuffers() {
 
     m_command_buffers[i].end();
   }
+  std::cout << "done" << std::endl;
 }
 
 void LauncherVulkan::createFramebuffers() {
@@ -420,6 +455,14 @@ void LauncherVulkan::createVertexBuffer() {
 
   m_model = Model{m_device, tri};
 }
+void LauncherVulkan::loadModel() {
+  model_t tri = model_loader::obj(m_resource_path + "models/sponza.obj", model_t::NORMAL | model_t::TEXCOORD);
+  m_model_2 = Model{m_device, tri};
+  {
+    std::lock_guard<std::mutex> lock{m_mutex_model};
+    m_model_dirty = true;
+  }
+}
 
 void LauncherVulkan::createSurface() {
   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
@@ -511,6 +554,8 @@ void LauncherVulkan::updateUniformBuffer() {
 }
 
 void LauncherVulkan::mainLoop() {
+  vkDeviceWaitIdle(m_device.get());
+
   // do before framebuffer_resize call as it requires the projection uniform location
   // throw exception if shader compilation was unsuccessfull
   update_shader_programs(true);
@@ -519,7 +564,6 @@ void LauncherVulkan::mainLoop() {
   
   // rendering loop
   while (!glfwWindowShouldClose(m_window)) {
-    vkDeviceWaitIdle(m_device.get());
     // query input
     glfwPollEvents();
     // clear buffer
@@ -541,6 +585,7 @@ void LauncherVulkan::recreateSwapChain() {
   m_device->waitIdle();
 
   m_swap_chain.recreate(vk::Extent2D{m_window_width, m_window_height});
+  createDepthResource();
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
@@ -615,6 +660,10 @@ void LauncherVulkan::key_callback(GLFWwindow* m_window, int key, int scancode, i
   }
   else if (key == GLFW_KEY_R && action == GLFW_PRESS) {
     // update_shader_programs(false);
+  }
+  else if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+    m_thread_load = std::thread(&LauncherVulkan::loadModel, this);
+    // loadModel();
   }
 }
 

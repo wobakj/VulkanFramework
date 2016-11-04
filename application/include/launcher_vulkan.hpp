@@ -15,7 +15,9 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 #include <memory>
+#include <thread>
 
 // forward declarations
 class Application;
@@ -63,6 +65,7 @@ class LauncherVulkan {
   void createTextureImage();
   void createTextureSampler();
   void createDepthResource();
+  void loadModel();
 
   void transitionImageLayout(vk::Image image, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
   
@@ -107,13 +110,19 @@ class LauncherVulkan {
   SwapChain m_swap_chain;
   Device m_device;
   Model m_model;
+  Model m_model_2;
   Buffer m_buffer_uniform; 
   Buffer m_buffer_uniform_stage; 
   Deleter<VkDescriptorPool> m_descriptorPool;
   vk::DescriptorSet m_descriptorSet;
   Deleter<VkSampler> m_textureSampler;
+  Deleter<VkFence> m_fence_draw;
+  Deleter<VkFence> m_fence_command;
   Image m_image_depth;
   Image m_image;
+  mutable std::mutex m_mutex_model;
+  std::thread m_thread_load;
+  mutable bool m_model_dirty;
   // Application* m_application;
 };
 

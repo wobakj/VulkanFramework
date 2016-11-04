@@ -36,9 +36,15 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
 
   float queuePriority = 1.0f;
   for (int queueFamily : uniqueQueueFamilies) {
+    uint num = 0;
+    for(auto const& index : m_queue_indices) {
+      if (queueFamily == index.second) {
+        ++num;
+      }      
+    }
     vk::DeviceQueueCreateInfo queueCreateInfo{};
     queueCreateInfo.queueFamilyIndex = queueFamily;
-    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.queueCount = num;
     queueCreateInfo.pQueuePriorities = &queuePriority;
     queueCreateInfos.push_back(queueCreateInfo);
   }
@@ -53,8 +59,13 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
 
   get() = phys_dev.createDevice(info());
 
+  std::map<int, uint> num_used{};
   for(auto const& index : m_queue_indices) {
-    m_queues.emplace(index.first, get().getQueue(index.second, 0));   
+    if(num_used.find(index.second) == num_used.end()) {
+      num_used.emplace(index.second, 0);
+    }
+    m_queues.emplace(index.first, get().getQueue(index.second, num_used.at(index.second)));   
+    ++num_used.at(index.second);
   }
 
   createCommandPools();
@@ -126,6 +137,7 @@ void Device::destroy() {
   std::swap(m_pools, dev.m_pools);
   std::swap(m_extensions, dev.m_extensions);
   std::swap(m_command_buffer_help, dev.m_command_buffer_help);
+  // std::swap(m_mutex, dev.m_mutex);
  }
 
  vk::PhysicalDevice const& Device::physical() const {
@@ -169,7 +181,7 @@ void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::De
 
 void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const {
   vk::ImageSubresourceLayers subResource{};
- if (is_depth(srcImage.format())) {
+  if (is_depth(srcImage.format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
 
     if (has_stencil(srcImage.format())) {
@@ -179,10 +191,10 @@ void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, u
   else {
     subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
   }
-  subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
   subResource.baseArrayLayer = 0;
   subResource.mipLevel = 0;
-  subResource.layerCount = 1;
+  subResource.layerCount = srcImage.info().arrayLayers;
+
 
   vk::ImageCopy region{};
   region.srcSubresource = subResource;
@@ -205,6 +217,7 @@ void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, u
 
 
 vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
+  m_mutex.lock();
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
@@ -223,4 +236,6 @@ void Device::endSingleTimeCommands() const {
   getQueue("transfer").submit({submitInfo}, VK_NULL_HANDLE);
   getQueue("transfer").waitIdle();
   m_command_buffer_help.reset({});
+
+  m_mutex.unlock();
 }

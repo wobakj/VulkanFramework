@@ -98,7 +98,7 @@ model_t obj(std::string const& name, model_t::attrib_flag_t import_attribs){
 
     vertex_offset += unsigned(curr_mesh.positions.size() / 3);
   }
-
+  if(vertex_data.empty()) throw std::exception();
   return model_t{vertex_data, attributes, triangles};
 }
 
