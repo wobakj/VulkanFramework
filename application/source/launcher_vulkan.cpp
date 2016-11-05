@@ -148,15 +148,7 @@ void LauncherVulkan::initialize() {
 void LauncherVulkan::draw() {
   vkDeviceWaitIdle(m_device.get());
 
-  static bool first = true;
-  if (!first) {
-    if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
-      throw std::exception();
-    }
-    m_device->resetFences({m_fence_draw.get()});
-  }
-
-  if(m_mutex_model.try_lock()) {
+  if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       std::swap(m_model, m_model_2);
       createCommandBuffers();
@@ -169,7 +161,6 @@ void LauncherVulkan::draw() {
         throw std::runtime_error{"could not join thread"};
       }
     }
-    m_mutex_model.unlock();
   }
 
   uint32_t imageIndex;
@@ -196,7 +187,7 @@ void LauncherVulkan::draw() {
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  // m_device.getQueue("graphics").submit(submitInfos, VK_NULL_HANDLE);
+  m_device->resetFences({m_fence_draw.get()});
   m_device.getQueue("graphics").submit(submitInfos, m_fence_draw.get());
 
   vk::PresentInfoKHR presentInfo{};
@@ -211,7 +202,7 @@ void LauncherVulkan::draw() {
   presentInfo.pResults = nullptr; // Optional
 
   m_device.getQueue("present").presentKHR(presentInfo);
-  first = false;
+  m_device.getQueue("present").waitIdle();
 }
 
 void LauncherVulkan::createDescriptorSetLayout() {
@@ -239,12 +230,20 @@ void LauncherVulkan::createSemaphores() {
   m_sema_image_ready = m_device->createSemaphore({});
   m_sema_render_done = m_device->createSemaphore({});
   m_fence_draw = m_device->createFence({});
+  m_device->resetFences({m_fence_draw.get()});
+
   m_fence_command = m_device->createFence({});
 }
 
 void LauncherVulkan::createCommandBuffers() {
-  vkDeviceWaitIdle(m_device.get());
-  
+  // make sure no command buffer is uin use
+  if (m_fence_draw) {
+    if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
+      throw std::exception();
+    }
+    m_device->resetFences({m_fence_draw.get()});
+  }
+
   if (!m_command_buffers.empty()) {
     m_device->freeCommandBuffers(m_device.pool("graphics"), m_command_buffers);
   }
@@ -458,10 +457,7 @@ void LauncherVulkan::createVertexBuffer() {
 void LauncherVulkan::loadModel() {
   model_t tri = model_loader::obj(m_resource_path + "models/sponza.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_2 = Model{m_device, tri};
-  {
-    std::lock_guard<std::mutex> lock{m_mutex_model};
-    m_model_dirty = true;
-  }
+  m_model_dirty = true;
 }
 
 void LauncherVulkan::createSurface() {

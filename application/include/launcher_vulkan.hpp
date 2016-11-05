@@ -15,7 +15,7 @@
 
 #include <string>
 #include <vector>
-#include <mutex>
+#include <atomic>
 #include <memory>
 #include <thread>
 
@@ -120,9 +120,8 @@ class LauncherVulkan {
   Deleter<VkFence> m_fence_command;
   Image m_image_depth;
   Image m_image;
-  mutable std::mutex m_mutex_model;
   std::thread m_thread_load;
-  mutable bool m_model_dirty;
+  std::atomic<bool> m_model_dirty;
   // Application* m_application;
 };
 
