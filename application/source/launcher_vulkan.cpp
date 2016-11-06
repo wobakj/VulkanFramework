@@ -85,7 +85,6 @@ void LauncherVulkan::initialize() {
   }
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   // create m_window, if unsuccessfull, quit
   m_window = glfwCreateWindow(m_window_width, m_window_height, "Vulkan Framework", NULL, NULL);
   if (!m_window) {
@@ -174,6 +173,8 @@ void LauncherVulkan::draw() {
       throw std::runtime_error("failed to acquire swap chain image!");
   }
 
+  createPrimaryCommandBuffer(imageIndex);
+
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
   vk::Semaphore waitSemaphores[]{m_sema_image_ready.get()};
@@ -183,7 +184,8 @@ void LauncherVulkan::draw() {
   submitInfos[0].setPWaitDstStageMask(waitStages);
 
   submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&m_command_buffers[imageIndex]);
+  submitInfos[0].setPCommandBuffers(&m_command_buffer_prime);
+  // submitInfos[0].setPCommandBuffers(&m_command_buffers[imageIndex]);
 
   vk::Semaphore signalSemaphores[]{m_sema_render_done.get()};
   submitInfos[0].signalSemaphoreCount = 1;
@@ -200,8 +202,6 @@ void LauncherVulkan::draw() {
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains;
   presentInfo.pImageIndices = &imageIndex;
-
-  presentInfo.pResults = nullptr; // Optional
 
   m_device.getQueue("present").presentKHR(presentInfo);
   m_device.getQueue("present").waitIdle();
@@ -240,10 +240,14 @@ void LauncherVulkan::createSemaphores() {
 void LauncherVulkan::createCommandBuffers() {
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.setCommandPool(m_device.pool("graphics"));
-  allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
+  allocInfo.setLevel(vk::CommandBufferLevel::eSecondary);
   allocInfo.setCommandBufferCount((uint32_t) m_framebuffers.size());
-
   m_command_buffers = m_device->allocateCommandBuffers(allocInfo);
+
+  allocInfo.setCommandPool(m_device.pool("graphics"));
+  allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
+  allocInfo.setCommandBufferCount(1);
+  m_command_buffer_prime = m_device->allocateCommandBuffers(allocInfo)[0];
 }
 
 void LauncherVulkan::updateCommandBuffers() {
@@ -257,30 +261,18 @@ void LauncherVulkan::updateCommandBuffers() {
       m_device->resetFences({m_fence_draw.get()});
     }
   }
-
+  // for each framebuffer, create a command pool drawing to it
   for (size_t i = 0; i < m_command_buffers.size(); i++) {
     m_command_buffers[i].reset({});
 
+    vk::CommandBufferInheritanceInfo inheritanceInfo{};
+    inheritanceInfo.renderPass = m_render_pass;
+    inheritanceInfo.framebuffer = m_framebuffers[i];
+
     vk::CommandBufferBeginInfo beginInfo{};
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+    beginInfo.pInheritanceInfo = &inheritanceInfo;
     m_command_buffers[i].begin(beginInfo);
-
-    vk::RenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.renderPass = m_render_pass;
-    renderPassInfo.framebuffer = m_framebuffers[i];
-
-    renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
-    renderPassInfo.renderArea.extent = m_swap_chain.extent();
-
-    // vk::ClearValue clearColor = vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}};
-    std::vector<vk::ClearValue> clearValues{2, vk::ClearValue{}};
-    clearValues[0].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
-    clearValues[1].setDepthStencil({1.0f, 0});
-    renderPassInfo.clearValueCount = std::uint32_t(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-    m_command_buffers[i].beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
     m_command_buffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
     m_command_buffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.get(), 0, 1, &m_descriptorSet, 0, nullptr);
@@ -290,17 +282,43 @@ void LauncherVulkan::updateCommandBuffers() {
 
     m_command_buffers[i].drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
 
-    m_command_buffers[i].endRenderPass();
-
     m_command_buffers[i].end();
   }
+}
+
+void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
+  m_command_buffer_prime.reset({});
+
+  vk::RenderPassBeginInfo renderPassInfo{};
+  renderPassInfo.renderPass = m_render_pass;
+  renderPassInfo.framebuffer = m_framebuffers[index_fb];
+
+  renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
+  renderPassInfo.renderArea.extent = m_swap_chain.extent();
+  // vk::ClearValue clearColor = vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}};
+  std::vector<vk::ClearValue> clearValues{2, vk::ClearValue{}};
+  clearValues[0].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
+  clearValues[1].setDepthStencil({1.0f, 0});
+  renderPassInfo.clearValueCount = std::uint32_t(clearValues.size());
+  renderPassInfo.pClearValues = clearValues.data();
+
+  vk::CommandBufferBeginInfo beginInfo{};
+  beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+  m_command_buffer_prime.begin(beginInfo);
+
+  m_command_buffer_prime.beginRenderPass(&renderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
+
+  m_command_buffer_prime.executeCommands({m_command_buffers[index_fb]});
+
+  m_command_buffer_prime.endRenderPass();
+
+  m_command_buffer_prime.end();
 }
 
 void LauncherVulkan::createFramebuffers() {
    m_framebuffers.resize(m_swap_chain.numImages(), Deleter<VkFramebuffer>{m_device, vkDestroyFramebuffer});
   for (size_t i = 0; i < m_swap_chain.numImages(); i++) {
     m_framebuffers[i] = m_device->createFramebuffer(view_to_fb(m_swap_chain.view(i), m_swap_chain.imgInfo(), m_render_pass.get(), {m_image_depth.view()}));
-    // m_framebuffers[i] = m_device->createFramebuffer(view_to_fb(m_swap_chain.view(i), m_swap_chain.imgInfo(), m_render_pass.get()));
   }
 }
 
@@ -668,7 +686,11 @@ void LauncherVulkan::show_fps() {
 }
 
 void LauncherVulkan::quit(int status) {
+  // wait until all resources are accessible
+  m_device->waitIdle();
   // free opengl resources
+  m_device->freeCommandBuffers(m_device.pool("graphics"), m_command_buffers);
+  m_device->freeCommandBuffers(m_device.pool("graphics"), {m_command_buffer_prime});
   // delete m_application;
   // free glfw resources
   glfwDestroyWindow(m_window);

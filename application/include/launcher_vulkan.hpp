@@ -68,6 +68,7 @@ class LauncherVulkan {
   void createTextureSampler();
   void createDepthResource();
   void loadModel();
+  void createPrimaryCommandBuffer(int index_fb);
 
   void transitionImageLayout(vk::Image image, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
   
@@ -107,6 +108,7 @@ class LauncherVulkan {
   Deleter<VkPipeline> m_pipeline;
   std::vector<Deleter<VkFramebuffer>> m_framebuffers;
   std::vector<vk::CommandBuffer> m_command_buffers;
+  vk::CommandBuffer m_command_buffer_prime;
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
   SwapChain m_swap_chain;
