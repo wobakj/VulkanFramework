@@ -127,6 +127,7 @@ void LauncherVulkan::initialize() {
   createGraphicsPipeline();
   createFramebuffers();
   createCommandBuffers();
+  updateCommandBuffers();
   createSemaphores();
 
   // // set user pointer to access this instance statically
@@ -152,7 +153,7 @@ void LauncherVulkan::draw() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       std::swap(m_model, m_model_2);
-      createCommandBuffers();
+      updateCommandBuffers();
       m_model_dirty = false;
 
       if(m_thread_load.joinable()) {
@@ -237,8 +238,18 @@ void LauncherVulkan::createSemaphores() {
 }
 
 void LauncherVulkan::createCommandBuffers() {
-  // make sure no command buffer is uin use
+  vk::CommandBufferAllocateInfo allocInfo{};
+  allocInfo.setCommandPool(m_device.pool("graphics"));
+  allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
+  allocInfo.setCommandBufferCount((uint32_t) m_framebuffers.size());
+
+  m_command_buffers = m_device->allocateCommandBuffers(allocInfo);
+}
+
+void LauncherVulkan::updateCommandBuffers() {
+  // make sure no command buffer is in use
   if (m_fence_draw) {
+    // only try to wait if fence is actually in use
     if (m_device->getFenceStatus(m_fence_draw.get()) != vk::Result::eSuccess) {
       if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
         throw std::exception();
@@ -247,18 +258,9 @@ void LauncherVulkan::createCommandBuffers() {
     }
   }
 
-  if (!m_command_buffers.empty()) {
-    m_device->freeCommandBuffers(m_device.pool("graphics"), m_command_buffers);
-  }
-
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.setCommandPool(m_device.pool("graphics"));
-  allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
-  allocInfo.setCommandBufferCount((uint32_t) m_framebuffers.size());
-
-  m_command_buffers = m_device->allocateCommandBuffers(allocInfo);
-
   for (size_t i = 0; i < m_command_buffers.size(); i++) {
+    m_command_buffers[i].reset({});
+
     vk::CommandBufferBeginInfo beginInfo{};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 
@@ -584,7 +586,7 @@ void LauncherVulkan::recreateSwapChain() {
   createRenderPass();
   createGraphicsPipeline();
   createFramebuffers();
-  createCommandBuffers();
+  updateCommandBuffers();
 }
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view
