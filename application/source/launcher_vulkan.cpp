@@ -147,7 +147,18 @@ void LauncherVulkan::initialize() {
 }
 
 void LauncherVulkan::draw() {
-  vkDeviceWaitIdle(m_device.get());
+  static bool first = true;
+
+  // make sure no command buffer is in use
+  if(!first) {
+    // only try to wait if fence is actually in use 
+    if (m_device->getFenceStatus(m_fence_draw.get()) != vk::Result::eSuccess) {
+      if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
+        throw std::exception();
+      }
+      m_device->resetFences({m_fence_draw.get()});
+    }
+  } 
 
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
@@ -185,7 +196,6 @@ void LauncherVulkan::draw() {
 
   submitInfos[0].setCommandBufferCount(1);
   submitInfos[0].setPCommandBuffers(&m_command_buffer_prime);
-  // submitInfos[0].setPCommandBuffers(&m_command_buffers[imageIndex]);
 
   vk::Semaphore signalSemaphores[]{m_sema_render_done.get()};
   submitInfos[0].signalSemaphoreCount = 1;
@@ -205,6 +215,8 @@ void LauncherVulkan::draw() {
 
   m_device.getQueue("present").presentKHR(presentInfo);
   m_device.getQueue("present").waitIdle();
+
+  first = false;
 }
 
 void LauncherVulkan::createDescriptorSetLayout() {
@@ -261,6 +273,8 @@ void LauncherVulkan::updateCommandBuffers() {
       m_device->resetFences({m_fence_draw.get()});
     }
   }
+
+
   // for each framebuffer, create a command pool drawing to it
   for (size_t i = 0; i < m_command_buffers.size(); i++) {
     m_command_buffers[i].reset({});
@@ -307,7 +321,7 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffer_prime.begin(beginInfo);
 
   m_command_buffer_prime.beginRenderPass(&renderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
-
+  // execute secondary command buffer for acquired image
   m_command_buffer_prime.executeCommands({m_command_buffers[index_fb]});
 
   m_command_buffer_prime.endRenderPass();
@@ -576,6 +590,8 @@ void LauncherVulkan::mainLoop() {
   static double time_last = 0.0;
   // enable depth testing
   // rendering loop
+  vkDeviceWaitIdle(m_device.get());
+
   while (!glfwWindowShouldClose(m_window)) {
     // claculate delta time
     double time_current = glfwGetTime();
