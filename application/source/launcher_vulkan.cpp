@@ -56,6 +56,7 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_fence_draw{m_device, vkDestroyFence}
  ,m_model_dirty{false}
+ ,m_camera{m_camera_fov, m_window_width, m_window_height, 0.1f, 500.0f, m_window}
  // ,m_application{}
 {}
 
@@ -91,7 +92,7 @@ void LauncherVulkan::initialize() {
     glfwTerminate();
     std::exit(EXIT_FAILURE);
   }
-
+  m_camera = Camera{m_camera_fov, m_window_width, m_window_height, 0.1f, 50.0f, m_window};
   auto extensions =  vk::enumerateInstanceExtensionProperties(nullptr);
 
   std::cout << "available extensions:" << std::endl;
@@ -238,10 +239,12 @@ void LauncherVulkan::createSemaphores() {
 void LauncherVulkan::createCommandBuffers() {
   // make sure no command buffer is uin use
   if (m_fence_draw) {
-    if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
-      throw std::exception();
+    if (m_device->getFenceStatus(m_fence_draw.get()) != vk::Result::eSuccess) {
+      if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
+        throw std::exception();
+      }
+      m_device->resetFences({m_fence_draw.get()});
     }
-    m_device->resetFences({m_fence_draw.get()});
   }
 
   if (!m_command_buffers.empty()) {
@@ -289,7 +292,6 @@ void LauncherVulkan::createCommandBuffers() {
 
     m_command_buffers[i].end();
   }
-  std::cout << "done" << std::endl;
 }
 
 void LauncherVulkan::createFramebuffers() {
@@ -533,15 +535,10 @@ void LauncherVulkan::createUniformBuffers() {
 }
 
 void LauncherVulkan::updateUniformBuffer() {
-  static auto startTime = std::chrono::high_resolution_clock::now();
-
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float time = float(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) / 1000.0f;
-
   UniformBufferObject ubo{};
-  ubo.model = glm::rotate(glm::mat4(), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-  ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-  ubo.proj = glm::perspective(glm::radians(45.0f), float(m_swap_chain.extent().width) / float(m_swap_chain.extent().height), 0.1f, 10.0f);
+  ubo.model = glm::mat4();
+  ubo.view = m_camera.viewMatrix();
+  ubo.proj = m_camera.projectionMatrix();
   ubo.proj[1][1] *= -1;
 
   m_buffer_uniform_stage.setData(&ubo, sizeof(ubo));
@@ -556,19 +553,21 @@ void LauncherVulkan::mainLoop() {
   // throw exception if shader compilation was unsuccessfull
   update_shader_programs(true);
 
+  static double time_last = 0.0;
   // enable depth testing
-  
   // rendering loop
   while (!glfwWindowShouldClose(m_window)) {
+    // claculate delta time
+    double time_current = glfwGetTime();
+    float time_delta = float(time_current - time_last);
+    time_last = time_current;
+    // update buffers
+    m_camera.update(time_delta);
+    updateUniformBuffer();
+    // draw geometry
+    draw();
     // query input
     glfwPollEvents();
-    // clear buffer
-    // draw geometry
-    updateUniformBuffer();
-    draw();
-    // m_application->render();
-    // swap draw buffer to front
-    // glfwSwapBuffers(m_window);
     // display fps
     show_fps();
   }
@@ -590,25 +589,14 @@ void LauncherVulkan::recreateSwapChain() {
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view
 void LauncherVulkan::update_projection(GLFWwindow* m_window, int width, int height) {
-  // resize framebuffer
-  // glViewport(0, 0, width, height);
   m_window_width = width;
   m_window_height = height;
-
-  float aspect = float(width) / float(height);
-  float fov_y = m_camera_fov;
-  // if width is smaller, extend vertical fov 
-  if (width < height) {
-    fov_y = 2.0f * glm::atan(glm::tan(m_camera_fov * 0.5f) * (1.0f / aspect));
-  }
-  // projection is hor+ 
-  glm::fmat4 camera_projection = glm::perspective(fov_y, aspect, 0.1f, 10.0f);
 
   if (width > 0 && height > 0) {
     recreateSwapChain();
   }
-  // upload matrix to gpu
-  // m_application->setProjection(camera_projection);
+  // update projection matrix
+  m_camera.setAspect(width, height);
 }
 
 // load shader programs and update uniform locations

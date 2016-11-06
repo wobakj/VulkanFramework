@@ -12,6 +12,7 @@
 #include "buffer.hpp"
 #include "debug_reporter.hpp"
 #include "swap_chain.hpp"
+#include "camera.hpp"
 
 #include <string>
 #include <vector>
@@ -122,6 +123,7 @@ class LauncherVulkan {
   Image m_image;
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;
+  Camera m_camera;
   // Application* m_application;
 };
 
