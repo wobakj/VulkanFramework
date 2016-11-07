@@ -385,7 +385,15 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   vertShaderModule = shader_loader::module("../resources/shaders/simple_vert.spv", m_device);
   fragShaderModule = shader_loader::module("../resources/shaders/simple_frag.spv", m_device);
+  
+  auto layout_vert = shader_loader::createLayout("../resources/shaders/simple_vert.spv", m_device);
+  auto layout_frag = shader_loader::createLayout("../resources/shaders/simple_frag.spv", m_device);
 
+  layout_shader_t shader{{layout_vert, layout_frag}};
+  // assert(0);
+  auto layouts = to_layouts(m_device.get(), shader);
+  m_descriptorSetLayout = layouts[0];
+  
   vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
   vertShaderStageInfo.module = vertShaderModule;
@@ -445,6 +453,7 @@ void LauncherVulkan::createGraphicsPipeline() {
   // dynamicState.pDynamicStates = dynamicStates;
 // descriptor layouts
   vk::DescriptorSetLayout setLayouts[] = {m_descriptorSetLayout.get()};
+  // vk::DescriptorSetLayout setLayouts[] = {m_descriptorSetLayout.get()};
 
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.setLayoutCount = 1;
