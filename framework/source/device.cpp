@@ -38,7 +38,7 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   for (int queueFamily : uniqueQueueFamilies) {
     uint num = 0;
     for(auto const& index : m_queue_indices) {
-      if (queueFamily == index.second) {
+      if (queueFamily == int(index.second)) {
         ++num;
       }      
     }
@@ -214,7 +214,49 @@ void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, u
   endSingleTimeCommands();
 }
 
+void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) {
+  // get current layout form creation info
+  vk::ImageLayout const& oldLayout = info.initialLayout;
+  
+  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
+  vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = oldLayout;
+  barrier.newLayout = newLayout;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
+  barrier.image = img;
+
+  if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+
+    if (has_stencil(info.format)) {
+      barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  } 
+  else {
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
+
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = info.mipLevels;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = info.arrayLayers;
+
+  barrier.srcAccessMask = layout_to_access(oldLayout);
+  barrier.dstAccessMask = layout_to_access(newLayout);
+
+  commandBuffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier}
+  );
+  endSingleTimeCommands();
+  // store new layout
+  // info().initialLayout = newLayout;
+}
 
 vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
   m_mutex.lock();

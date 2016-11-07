@@ -107,6 +107,7 @@ class LauncherVulkan {
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
   std::vector<Deleter<VkFramebuffer>> m_framebuffers;
+  Deleter<VkFramebuffer> m_framebuffer;
   std::vector<vk::CommandBuffer> m_command_buffers;
   vk::CommandBuffer m_command_buffer_prime;
   Deleter<VkSemaphore> m_sema_image_ready;
@@ -123,6 +124,7 @@ class LauncherVulkan {
   Deleter<VkFence> m_fence_draw;
   Deleter<VkFence> m_fence_command;
   Image m_image_depth;
+  Image m_image_color;
   Image m_image;
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;

@@ -73,9 +73,9 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
 
   vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes) {
       for (const auto& availablePresentMode : availablePresentModes) {
-          if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
-              return availablePresentMode;
-          }
+        if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
+            return availablePresentMode;
+        }
       }
 
       return vk::PresentModeKHR::eFifo;
@@ -130,7 +130,7 @@ vk::ImageView createImageView(vk::Device const& device, vk::Image const& image, 
 SwapChain::SwapChain()
  :WrapperSwap{}
  ,m_device{nullptr}
- // ,m_images_swap{}
+ ,m_images_swap{}
  ,m_views_swap{}
 {}
 
@@ -149,6 +149,7 @@ SwapChain::SwapChain(SwapChain && chain)
   WrapperSwap::swap(chain);
   std::swap(m_device, chain.m_device);
   std::swap(m_views_swap, chain.m_views_swap);
+  std::swap(m_images_swap, chain.m_images_swap);
  }
 
 void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent) {
@@ -164,12 +165,13 @@ void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkEx
   if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
     imageCount = swapChainSupport.capabilities.maxImageCount;
   }
-
+  std::cout << "swapchain has " << imageCount << " images, preset mode is " << to_string(info().presentMode) << std::endl;
   info().minImageCount = imageCount;
   info().imageFormat = surfaceFormat.format;
   info().imageColorSpace = surfaceFormat.colorSpace;
   info().imageArrayLayers = 1;
-  info().imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+  // info().imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+  info().imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 
   QueueFamilyIndices indices = findQueueFamilies(device.physical(), info().surface);
   uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t) indices.presentFamily};
@@ -201,7 +203,8 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
   // destroy old chain
   replace(std::move(new_chain));
 
-  auto m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
+  m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
+  // auto m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
   auto image_info = chain_to_img(info());
 
   m_views_swap.clear();
@@ -213,6 +216,10 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
 
 std::vector<Deleter<VkImageView>> const& SwapChain::views() const {
   return m_views_swap;
+}
+
+std::vector<vk::Image> const& SwapChain::images() const {
+  return  m_images_swap;
 }
 
 VkImageView const& SwapChain::view(std::size_t i) const {

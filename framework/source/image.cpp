@@ -15,6 +15,17 @@ bool has_stencil(vk::Format const& format) {
   return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
 }
 
+
+
+vk::ImageSubresourceLayers range_to_layer(vk::ImageSubresourceRange const& range) {
+  vk::ImageSubresourceLayers layer{};
+  layer.aspectMask = range.aspectMask;
+  layer.layerCount = range.layerCount;
+  layer.baseArrayLayer = range.baseArrayLayer;
+  layer.mipLevel = 0;
+  return layer;
+}
+
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
   vk::ImageViewCreateInfo view_info{};
   view_info.image = image;
@@ -65,11 +76,17 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
     return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
   } 
+  else if (layout == vk::ImageLayout::eColorAttachmentOptimal) {
+    return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  } 
   else if (layout == vk::ImageLayout::eTransferDstOptimal) {
     return vk::AccessFlagBits::eTransferWrite;
   } 
   else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
     return vk::AccessFlagBits::eShaderRead;
+  } 
+  else if (layout == vk::ImageLayout::ePresentSrcKHR) {
+    return vk::AccessFlags{};
   } 
   else {
     throw std::invalid_argument("unsupported layout for access mask!");
@@ -264,7 +281,6 @@ void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
   // store new layout
   info().initialLayout = newLayout;
 }
-
 
 void Image::destroy() {
   if (m_view) {

@@ -49,6 +49,7 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_pipeline_layout{m_device, vkDestroyPipelineLayout}
  ,m_render_pass{m_device, vkDestroyRenderPass}
  ,m_pipeline{m_device, vkDestroyPipeline}
+ ,m_framebuffer{m_device, vkDestroyFramebuffer}
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
@@ -281,7 +282,8 @@ void LauncherVulkan::updateCommandBuffers() {
 
     vk::CommandBufferInheritanceInfo inheritanceInfo{};
     inheritanceInfo.renderPass = m_render_pass;
-    inheritanceInfo.framebuffer = m_framebuffers[i];
+    // inheritanceInfo.framebuffer = m_framebuffers[i];
+    inheritanceInfo.framebuffer = m_framebuffer;
 
     vk::CommandBufferBeginInfo beginInfo{};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
@@ -305,7 +307,8 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 
   vk::RenderPassBeginInfo renderPassInfo{};
   renderPassInfo.renderPass = m_render_pass;
-  renderPassInfo.framebuffer = m_framebuffers[index_fb];
+  // renderPassInfo.framebuffer = m_framebuffers[index_fb];
+  renderPassInfo.framebuffer = m_framebuffer;
 
   renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
   renderPassInfo.renderArea.extent = m_swap_chain.extent();
@@ -325,6 +328,14 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffer_prime.executeCommands({m_command_buffers[index_fb]});
 
   m_command_buffer_prime.endRenderPass();
+  vk::ImageBlit blit{};
+  blit.srcSubresource = range_to_layer(img_to_view(m_image_color, m_image_color.info()).subresourceRange);
+  blit.dstSubresource = range_to_layer(img_to_view(m_swap_chain.images()[index_fb], chain_to_img(m_swap_chain.info())).subresourceRange);
+  blit.srcOffsets[0] = vk::Offset3D{};
+  blit.srcOffsets[1] = vk::Offset3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1};
+  blit.dstOffsets[0] = vk::Offset3D{};
+  blit.dstOffsets[1] = vk::Offset3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1};
+  m_command_buffer_prime.blitImage(m_image_color, m_image_color.layout(), m_swap_chain.images()[index_fb], vk::ImageLayout::ePresentSrcKHR, {blit}, vk::Filter::eNearest);
 
   m_command_buffer_prime.end();
 }
@@ -334,11 +345,13 @@ void LauncherVulkan::createFramebuffers() {
   for (size_t i = 0; i < m_swap_chain.numImages(); i++) {
     m_framebuffers[i] = m_device->createFramebuffer(view_to_fb(m_swap_chain.view(i), m_swap_chain.imgInfo(), m_render_pass.get(), {m_image_depth.view()}));
   }
+  m_framebuffer = m_device->createFramebuffer(view_to_fb(m_image_color.view(), m_image_color.info(), m_render_pass.get(), {m_image_depth.view()}));
 }
 
 void LauncherVulkan::createRenderPass() {
 
-  auto colorAttachment = img_to_attachment(m_swap_chain.imgInfo());
+  auto colorAttachment = m_image_color.toAttachment();
+  // auto colorAttachment = img_to_attachment(m_swap_chain.imgInfo());
   auto depthAttachment = m_image_depth.toAttachment();
 
   vk::AttachmentReference colorAttachmentRef{};
@@ -491,7 +504,7 @@ void LauncherVulkan::createVertexBuffer() {
   m_model = Model{m_device, tri};
 }
 void LauncherVulkan::loadModel() {
-  model_t tri = model_loader::obj(m_resource_path + "models/sponza.obj", model_t::NORMAL | model_t::TEXCOORD);
+  model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_2 = Model{m_device, tri};
   m_model_dirty = true;
 }
@@ -512,6 +525,15 @@ void LauncherVulkan::createDepthResource() {
 
   m_image_depth = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_depth.transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+  m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_color.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+
+  for(auto const& image : m_swap_chain.images()) {
+    auto creation = chain_to_img(m_swap_chain.info());
+    creation.initialLayout = vk::ImageLayout::eUndefined;
+    m_device.transitionToLayout(image, creation, vk::ImageLayout::ePresentSrcKHR);
+  }
 }
 
 void LauncherVulkan::createTextureImage() {

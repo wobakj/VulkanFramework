@@ -12,9 +12,12 @@ class Device;
 bool is_depth(vk::Format const& format);
 bool has_stencil(vk::Format const& format);
 
+vk::ImageSubresourceLayers range_to_layer(vk::ImageSubresourceRange const& range);
+vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info, bool clear = true);
+
 using WrapperImage = Wrapper<vk::Image, vk::ImageCreateInfo>;
 class Image : public WrapperImage {
  public:

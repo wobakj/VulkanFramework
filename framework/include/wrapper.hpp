@@ -76,12 +76,12 @@ public:
     return m_info;
   }
 
+  U& info() {
+    return m_info;
+  }
  protected:
   T* operator &() {
     return &m_object;
-  }
-  U& info() {
-    return m_info;
   }
 
   virtual void destroy() = 0;

@@ -31,6 +31,7 @@ SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device, vk::Sur
 
 vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass);
 vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass, std::vector<vk::ImageView> attachments);
+vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& swap_info);
 
 vk::ImageView createImageView(vk::Device const& device, vk::Image const& image, vk::ImageCreateInfo const& img_info);
 
@@ -54,6 +55,8 @@ class SwapChain : public WrapperSwap {
   VkImageView const& view(std::size_t i) const;
 
   std::vector<Deleter<VkImageView>> const& views() const;
+  std::vector<vk::Image> const& images() const;
+
   vk::ImageCreateInfo imgInfo() const;
   std::size_t numImages() const;
   vk::Format format() const;
@@ -64,6 +67,7 @@ class SwapChain : public WrapperSwap {
   void destroy() override ;
 
   Device const* m_device;
+  std::vector<vk::Image> m_images_swap;
   std::vector<Deleter<VkImageView>> m_views_swap;
 };
 
