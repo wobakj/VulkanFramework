@@ -196,7 +196,7 @@ void LauncherVulkan::draw() {
   submitInfos[0].setPWaitDstStageMask(waitStages);
 
   submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&m_command_buffer_prime);
+  submitInfos[0].setPCommandBuffers(&m_command_buffers.at("primary"));
 
   vk::Semaphore signalSemaphores[]{m_sema_render_done.get()};
   submitInfos[0].signalSemaphoreCount = 1;
@@ -254,13 +254,15 @@ void LauncherVulkan::createCommandBuffers() {
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.setCommandPool(m_device.pool("graphics"));
   allocInfo.setLevel(vk::CommandBufferLevel::eSecondary);
-  allocInfo.setCommandBufferCount((uint32_t) m_framebuffers.size());
-  m_command_buffers = m_device->allocateCommandBuffers(allocInfo);
+  allocInfo.setCommandBufferCount(1);
+  auto command_buffer = m_device->allocateCommandBuffers(allocInfo)[0];
+  m_command_buffers.emplace("secondary", command_buffer);
 
   allocInfo.setCommandPool(m_device.pool("graphics"));
   allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
   allocInfo.setCommandBufferCount(1);
-  m_command_buffer_prime = m_device->allocateCommandBuffers(allocInfo)[0];
+  auto command_buffer_prime = m_device->allocateCommandBuffers(allocInfo)[0];
+  m_command_buffers.emplace("primary", command_buffer_prime);
 }
 
 void LauncherVulkan::updateCommandBuffers() {
@@ -275,39 +277,33 @@ void LauncherVulkan::updateCommandBuffers() {
     }
   }
 
+  m_command_buffers.at("secondary").reset({});
 
-  // for each framebuffer, create a command pool drawing to it
-  for (size_t i = 0; i < m_command_buffers.size(); i++) {
-    m_command_buffers[i].reset({});
+  vk::CommandBufferInheritanceInfo inheritanceInfo{};
+  inheritanceInfo.renderPass = m_render_pass;
+  inheritanceInfo.framebuffer = m_framebuffer;
 
-    vk::CommandBufferInheritanceInfo inheritanceInfo{};
-    inheritanceInfo.renderPass = m_render_pass;
-    // inheritanceInfo.framebuffer = m_framebuffers[i];
-    inheritanceInfo.framebuffer = m_framebuffer;
+  vk::CommandBufferBeginInfo beginInfo{};
+  beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
+  beginInfo.pInheritanceInfo = &inheritanceInfo;
+  m_command_buffers.at("secondary").begin(beginInfo);
 
-    vk::CommandBufferBeginInfo beginInfo{};
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-    beginInfo.pInheritanceInfo = &inheritanceInfo;
-    m_command_buffers[i].begin(beginInfo);
+  m_command_buffers.at("secondary").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  m_command_buffers.at("secondary").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.get(), 0, 1, &m_descriptorSet, 0, nullptr);
 
-    m_command_buffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-    m_command_buffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.get(), 0, 1, &m_descriptorSet, 0, nullptr);
+  m_command_buffers.at("secondary").bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
+  m_command_buffers.at("secondary").bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
 
-    m_command_buffers[i].bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
-    m_command_buffers[i].bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
+  m_command_buffers.at("secondary").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
 
-    m_command_buffers[i].drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
-
-    m_command_buffers[i].end();
-  }
+  m_command_buffers.at("secondary").end();
 }
 
 void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
-  m_command_buffer_prime.reset({});
+  m_command_buffers.at("primary").reset({});
 
   vk::RenderPassBeginInfo renderPassInfo{};
   renderPassInfo.renderPass = m_render_pass;
-  // renderPassInfo.framebuffer = m_framebuffers[index_fb];
   renderPassInfo.framebuffer = m_framebuffer;
 
   renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
@@ -321,30 +317,24 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-  m_command_buffer_prime.begin(beginInfo);
+  m_command_buffers.at("primary").begin(beginInfo);
 
-  m_command_buffer_prime.beginRenderPass(&renderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
-  // execute secondary command buffer for acquired image
-  m_command_buffer_prime.executeCommands({m_command_buffers[index_fb]});
+  m_command_buffers.at("primary").beginRenderPass(&renderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
+  // execute secondary command buffer
+  m_command_buffers.at("primary").executeCommands({m_command_buffers.at("secondary")});
 
-  m_command_buffer_prime.endRenderPass();
+  m_command_buffers.at("primary").endRenderPass();
   vk::ImageBlit blit{};
-  blit.srcSubresource = range_to_layer(img_to_view(m_image_color, m_image_color.info()).subresourceRange);
-  blit.dstSubresource = range_to_layer(img_to_view(m_swap_chain.images()[index_fb], chain_to_img(m_swap_chain.info())).subresourceRange);
-  blit.srcOffsets[0] = vk::Offset3D{};
-  blit.srcOffsets[1] = vk::Offset3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1};
-  blit.dstOffsets[0] = vk::Offset3D{};
-  blit.dstOffsets[1] = vk::Offset3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1};
-  m_command_buffer_prime.blitImage(m_image_color, m_image_color.layout(), m_swap_chain.images()[index_fb], vk::ImageLayout::ePresentSrcKHR, {blit}, vk::Filter::eNearest);
+  blit.srcSubresource = img_to_resource_layer(m_image_color.info());
+  blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
+  blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
+  blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
+  m_command_buffers.at("primary").blitImage(m_image_color, m_image_color.layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
-  m_command_buffer_prime.end();
+  m_command_buffers.at("primary").end();
 }
 
 void LauncherVulkan::createFramebuffers() {
-   m_framebuffers.resize(m_swap_chain.numImages(), Deleter<VkFramebuffer>{m_device, vkDestroyFramebuffer});
-  for (size_t i = 0; i < m_swap_chain.numImages(); i++) {
-    m_framebuffers[i] = m_device->createFramebuffer(view_to_fb(m_swap_chain.view(i), m_swap_chain.imgInfo(), m_render_pass.get(), {m_image_depth.view()}));
-  }
   m_framebuffer = m_device->createFramebuffer(view_to_fb(m_image_color.view(), m_image_color.info(), m_render_pass.get(), {m_image_depth.view()}));
 }
 
@@ -528,12 +518,6 @@ void LauncherVulkan::createDepthResource() {
 
   m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
-
-  for(auto const& image : m_swap_chain.images()) {
-    auto creation = chain_to_img(m_swap_chain.info());
-    creation.initialLayout = vk::ImageLayout::eUndefined;
-    m_device.transitionToLayout(image, creation, vk::ImageLayout::ePresentSrcKHR);
-  }
 }
 
 void LauncherVulkan::createTextureImage() {
@@ -727,8 +711,9 @@ void LauncherVulkan::quit(int status) {
   // wait until all resources are accessible
   m_device->waitIdle();
   // free opengl resources
-  m_device->freeCommandBuffers(m_device.pool("graphics"), m_command_buffers);
-  m_device->freeCommandBuffers(m_device.pool("graphics"), {m_command_buffer_prime});
+  for(auto const& command_buffer : m_command_buffers) {
+    m_device->freeCommandBuffers(m_device.pool("graphics"), {command_buffer.second});    
+  }
   // delete m_application;
   // free glfw resources
   glfwDestroyWindow(m_window);

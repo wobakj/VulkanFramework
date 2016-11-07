@@ -107,19 +107,19 @@ vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateI
   return fb_info;
 }
 
-vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& swap_info) {
+vk::ImageCreateInfo chain_to_img(SwapChain const& chain) {
   vk::ImageCreateInfo img_info{};
   img_info.imageType = vk::ImageType::e2D;
   img_info.tiling = vk::ImageTiling::eOptimal;
   img_info.mipLevels = 1;
-  img_info.format = swap_info.imageFormat;
-  img_info.arrayLayers = swap_info.imageArrayLayers;
-  img_info.extent = vk::Extent3D{swap_info.imageExtent.width, swap_info.imageExtent.height, 0};
-  img_info.usage = swap_info.imageUsage;
-  img_info.sharingMode = swap_info.imageSharingMode;
-  img_info.queueFamilyIndexCount = swap_info.queueFamilyIndexCount;
-  img_info.pQueueFamilyIndices = swap_info.pQueueFamilyIndices;
-  img_info.initialLayout = vk::ImageLayout::ePresentSrcKHR;
+  img_info.format = chain.info().imageFormat;
+  img_info.arrayLayers = chain.info().imageArrayLayers;
+  img_info.extent = vk::Extent3D{chain.info().imageExtent.width, chain.info().imageExtent.height, 0};
+  img_info.usage = chain.info().imageUsage;
+  img_info.sharingMode = chain.info().imageSharingMode;
+  img_info.queueFamilyIndexCount = chain.info().queueFamilyIndexCount;
+  img_info.pQueueFamilyIndices = chain.info().pQueueFamilyIndices;
+  img_info.initialLayout = chain.layout();
   return img_info;
 }
 
@@ -132,6 +132,7 @@ SwapChain::SwapChain()
  ,m_device{nullptr}
  ,m_images_swap{}
  ,m_views_swap{}
+ ,m_layout{vk::ImageLayout::eUndefined}
 {}
 
 SwapChain::SwapChain(SwapChain && chain)
@@ -150,6 +151,7 @@ SwapChain::SwapChain(SwapChain && chain)
   std::swap(m_device, chain.m_device);
   std::swap(m_views_swap, chain.m_views_swap);
   std::swap(m_images_swap, chain.m_images_swap);
+  std::swap(m_layout, chain.m_layout);
  }
 
 void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent) {
@@ -204,14 +206,26 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
   replace(std::move(new_chain));
 
   m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
-  // auto m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
-  auto image_info = chain_to_img(info());
+  // transition images to present in case no render pass is applied
+  m_layout = vk::ImageLayout::eUndefined;
+  transitionToLayout(vk::ImageLayout::ePresentSrcKHR);
+
+  auto image_info = chain_to_img(*this);
 
   m_views_swap.clear();
   m_views_swap = {m_images_swap.size(), Deleter<VkImageView>{*m_device, vkDestroyImageView}};
   for (uint32_t i = 0; i < m_images_swap.size(); i++) {
     m_views_swap[i] = createImageView(*m_device, m_images_swap[i], image_info);
   }
+}
+
+void SwapChain::transitionToLayout(vk::ImageLayout const& newLayout) {
+  for(auto const& image : m_images_swap) {
+    auto info = imgInfo();
+    info.initialLayout = m_layout;
+    m_device->transitionToLayout(image, info, newLayout);
+  }
+  m_layout = newLayout;
 }
 
 std::vector<Deleter<VkImageView>> const& SwapChain::views() const {
@@ -227,7 +241,7 @@ VkImageView const& SwapChain::view(std::size_t i) const {
 }
 
 vk::ImageCreateInfo SwapChain::imgInfo() const {
-  return chain_to_img(info());
+  return chain_to_img(*this);
 }
 
 std::size_t SwapChain::numImages() const {
@@ -236,6 +250,10 @@ std::size_t SwapChain::numImages() const {
 
 vk::Format SwapChain::format() const {
   return info().imageFormat;
+}
+
+vk::ImageLayout const& SwapChain::layout() const {
+  return m_layout;
 }
 
 vk::Extent2D const& SwapChain::extent() const {

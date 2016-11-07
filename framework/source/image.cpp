@@ -15,14 +15,33 @@ bool has_stencil(vk::Format const& format) {
   return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
 }
 
+vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_info) {
+  vk::ImageSubresourceRange resource_range{};
 
+  if(is_depth(img_info.format)) {
+    resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    if(has_stencil(img_info.format)) {
+      resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  }
+  else {
+    resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
+  resource_range.baseMipLevel = 0;
+  resource_range.levelCount = img_info.mipLevels;
+  resource_range.baseArrayLayer = 0;
+  resource_range.layerCount = img_info.arrayLayers;
 
-vk::ImageSubresourceLayers range_to_layer(vk::ImageSubresourceRange const& range) {
+  return resource_range;
+}
+
+vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const& img_info, unsigned mip_level) {
   vk::ImageSubresourceLayers layer{};
+  auto range = img_to_resource_range(img_info);
   layer.aspectMask = range.aspectMask;
   layer.layerCount = range.layerCount;
   layer.baseArrayLayer = range.baseArrayLayer;
-  layer.mipLevel = 0;
+  layer.mipLevel = mip_level;
   return layer;
 }
 
@@ -47,16 +66,7 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
   view_info.components.b = vk::ComponentSwizzle::eIdentity;
   view_info.components.a = vk::ComponentSwizzle::eIdentity;
 
-  if(is_depth(img_info.format)) {
-    view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-  }
-  else {
-    view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-  view_info.subresourceRange.baseMipLevel = 0;
-  view_info.subresourceRange.levelCount = img_info.mipLevels;
-  view_info.subresourceRange.baseArrayLayer = 0;
-  view_info.subresourceRange.layerCount = img_info.arrayLayers;
+  view_info.subresourceRange = img_to_resource_range(img_info);
   return view_info;
 }
 

@@ -214,7 +214,7 @@ void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, u
   endSingleTimeCommands();
 }
 
-void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) {
+void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const {
   // get current layout form creation info
   vk::ImageLayout const& oldLayout = info.initialLayout;
   

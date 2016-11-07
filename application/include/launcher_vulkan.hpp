@@ -19,6 +19,7 @@
 #include <atomic>
 #include <memory>
 #include <thread>
+#include <map>
 
 // forward declarations
 class Application;
@@ -106,10 +107,8 @@ class LauncherVulkan {
   Deleter<VkPipelineLayout> m_pipeline_layout;
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
-  std::vector<Deleter<VkFramebuffer>> m_framebuffers;
   Deleter<VkFramebuffer> m_framebuffer;
-  std::vector<vk::CommandBuffer> m_command_buffers;
-  vk::CommandBuffer m_command_buffer_prime;
+  std::map<std::string, vk::CommandBuffer> m_command_buffers;
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
   SwapChain m_swap_chain;

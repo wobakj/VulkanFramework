@@ -31,7 +31,7 @@ SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device, vk::Sur
 
 vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass);
 vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass, std::vector<vk::ImageView> attachments);
-vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& swap_info);
+vk::ImageCreateInfo chain_to_img(SwapChain const& swap_info);
 
 vk::ImageView createImageView(vk::Device const& device, vk::Image const& image, vk::ImageCreateInfo const& img_info);
 
@@ -51,6 +51,7 @@ class SwapChain : public WrapperSwap {
 
   void create(Device const& dev, vk::SurfaceKHR const& surface, VkExtent2D const& extent);
   void recreate(vk::Extent2D const& extent);
+  void transitionToLayout(vk::ImageLayout const& newLayout);
 
   VkImageView const& view(std::size_t i) const;
 
@@ -61,6 +62,7 @@ class SwapChain : public WrapperSwap {
   std::size_t numImages() const;
   vk::Format format() const;
   vk::Extent2D const& extent() const;
+  vk::ImageLayout const& layout() const;
 
  private:
 
@@ -69,6 +71,7 @@ class SwapChain : public WrapperSwap {
   Device const* m_device;
   std::vector<vk::Image> m_images_swap;
   std::vector<Deleter<VkImageView>> m_views_swap;
+  vk::ImageLayout m_layout;
 };
 
 #endif
