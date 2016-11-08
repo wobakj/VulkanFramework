@@ -63,13 +63,53 @@ vk::PipelineLayout to_pipe_layout(vk::Device const& device, layout_shader_t cons
   return device.createPipelineLayout(pipelineLayoutInfo);
 }
 
+Shader::Shader()
+{}
+
 Shader::Shader(Device const& device, std::vector<std::string> const& paths)
  :m_device{&device}
  ,m_paths{paths}
- {}
+ {
+  std::vector<layout_module_t> module_layouts{};
+  for(auto const& path : m_paths) {
+    auto code = shader_loader::read_file(path);
+    m_modules.emplace_back(shader_loader::module(code, device));
+    // Read SPIR-V from disk or similar.
+    std::vector<uint32_t> spirv_binary{};
+    spirv_binary.resize(code.size() / 4);
+    std::memcpy(spirv_binary.data(), code.data(), code.size() * sizeof(char));
 
-// Shader::Shader(Shader && dev);
+    module_layouts.emplace_back(shader_loader::createLayout(spirv_binary));
+  }
+  m_layout = layout_shader_t{module_layouts};
+  m_pipe = to_pipe_layout(device, m_layout);
+ }
 
-// Shader& Shader::operator=(Shader&& dev);
+Shader::~Shader() {
+  (*m_device)->destroyPipelineLayout(m_pipe);
+  m_pipe = VK_NULL_HANDLE;
+  for(auto& module : m_modules) {
+    (*m_device)->destroyShaderModule(module);
+    module = VK_NULL_HANDLE;
+  }
+  // m_device->destroyDescriptorSetLayout()
+}
 
-// void Shader::swap(Shader& dev);
+Shader::Shader(Shader && dev)
+ :Shader{}
+{
+  swap(dev);
+}
+
+Shader& Shader::operator=(Shader&& dev) {
+swap(dev);
+return *this;
+}
+
+void Shader::swap(Shader& dev) {
+  std::swap(m_device, dev.m_device);
+  std::swap(m_paths, dev.m_paths);
+  std::swap(m_modules, dev.m_modules);
+  std::swap(m_layout, dev.m_layout);
+  std::swap(m_pipe, dev.m_pipe);
+}

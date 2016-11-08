@@ -71,6 +71,7 @@ struct layout_module_t {
 };
 
 struct layout_shader_t {
+  layout_shader_t(){};
   layout_shader_t(std::vector<layout_module_t> const& mod) 
    :modules{mod}
   {
@@ -139,10 +140,11 @@ vk::PipelineLayout to_pipe_layout(vk::Device const& device, layout_shader_t cons
 // using WrapperShader = Wrapper<vk::Buffer, vk::BufferCreateInfo>;
 class Shader {
  public:
+  Shader();
   Shader(Device const& device, std::vector<std::string> const& paths);
   Shader(Shader && dev);
   Shader(Shader const&) = delete;
-  
+  ~Shader();
   Shader& operator=(Shader const&) = delete;
   Shader& operator=(Shader&& dev);
 
@@ -152,6 +154,8 @@ class Shader {
   Device const* m_device;
   std::vector<std::string> m_paths;
   std::vector<vk::ShaderModule> m_modules;
+  layout_shader_t m_layout;
+  vk::PipelineLayout m_pipe;
 };
 
 #endif

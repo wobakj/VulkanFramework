@@ -49,16 +49,16 @@ vk::ShaderModule module(std::vector<char> const& code, vk::Device const& device)
   return shaderModule;
 }
 
-layout_module_t createLayout(std::string const& file_path, vk::Device const& device) {
+layout_module_t createLayout(std::string const& file_path) {
   auto code = read_file(file_path);
   // Read SPIR-V from disk or similar.
   std::vector<uint32_t> spirv_binary{};
   spirv_binary.resize(code.size() / 4);
   std::memcpy(spirv_binary.data(), code.data(), code.size() * sizeof(char));
-  return createLayout(spirv_binary, device);
+  return createLayout(spirv_binary);
 }  
 
-layout_module_t createLayout(std::vector<uint32_t> const& binary, vk::Device const& device) {
+layout_module_t createLayout(std::vector<uint32_t> const& binary) {
   spirv_cross::Compiler comp(std::move(binary));
   return layout_module_t{comp};
 }
