@@ -12,7 +12,7 @@
 
 namespace shader_loader {
 
-static std::vector<char> read_file(const std::string& filename) {
+std::vector<char> read_file(const std::string& filename) {
   std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
   if (!file.is_open()) {
@@ -31,6 +31,16 @@ static std::vector<char> read_file(const std::string& filename) {
 
 vk::ShaderModule module(std::string const& file_path, vk::Device const& device) {
   auto code = read_file(file_path);
+  vk::ShaderModuleCreateInfo createInfo{};
+  createInfo.codeSize = code.size();
+  createInfo.pCode = (uint32_t*) code.data();
+  vk::ShaderModule shaderModule = device.createShaderModule(createInfo);
+
+  return shaderModule;
+}
+
+
+vk::ShaderModule module(std::vector<char> const& code, vk::Device const& device) {
   vk::ShaderModuleCreateInfo createInfo{};
   createInfo.codeSize = code.size();
   createInfo.pCode = (uint32_t*) code.data();

@@ -390,9 +390,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   auto layout_frag = shader_loader::createLayout("../resources/shaders/simple_frag.spv", m_device);
 
   layout_shader_t shader{{layout_vert, layout_frag}};
-  // assert(0);
-  auto layouts = to_layouts(m_device.get(), shader);
-  m_descriptorSetLayout = layouts[0];
   
   vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
@@ -451,15 +448,8 @@ void LauncherVulkan::createGraphicsPipeline() {
   // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
-// descriptor layouts
-  vk::DescriptorSetLayout setLayouts[] = {m_descriptorSetLayout.get()};
-  // vk::DescriptorSetLayout setLayouts[] = {m_descriptorSetLayout.get()};
 
-  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = setLayouts;
-
-  m_pipeline_layout = m_device->createPipelineLayout(pipelineLayoutInfo);
+  m_pipeline_layout = to_pipe_layout(m_device, shader);
 
   vk::GraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.stageCount = 2;
