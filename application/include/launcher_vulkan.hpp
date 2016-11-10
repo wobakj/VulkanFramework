@@ -63,7 +63,6 @@ class LauncherVulkan {
   void createVertexBuffer();
   void createSurface();
   void createInstance();
-  void createDescriptorSetLayout();
   void updateUniformBuffer();
   void createDescriptorPool();
   void createTextureImage();
@@ -104,7 +103,6 @@ class LauncherVulkan {
   Instance m_instance;
   DebugReporter m_debug_report;
   Deleter<VkSurfaceKHR> m_surface;
-  Deleter<VkDescriptorSetLayout> m_descriptorSetLayout;
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkFramebuffer> m_framebuffer;

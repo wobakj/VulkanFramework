@@ -45,7 +45,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
  ,m_instance{}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
- ,m_descriptorSetLayout{m_device, vkDestroyDescriptorSetLayout}
  ,m_render_pass{m_device, vkDestroyRenderPass}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_framebuffer{m_device, vkDestroyFramebuffer}
@@ -121,9 +120,8 @@ void LauncherVulkan::initialize() {
   createTextureSampler();
   createDepthResource();
   createRenderPass();
-  createDescriptorSetLayout();
-  createDescriptorPool();
   createGraphicsPipeline();
+  createDescriptorPool();
   createFramebuffers();
   createCommandBuffers();
   updateCommandBuffers();
@@ -217,27 +215,6 @@ void LauncherVulkan::draw() {
   m_device.getQueue("present").waitIdle();
 
   first = false;
-}
-
-void LauncherVulkan::createDescriptorSetLayout() {
-  vk::DescriptorSetLayoutBinding uboLayoutBinding{};
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
-
-  vk::DescriptorSetLayoutBinding samplerLayoutBinding{};
-  samplerLayoutBinding.binding = 1;
-  samplerLayoutBinding.descriptorCount = 1;
-  samplerLayoutBinding.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-  samplerLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eFragment;
-  std::vector<vk::DescriptorSetLayoutBinding>  bindings{uboLayoutBinding, samplerLayoutBinding};
-
-  vk::DescriptorSetLayoutCreateInfo layoutInfo{};
-  layoutInfo.bindingCount = std::uint32_t(bindings.size());
-  layoutInfo.pBindings = bindings.data();
-
-  m_descriptorSetLayout = m_device->createDescriptorSetLayout(layoutInfo);
 }
 
 void LauncherVulkan::createSemaphores() {
@@ -340,7 +317,6 @@ void LauncherVulkan::createFramebuffers() {
 void LauncherVulkan::createRenderPass() {
 
   auto colorAttachment = m_image_color.toAttachment();
-  // auto colorAttachment = img_to_attachment(m_swap_chain.imgInfo());
   auto depthAttachment = m_image_depth.toAttachment();
 
   vk::AttachmentReference colorAttachmentRef{};
@@ -429,7 +405,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   vk::GraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.stageCount = uint32_t(m_shader.shaderStages().size());
   pipelineInfo.pStages = m_shader.shaderStages().data();
-  // pipelineInfo.pStages = shaderStages;
 
   auto vert_info = m_model.inputInfo();
   pipelineInfo.pVertexInputState = &vert_info;
@@ -530,11 +505,10 @@ void LauncherVulkan::createDescriptorPool() {
 
   m_descriptorPool = m_device->createDescriptorPool(poolInfo);
 
-  std::vector<vk::DescriptorSetLayout> layouts{m_descriptorSetLayout.get()};
   vk::DescriptorSetAllocateInfo allocInfo{};
   allocInfo.descriptorPool = m_descriptorPool;
-  allocInfo.descriptorSetCount = std::uint32_t(layouts.size());
-  allocInfo.pSetLayouts = layouts.data();
+  allocInfo.descriptorSetCount = std::uint32_t(m_shader.setLayouts().size());
+  allocInfo.pSetLayouts = m_shader.setLayouts().data();
 
   m_descriptorSet = m_device->allocateDescriptorSets(allocInfo)[0];
 

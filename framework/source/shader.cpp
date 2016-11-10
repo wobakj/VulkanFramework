@@ -26,7 +26,7 @@ vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model) {
   }
 }
 
-std::vector<vk::DescriptorSetLayout> to_layouts(vk::Device const& device, layout_shader_t const& shader) {
+std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader) {
   std::vector<vk::DescriptorSetLayout> set_layouts{};
   for(std::size_t idx_set = 0; idx_set < shader.bindings.size(); ++idx_set) {
     std::vector<vk::DescriptorSetLayoutBinding> bindings{};
@@ -41,9 +41,7 @@ std::vector<vk::DescriptorSetLayout> to_layouts(vk::Device const& device, layout
   return set_layouts;
 }
 
-vk::PipelineLayout to_pipe_layout(vk::Device const& device, layout_shader_t const& shader) {
-  auto set_layouts = to_layouts(device, shader);
-
+vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<vk::DescriptorSetLayout> const& set_layouts) {
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.setLayoutCount = std::uint32_t(set_layouts.size());
   pipelineLayoutInfo.pSetLayouts = set_layouts.data();
@@ -78,17 +76,19 @@ Shader::Shader(Device const& device, std::vector<std::string> const& paths)
   }
 
   info() = layout_shader_t{module_layouts};
-  get() = to_pipe_layout(device, info());
+  m_set_layouts = to_set_layouts(device, info());
+  get() = to_pipe_layout(device, m_set_layouts);
  }
 
 void Shader::destroy() {
   (*m_device)->destroyPipelineLayout(get());
   get() = VK_NULL_HANDLE;
-  for(auto& module : m_modules) {
+  for(auto const& module : m_modules) {
     (*m_device)->destroyShaderModule(module);
-    module = VK_NULL_HANDLE;
   }
-  // m_device->destroyDescriptorSetLayout()
+  for(auto const& set_layout : m_set_layouts) {
+    (*m_device)->destroyDescriptorSetLayout(set_layout);
+  }
 }
 
 Shader::Shader(Shader && dev)
@@ -98,8 +98,8 @@ Shader::Shader(Shader && dev)
 }
 
 Shader& Shader::operator=(Shader&& dev) {
-swap(dev);
-return *this;
+  swap(dev);
+  return *this;
 }
 
 void Shader::swap(Shader& dev) {
@@ -107,6 +107,7 @@ void Shader::swap(Shader& dev) {
   std::swap(m_device, dev.m_device);
   std::swap(m_paths, dev.m_paths);
   std::swap(m_modules, dev.m_modules);
+  std::swap(m_set_layouts, dev.m_set_layouts);
   std::swap(m_shader_stages, dev.m_shader_stages);
 }
 
@@ -117,6 +118,13 @@ vk::PipelineLayout const& Shader::pipelineLayout() const {
 // std::vector<vk::ShaderModule> const& Shader::shaderModules() const {
 //   return m_pipe;
 // }
+vk::DescriptorSetLayout const& Shader::setLayout(std::size_t index) const {
+  return m_set_layouts[index];
+}
+
+std::vector<vk::DescriptorSetLayout> const& Shader::setLayouts() const {
+  return m_set_layouts;
+}
 
 std::vector<vk::PipelineShaderStageCreateInfo> const& Shader::shaderStages() const {
   return m_shader_stages;
