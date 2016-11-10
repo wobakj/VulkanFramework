@@ -147,6 +147,19 @@ void Device::destroy() {
 vk::CommandPool const& Device::pool(std::string const& name) const {
   return m_pools.at(name);
 }
+
+std::vector<vk::CommandBuffer> Device::createCommandBuffers(std::string const& name_pool, vk::CommandBufferLevel const& level, uint32_t num) const {
+  vk::CommandBufferAllocateInfo allocInfo{};
+  allocInfo.setCommandPool(pool(name_pool));
+  allocInfo.setLevel(level);
+  allocInfo.setCommandBufferCount(num);
+  return get().allocateCommandBuffers(allocInfo);
+}
+
+vk::CommandBuffer Device::createCommandBuffer(std::string const& name_pool, vk::CommandBufferLevel const& level) const {
+  return createCommandBuffers(name_pool, level, 1)[0];
+}
+
 vk::Queue const& Device::getQueue(std::string const& name) const {
   return m_queues.at(name);
 }

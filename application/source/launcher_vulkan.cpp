@@ -227,18 +227,9 @@ void LauncherVulkan::createSemaphores() {
 }
 
 void LauncherVulkan::createCommandBuffers() {
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.setCommandPool(m_device.pool("graphics"));
-  allocInfo.setLevel(vk::CommandBufferLevel::eSecondary);
-  allocInfo.setCommandBufferCount(1);
-  auto command_buffer = m_device->allocateCommandBuffers(allocInfo)[0];
-  m_command_buffers.emplace("secondary", command_buffer);
+  m_command_buffers.emplace("secondary", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
 
-  allocInfo.setCommandPool(m_device.pool("graphics"));
-  allocInfo.setLevel(vk::CommandBufferLevel::ePrimary);
-  allocInfo.setCommandBufferCount(1);
-  auto command_buffer_prime = m_device->allocateCommandBuffers(allocInfo)[0];
-  m_command_buffers.emplace("primary", command_buffer_prime);
+  m_command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
 }
 
 void LauncherVulkan::updateCommandBuffers() {
@@ -282,7 +273,6 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   renderPassInfo.renderPass = m_render_pass;
   renderPassInfo.framebuffer = m_framebuffer;
 
-  renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
   renderPassInfo.renderArea.extent = m_swap_chain.extent();
   // vk::ClearValue clearColor = vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}};
   std::vector<vk::ClearValue> clearValues{2, vk::ClearValue{}};
