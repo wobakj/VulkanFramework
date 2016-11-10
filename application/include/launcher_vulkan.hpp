@@ -13,6 +13,7 @@
 #include "debug_reporter.hpp"
 #include "swap_chain.hpp"
 #include "camera.hpp"
+#include "shader.hpp"
 
 #include <string>
 #include <vector>
@@ -104,7 +105,6 @@ class LauncherVulkan {
   DebugReporter m_debug_report;
   Deleter<VkSurfaceKHR> m_surface;
   Deleter<VkDescriptorSetLayout> m_descriptorSetLayout;
-  Deleter<VkPipelineLayout> m_pipeline_layout;
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkFramebuffer> m_framebuffer;
@@ -128,6 +128,7 @@ class LauncherVulkan {
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;
   Camera m_camera;
+  Shader m_shader;
   // Application* m_application;
 };
 

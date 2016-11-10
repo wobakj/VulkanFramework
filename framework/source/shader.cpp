@@ -1,7 +1,7 @@
 #include "shader.hpp"
 #include "shader_loader.hpp"
 
-vk::ShaderStageFlags execution_to_stage(spv::ExecutionModel const& model) {
+vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model) {
   if (model == spv::ExecutionModelVertex) {
     return vk::ShaderStageFlagBits::eVertex;
   }
@@ -22,7 +22,7 @@ vk::ShaderStageFlags execution_to_stage(spv::ExecutionModel const& model) {
   }
   else {
     throw std::runtime_error{"execution model not supported"};
-    return vk::ShaderStageFlags{};
+    return vk::ShaderStageFlagBits::eAll;
   }
 }
 
@@ -39,18 +39,6 @@ std::vector<vk::DescriptorSetLayout> to_layouts(vk::Device const& device, layout
     set_layouts.emplace_back(device.createDescriptorSetLayout(layoutInfo));
   }
   return set_layouts;
-}
-
-std::vector<vk::PipelineShaderStageCreateInfo> to_stages(vk::Device const& device, layout_shader_t const& shader) {
-  std::vector<vk::PipelineShaderStageCreateInfo> stages{};
-  for(auto const& module : shader.modules) {
-    vk::PipelineShaderStageCreateInfo stage_info{};
-    stage_info.stage = vk::ShaderStageFlagBits::eFragment;
-    // stage_info.module = fragShaderModule;
-    stage_info.pName = "main";
-
-  }
-  return stages;
 }
 
 vk::PipelineLayout to_pipe_layout(vk::Device const& device, layout_shader_t const& shader) {
@@ -74,20 +62,28 @@ Shader::Shader(Device const& device, std::vector<std::string> const& paths)
   for(auto const& path : m_paths) {
     auto code = shader_loader::read_file(path);
     m_modules.emplace_back(shader_loader::module(code, device));
+
     // Read SPIR-V from disk or similar.
     std::vector<uint32_t> spirv_binary{};
     spirv_binary.resize(code.size() / 4);
     std::memcpy(spirv_binary.data(), code.data(), code.size() * sizeof(char));
 
     module_layouts.emplace_back(shader_loader::createLayout(spirv_binary));
+
+    vk::PipelineShaderStageCreateInfo stage_info{};
+    stage_info.stage = module_layouts.back().stage;
+    stage_info.module = m_modules.back();
+    stage_info.pName = "main";
+    m_shader_stages.emplace_back(stage_info);
   }
-  m_layout = layout_shader_t{module_layouts};
-  m_pipe = to_pipe_layout(device, m_layout);
+
+  info() = layout_shader_t{module_layouts};
+  get() = to_pipe_layout(device, info());
  }
 
-Shader::~Shader() {
-  (*m_device)->destroyPipelineLayout(m_pipe);
-  m_pipe = VK_NULL_HANDLE;
+void Shader::destroy() {
+  (*m_device)->destroyPipelineLayout(get());
+  get() = VK_NULL_HANDLE;
   for(auto& module : m_modules) {
     (*m_device)->destroyShaderModule(module);
     module = VK_NULL_HANDLE;
@@ -107,9 +103,21 @@ return *this;
 }
 
 void Shader::swap(Shader& dev) {
+  WrapperShader::swap(dev);
   std::swap(m_device, dev.m_device);
   std::swap(m_paths, dev.m_paths);
   std::swap(m_modules, dev.m_modules);
-  std::swap(m_layout, dev.m_layout);
-  std::swap(m_pipe, dev.m_pipe);
+  std::swap(m_shader_stages, dev.m_shader_stages);
+}
+
+vk::PipelineLayout const& Shader::pipelineLayout() const {
+  return get();
+}
+
+// std::vector<vk::ShaderModule> const& Shader::shaderModules() const {
+//   return m_pipe;
+// }
+
+std::vector<vk::PipelineShaderStageCreateInfo> const& Shader::shaderStages() const {
+  return m_shader_stages;
 }

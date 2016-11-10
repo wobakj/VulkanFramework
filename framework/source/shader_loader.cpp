@@ -34,9 +34,7 @@ vk::ShaderModule module(std::string const& file_path, vk::Device const& device) 
   vk::ShaderModuleCreateInfo createInfo{};
   createInfo.codeSize = code.size();
   createInfo.pCode = (uint32_t*) code.data();
-  vk::ShaderModule shaderModule = device.createShaderModule(createInfo);
-
-  return shaderModule;
+  return device.createShaderModule(createInfo);
 }
 
 
@@ -44,9 +42,7 @@ vk::ShaderModule module(std::vector<char> const& code, vk::Device const& device)
   vk::ShaderModuleCreateInfo createInfo{};
   createInfo.codeSize = code.size();
   createInfo.pCode = (uint32_t*) code.data();
-  vk::ShaderModule shaderModule = device.createShaderModule(createInfo);
-
-  return shaderModule;
+  return device.createShaderModule(createInfo);
 }
 
 layout_module_t createLayout(std::string const& file_path) {
@@ -59,7 +55,7 @@ layout_module_t createLayout(std::string const& file_path) {
 }  
 
 layout_module_t createLayout(std::vector<uint32_t> const& binary) {
-  spirv_cross::Compiler comp(std::move(binary));
+  spirv_cross::Compiler comp(binary);
   return layout_module_t{comp};
 }
 

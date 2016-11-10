@@ -46,7 +46,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_instance{}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
  ,m_descriptorSetLayout{m_device, vkDestroyDescriptorSetLayout}
- ,m_pipeline_layout{m_device, vkDestroyPipelineLayout}
  ,m_render_pass{m_device, vkDestroyRenderPass}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_framebuffer{m_device, vkDestroyFramebuffer}
@@ -289,7 +288,7 @@ void LauncherVulkan::updateCommandBuffers() {
   m_command_buffers.at("secondary").begin(beginInfo);
 
   m_command_buffers.at("secondary").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-  m_command_buffers.at("secondary").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.get(), 0, 1, &m_descriptorSet, 0, nullptr);
+  m_command_buffers.at("secondary").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shader.pipelineLayout(), 0, 1, &m_descriptorSet, 0, nullptr);
 
   m_command_buffers.at("secondary").bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
   m_command_buffers.at("secondary").bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
@@ -379,31 +378,9 @@ void LauncherVulkan::createRenderPass() {
 }
 
 void LauncherVulkan::createGraphicsPipeline() {
-
-  Deleter<VkShaderModule> vertShaderModule{m_device, vkDestroyShaderModule};
-  Deleter<VkShaderModule> fragShaderModule{m_device, vkDestroyShaderModule};
-
-  vertShaderModule = shader_loader::module("../resources/shaders/simple_vert.spv", m_device);
-  fragShaderModule = shader_loader::module("../resources/shaders/simple_frag.spv", m_device);
+  m_shader = Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}};
   
-  auto layout_vert = shader_loader::createLayout("../resources/shaders/simple_vert.spv", m_device);
-  auto layout_frag = shader_loader::createLayout("../resources/shaders/simple_frag.spv", m_device);
-
-  layout_shader_t shader{{layout_vert, layout_frag}};
-  
-  vk::PipelineShaderStageCreateInfo vertShaderStageInfo{};
-  vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;
-  vertShaderStageInfo.module = vertShaderModule;
-  vertShaderStageInfo.pName = "main";
-
-  vk::PipelineShaderStageCreateInfo fragShaderStageInfo{};
-  fragShaderStageInfo.stage = vk::ShaderStageFlagBits::eFragment;
-  fragShaderStageInfo.module = fragShaderModule;
-  fragShaderStageInfo.pName = "main";
-
-  vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {};
+  vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
 
   vk::Viewport viewport{};
@@ -449,11 +426,10 @@ void LauncherVulkan::createGraphicsPipeline() {
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
 
-  m_pipeline_layout = to_pipe_layout(m_device, shader);
-
   vk::GraphicsPipelineCreateInfo pipelineInfo{};
-  pipelineInfo.stageCount = 2;
-  pipelineInfo.pStages = shaderStages;
+  pipelineInfo.stageCount = uint32_t(m_shader.shaderStages().size());
+  pipelineInfo.pStages = m_shader.shaderStages().data();
+  // pipelineInfo.pStages = shaderStages;
 
   auto vert_info = m_model.inputInfo();
   pipelineInfo.pVertexInputState = &vert_info;
@@ -466,7 +442,7 @@ void LauncherVulkan::createGraphicsPipeline() {
   pipelineInfo.pDynamicState = nullptr; // Optional
   pipelineInfo.pDepthStencilState = &depthStencil;
   
-  pipelineInfo.layout = m_pipeline_layout;
+  pipelineInfo.layout = m_shader.pipelineLayout();
 
   pipelineInfo.renderPass = m_render_pass;
   pipelineInfo.subpass = 0;

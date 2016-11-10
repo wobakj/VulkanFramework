@@ -2,7 +2,7 @@
 #define SHADER_HPP
 
 #include "device.hpp"
-// #include "memory.hpp"
+#include "wrapper.hpp"
 
 #include "spirv_cross.hpp"
 #include <vulkan/vulkan.hpp>
@@ -10,7 +10,7 @@
 #include <map>
 #include <vector>
 
-vk::ShaderStageFlags execution_to_stage(spv::ExecutionModel const& model);
+vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model);
 
 struct layout_module_t {
 
@@ -67,7 +67,7 @@ struct layout_module_t {
   }
 
   std::vector<std::map<std::string, vk::DescriptorSetLayoutBinding>> bindings;
-  vk::ShaderStageFlags stage;
+  vk::ShaderStageFlagBits stage;
 };
 
 struct layout_shader_t {
@@ -133,29 +133,31 @@ struct layout_shader_t {
 
 std::vector<vk::DescriptorSetLayout> to_layouts(vk::Device const& device, layout_shader_t const& shader);
 
-std::vector<vk::PipelineShaderStageCreateInfo> to_stages(vk::Device const& device, layout_shader_t const& shader);
-
 vk::PipelineLayout to_pipe_layout(vk::Device const& device, layout_shader_t const& shader);
 
-// using WrapperShader = Wrapper<vk::Buffer, vk::BufferCreateInfo>;
-class Shader {
+using WrapperShader = Wrapper<vk::PipelineLayout, layout_shader_t>;
+class Shader : public WrapperShader {
  public:
   Shader();
   Shader(Device const& device, std::vector<std::string> const& paths);
   Shader(Shader && dev);
   Shader(Shader const&) = delete;
-  ~Shader();
+
   Shader& operator=(Shader const&) = delete;
   Shader& operator=(Shader&& dev);
 
   void swap(Shader& dev);
+
+  vk::PipelineLayout const& pipelineLayout() const;
+  std::vector<vk::PipelineShaderStageCreateInfo> const& shaderStages() const;
   
  private:
+  void destroy() override;
+
   Device const* m_device;
   std::vector<std::string> m_paths;
   std::vector<vk::ShaderModule> m_modules;
-  layout_shader_t m_layout;
-  vk::PipelineLayout m_pipe;
+  std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stages;
 };
 
 #endif
