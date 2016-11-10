@@ -131,9 +131,8 @@ struct layout_shader_t {
   std::vector<layout_module_t> modules;
 };
 
-std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader);
-
-vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<vk::DescriptorSetLayout> const& set_layouts);
+// std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader);
+// vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<vk::DescriptorSetLayout> const& set_layouts);
 
 using WrapperShader = Wrapper<vk::PipelineLayout, layout_shader_t>;
 class Shader : public WrapperShader {
@@ -152,6 +151,8 @@ class Shader : public WrapperShader {
   std::vector<vk::PipelineShaderStageCreateInfo> const& shaderStages() const;
   vk::DescriptorSetLayout const& setLayout(std::size_t index) const;
   std::vector<vk::DescriptorSetLayout> const& setLayouts() const;
+
+  vk::DescriptorPool createPool(uint32_t max_sets = 1) const;
  private:
   void destroy() override;
 

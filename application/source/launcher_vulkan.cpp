@@ -489,21 +489,7 @@ void LauncherVulkan::createTextureSampler() {
 }
 
 void LauncherVulkan::createDescriptorPool() {
-  vk::DescriptorPoolSize uboSize{};
-  uboSize.type = vk::DescriptorType::eUniformBuffer;
-  uboSize.descriptorCount = 1;
-
-  vk::DescriptorPoolSize samplerSize{};
-  samplerSize.type = vk::DescriptorType::eCombinedImageSampler;
-  samplerSize.descriptorCount = 1;
-
-  std::vector<vk::DescriptorPoolSize> sizes{uboSize, samplerSize};
-  vk::DescriptorPoolCreateInfo poolInfo{};
-  poolInfo.poolSizeCount = std::uint32_t(sizes.size());
-  poolInfo.pPoolSizes = sizes.data();
-  poolInfo.maxSets = 1;
-
-  m_descriptorPool = m_device->createDescriptorPool(poolInfo);
+  m_descriptorPool = m_shader.createPool();
 
   vk::DescriptorSetAllocateInfo allocInfo{};
   allocInfo.descriptorPool = m_descriptorPool;

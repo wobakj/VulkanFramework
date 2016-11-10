@@ -26,6 +26,28 @@ vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model) {
   }
 }
 
+std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_layout) {
+  std::map<vk::DescriptorType, uint32_t> size_map{};
+  // collect all descriptor types and sizes
+  for (auto const& set : shader_layout.bindings) {
+    for(auto const& pair_desc : set) {
+      if (size_map.find(pair_desc.second.descriptorType) != size_map.end()) {
+        ++size_map.at(pair_desc.second.descriptorType);
+      }
+      else {
+        size_map.emplace(pair_desc.second.descriptorType, 1);
+      }
+    }
+  } 
+  // store sizes
+  std::vector<vk::DescriptorPoolSize> sizes{};
+  for(auto const& pair_desc : size_map) {
+    sizes.emplace_back(vk::DescriptorPoolSize{pair_desc.first, pair_desc.second});
+  }
+  return sizes;
+}
+
+
 std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader) {
   std::vector<vk::DescriptorSetLayout> set_layouts{};
   for(std::size_t idx_set = 0; idx_set < shader.bindings.size(); ++idx_set) {
@@ -128,4 +150,14 @@ std::vector<vk::DescriptorSetLayout> const& Shader::setLayouts() const {
 
 std::vector<vk::PipelineShaderStageCreateInfo> const& Shader::shaderStages() const {
   return m_shader_stages;
+}
+
+vk::DescriptorPool Shader::createPool(uint32_t max_sets) const {
+  auto pool_sizes = to_pool_sizes(info());
+  vk::DescriptorPoolCreateInfo poolInfo{};
+  poolInfo.poolSizeCount = std::uint32_t(pool_sizes.size());
+  poolInfo.pPoolSizes = pool_sizes.data();
+  poolInfo.maxSets = max_sets;
+
+  return (*m_device)->createDescriptorPool(poolInfo);
 }
