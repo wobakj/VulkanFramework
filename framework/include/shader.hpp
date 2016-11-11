@@ -54,6 +54,7 @@ class Shader : public WrapperShader {
   std::vector<vk::DescriptorSetLayout> const& setLayouts() const;
 
   vk::DescriptorPool createPool(uint32_t max_sets = 1) const;
+  vk::GraphicsPipelineCreateInfo startPipelineInfo() const;
  private:
   void destroy() override;
 

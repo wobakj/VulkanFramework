@@ -105,7 +105,9 @@ class LauncherVulkan {
   Deleter<VkSurfaceKHR> m_surface;
   Deleter<VkRenderPass> m_render_pass;
   Deleter<VkPipeline> m_pipeline;
+  Deleter<VkPipeline> m_pipeline_2;
   Deleter<VkFramebuffer> m_framebuffer;
+  Deleter<VkFramebuffer> m_framebuffer_2;
   std::map<std::string, vk::CommandBuffer> m_command_buffers;
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
@@ -116,17 +118,20 @@ class LauncherVulkan {
   Buffer m_buffer_uniform; 
   Buffer m_buffer_uniform_stage; 
   Deleter<VkDescriptorPool> m_descriptorPool;
+  Deleter<VkDescriptorPool> m_descriptorPool_2;
   vk::DescriptorSet m_descriptorSet;
+  vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
   Deleter<VkFence> m_fence_draw;
   Deleter<VkFence> m_fence_command;
   Image m_image_depth;
   Image m_image_color;
+  Image m_image_color_2;
   Image m_image;
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;
   Camera m_camera;
-  Shader m_shader;
+  std::map<std::string, Shader> m_shaders;
   // Application* m_application;
 };
 

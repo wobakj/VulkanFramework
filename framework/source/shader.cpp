@@ -271,3 +271,12 @@ vk::DescriptorPool Shader::createPool(uint32_t max_sets) const {
 
   return (*m_device)->createDescriptorPool(poolInfo);
 }
+
+vk::GraphicsPipelineCreateInfo Shader::startPipelineInfo() const {
+  vk::GraphicsPipelineCreateInfo pipelineInfo{};
+  pipelineInfo.stageCount = uint32_t(shaderStages().size());
+  pipelineInfo.pStages = shaderStages().data();
+  pipelineInfo.layout = pipelineLayout();
+
+  return pipelineInfo;
+}
