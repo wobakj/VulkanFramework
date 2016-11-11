@@ -300,6 +300,9 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffers.at("primary").draw(4, 1, 0, 0);
 
   m_command_buffers.at("primary").endRenderPass();
+  // make sure rendering to image is done before blitting
+  m_command_buffers.at("primary").pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer, {}, {}, {}, {});
+  
   vk::ImageBlit blit{};
   blit.srcSubresource = img_to_resource_layer(m_image_color_2.info());
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
@@ -314,49 +317,76 @@ void LauncherVulkan::createFramebuffers() {
   m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
 }
 
-struct render_pass_t {
-  render_pass_t(std::vector<vk::ImageCreateInfo> const& images) {
-    for(std::size_t i = 0; i < images.size(); ++i) {
-      attachments.emplace_back(img_to_attachment(images[i], true));
-      references.emplace_back(vk::AttachmentReference{uint32_t(i), images[i].initialLayout});
+struct sub_pass_t {
+  sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs = std::vector<uint32_t>{}, int32_t depth = -1) {   
+    for(auto const& color : colors) {
+      color_refs.emplace_back(vk::AttachmentReference{color, vk::ImageLayout::eColorAttachmentOptimal});
+    }
+    for(auto const& input : inputs) {
+      input_refs.emplace_back(vk::AttachmentReference{input, vk::ImageLayout::eShaderReadOnlyOptimal});
+    }
+    if(depth > 0) {
+      depth_ref = vk::AttachmentReference{uint32_t(depth), vk::ImageLayout::eDepthStencilAttachmentOptimal};
     }
   }
 
+  vk::SubpassDescription to_description() const {
+    vk::SubpassDescription pass{};
+    pass.colorAttachmentCount = std::uint32_t(color_refs.size());
+    pass.pColorAttachments = color_refs.data();
+    pass.inputAttachmentCount = std::uint32_t(input_refs.size());
+    pass.pInputAttachments = input_refs.data();
+    if(depth_ref.layout != vk::ImageLayout::eUndefined) {
+      pass.pDepthStencilAttachment = &depth_ref;
+    }
+    return pass;
+  }
+
+  std::vector<vk::AttachmentReference> color_refs;
+  vk::AttachmentReference depth_ref;
+  std::vector<vk::AttachmentReference> input_refs;
+};
+struct render_pass_t {
+  render_pass_t(std::vector<vk::ImageCreateInfo> const& images, std::vector<sub_pass_t> const& subpasses)
+   :sub_passes{subpasses}
+   ,attachments{}
+   {
+    for(std::size_t i = 0; i < images.size(); ++i) {
+      attachments.emplace_back(img_to_attachment(images[i], true));
+    }
+
+    for(auto const& pass : sub_passes) {
+      sub_descriptions.emplace_back(pass.to_description());
+    }
+  }
+
+  vk::RenderPassCreateInfo to_info() const {
+    vk::RenderPassCreateInfo pass_info{};
+    pass_info.attachmentCount = std::uint32_t(attachments.size());
+    pass_info.pAttachments = attachments.data();
+    pass_info.subpassCount = std::uint32_t(sub_descriptions.size());
+    pass_info.pSubpasses = sub_descriptions.data();
+  
+    return pass_info;
+  }
+
+  std::vector<sub_pass_t> sub_passes;
   std::vector<vk::AttachmentDescription> attachments;
-  std::vector<vk::AttachmentReference> references;
+  std::vector<vk::SubpassDescription> sub_descriptions;
 };
 
 void LauncherVulkan::createRenderPass() {
-  render_pass_t test{{m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}};
+  render_pass_t test{{m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}, {{{0},{},1},{{2},{0}}}};
 
-  vk::RenderPassCreateInfo renderPassInfo{};
-  renderPassInfo.attachmentCount = std::uint32_t(test.attachments.size());
-  renderPassInfo.pAttachments = test.attachments.data();
+  vk::RenderPassCreateInfo renderPassInfo = test.to_info();
   
-  vk::AttachmentReference test2{0, vk::ImageLayout::eColorAttachmentOptimal};
-  vk::SubpassDescription subPass{};
-  subPass.colorAttachmentCount = 1;
-  subPass.pColorAttachments = &test2;
-  // subPass.pColorAttachments = &test.references[0];
-  subPass.pDepthStencilAttachment = &test.references[1];
-
-  vk::SubpassDescription subPass2{};
-  subPass2.colorAttachmentCount = 1;
-  subPass2.pColorAttachments = &test.references[2];
-  subPass2.inputAttachmentCount = 1;
-  subPass2.pInputAttachments = &test.references[0];
-
-  std::vector<vk::SubpassDescription> sub_passes{subPass, subPass2};
-  renderPassInfo.subpassCount = std::uint32_t(sub_passes.size());
-  renderPassInfo.pSubpasses = sub_passes.data();
-  
-  vk::SubpassDependency dependency_1{};
-  dependency_1.srcSubpass = VK_SUBPASS_EXTERNAL;
-  dependency_1.dstSubpass = 0;
-  dependency_1.srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
-  dependency_1.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
-  dependency_1.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  dependency_1.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  // vk::SubpassDependency dependency_1{};
+  // dependency_1.srcSubpass = VK_SUBPASS_EXTERNAL;
+  // dependency_1.dstSubpass = 0;
+  // dependency_1.srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
+  // dependency_1.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
+  // dependency_1.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  // dependency_1.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
   
   vk::SubpassDependency dependency_2{};
   dependency_2.srcSubpass = 0;
@@ -365,7 +395,7 @@ void LauncherVulkan::createRenderPass() {
   dependency_2.srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
   dependency_2.dstStageMask = vk::PipelineStageFlagBits::eFragmentShader;
   dependency_2.dstAccessMask = vk::AccessFlagBits::eInputAttachmentRead;
-  std::vector<vk::SubpassDependency> dependencies{dependency_1, dependency_2};
+  std::vector<vk::SubpassDependency> dependencies{dependency_2};
   
   renderPassInfo.dependencyCount = std::uint32_t(dependencies.size());
   renderPassInfo.pDependencies = dependencies.data();

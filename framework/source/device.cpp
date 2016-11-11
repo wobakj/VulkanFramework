@@ -258,7 +258,7 @@ void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const&
 
   barrier.srcAccessMask = layout_to_access(oldLayout);
   barrier.dstAccessMask = layout_to_access(newLayout);
-
+// todo: use image memory barrier instead of pipeline
   commandBuffer.pipelineBarrier(
     vk::PipelineStageFlagBits::eTopOfPipe,
     vk::PipelineStageFlagBits::eTopOfPipe,
