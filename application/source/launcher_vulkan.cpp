@@ -49,7 +49,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_framebuffer{m_device, vkDestroyFramebuffer}
- ,m_framebuffer_2{m_device, vkDestroyFramebuffer}
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
@@ -312,42 +311,40 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 }
 
 void LauncherVulkan::createFramebuffers() {
-  m_framebuffer = m_device->createFramebuffer(view_to_fb(m_image_color.view(), m_image_color.info(), m_render_pass.get(), {m_image_depth.view(), m_image_color_2.view() }));
-  
-  // m_framebuffer_2 = m_device->createFramebuffer(view_to_fb(m_image_color_2.view(), m_image_color_2.info(), m_render_pass.get()));
+  m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
 }
 
+struct render_pass_t {
+  render_pass_t(std::vector<vk::ImageCreateInfo> const& images) {
+    for(std::size_t i = 0; i < images.size(); ++i) {
+      attachments.emplace_back(img_to_attachment(images[i], true));
+      references.emplace_back(vk::AttachmentReference{uint32_t(i), images[i].initialLayout});
+    }
+  }
+
+  std::vector<vk::AttachmentDescription> attachments;
+  std::vector<vk::AttachmentReference> references;
+};
+
 void LauncherVulkan::createRenderPass() {
-
-  auto colorAttachment = m_image_color.toAttachment();
-  auto depthAttachment = m_image_depth.toAttachment();
-  auto colorAttachment2 = m_image_color_2.toAttachment();
-
-  vk::AttachmentReference colorAttachmentRef{};
-  colorAttachmentRef.attachment = 0;
-  colorAttachmentRef.layout = m_image_color.layout();
-
-  vk::AttachmentReference depthAttachmentRef{};
-  depthAttachmentRef.attachment = 1;
-  depthAttachmentRef.layout = m_image_depth.layout();
-
-  vk::AttachmentReference colorAttachmentRef2{};
-  colorAttachmentRef2.attachment = 2;
-  colorAttachmentRef2.layout = m_image_color_2.layout();
+  render_pass_t test{{m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}};
 
   vk::RenderPassCreateInfo renderPassInfo{};
-  std::vector<vk::AttachmentDescription> attachments{colorAttachment, depthAttachment, colorAttachment2};
-  renderPassInfo.attachmentCount = std::uint32_t(attachments.size());
-  renderPassInfo.pAttachments = attachments.data();
+  renderPassInfo.attachmentCount = std::uint32_t(test.attachments.size());
+  renderPassInfo.pAttachments = test.attachments.data();
   
+  vk::AttachmentReference test2{0, vk::ImageLayout::eColorAttachmentOptimal};
   vk::SubpassDescription subPass{};
   subPass.colorAttachmentCount = 1;
-  subPass.pColorAttachments = &colorAttachmentRef;
-  subPass.pDepthStencilAttachment = &depthAttachmentRef;
+  subPass.pColorAttachments = &test2;
+  // subPass.pColorAttachments = &test.references[0];
+  subPass.pDepthStencilAttachment = &test.references[1];
 
   vk::SubpassDescription subPass2{};
   subPass2.colorAttachmentCount = 1;
-  subPass2.pColorAttachments = &colorAttachmentRef2;
+  subPass2.pColorAttachments = &test.references[2];
+  subPass2.inputAttachmentCount = 1;
+  subPass2.pInputAttachments = &test.references[0];
 
   std::vector<vk::SubpassDescription> sub_passes{subPass, subPass2};
   renderPassInfo.subpassCount = std::uint32_t(sub_passes.size());
@@ -364,10 +361,10 @@ void LauncherVulkan::createRenderPass() {
   vk::SubpassDependency dependency_2{};
   dependency_2.srcSubpass = 0;
   dependency_2.dstSubpass = 1;
-  dependency_2.srcStageMask = vk::PipelineStageFlagBits::eAllGraphics;
+  dependency_2.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
   dependency_2.srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-  dependency_2.dstStageMask = vk::PipelineStageFlagBits::eAllGraphics;
-  dependency_2.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  dependency_2.dstStageMask = vk::PipelineStageFlagBits::eFragmentShader;
+  dependency_2.dstAccessMask = vk::AccessFlagBits::eInputAttachmentRead;
   std::vector<vk::SubpassDependency> dependencies{dependency_1, dependency_2};
   
   renderPassInfo.dependencyCount = std::uint32_t(dependencies.size());
@@ -515,8 +512,8 @@ void LauncherVulkan::createDepthResource() {
   m_image_depth = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_depth.transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-  m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  m_image_color.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_color.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
   m_image_color_2 = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color_2.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
@@ -553,7 +550,6 @@ void LauncherVulkan::createDescriptorPool() {
   m_buffer_uniform.writeToSet(m_descriptorSet, 0);
   m_image.writeToSet(m_descriptorSet, 1, m_textureSampler.get());
 
-
   m_descriptorPool_2 = m_shaders.at("quad").createPool();
   allocInfo.descriptorPool = m_descriptorPool_2;
   allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
@@ -561,7 +557,7 @@ void LauncherVulkan::createDescriptorPool() {
 
   m_descriptorSet_2 = m_device->allocateDescriptorSets(allocInfo)[0];
 
-  m_image_color.writeToSet(m_descriptorSet_2, 0, m_textureSampler.get());
+  m_image_color.writeToSet(m_descriptorSet_2, 0);
 }
 
 void LauncherVulkan::createUniformBuffers() {
@@ -622,6 +618,8 @@ void LauncherVulkan::recreateSwapChain() {
   createDepthResource();
   createRenderPass();
   createGraphicsPipeline();
+  m_image_color.writeToSet(m_descriptorSet_2, 0);
+
   createFramebuffers();
   updateCommandBuffers();
 }

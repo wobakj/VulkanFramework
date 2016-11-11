@@ -94,9 +94,9 @@ vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateI
   return fb_info;
 }
 
-vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass, std::vector<vk::ImageView> attachments) {
+vk::FramebufferCreateInfo view_to_fb(std::vector<vk::ImageView> const& attachments, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass) {
   // vk::ImageView attachments[] = {view};
-  attachments.insert(attachments.begin(),view);
+  // attachments.insert(attachments.begin(),view);
   vk::FramebufferCreateInfo fb_info{};
   fb_info.renderPass = pass;
   fb_info.attachmentCount = std::uint32_t(attachments.size());

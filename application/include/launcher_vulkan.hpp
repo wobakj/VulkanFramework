@@ -107,7 +107,6 @@ class LauncherVulkan {
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkPipeline> m_pipeline_2;
   Deleter<VkFramebuffer> m_framebuffer;
-  Deleter<VkFramebuffer> m_framebuffer_2;
   std::map<std::string, vk::CommandBuffer> m_command_buffers;
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;

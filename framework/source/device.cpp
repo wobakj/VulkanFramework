@@ -260,7 +260,8 @@ void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const&
   barrier.dstAccessMask = layout_to_access(newLayout);
 
   commandBuffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::PipelineStageFlagBits::eTopOfPipe,
     vk::DependencyFlags{},
     {},
     {},

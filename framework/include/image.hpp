@@ -45,7 +45,10 @@ class Image : public WrapperImage {
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
   vk::ImageView const& view() const;
+  // write as combined sampler
   void writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler) const;
+  // write as input attachment
+  void writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const;
 
  private:
   void destroy() override;

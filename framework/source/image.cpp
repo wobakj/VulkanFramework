@@ -249,45 +249,7 @@ void Image::setData(void const* data, vk::DeviceSize const& size) {
 }
 
 void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
-  // get current layout form creation info
-  vk::ImageLayout const& oldLayout = info().initialLayout;
-  
-  vk::CommandBuffer const& commandBuffer = m_device->beginSingleTimeCommands();
-  vk::ImageMemoryBarrier barrier{};
-  barrier.oldLayout = oldLayout;
-  barrier.newLayout = newLayout;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  barrier.image = get();
-
-  if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-
-    if (has_stencil(info().format)) {
-      barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = info().mipLevels;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = info().arrayLayers;
-
-  barrier.srcAccessMask = layout_to_access(oldLayout);
-  barrier.dstAccessMask = layout_to_access(newLayout);
-
-  commandBuffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier}
-  );
-  m_device->endSingleTimeCommands();
+  m_device->transitionToLayout(get(), info(), newLayout);
   // store new layout
   info().initialLayout = newLayout;
 }
@@ -336,6 +298,22 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sample
   descriptorWrite.dstBinding = binding;
   descriptorWrite.dstArrayElement = 0;
   descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pImageInfo = &imageInfo;
+
+  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+}
+
+void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
+  vk::DescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  imageInfo.imageView = m_view;
+
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = set;
+  descriptorWrite.dstBinding = binding;
+  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.descriptorType = vk::DescriptorType::eInputAttachment;
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &imageInfo;
 
