@@ -302,11 +302,11 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 
   m_command_buffers.at("primary").endRenderPass();
   vk::ImageBlit blit{};
-  blit.srcSubresource = img_to_resource_layer(m_image_color.info());
+  blit.srcSubresource = img_to_resource_layer(m_image_color_2.info());
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  m_command_buffers.at("primary").blitImage(m_image_color, m_image_color.layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  m_command_buffers.at("primary").blitImage(m_image_color_2, m_image_color_2.layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
   m_command_buffers.at("primary").end();
 }
@@ -429,7 +429,7 @@ void LauncherVulkan::createGraphicsPipeline() {
   auto vert_info = m_model.inputInfo();
   pipelineInfo.pVertexInputState = &vert_info;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;
+  pipelineInfo.pViewportState = &viewportState;  
   pipelineInfo.pRasterizationState = &rasterizer;
   pipelineInfo.pMultisampleState = &multisampling;
   pipelineInfo.pDepthStencilState = nullptr; // Optional
@@ -451,9 +451,14 @@ void LauncherVulkan::createGraphicsPipeline() {
   
   vert_info = vk::PipelineVertexInputStateCreateInfo{};
   pipelineInfo2.pVertexInputState = &vert_info;
+  
+  inputAssembly.topology = vk::PrimitiveTopology::eTriangleStrip;
   pipelineInfo2.pInputAssemblyState = &inputAssembly;
-  pipelineInfo2.pViewportState = &viewportState;
+
+  rasterizer.cullMode = vk::CullModeFlagBits::eNone;
   pipelineInfo2.pRasterizationState = &rasterizer;
+
+  pipelineInfo2.pViewportState = &viewportState;
   pipelineInfo2.pMultisampleState = &multisampling;
   pipelineInfo2.pDepthStencilState = nullptr; // Optional
   pipelineInfo2.pColorBlendState = &colorBlending;
@@ -550,7 +555,6 @@ void LauncherVulkan::createDescriptorPool() {
 
 
   m_descriptorPool_2 = m_shaders.at("quad").createPool();
-  // vk::DescriptorSetAllocateInfo allocInfo{};
   allocInfo.descriptorPool = m_descriptorPool_2;
   allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
   allocInfo.pSetLayouts = m_shaders.at("quad").setLayouts().data();
