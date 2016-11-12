@@ -77,7 +77,7 @@ class LauncherVulkan {
   // update viewport and field of view
   void update_projection(GLFWwindow* window, int width, int height);
   // load shader programs and update uniform locations
-  void update_shader_programs(bool throwing);
+  void update_shader_programs();
   // handle key input
   void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
   // calculate fps and show in window title

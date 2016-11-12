@@ -49,6 +49,8 @@ class Device : public WrapperDevice {
   vk::CommandBuffer const& beginSingleTimeCommands() const;
   void endSingleTimeCommands() const;
 
+  void waitFence(vk::Fence const& fence) const;
+
   // getter
   vk::PhysicalDevice const& physical() const;
 

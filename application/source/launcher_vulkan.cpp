@@ -13,6 +13,7 @@
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include <cstdlib>
 #include <stdlib.h>
@@ -32,6 +33,7 @@ struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+    glm::mat4 normal;
 };
 
 LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
@@ -150,13 +152,7 @@ void LauncherVulkan::draw() {
 
   // make sure no command buffer is in use
   if(!first) {
-    // only try to wait if fence is actually in use 
-    if (m_device->getFenceStatus(m_fence_draw.get()) != vk::Result::eSuccess) {
-      if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
-        throw std::exception();
-      }
-      m_device->resetFences({m_fence_draw.get()});
-    }
+    m_device.waitFence(m_fence_draw.get());
   } 
 
   if(m_model_dirty.is_lock_free()) {
@@ -222,7 +218,7 @@ void LauncherVulkan::createSemaphores() {
   m_sema_image_ready = m_device->createSemaphore({});
   m_sema_render_done = m_device->createSemaphore({});
   m_fence_draw = m_device->createFence({});
-  m_device->resetFences({m_fence_draw.get()});
+  // m_device->resetFences({m_fence_draw.get()});
 
   m_fence_command = m_device->createFence({});
 }
@@ -234,16 +230,7 @@ void LauncherVulkan::createCommandBuffers() {
 }
 
 void LauncherVulkan::updateCommandBuffers() {
-  // make sure no command buffer is in use
-  if (m_fence_draw) {
-    // only try to wait if fence is actually in use
-    if (m_device->getFenceStatus(m_fence_draw.get()) != vk::Result::eSuccess) {
-      if (m_device->waitForFences({m_fence_draw.get()}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
-        throw std::exception();
-      }
-      m_device->resetFences({m_fence_draw.get()});
-    }
-  }
+  m_device.waitFence(m_fence_draw.get());
 
   m_command_buffers.at("secondary").reset({});
 
@@ -334,7 +321,7 @@ void LauncherVulkan::createRenderPass() {
 }
 
 void LauncherVulkan::createGraphicsPipeline() {
-  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
+  m_shaders["simple"] = Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}};
   
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -402,7 +389,7 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
 
-  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}});
+  m_shaders["quad"] = Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}};
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
   vert_info = vk::PipelineVertexInputStateCreateInfo{};
@@ -530,6 +517,7 @@ void LauncherVulkan::updateUniformBuffer() {
   UniformBufferObject ubo{};
   ubo.model = glm::mat4();
   ubo.view = m_camera.viewMatrix();
+  ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
   ubo.proj[1][1] *= -1;
 
@@ -543,7 +531,7 @@ void LauncherVulkan::mainLoop() {
 
   // do before framebuffer_resize call as it requires the projection uniform location
   // throw exception if shader compilation was unsuccessfull
-  update_shader_programs(true);
+  // update_shader_programs();
 
   static double time_last = 0.0;
   // enable depth testing
@@ -596,7 +584,12 @@ void LauncherVulkan::update_projection(GLFWwindow* m_window, int width, int heig
 }
 
 // load shader programs and update uniform locations
-void LauncherVulkan::update_shader_programs(bool throwing) {
+void LauncherVulkan::update_shader_programs() {
+  // make sure pipeline is free before rebuilding
+  m_device.waitFence(m_fence_draw.get());
+  createGraphicsPipeline();
+  updateCommandBuffers();
+
   // // actual functionality in lambda to allow update with and without throwing
   // auto update_lambda = [&](){
   //   // reload all shader programs
@@ -639,7 +632,7 @@ void LauncherVulkan::key_callback(GLFWwindow* m_window, int key, int scancode, i
     glfwSetWindowShouldClose(m_window, 1);
   }
   else if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-    // update_shader_programs(false);
+    update_shader_programs();
   }
   else if (key == GLFW_KEY_L && action == GLFW_PRESS) {
     m_thread_load = std::thread(&LauncherVulkan::loadModel, this);

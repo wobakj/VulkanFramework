@@ -282,6 +282,18 @@ vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
   return m_command_buffer_help;
 }
 
+void Device::waitFence(vk::Fence const& fence) const {
+  if (fence) {
+    // only try to wait if fence is actually in use
+    if (get().getFenceStatus(fence) != vk::Result::eSuccess) {
+      if (get().waitForFences({fence}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
+        throw std::exception();
+      }
+      get().resetFences({fence});
+    }
+  }
+}
+
 void Device::endSingleTimeCommands() const {
   m_command_buffer_help.end();
 
