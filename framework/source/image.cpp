@@ -104,6 +104,73 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   }
 }
 
+vk::SubpassDependency img_to_dependency(vk::ImageCreateInfo const& img_info, int32_t src, int32_t dst) {
+  vk::SubpassDependency dependency{};
+  if(src < 0) {
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  }
+  else {
+    dependency.srcSubpass = src;
+  }
+  if(dst < 0) {
+    dependency.dstSubpass = VK_SUBPASS_EXTERNAL;
+  }
+  else {
+    dependency.dstSubpass = dst;
+  }
+
+  if (img_info.usage & vk::ImageUsageFlagBits::eColorAttachment) {
+    // present image, presentation needs to be done before writing new info
+    if(src < 0) {
+      dependency.dstStageMask |= vk::PipelineStageFlagBits::eBottomOfPipe;
+      dependency.dstAccessMask |= vk::AccessFlagBits::eMemoryRead;
+      dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+      dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+      return dependency;
+    }
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependency.srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  }
+  else if (img_info.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependency.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  }
+  else {
+    throw std::runtime_error{"usage flags" + to_string(img_info.usage) + " not supported"};
+  }
+
+  // input attachment can ony be read in frag shader
+  if (img_info.usage & vk::ImageUsageFlagBits::eInputAttachment) {
+    dependency.dstStageMask |= vk::PipelineStageFlagBits::eFragmentShader;
+    dependency.dstAccessMask |= vk::AccessFlagBits::eInputAttachmentRead;
+  }
+  // sampler can be read in next vertex stage already
+  if (img_info.usage & vk::ImageUsageFlagBits::eSampled) {
+    dependency.dstStageMask |= vk::PipelineStageFlagBits::eVertexShader;
+    dependency.dstAccessMask |= vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  }
+  // transfer image should be done until next transfer operation
+  if (img_info.usage & vk::ImageUsageFlagBits::eTransferSrc) {
+    dependency.dstStageMask |= vk::PipelineStageFlagBits::eTransfer;
+    dependency.dstAccessMask |= vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite;
+  }
+  // storage is immutable sampler
+  if (img_info.usage & vk::ImageUsageFlagBits::eStorage) {
+    dependency.dstStageMask |= vk::PipelineStageFlagBits::eVertexShader;
+    dependency.dstAccessMask |= vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  }
+  // special case, presentation after renderpass, assumption may be too strong
+  if (dst < 0 && dependency.dstAccessMask == vk::AccessFlags{}) {
+    dependency.dstStageMask |= vk::PipelineStageFlagBits::eBottomOfPipe;
+    dependency.dstAccessMask |= vk::AccessFlagBits::eMemoryRead;
+  }
+
+  if(dependency.dstAccessMask == vk::AccessFlags{}) {
+    throw std::runtime_error{"usage flags" + to_string(img_info.usage) + " not supported"};
+  }
+  return dependency;
+}
+
 vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info, bool clear) {
   vk::AttachmentDescription attachment{};
   attachment.format = img_info.format;
