@@ -16,11 +16,13 @@ out gl_PerVertex {
   vec4 gl_Position;
 };
 
-layout(location = 0) out vec3 frag_Normal;
-layout(location = 1) out vec2 frag_Texcoord;
+layout(location = 0) out vec3 frag_Position;
+layout(location = 1) out vec3 frag_Normal;
+layout(location = 2) out vec2 frag_Texcoord;
 
 void main() {
   gl_Position = ubo.proj * ubo.view * ubo.model * vec4(in_Position, 1.0);
+  frag_Position = (ubo.view * ubo.model * vec4(in_Position, 1.0)).xyz;
   frag_Normal =  (ubo.normal * vec4(in_Normal, 0.0)).xyz;
   frag_Texcoord = in_TexCoord;
 }
