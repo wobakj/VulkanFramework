@@ -45,7 +45,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
  ,m_instance{}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
- ,m_render_pass{m_device, vkDestroyRenderPass}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_framebuffer{m_device, vkDestroyFramebuffer}
@@ -317,121 +316,7 @@ void LauncherVulkan::createFramebuffers() {
   m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
 }
 
-struct sub_pass_t {
-  sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs = std::vector<uint32_t>{}, int32_t depth = -1, std::vector<uint32_t> const& preserves = std::vector<uint32_t>{}) {   
-    for(auto const& color : colors) {
-      color_refs.emplace_back(vk::AttachmentReference{color, vk::ImageLayout::eColorAttachmentOptimal});
-    }
-    for(auto const& input : inputs) {
-      input_refs.emplace_back(vk::AttachmentReference{input, vk::ImageLayout::eShaderReadOnlyOptimal});
-    }
-    preserve_refs = preserves;
-    if(depth >= 0) {
-      depth_ref = vk::AttachmentReference{uint32_t(depth), vk::ImageLayout::eDepthStencilAttachmentOptimal};
-    }
-  }
-
-  vk::SubpassDescription to_description() const {
-    vk::SubpassDescription pass{};
-    pass.colorAttachmentCount = std::uint32_t(color_refs.size());
-    pass.pColorAttachments = color_refs.data();
-    pass.inputAttachmentCount = std::uint32_t(input_refs.size());
-    pass.pInputAttachments = input_refs.data();
-    if(depth_ref.layout != vk::ImageLayout::eUndefined) {
-      pass.pDepthStencilAttachment = &depth_ref;
-    }
-    return pass;
-  }
-  // indices of references produced by pass
-  std::vector<uint32_t> outputs() const {
-    std::vector<uint32_t> outputs{};
-    for(auto const& ref : color_refs) {
-      outputs.emplace_back(ref.attachment);
-    }
-    if(depth_ref.layout != vk::ImageLayout::eUndefined) {
-      outputs.emplace_back(depth_ref.attachment);
-    }
-    return outputs;
-  }
-
-  // indices of references consumed by pass
-  std::vector<uint32_t> inputs() const {
-    std::vector<uint32_t> inputs{};
-    for(auto const& ref : input_refs) {
-      inputs.emplace_back(ref.attachment);
-    }
-    for(auto const& ref : preserve_refs) {
-      inputs.emplace_back(ref);
-    }
-    return inputs;
-  }
-
-  std::vector<vk::AttachmentReference> color_refs;
-  vk::AttachmentReference depth_ref;
-  std::vector<vk::AttachmentReference> input_refs;
-  std::vector<uint32_t> preserve_refs;
-};
-struct render_pass_t {
-  // dependencies for first pass inputs not supported
-  render_pass_t(std::vector<vk::ImageCreateInfo> const& images, std::vector<sub_pass_t> const& subpasses)
-   :sub_passes{subpasses}
-   ,attachments{}
-   {
-    for(std::size_t i = 0; i < images.size(); ++i) {
-      attachments.emplace_back(img_to_attachment(images[i], true));
-    }
-    
-    for(uint32_t i = 0; i < sub_passes.size(); ++i) {
-      sub_descriptions.emplace_back(sub_passes[i].to_description());
-      // check for each output, if it is consumed by a later pass 
-      for(uint32_t ref : sub_passes[i].outputs()) {
-        for(uint32_t j = i + 1; j < sub_passes.size(); ++j) {
-          auto inputs = sub_passes[j].inputs();
-          if (std::find(inputs.begin(), inputs.end(), ref) != inputs.end()) {
-            dependencies.emplace_back(img_to_dependency(images[i], i, j));
-          }
-        }
-      }
-    }
-    // add dependency for present image as first stage output 
-    for(uint32_t ref : sub_passes.front().outputs()) {
-      if (images[ref].initialLayout == vk::ImageLayout::ePresentSrcKHR) {
-        dependencies.emplace_back(img_to_dependency(images[ref], -1, 0));
-      }
-    }
-    // add dependency for present image as last stage output 
-    for(uint32_t ref : sub_passes.back().outputs()) {
-      if (images[ref].initialLayout == vk::ImageLayout::ePresentSrcKHR) {
-        dependencies.emplace_back(img_to_dependency(images[ref], int32_t(sub_passes.size()) -1, -1));
-      }
-    }
-  }
-
-  vk::RenderPassCreateInfo to_info() const {
-    vk::RenderPassCreateInfo pass_info{};
-    pass_info.attachmentCount = std::uint32_t(attachments.size());
-    pass_info.pAttachments = attachments.data();
-    pass_info.subpassCount = std::uint32_t(sub_descriptions.size());
-    pass_info.pSubpasses = sub_descriptions.data();
-    pass_info.dependencyCount = std::uint32_t(dependencies.size());
-    pass_info.pDependencies = dependencies.data();
-
-    return pass_info;
-  }
-
-  std::vector<sub_pass_t> sub_passes;
-  std::vector<vk::AttachmentDescription> attachments;
-  std::vector<vk::SubpassDescription> sub_descriptions;
-  std::vector<vk::SubpassDependency> dependencies;
-
-};
-
 void LauncherVulkan::createRenderPass() {
-  sub_pass_t pass_1({0},{},1);
-  sub_pass_t pass_2({2},{0});
-  render_pass_t test{{m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
-
-  vk::RenderPassCreateInfo renderPassInfo = test.to_info();
   // was needed for writing to acquired image
   // vk::SubpassDependency dependency_1{};
   // dependency_1.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -441,25 +326,11 @@ void LauncherVulkan::createRenderPass() {
   // dependency_1.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
   // dependency_1.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
   
-  vk::SubpassDependency dependency_2{};
-  // dependency_2.srcSubpass = 0;
-  // dependency_2.dstSubpass = 1;
-  // dependency_2.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  // dependency_2.srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-  // dependency_2.dstStageMask = vk::PipelineStageFlagBits::eVertexShader;
-  // dependency_2.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-  // vk::SubpassDependency dependency_2{};
-  dependency_2.srcSubpass = 0;
-  dependency_2.dstSubpass = 1;
-  dependency_2.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  dependency_2.srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-  dependency_2.dstStageMask = vk::PipelineStageFlagBits::eFragmentShader;
-  dependency_2.dstAccessMask = vk::AccessFlagBits::eInputAttachmentRead;
-  std::vector<vk::SubpassDependency> dependencies{dependency_2};
-  
-  // renderPassInfo.dependencyCount = std::uint32_t(dependencies.size());
-  // renderPassInfo.pDependencies = dependencies.data();
-  m_render_pass = m_device->createRenderPass(renderPassInfo, nullptr);
+  //first pass receives attachment 0 as color and attachment 1 as depth attachments 
+  sub_pass_t pass_1({0},{},1);
+  // second pass receives attachment 2 and color and 0 as input attachment
+  sub_pass_t pass_2({2},{0});
+  m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
 }
 
 void LauncherVulkan::createGraphicsPipeline() {
@@ -530,7 +401,6 @@ void LauncherVulkan::createGraphicsPipeline() {
   pipelineInfo.basePipelineIndex = -1; // Optional
 
   m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
-
 
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}});
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();

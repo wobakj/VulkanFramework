@@ -14,6 +14,7 @@
 #include "swap_chain.hpp"
 #include "camera.hpp"
 #include "shader.hpp"
+#include "render_pass.hpp"
 
 #include <string>
 #include <vector>
@@ -103,7 +104,7 @@ class LauncherVulkan {
   Instance m_instance;
   DebugReporter m_debug_report;
   Deleter<VkSurfaceKHR> m_surface;
-  Deleter<VkRenderPass> m_render_pass;
+  RenderPass m_render_pass;
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkPipeline> m_pipeline_2;
   Deleter<VkFramebuffer> m_framebuffer;
