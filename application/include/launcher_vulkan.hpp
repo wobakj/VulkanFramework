@@ -126,6 +126,8 @@ class LauncherVulkan {
   Deleter<VkFence> m_fence_command;
   Image m_image_depth;
   Image m_image_color;
+  Image m_image_pos;
+  Image m_image_normal;
   Image m_image_color_2;
   Image m_image;
   std::thread m_thread_load;

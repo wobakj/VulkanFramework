@@ -263,10 +263,12 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 
   renderPassInfo.renderArea.extent = m_swap_chain.extent();
   // vk::ClearValue clearColor = vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}};
-  std::vector<vk::ClearValue> clearValues{3, vk::ClearValue{}};
+  std::vector<vk::ClearValue> clearValues{5, vk::ClearValue{}};
   clearValues[0].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
-  clearValues[1].setDepthStencil({1.0f, 0});
+  clearValues[1].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
   clearValues[2].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
+  clearValues[3].setDepthStencil({1.0f, 0});
+  clearValues[4].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
   renderPassInfo.clearValueCount = std::uint32_t(clearValues.size());
   renderPassInfo.pClearValues = clearValues.data();
 
@@ -300,7 +302,8 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 }
 
 void LauncherVulkan::createFramebuffers() {
-  m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
+  m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_pos.view(), m_image_normal.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
+  // m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
 }
 
 void LauncherVulkan::createRenderPass() {
@@ -314,10 +317,13 @@ void LauncherVulkan::createRenderPass() {
   // dependency_1.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
   
   //first pass receives attachment 0 as color and attachment 1 as depth attachments 
-  sub_pass_t pass_1({0},{},1);
+  // sub_pass_t pass_1({0},{},1);
+  sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachment 2 and color and 0 as input attachment
-  sub_pass_t pass_2({2},{0});
-  m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
+  // sub_pass_t pass_2({2},{0});
+  sub_pass_t pass_2({4},{0,1,2});
+  // m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
+  m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_pos.info(), m_image_normal.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
 }
 
 void LauncherVulkan::createGraphicsPipeline() {
@@ -350,10 +356,11 @@ void LauncherVulkan::createGraphicsPipeline() {
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment.blendEnable = VK_FALSE;
+  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
 
   vk::PipelineColorBlendStateCreateInfo colorBlending{};
-  colorBlending.attachmentCount = 1;
-  colorBlending.pAttachments = &colorBlendAttachment;
+  colorBlending.attachmentCount = uint32_t(states.size());
+  colorBlending.pAttachments = states.data();
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
@@ -404,7 +411,11 @@ void LauncherVulkan::createGraphicsPipeline() {
   pipelineInfo2.pViewportState = &viewportState;
   pipelineInfo2.pMultisampleState = &multisampling;
   pipelineInfo2.pDepthStencilState = nullptr; // Optional
+
+  colorBlending.attachmentCount = 1;
+  colorBlending.pAttachments = &colorBlendAttachment;
   pipelineInfo2.pColorBlendState = &colorBlending;
+  
   pipelineInfo2.pDynamicState = nullptr; // Optional
 
   depthStencil.depthTestEnable = VK_FALSE;
@@ -461,6 +472,11 @@ void LauncherVulkan::createDepthResource() {
   m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
+  m_image_pos = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_pos.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_image_normal = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_normal.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
   m_image_color_2 = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color_2.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
 }
@@ -504,6 +520,8 @@ void LauncherVulkan::createDescriptorPool() {
   m_descriptorSet_2 = m_device->allocateDescriptorSets(allocInfo)[0];
 
   m_image_color.writeToSet(m_descriptorSet_2, 0);
+  m_image_pos.writeToSet(m_descriptorSet_2, 1);
+  m_image_normal.writeToSet(m_descriptorSet_2, 2);
 }
 
 void LauncherVulkan::createUniformBuffers() {
