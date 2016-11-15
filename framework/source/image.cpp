@@ -103,7 +103,7 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
     return vk::AccessFlags{};
   }
 }
-
+// todo: support dependencies for attachments being reused as color/depth in target pass
 vk::SubpassDependency img_to_dependency(vk::ImageCreateInfo const& img_info, int32_t src, int32_t dst) {
   vk::SubpassDependency dependency{};
   if(src < 0) {

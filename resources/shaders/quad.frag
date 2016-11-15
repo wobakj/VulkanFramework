@@ -7,17 +7,22 @@ layout (input_attachment_index = 2, set = 0, binding = 2) uniform subpassInput n
 
 layout(location = 0) out vec4 out_Color;
 
-  const vec3 LightPosition = vec3(1.5, 1.0, 1.0); //diffuse color
-  const vec3 LightDiffuse = vec3(1.0, 0.9, 0.7); //diffuse color
-  const vec3 LightAmbient = vec3(0.25);        //ambient color
-  const vec3 LightSpecular = vec3(1.0);       //specular color
-// };
+struct light_t {
+  vec3 position;
+  float pad;
+  vec3 color;
+  float radius;
+};
+
+layout(set = 0, binding = 3) uniform UniformBufferObject {
+  light_t[6] lights;
+} light_buff;
 
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
 
-// phong diss and spec coefficient calculation in viewspace
+// phong diff and spec coefficient calculation in viewspace
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos) {
   vec3 toLight = normalize(lightPos - position);
   float lightAngle = dot(normal, toLight);
@@ -50,9 +55,16 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, LightPosition);
+  for (uint i  = 0; i < light_buff.lights.length(); ++i) {
+    float dist = distance(frag_Position, light_buff.lights[i].position.xyz);
+    float radius = light_buff.lights[i].radius;
+    if (dist < radius) {
+      vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, light_buff.lights[i].position.xyz);
+      vec3 color = light_buff.lights[i].color.rgb;
 
-  out_Color = vec4(LightAmbient * diffuseColor 
-                 + LightDiffuse * diffuseColor * diffSpec.x
-                 + LightSpecular * ks * diffSpec.y, 1.0);
+      out_Color += vec4(color * 0.005 * diffuseColor 
+                     + color * diffuseColor * diffSpec.x
+                     + color * 0.0 * ks * diffSpec.y, 1.0 - dist / radius);
+    }
+  }
 }

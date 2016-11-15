@@ -36,6 +36,18 @@ struct UniformBufferObject {
     glm::mat4 normal;
 };
 
+struct light_t {
+  glm::fvec3 position;
+  float pad;
+  glm::fvec3 color;
+  float radius;
+};
+
+struct BufferLights {
+  light_t lights[6];
+};
+BufferLights buff_l;
+
 LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
  :m_camera_fov{glm::radians(60.0f)}
  ,m_window_width{640u}
@@ -129,6 +141,7 @@ void LauncherVulkan::initialize() {
   createCommandBuffers();
   updateCommandBuffers();
   createSemaphores();
+  createLights();
 
   // // set user pointer to access this instance statically
   glfwSetWindowUserPointer(m_window, this);
@@ -412,6 +425,15 @@ void LauncherVulkan::createGraphicsPipeline() {
   pipelineInfo2.pMultisampleState = &multisampling;
   pipelineInfo2.pDepthStencilState = nullptr; // Optional
 
+  colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  colorBlendAttachment.blendEnable = VK_TRUE;
+  colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
+  colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
+
   colorBlending.attachmentCount = 1;
   colorBlending.pAttachments = &colorBlendAttachment;
   pipelineInfo2.pColorBlendState = &colorBlending;
@@ -450,6 +472,27 @@ void LauncherVulkan::loadModel() {
   model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_2 = Model{m_device, tri};
   m_model_dirty = true;
+}
+
+void LauncherVulkan::createLights() {
+  std::srand(5);
+  for (std::size_t i = 0; i < 6; ++i) {
+    light_t light;
+    light.position = glm::fvec3{float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX} * 3.0f;
+    light.color = glm::fvec3{float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX};
+    light.radius = float(rand()) / RAND_MAX * 2.0f + 1.0;
+    buff_l.lights[i] = light;
+  }
+}
+
+void LauncherVulkan::updateLights() {
+  BufferLights temp = buff_l; 
+  for (std::size_t i = 0; i < 6; ++i) {
+    temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
+  }
+
+  m_buffer_light_stage.setData(&temp, sizeof(temp));
+  m_device.copyBuffer(m_buffer_light_stage, m_buffer_light, sizeof(temp));
 }
 
 void LauncherVulkan::createSurface() {
@@ -522,13 +565,17 @@ void LauncherVulkan::createDescriptorPool() {
   m_image_color.writeToSet(m_descriptorSet_2, 0);
   m_image_pos.writeToSet(m_descriptorSet_2, 1);
   m_image_normal.writeToSet(m_descriptorSet_2, 2);
+  m_buffer_light.writeToSet(m_descriptorSet_2, 3);
 }
 
 void LauncherVulkan::createUniformBuffers() {
   VkDeviceSize size = sizeof(UniformBufferObject);
   m_buffer_uniform_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-
   m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+
+  size = sizeof(BufferLights);
+  m_buffer_light_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
 }
 
 void LauncherVulkan::updateUniformBuffer() {
@@ -542,6 +589,8 @@ void LauncherVulkan::updateUniformBuffer() {
   m_buffer_uniform_stage.setData(&ubo, sizeof(ubo));
 
   m_device.copyBuffer(m_buffer_uniform_stage, m_buffer_uniform, sizeof(ubo));
+
+  updateLights();
 }
 
 void LauncherVulkan::mainLoop() {
@@ -583,7 +632,10 @@ void LauncherVulkan::recreateSwapChain() {
   createDepthResource();
   createRenderPass();
   createGraphicsPipeline();
+
   m_image_color.writeToSet(m_descriptorSet_2, 0);
+  m_image_pos.writeToSet(m_descriptorSet_2, 1);
+  m_image_normal.writeToSet(m_descriptorSet_2, 2);
 
   createFramebuffers();
   updateCommandBuffers();

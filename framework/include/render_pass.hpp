@@ -6,9 +6,9 @@
 #include <vulkan/vulkan.hpp>
 
 #include <vector>
+#include <unordered_set>
 
 class Device;
-
 struct sub_pass_t {
   // attachments used as sampler in this stage must be referenced a spreserve to create dependency
   sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs = std::vector<uint32_t>{}, int32_t depth = -1, std::vector<uint32_t> const& preserves = std::vector<uint32_t>{});
@@ -18,7 +18,7 @@ struct sub_pass_t {
   std::vector<uint32_t> outputs() const;
 
   // indices of references consumed by pass
-  std::vector<uint32_t> inputs() const;
+  std::unordered_set<uint32_t> inputs() const;
 
   std::vector<vk::AttachmentReference> color_refs;
   vk::AttachmentReference depth_ref;

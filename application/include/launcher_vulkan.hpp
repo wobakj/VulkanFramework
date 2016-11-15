@@ -53,6 +53,8 @@ class LauncherVulkan {
 
  private:
   void draw();
+  void createLights();
+  void updateLights();
   void createSemaphores();
   void createUniformBuffers();
   void createCommandBuffers();
@@ -115,6 +117,8 @@ class LauncherVulkan {
   Device m_device;
   Model m_model;
   Model m_model_2;
+  Buffer m_buffer_light; 
+  Buffer m_buffer_light_stage; 
   Buffer m_buffer_uniform; 
   Buffer m_buffer_uniform_stage; 
   Deleter<VkDescriptorPool> m_descriptorPool;

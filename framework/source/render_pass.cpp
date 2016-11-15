@@ -40,13 +40,13 @@ std::vector<uint32_t> sub_pass_t::outputs() const {
 }
 
 // indices of references consumed by pass
-std::vector<uint32_t> sub_pass_t::inputs() const {
-  std::vector<uint32_t> inputs{};
+std::unordered_set<uint32_t> sub_pass_t::inputs() const {
+  std::unordered_set<uint32_t> inputs{};
   for(auto const& ref : input_refs) {
-    inputs.emplace_back(ref.attachment);
+    inputs.emplace(ref.attachment);
   }
   for(auto const& ref : preserve_refs) {
-    inputs.emplace_back(ref);
+    inputs.emplace(ref);
   }
   return inputs;
 }
@@ -68,7 +68,7 @@ render_pass_t::render_pass_t(std::vector<vk::ImageCreateInfo> const& images, std
     for(uint32_t ref : sub_passes[i].outputs()) {
       for(uint32_t j = i + 1; j < sub_passes.size(); ++j) {
         auto inputs = sub_passes[j].inputs();
-        if (std::find(inputs.begin(), inputs.end(), ref) != inputs.end()) {
+        if (inputs.find(ref) != inputs.end()) {
           dependencies.emplace_back(img_to_dependency(images[i], i, j));
         }
       }
