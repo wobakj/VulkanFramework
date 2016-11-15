@@ -42,9 +42,9 @@ struct light_t {
   glm::fvec3 color;
   float radius;
 };
-
+const std::size_t NUM_LIGHTS = 60;
 struct BufferLights {
-  light_t lights[6];
+  light_t lights[NUM_LIGHTS];
 };
 BufferLights buff_l;
 
@@ -71,7 +71,7 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_fence_draw{m_device, vkDestroyFence}
  ,m_model_dirty{false}
  ,m_camera{m_camera_fov, m_window_width, m_window_height, 0.1f, 500.0f, m_window}
- // ,m_application{}
+ ,m_sphere{true}
 {}
 
 std::string resourcePath(int argc, char* argv[]) {
@@ -170,7 +170,8 @@ void LauncherVulkan::draw() {
 
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
-      std::swap(m_model, m_model_2);
+      m_sphere = false;
+      // std::swap(m_model, m_model_2);
       updateCommandBuffers();
       m_model_dirty = false;
 
@@ -237,7 +238,8 @@ void LauncherVulkan::createSemaphores() {
 }
 
 void LauncherVulkan::createCommandBuffers() {
-  m_command_buffers.emplace("secondary", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  m_command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  m_command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
 
   m_command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
 }
@@ -245,26 +247,50 @@ void LauncherVulkan::createCommandBuffers() {
 void LauncherVulkan::updateCommandBuffers() {
   m_device.waitFence(m_fence_draw.get());
 
-  m_command_buffers.at("secondary").reset({});
+  m_command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
   inheritanceInfo.framebuffer = m_framebuffer;
+  inheritanceInfo.subpass = 0;
 
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
   beginInfo.pInheritanceInfo = &inheritanceInfo;
-  m_command_buffers.at("secondary").begin(beginInfo);
+  // first pass
+  m_command_buffers.at("gbuffer").begin(beginInfo);
 
-  m_command_buffers.at("secondary").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-  m_command_buffers.at("secondary").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, 1, &m_descriptorSet, 0, nullptr);
+  m_command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, 1, &m_descriptorSet, 0, nullptr);
+  // choose between sphere and house
+  Model const* model = nullptr;
+  if (m_sphere) {
+    model = &m_model;
+  }
+  else {
+    model = &m_model_2;
+  }
 
-  m_command_buffers.at("secondary").bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
-  m_command_buffers.at("secondary").bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
+  m_command_buffers.at("gbuffer").bindVertexBuffers(0, {model->bufferVertex()}, {0});
+  m_command_buffers.at("gbuffer").bindIndexBuffer(model->bufferIndex(), 0, vk::IndexType::eUint32);
 
-  m_command_buffers.at("secondary").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
+  m_command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
 
-  m_command_buffers.at("secondary").end();
+  m_command_buffers.at("gbuffer").end();
+  //deferred shading pass 
+  inheritanceInfo.subpass = 1;
+  m_command_buffers.at("lighting").reset({});
+  m_command_buffers.at("lighting").begin(beginInfo);
+
+  m_command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
+  m_command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptorSet, m_descriptorSet_2}, {});
+
+  m_command_buffers.at("lighting").bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
+  m_command_buffers.at("lighting").bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
+
+  m_command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
+
+  m_command_buffers.at("lighting").end();
 }
 
 void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
@@ -290,15 +316,12 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffers.at("primary").begin(beginInfo);
 
   m_command_buffers.at("primary").beginRenderPass(&renderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
-  // execute secondary command buffer
-  m_command_buffers.at("primary").executeCommands({m_command_buffers.at("secondary")});
+  // execute gbuffer creation buffer
+  m_command_buffers.at("primary").executeCommands({m_command_buffers.at("gbuffer")});
   
-  m_command_buffers.at("primary").nextSubpass(vk::SubpassContents::eInline);
-
-  m_command_buffers.at("primary").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
-  m_command_buffers.at("primary").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, 1, &m_descriptorSet_2, 0, nullptr);
-
-  m_command_buffers.at("primary").draw(4, 1, 0, 0);
+  m_command_buffers.at("primary").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  // execute lighting buffer
+  m_command_buffers.at("primary").executeCommands({m_command_buffers.at("lighting")});
 
   m_command_buffers.at("primary").endRenderPass();
   // make sure rendering to image is done before blitting
@@ -409,16 +432,18 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
 
-  m_shaders["quad"] = Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}};
+  m_shaders["quad"] = Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}};
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
-  vert_info = vk::PipelineVertexInputStateCreateInfo{};
+  // vert_info = vk::PipelineVertexInputStateCreateInfo{};
   pipelineInfo2.pVertexInputState = &vert_info;
   
-  inputAssembly.topology = vk::PrimitiveTopology::eTriangleStrip;
+  // inputAssembly.topology = vk::PrimitiveTopology::eTriangleStrip;
   pipelineInfo2.pInputAssemblyState = &inputAssembly;
 
-  rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+  // rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+  // cull frontfaces 
+  rasterizer.cullMode = vk::CullModeFlagBits::eFront;
   pipelineInfo2.pRasterizationState = &rasterizer;
 
   pipelineInfo2.pViewportState = &viewportState;
@@ -476,18 +501,18 @@ void LauncherVulkan::loadModel() {
 
 void LauncherVulkan::createLights() {
   std::srand(5);
-  for (std::size_t i = 0; i < 6; ++i) {
+  for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     light_t light;
-    light.position = glm::fvec3{float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX} * 3.0f;
+    light.position = glm::fvec3{float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX};
-    light.radius = float(rand()) / RAND_MAX * 2.0f + 1.0;
+    light.radius = float(rand()) / RAND_MAX * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
 }
 
 void LauncherVulkan::updateLights() {
   BufferLights temp = buff_l; 
-  for (std::size_t i = 0; i < 6; ++i) {
+  for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
   }
 
@@ -555,12 +580,12 @@ void LauncherVulkan::createDescriptorPool() {
   m_buffer_uniform.writeToSet(m_descriptorSet, 0);
   m_image.writeToSet(m_descriptorSet, 1, m_textureSampler.get());
 
-  m_descriptorPool_2 = m_shaders.at("quad").createPool();
+  m_descriptorPool_2 = m_shaders.at("quad").createPool(2);
   allocInfo.descriptorPool = m_descriptorPool_2;
   allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
   allocInfo.pSetLayouts = m_shaders.at("quad").setLayouts().data();
 
-  m_descriptorSet_2 = m_device->allocateDescriptorSets(allocInfo)[0];
+  m_descriptorSet_2 = m_device->allocateDescriptorSets(allocInfo)[1];
 
   m_image_color.writeToSet(m_descriptorSet_2, 0);
   m_image_pos.writeToSet(m_descriptorSet_2, 1);

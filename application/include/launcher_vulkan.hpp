@@ -139,6 +139,7 @@ class LauncherVulkan {
   Camera m_camera;
   std::map<std::string, Shader> m_shaders;
   // Application* m_application;
+  bool m_sphere;
 };
 
 #endif

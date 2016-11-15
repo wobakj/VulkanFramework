@@ -3,7 +3,7 @@
 
 layout(location = 0) in vec3 in_Position;
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
+layout(set = 0, binding = 0) uniform MatrixBuffer {
     mat4 model;
     mat4 view;
     mat4 proj;
@@ -17,17 +17,17 @@ struct light_t {
   float radius;
 };
 
-layout(set = 0, binding = 3) uniform UniformBufferObject {
-  light_t[6] lights;
+layout(set = 1, binding = 3) buffer LightBuffer {
+  light_t[] lights;
 } light_buff;
 
 out gl_PerVertex {
   vec4 gl_Position;
 };
 
+layout(location = 0) out flat int frag_InstanceId;
 
 void main() {
-  gl_Position = ubo.proj * ubo.view * ubo.model * vec4(in_Position, 1.0);
-
-  gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+  gl_Position = ubo.proj * vec4(light_buff.lights[gl_InstanceIndex].position + in_Position * light_buff.lights[gl_InstanceIndex].radius, 1.0);
+  frag_InstanceId = gl_InstanceIndex;
 }

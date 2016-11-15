@@ -1,9 +1,11 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout (input_attachment_index = 0, set = 0, binding = 0) uniform subpassInput color;
-layout (input_attachment_index = 1, set = 0, binding = 1) uniform subpassInput position;
-layout (input_attachment_index = 2, set = 0, binding = 2) uniform subpassInput normal;
+layout (input_attachment_index = 0, set = 1, binding = 0) uniform subpassInput color;
+layout (input_attachment_index = 1, set = 1, binding = 1) uniform subpassInput position;
+layout (input_attachment_index = 2, set = 1, binding = 2) uniform subpassInput normal;
+
+layout(location = 0) flat in int frag_InstanceId;
 
 layout(location = 0) out vec4 out_Color;
 
@@ -14,9 +16,10 @@ struct light_t {
   float radius;
 };
 
-layout(set = 0, binding = 3) buffer UniformBufferObject {
+layout(set = 1, binding = 3) buffer LightBuffer {
   light_t[] lights;
 } light_buff;
+layout(set = 0, binding = 1) uniform sampler2D texSampler;
 
 // material
 const float ks = 0.9;            // specular intensity
@@ -55,16 +58,14 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  for (uint i  = 0; i < light_buff.lights.length(); ++i) {
-    float dist = distance(frag_Position, light_buff.lights[i].position.xyz);
-    float radius = light_buff.lights[i].radius;
-    if (dist < radius) {
-      vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, light_buff.lights[i].position.xyz);
-      vec3 color = light_buff.lights[i].color.rgb;
+  // for (uint i  = 0; i < light_buff.lights.length(); ++i) {
+    float dist = distance(frag_Position, light_buff.lights[frag_InstanceId].position.xyz);
+    float radius = light_buff.lights[frag_InstanceId].radius;
 
-      out_Color += vec4(color * 0.005 * diffuseColor 
-                     + color * diffuseColor * diffSpec.x
-                     + color * 0.0 * ks * diffSpec.y, 1.0 - dist / radius);
-    }
-  }
+    vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, light_buff.lights[frag_InstanceId].position.xyz);
+    vec3 color = light_buff.lights[frag_InstanceId].color.rgb;
+
+    out_Color += vec4(color * 0.005 * diffuseColor 
+                    + color * diffuseColor * diffSpec.x
+                    + color * ks * diffSpec.y, 1.0 - dist / radius);
 }
