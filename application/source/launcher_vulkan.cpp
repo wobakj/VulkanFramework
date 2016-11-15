@@ -575,7 +575,7 @@ void LauncherVulkan::createUniformBuffers() {
 
   size = sizeof(BufferLights);
   m_buffer_light_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
 }
 
 void LauncherVulkan::updateUniformBuffer() {

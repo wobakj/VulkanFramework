@@ -14,8 +14,8 @@ struct light_t {
   float radius;
 };
 
-layout(set = 0, binding = 3) uniform UniformBufferObject {
-  light_t[6] lights;
+layout(set = 0, binding = 3) buffer UniformBufferObject {
+  light_t[] lights;
 } light_buff;
 
 // material
