@@ -15,10 +15,10 @@ struct sub_pass_t {
 
   vk::SubpassDescription to_description() const;
   // indices of references produced by pass
-  std::vector<uint32_t> outputs() const;
+  std::vector<vk::AttachmentReference> outputs() const;
 
   // indices of references consumed by pass
-  std::unordered_set<uint32_t> inputs() const;
+  std::vector<vk::AttachmentReference> inputs() const;
 
   std::vector<vk::AttachmentReference> color_refs;
   vk::AttachmentReference depth_ref;

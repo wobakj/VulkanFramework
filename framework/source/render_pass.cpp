@@ -28,26 +28,23 @@ vk::SubpassDescription sub_pass_t::to_description() const {
   return pass;
 }
 // indices of references produced by pass
-std::vector<uint32_t> sub_pass_t::outputs() const {
-  std::vector<uint32_t> outputs{};
+std::vector<vk::AttachmentReference> sub_pass_t::outputs() const {
+  std::vector<vk::AttachmentReference> outputs{};
   for(auto const& ref : color_refs) {
-    outputs.emplace_back(ref.attachment);
+    outputs.emplace_back(ref);
   }
   if(depth_ref.layout != vk::ImageLayout::eUndefined) {
-    outputs.emplace_back(depth_ref.attachment);
+    outputs.emplace_back(depth_ref);
   }
   return outputs;
 }
 
 // indices of references consumed by pass
-std::unordered_set<uint32_t> sub_pass_t::inputs() const {
-  std::unordered_set<uint32_t> inputs{};
-  for(auto const& ref : input_refs) {
-    inputs.emplace(ref.attachment);
-  }
-  for(auto const& ref : preserve_refs) {
-    inputs.emplace(ref);
-  }
+std::vector<vk::AttachmentReference> sub_pass_t::inputs() const {
+  std::vector<vk::AttachmentReference> inputs = input_refs;
+  // write attachments are also inputs
+  auto outs = outputs();
+  inputs.insert( inputs.end(), outs.begin(), outs.end() );
   return inputs;
 }
 
@@ -65,25 +62,30 @@ render_pass_t::render_pass_t(std::vector<vk::ImageCreateInfo> const& images, std
   for(uint32_t i = 0; i < sub_passes.size(); ++i) {
     sub_descriptions.emplace_back(sub_passes[i].to_description());
     // check for each output, if it is consumed by a later pass 
-    for(uint32_t ref : sub_passes[i].outputs()) {
+    for(auto const& ref_out : sub_passes[i].outputs()) {
       for(uint32_t j = i + 1; j < sub_passes.size(); ++j) {
-        auto inputs = sub_passes[j].inputs();
-        if (inputs.find(ref) != inputs.end()) {
-          dependencies.emplace_back(img_to_dependency(images[i], i, j));
+        for(auto const& ref_in : sub_passes[j].inputs()) {
+          if (ref_in.attachment == ref_out.attachment) {
+            dependencies.emplace_back(img_to_dependency(ref_out.layout, ref_in.layout, i, j));
+          }
         }
       }
     }
   }
   // add dependency for present image as first stage output 
-  for(uint32_t ref : sub_passes.front().outputs()) {
-    if (images[ref].initialLayout == vk::ImageLayout::ePresentSrcKHR) {
-      dependencies.emplace_back(img_to_dependency(images[ref], -1, 0));
+  for(auto const& ref : sub_passes.front().outputs()) {
+    if (images[ref.attachment].initialLayout == vk::ImageLayout::ePresentSrcKHR
+     || images[ref.attachment].initialLayout == vk::ImageLayout::eTransferDstOptimal
+     || images[ref.attachment].initialLayout == vk::ImageLayout::eTransferSrcOptimal
+        ) {
+      dependencies.emplace_back(img_to_dependency(images[ref.attachment].initialLayout, ref.layout, VK_SUBPASS_EXTERNAL, 0));
     }
   }
   // add dependency for present image as last stage output 
-  for(uint32_t ref : sub_passes.back().outputs()) {
-    if (images[ref].initialLayout == vk::ImageLayout::ePresentSrcKHR) {
-      dependencies.emplace_back(img_to_dependency(images[ref], int32_t(sub_passes.size()) -1, -1));
+  for(auto const& ref : sub_passes.back().outputs()) {
+    if (images[ref.attachment].initialLayout == vk::ImageLayout::ePresentSrcKHR
+     || images[ref.attachment].initialLayout == vk::ImageLayout::eTransferSrcOptimal) {
+      dependencies.emplace_back(img_to_dependency(ref.layout, images[ref.attachment].initialLayout, int32_t(sub_passes.size()) - 1, VK_SUBPASS_EXTERNAL));
     }
   }
 }

@@ -29,7 +29,7 @@ public:
     }
 
     template<typename U, typename V>
-    Deleter(Wrapper<U, V> const& base, std::function<void(Wrapper<U, V> const&, T, VkAllocationCallbacks*)> deletef) {
+    Deleter(Wrapper<U, V> const& base, std::function<void(U const&, T, VkAllocationCallbacks*)> deletef) {
         this->deleter = [&base, deletef](T obj) {deletef(base.get(), obj, nullptr); };
     }
 

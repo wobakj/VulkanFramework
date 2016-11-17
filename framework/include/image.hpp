@@ -19,7 +19,7 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info, bool clear = true);
-vk::SubpassDependency img_to_dependency(vk::ImageCreateInfo const& img_info, int32_t src, int32_t dst);
+vk::SubpassDependency img_to_dependency(vk::ImageLayout const& src_layout, vk::ImageLayout const& dst_layout, uint32_t src_pass, uint32_t dst_pass);
 
 using WrapperImage = Wrapper<vk::Image, vk::ImageCreateInfo>;
 class Image : public WrapperImage {

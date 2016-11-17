@@ -104,70 +104,74 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   }
 }
 // todo: support dependencies for attachments being reused as color/depth in target pass
-vk::SubpassDependency img_to_dependency(vk::ImageCreateInfo const& img_info, int32_t src, int32_t dst) {
+vk::SubpassDependency img_to_dependency(vk::ImageLayout const& src_layout, vk::ImageLayout const& dst_layout, uint32_t src_pass, uint32_t dst_pass) {
   vk::SubpassDependency dependency{};
-  if(src < 0) {
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  }
-  else {
-    dependency.srcSubpass = src;
-  }
-  if(dst < 0) {
-    dependency.dstSubpass = VK_SUBPASS_EXTERNAL;
-  }
-  else {
-    dependency.dstSubpass = dst;
-  }
+  dependency.srcSubpass = src_pass;
+  dependency.dstSubpass = dst_pass;
 
-  if (img_info.usage & vk::ImageUsageFlagBits::eColorAttachment) {
-    // present image, presentation needs to be done before writing new info
-    if(src < 0) {
-      dependency.dstStageMask |= vk::PipelineStageFlagBits::eBottomOfPipe;
-      dependency.dstAccessMask |= vk::AccessFlagBits::eMemoryRead;
-      dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-      dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
-      return dependency;
-    }
-    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    dependency.srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  // write to transfer dst should be done
+  if (src_layout == vk::ImageLayout::eTransferDstOptimal) {
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eTransfer;
+    dependency.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
   }
-  else if (img_info.usage & vk::ImageUsageFlagBits::eDepthStencilAttachment) {
+  // read from transfer source should be done
+  else if (src_layout == vk::ImageLayout::eTransferSrcOptimal) {
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eTransfer;
+    dependency.srcAccessMask = vk::AccessFlagBits::eTransferRead;
+  }
+  else if (src_layout == vk::ImageLayout::eColorAttachmentOptimal) {
     dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    dependency.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+    dependency.srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
+  }
+  else if (src_layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependency.srcAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  }
+  // presentation before renderpass, taken from
+  // https://github.com/GameTechDev/IntroductionToVulkan/blob/master/Project/Tutorial04/Tutorial04.cpp
+  else if (src_layout == vk::ImageLayout::ePresentSrcKHR) {
+    dependency.srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
+    dependency.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
   }
   else {
-    throw std::runtime_error{"usage flags" + to_string(img_info.usage) + " not supported"};
-  }
+    throw std::runtime_error{"source layout" + to_string(src_layout) + " not supported"};
+  } 
 
-  // input attachment can ony be read in frag shader
-  if (img_info.usage & vk::ImageUsageFlagBits::eInputAttachment) {
-    dependency.dstStageMask |= vk::PipelineStageFlagBits::eFragmentShader;
-    dependency.dstAccessMask |= vk::AccessFlagBits::eInputAttachmentRead;
+  // color input attachment can only be read in frag shader
+  if (dst_layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eFragmentShader;
+    dependency.dstAccessMask = vk::AccessFlagBits::eInputAttachmentRead;
   }
-  // sampler can be read in next vertex stage already
-  if (img_info.usage & vk::ImageUsageFlagBits::eSampled) {
-    dependency.dstStageMask |= vk::PipelineStageFlagBits::eVertexShader;
-    dependency.dstAccessMask |= vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  // depth input attachment can ony be read in frag shader
+  else if (dst_layout == vk::ImageLayout::eDepthStencilReadOnlyOptimal) {
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eFragmentShader;
+    dependency.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead;
   }
   // transfer image should be done until next transfer operation
-  if (img_info.usage & vk::ImageUsageFlagBits::eTransferSrc) {
-    dependency.dstStageMask |= vk::PipelineStageFlagBits::eTransfer;
-    dependency.dstAccessMask |= vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite;
+  else if (dst_layout == vk::ImageLayout::eTransferSrcOptimal) {
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eTransfer;
+    dependency.dstAccessMask = vk::AccessFlagBits::eTransferRead;
   }
-  // storage is immutable sampler
-  if (img_info.usage & vk::ImageUsageFlagBits::eStorage) {
-    dependency.dstStageMask |= vk::PipelineStageFlagBits::eVertexShader;
-    dependency.dstAccessMask |= vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  // color attachment must be ready for next write
+  else if (dst_layout == vk::ImageLayout::eColorAttachmentOptimal) {
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    dependency.dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite;
   }
-  // special case, presentation after renderpass, assumption may be too strong
-  if (dst < 0 && dependency.dstAccessMask == vk::AccessFlags{}) {
-    dependency.dstStageMask |= vk::PipelineStageFlagBits::eBottomOfPipe;
-    dependency.dstAccessMask |= vk::AccessFlagBits::eMemoryRead;
+  // depth attachment must be done before early frag test to get valid early z
+  else if (dst_layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    dependency.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  }
+  // presentation after renderpass, taken from
+  // https://github.com/GameTechDev/IntroductionToVulkan/blob/master/Project/Tutorial04/Tutorial04.cpp
+  else if (dst_layout == vk::ImageLayout::ePresentSrcKHR) {
+    dependency.dstStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
+    dependency.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
+  }
+  else {
+    throw std::runtime_error{"destination layout" + to_string(dst_layout) + " not supported"};
   }
 
-  if(dependency.dstAccessMask == vk::AccessFlags{}) {
-    throw std::runtime_error{"usage flags" + to_string(img_info.usage) + " not supported"};
-  }
   return dependency;
 }
 
