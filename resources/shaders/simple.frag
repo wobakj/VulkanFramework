@@ -5,7 +5,7 @@ layout(location = 0) in vec3 frag_Position;
 layout(location = 1) in vec3 frag_Normal;
 layout(location = 2) in vec2 frag_Texcoord;
 
-layout(set = 0, binding = 1) uniform sampler2D texSampler;
+layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
 layout(location = 0) out vec4 out_Color;
 layout(location = 1) out vec4 out_Position;

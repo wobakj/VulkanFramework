@@ -23,18 +23,18 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
 {
   m_device = &device;
 
-  info().size = size;
-  info().usage = usage;
+  m_info.size = size;
+  m_info.usage = usage;
   auto queueFamilies = device.ownerIndices();
   if (queueFamilies.size() > 1) {
-    info().sharingMode = vk::SharingMode::eConcurrent;
-    info().queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
-    info().pQueueFamilyIndices = queueFamilies.data();
+    m_info.sharingMode = vk::SharingMode::eConcurrent;
+    m_info.queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
+    m_info.pQueueFamilyIndices = queueFamilies.data();
   }
   else {
-    info().sharingMode = vk::SharingMode::eExclusive;
+    m_info.sharingMode = vk::SharingMode::eExclusive;
   }
-  get() = device->createBuffer(info());
+  m_object =device->createBuffer(info());
 
   auto memRequirements = device->getBufferMemoryRequirements(get());
   m_memory = Memory{device, memRequirements, memProperties};
@@ -84,14 +84,14 @@ void Buffer::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
   descriptorWrite.dstArrayElement = 0;
-  if (info().usage & vk::BufferUsageFlagBits::eUniformBuffer) {
+  if (m_info.usage & vk::BufferUsageFlagBits::eUniformBuffer) {
     descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
   }
-  else if (info().usage & vk::BufferUsageFlagBits::eStorageBuffer) {
+  else if (m_info.usage & vk::BufferUsageFlagBits::eStorageBuffer) {
     descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
   }
   else {
-    throw std::runtime_error{"buffer usage '" + to_string(info().usage) + "' not supported for descriptor write"};
+    throw std::runtime_error{"buffer usage '" + to_string(m_info.usage) + "' not supported for descriptor write"};
   }
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pBufferInfo = &m_desc_info;

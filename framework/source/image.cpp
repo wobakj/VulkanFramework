@@ -35,7 +35,7 @@ vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_i
   return resource_range;
 }
 
-vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const& img_info, unsigned mip_level) {
+vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const img_info, unsigned mip_level) {
   vk::ImageSubresourceLayers layer{};
   auto range = img_to_resource_range(img_info);
   layer.aspectMask = range.aspectMask;
@@ -244,34 +244,34 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
 {  
   m_device = &device;
 
-  info().imageType = vk::ImageType::e2D;
-  info().extent.width = width;
-  info().extent.height = height;
-  info().extent.depth = 1;
-  info().mipLevels = 1;
-  info().arrayLayers = 1;
-  info().format = format;
-  info().tiling = tiling;
+  m_info.imageType = vk::ImageType::e2D;
+  m_info.extent.width = width;
+  m_info.extent.height = height;
+  m_info.extent.depth = 1;
+  m_info.mipLevels = 1;
+  m_info.arrayLayers = 1;
+  m_info.format = format;
+  m_info.tiling = tiling;
   // if memory is host visible, image is likely target of upload
   if (mem_flags & vk::MemoryPropertyFlagBits::eHostVisible) {
-    info().initialLayout = vk::ImageLayout::ePreinitialized;
+    m_info.initialLayout = vk::ImageLayout::ePreinitialized;
   }
   else {
-    info().initialLayout = vk::ImageLayout::eUndefined;
+    m_info.initialLayout = vk::ImageLayout::eUndefined;
   }
-  info().usage = usage;
+  m_info.usage = usage;
 
   auto queueFamilies = device.ownerIndices();
   if (queueFamilies.size() > 1) {
-    info().sharingMode = vk::SharingMode::eConcurrent;
-    info().queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
-    info().pQueueFamilyIndices = queueFamilies.data();
+    m_info.sharingMode = vk::SharingMode::eConcurrent;
+    m_info.queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
+    m_info.pQueueFamilyIndices = queueFamilies.data();
   }
   else {
-    info().sharingMode = vk::SharingMode::eExclusive;
+    m_info.sharingMode = vk::SharingMode::eExclusive;
   }
 
-  get() = device->createImage(info());
+  m_object =device->createImage(info());
 
   vk::MemoryRequirements memRequirements = device->getImageMemoryRequirements(get());
   m_memory = Memory{device, memRequirements, mem_flags};
@@ -318,7 +318,7 @@ void Image::setData(void const* data, vk::DeviceSize const& size) {
 void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
   m_device->transitionToLayout(get(), info(), newLayout);
   // store new layout
-  info().initialLayout = newLayout;
+  m_info.initialLayout = newLayout;
 }
 
 void Image::destroy() {
@@ -334,7 +334,7 @@ void Image::destroy() {
  }
 
 vk::ImageLayout const& Image::layout() const {
-  return info().initialLayout;
+  return m_info.initialLayout;
 }
 
 vk::ImageView const& Image::view() const {
@@ -342,7 +342,7 @@ vk::ImageView const& Image::view() const {
 }
 
 vk::Format const& Image::format() const {
-  return info().format;
+  return m_info.format;
 }
 
 vk::AttachmentDescription Image::toAttachment(bool clear) const {

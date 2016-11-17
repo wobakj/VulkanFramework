@@ -210,14 +210,14 @@ Shader::Shader(Device const& device, std::vector<std::string> const& paths)
     m_shader_stages.emplace_back(stage_info);
   }
 
-  info() = layout_shader_t{module_layouts};
+  m_info = layout_shader_t{module_layouts};
   m_set_layouts = to_set_layouts(device, info());
-  get() = to_pipe_layout(device, m_set_layouts);
+  m_object = to_pipe_layout(device, m_set_layouts);
  }
 
 void Shader::destroy() {
   (*m_device)->destroyPipelineLayout(get());
-  get() = VK_NULL_HANDLE;
+  m_object =VK_NULL_HANDLE;
   for(auto const& module : m_modules) {
     (*m_device)->destroyShaderModule(module);
   }

@@ -50,14 +50,14 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   }
   
   vk::PhysicalDeviceFeatures deviceFeatures{};
-  info().pQueueCreateInfos = queueCreateInfos.data();
-  info().queueCreateInfoCount = uint32_t(queueCreateInfos.size());
-  info().pEnabledFeatures = &deviceFeatures;
+  m_info.pQueueCreateInfos = queueCreateInfos.data();
+  m_info.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
+  m_info.pEnabledFeatures = &deviceFeatures;
 
-  info().enabledExtensionCount = uint32_t(deviceExtensions.size());
-  info().ppEnabledExtensionNames = deviceExtensions.data();
+  m_info.enabledExtensionCount = uint32_t(deviceExtensions.size());
+  m_info.ppEnabledExtensionNames = deviceExtensions.data();
 
-  get() = phys_dev.createDevice(info());
+  m_object =phys_dev.createDevice(info());
 
   std::map<int, uint> num_used{};
   for(auto const& index : m_queue_indices) {
@@ -269,7 +269,7 @@ void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const&
   );
   endSingleTimeCommands();
   // store new layout
-  // info().initialLayout = newLayout;
+  // m_info.initialLayout = newLayout;
 }
 
 vk::CommandBuffer const& Device::beginSingleTimeCommands() const {

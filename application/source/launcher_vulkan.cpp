@@ -261,7 +261,7 @@ void LauncherVulkan::updateCommandBuffers() {
   m_command_buffers.at("gbuffer").begin(beginInfo);
 
   m_command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-  m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, 1, &m_descriptorSet, 0, nullptr);
+  m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // choose between sphere and house
   Model const* model = nullptr;
   if (m_sphere) {
@@ -283,7 +283,7 @@ void LauncherVulkan::updateCommandBuffers() {
   m_command_buffers.at("lighting").begin(beginInfo);
 
   m_command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
-  m_command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptorSet, m_descriptorSet_2}, {});
+  m_command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
   m_command_buffers.at("lighting").bindVertexBuffers(0, {m_model.bufferVertex()}, {0});
   m_command_buffers.at("lighting").bindIndexBuffer(m_model.bufferIndex(), 0, vk::IndexType::eUint32);
@@ -352,11 +352,9 @@ void LauncherVulkan::createRenderPass() {
   // dependency_1.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
   // dependency_1.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
   
-  //first pass receives attachment 0 as color and attachment 1 as depth attachments 
-  // sub_pass_t pass_1({0},{},1);
+  //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
-  // second pass receives attachment 2 and color and 0 as input attachment
-  // sub_pass_t pass_2({2},{0});
+  // second pass receives attachments 0,1,2 and inputs and writes to 4
   sub_pass_t pass_2({4},{0,1,2});
   // m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
   m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_pos.info(), m_image_normal.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
@@ -435,13 +433,10 @@ void LauncherVulkan::createGraphicsPipeline() {
   m_shaders["quad"] = Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}};
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
-  // vert_info = vk::PipelineVertexInputStateCreateInfo{};
   pipelineInfo2.pVertexInputState = &vert_info;
   
-  // inputAssembly.topology = vk::PrimitiveTopology::eTriangleStrip;
   pipelineInfo2.pInputAssemblyState = &inputAssembly;
 
-  // rasterizer.cullMode = vk::CullModeFlagBits::eNone;
   // cull frontfaces 
   rasterizer.cullMode = vk::CullModeFlagBits::eFront;
   pipelineInfo2.pRasterizationState = &rasterizer;
@@ -568,29 +563,31 @@ void LauncherVulkan::createTextureSampler() {
 }
 
 void LauncherVulkan::createDescriptorPool() {
-  m_descriptorPool = m_shaders.at("simple").createPool();
+  m_descriptorPool = m_shaders.at("simple").createPool(2);
 
   vk::DescriptorSetAllocateInfo allocInfo{};
   allocInfo.descriptorPool = m_descriptorPool;
   allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("simple").setLayouts().size());
   allocInfo.pSetLayouts = m_shaders.at("simple").setLayouts().data();
 
-  m_descriptorSet = m_device->allocateDescriptorSets(allocInfo)[0];
+  auto sets = m_device->allocateDescriptorSets(allocInfo);
+  m_descriptor_sets.emplace("matrix", sets[0]);
+  m_descriptor_sets.emplace("textures", sets[1]);
 
-  m_buffer_uniform.writeToSet(m_descriptorSet, 0);
-  m_image.writeToSet(m_descriptorSet, 1, m_textureSampler.get());
+  m_buffer_uniform.writeToSet(m_descriptor_sets.at("matrix"), 0);
+  m_image.writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 
   m_descriptorPool_2 = m_shaders.at("quad").createPool(2);
   allocInfo.descriptorPool = m_descriptorPool_2;
   allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
   allocInfo.pSetLayouts = m_shaders.at("quad").setLayouts().data();
 
-  m_descriptorSet_2 = m_device->allocateDescriptorSets(allocInfo)[1];
+  m_descriptor_sets.emplace("lighting", m_device->allocateDescriptorSets(allocInfo)[1]);
 
-  m_image_color.writeToSet(m_descriptorSet_2, 0);
-  m_image_pos.writeToSet(m_descriptorSet_2, 1);
-  m_image_normal.writeToSet(m_descriptorSet_2, 2);
-  m_buffer_light.writeToSet(m_descriptorSet_2, 3);
+  m_image_color.writeToSet(m_descriptor_sets.at("lighting"), 0);
+  m_image_pos.writeToSet(m_descriptor_sets.at("lighting"), 1);
+  m_image_normal.writeToSet(m_descriptor_sets.at("lighting"), 2);
+  m_buffer_light.writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 void LauncherVulkan::createUniformBuffers() {
@@ -658,9 +655,9 @@ void LauncherVulkan::recreateSwapChain() {
   createRenderPass();
   createGraphicsPipeline();
 
-  m_image_color.writeToSet(m_descriptorSet_2, 0);
-  m_image_pos.writeToSet(m_descriptorSet_2, 1);
-  m_image_normal.writeToSet(m_descriptorSet_2, 2);
+  m_image_color.writeToSet(m_descriptor_sets.at("lighting"), 0);
+  m_image_pos.writeToSet(m_descriptor_sets.at("lighting"), 1);
+  m_image_normal.writeToSet(m_descriptor_sets.at("lighting"), 2);
 
   createFramebuffers();
   updateCommandBuffers();

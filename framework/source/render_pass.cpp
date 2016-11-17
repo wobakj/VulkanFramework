@@ -107,8 +107,8 @@ RenderPass::RenderPass(Device const& device, std::vector<vk::ImageCreateInfo> co
  :WrapperRenderPass{}
  ,m_device{&device}
 {
-  info() = render_pass_t{images, subpasses};
-  get() = device->createRenderPass(info().to_info(), nullptr);
+  m_info = render_pass_t{images, subpasses};
+  m_object =device->createRenderPass(m_info.to_info(), nullptr);
 }
 
 void RenderPass::destroy() {

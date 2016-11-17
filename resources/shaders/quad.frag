@@ -19,7 +19,6 @@ struct light_t {
 layout(set = 1, binding = 3) buffer LightBuffer {
   light_t[] lights;
 } light_buff;
-layout(set = 0, binding = 1) uniform sampler2D texSampler;
 
 // material
 const float ks = 0.9;            // specular intensity

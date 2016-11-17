@@ -13,7 +13,7 @@ bool is_depth(vk::Format const& format);
 bool has_stencil(vk::Format const& format);
 
 vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_info);
-vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const& img_info, unsigned mip_level = 0);
+vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const img_info, unsigned mip_level = 0);
 
 vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);

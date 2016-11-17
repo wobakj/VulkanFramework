@@ -123,7 +123,7 @@ void Instance::create() {
   createInfo.enabledExtensionCount = uint32_t(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
-  get() = vk::createInstance(createInfo, nullptr);
+  m_object =vk::createInstance(createInfo, nullptr);
   // create and attach debug callback
   if(m_validate) {
     m_debug_report.attach(get());

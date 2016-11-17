@@ -61,24 +61,13 @@ public:
     return *this;
   }
 
-  // template<typename V>
-  // bool operator==(V rhs) {
-  //     return m_object == T(rhs);
-  // }
-  T& get() {
-    return m_object;
-  }
-
   T* operator->() {
     return &m_object;
   }
   U const& info() const {
     return m_info;
   }
-
-  U& info() {
-    return m_info;
-  }
+  
  protected:
   T* operator &() {
     return &m_object;
@@ -92,9 +81,10 @@ public:
     std::swap(m_owner, rhs.m_owner);
   }
 
- private:
   T m_object;
   U m_info;
+
+ private:
   bool m_owner;
 
   void swapObject(T& rhs) {

@@ -124,7 +124,9 @@ class LauncherVulkan {
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
   vk::DescriptorSet m_descriptorSet;
+  vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
+  std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
   Deleter<VkSampler> m_textureSampler;
   Deleter<VkFence> m_fence_draw;
   Deleter<VkFence> m_fence_command;

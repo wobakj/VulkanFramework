@@ -156,51 +156,51 @@ SwapChain::SwapChain(SwapChain && chain)
 
 void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent) {
   m_device = &device;
-  info().surface = surface;
+  m_info.surface = surface;
 
   SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device.physical(), surface);
 
-  info().presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+  m_info.presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
   vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
   if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
     imageCount = swapChainSupport.capabilities.maxImageCount;
   }
-  std::cout << "swapchain has " << imageCount << " images, preset mode is " << to_string(info().presentMode) << std::endl;
-  info().minImageCount = imageCount;
-  info().imageFormat = surfaceFormat.format;
-  info().imageColorSpace = surfaceFormat.colorSpace;
-  info().imageArrayLayers = 1;
-  // info().imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-  info().imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
+  std::cout << "swapchain has " << imageCount << " images, preset mode is " << to_string(m_info.presentMode) << std::endl;
+  m_info.minImageCount = imageCount;
+  m_info.imageFormat = surfaceFormat.format;
+  m_info.imageColorSpace = surfaceFormat.colorSpace;
+  m_info.imageArrayLayers = 1;
+  // m_info.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+  m_info.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 
-  QueueFamilyIndices indices = findQueueFamilies(device.physical(), info().surface);
+  QueueFamilyIndices indices = findQueueFamilies(device.physical(), m_info.surface);
   uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t) indices.presentFamily};
 
   if (indices.graphicsFamily != indices.presentFamily) {
-      info().imageSharingMode = vk::SharingMode::eConcurrent;
-      info().queueFamilyIndexCount = 2;
-      info().pQueueFamilyIndices = queueFamilyIndices;
+      m_info.imageSharingMode = vk::SharingMode::eConcurrent;
+      m_info.queueFamilyIndexCount = 2;
+      m_info.pQueueFamilyIndices = queueFamilyIndices;
   }
   else {
-      info().imageSharingMode = vk::SharingMode::eExclusive;
-      info().queueFamilyIndexCount = 0; // Optional
-      info().pQueueFamilyIndices = nullptr; // Optional
+      m_info.imageSharingMode = vk::SharingMode::eExclusive;
+      m_info.queueFamilyIndexCount = 0; // Optional
+      m_info.pQueueFamilyIndices = nullptr; // Optional
   }
-  info().preTransform = swapChainSupport.capabilities.currentTransform;
-  info().compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-  info().clipped = VK_TRUE;
+  m_info.preTransform = swapChainSupport.capabilities.currentTransform;
+  m_info.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  m_info.clipped = VK_TRUE;
 
   recreate(extent);
 
 }
 
 void SwapChain::recreate(vk::Extent2D const& extent) {
-  SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physical(), info().surface);
-  info().imageExtent = chooseSwapExtent(swapChainSupport.capabilities, extent);
+  SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_device->physical(), m_info.surface);
+  m_info.imageExtent = chooseSwapExtent(swapChainSupport.capabilities, extent);
   // set chain to replace
-  info().oldSwapchain = get();
+  m_info.oldSwapchain = get();
   auto new_chain = (*m_device)->createSwapchainKHR(info(), nullptr);
   // destroy old chain
   replace(std::move(new_chain));
@@ -249,7 +249,7 @@ std::size_t SwapChain::numImages() const {
 }
 
 vk::Format SwapChain::format() const {
-  return info().imageFormat;
+  return m_info.imageFormat;
 }
 
 vk::ImageLayout const& SwapChain::layout() const {
@@ -257,7 +257,7 @@ vk::ImageLayout const& SwapChain::layout() const {
 }
 
 vk::Extent2D const& SwapChain::extent() const {
-  return info().imageExtent;
+  return m_info.imageExtent;
 }
 
 void SwapChain::destroy() { 
