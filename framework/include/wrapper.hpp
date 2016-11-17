@@ -1,106 +1,70 @@
 #ifndef WRAPPER_HPP
 #define WRAPPER_HPP
 
-#include <vulkan/vulkan.h>
 #include <functional>
 
 template <typename T, typename U>
 class Wrapper {
 public:
-  Wrapper()
-   :m_object{VK_NULL_HANDLE}
-   ,m_info{}
-   ,m_owner{false}
- {}
 
-  explicit Wrapper(T const& t)
-   :m_object{t}
-   ,m_info{}
-   ,m_owner{false}
-  {}
-
-  explicit Wrapper(T&& t)
-   :Wrapper{} 
-  {
-    swapObject(t);
-  }
-
-  virtual ~Wrapper() {
-    cleanup();
-  }
-
-  // const T* operator &() const {
-  //   return &m_object;
-  // }
-
-  T* replace() {
-    cleanup();
-    return &m_object;
-  }
-
-  void replace(T&& rhs) {
-    swapObject(rhs);
-  }
-  
-  void replace(T const& rhs) = delete;
-
-  operator T() const {
+  operator T const&() const {
     return m_object;
   }
-
-  T const& get() const {
-    return m_object;
-  }
-
+  // call methods on underlying object
   T const* operator->() const {
     return &m_object;
   }
 
-  T& operator=(T rhs) {
-    swap(rhs);
-    return *this;
-  }
-
-  T* operator->() {
-    return &m_object;
-  }
   U const& info() const {
     return m_info;
   }
-  
- protected:
-  T* operator &() {
-    return &m_object;
+
+  // public, to call in case the conversion operator fails
+  T const& get() const {
+    return m_object;
   }
 
-  virtual void destroy() = 0;
+ protected:
+  // allow construction only through derived class
+  Wrapper()
+   :m_object{}
+   ,m_info{}
+  {}
+
+  explicit Wrapper(T&& t, U const& info)
+   :Wrapper{} 
+  {
+    swapObjects(std::move(t), info);
+  }
+
+  void replace(T&& rhs, U const& info) {
+    swapObjects(std::move(rhs), info);
+  }
+  // prevent accidental replace without ownership transfer
+  void replace(T const& rhs) = delete;
 
   void swap(Wrapper& rhs) {
     std::swap(m_object, rhs.m_object);
     std::swap(m_info, rhs.m_info);
-    std::swap(m_owner, rhs.m_owner);
   }
+  // must be called in destructor of derived class
+  void cleanup() {
+    if (m_object) {
+      destroy();
+    }
+    m_object = T{};
+  }
+  // freeing of resources, implemented in derived class
+  virtual void destroy() = 0;
 
   T m_object;
   U m_info;
 
  private:
-  bool m_owner;
-
-  void swapObject(T& rhs) {
+  void swapObjects(T&& rhs, U const& info) {
     cleanup();
-    m_object = rhs;
-    rhs = VK_NULL_HANDLE;
-    m_owner = true;
-  }
-
-  void cleanup() {
-    if (m_owner) { 
-      if (m_object) {
-        destroy();
-      }
-      m_object = VK_NULL_HANDLE;
-    }
+    std::swap(m_object, rhs);
+    m_info = info;
   }
 };
 

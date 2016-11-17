@@ -28,6 +28,7 @@ class Image : public WrapperImage {
   Image();
   Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags); 
   Image(Device const& device, pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout); 
+  ~Image();
 
   // Image(Device const& dev, vk::DeviceSize const& size, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
   // Image(Device const& device, void* data, vk::DeviceSize const& size, vk::ImageUsageFlags const& usage);

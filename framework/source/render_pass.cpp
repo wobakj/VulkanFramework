@@ -111,8 +111,12 @@ RenderPass::RenderPass(Device const& device, std::vector<vk::ImageCreateInfo> co
   m_object =device->createRenderPass(m_info.to_info(), nullptr);
 }
 
+RenderPass::~RenderPass() {
+  cleanup();
+}
+
 void RenderPass::destroy() {
-  (*m_device)->destroyRenderPass(get());
+  (*m_device)->destroyRenderPass(m_object);
 }
 
 RenderPass::RenderPass(RenderPass && dev)

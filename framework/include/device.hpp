@@ -22,6 +22,7 @@ class Device : public WrapperDevice {
   
   Device();
   Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& queues, std::vector<const char*> const& deviceExtensions);
+  ~Device();
 
   Device(Device const&) = delete;
   Device& operator=(Device const&) = delete;

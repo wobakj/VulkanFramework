@@ -232,6 +232,10 @@ Shader::Shader(Shader && dev)
   swap(dev);
 }
 
+Shader::~Shader() {
+  cleanup();
+}
+
 Shader& Shader::operator=(Shader&& dev) {
   swap(dev);
   return *this;

@@ -18,6 +18,7 @@ class Buffer : public WrapperBuffer {
   Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
   Buffer(Buffer && dev);
   Buffer(Buffer const&) = delete;
+  ~Buffer();
   
   Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);

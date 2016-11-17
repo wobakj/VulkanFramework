@@ -62,6 +62,10 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
   swap(buffer_store);
 }
 
+Buffer::~Buffer() {
+  cleanup();
+}
+
 void Buffer::setData(void const* data, vk::DeviceSize const& size) {
   m_memory.setData(data, size);
 }

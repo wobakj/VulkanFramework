@@ -44,6 +44,10 @@ Memory::Memory(Device const& device, void* data, vk::MemoryRequirements const& r
   setData(data, requirements.size);
 }
 
+Memory::~Memory() {
+  cleanup();
+}
+
 void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
   void* buff_ptr = (*m_device)->mapMemory(get(), offset, size);
   std::memcpy(buff_ptr, data, size_t(size));
@@ -51,11 +55,11 @@ void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSiz
 }
 
 void Memory::bindBuffer(Buffer const& buffer, vk::DeviceSize const& offset) {
-  (*m_device)->bindBufferMemory(buffer.get(), get(), offset);
+  (*m_device)->bindBufferMemory(buffer, get(), offset);
 }
 
 void Memory::bindImage(Image const& buffer, vk::DeviceSize const& offset) {
-  (*m_device)->bindImageMemory(buffer.get(), get(), offset);
+  (*m_device)->bindImageMemory(buffer, get(), offset);
 }
 
 void Memory::destroy() {

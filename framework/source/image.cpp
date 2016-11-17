@@ -311,6 +311,10 @@ Image::Image(Device const& device, pixel_data const& pixel_input, vk::ImageUsage
   createView();
 }
 
+Image::~Image() {
+  cleanup();
+}
+
 void Image::setData(void const* data, vk::DeviceSize const& size) {
   m_memory.setData(data, size);
 }

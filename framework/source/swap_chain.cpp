@@ -141,6 +141,10 @@ SwapChain::SwapChain(SwapChain && chain)
   swap(chain);
  }
 
+SwapChain::~SwapChain() {
+  cleanup();
+}
+
  SwapChain& SwapChain::operator=(SwapChain&& chain) {
   swap(chain);
   return *this;
@@ -202,8 +206,8 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
   // set chain to replace
   m_info.oldSwapchain = get();
   auto new_chain = (*m_device)->createSwapchainKHR(info(), nullptr);
-  // destroy old chain
-  replace(std::move(new_chain));
+
+  replace(std::move(new_chain), m_info);
 
   m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
   // transition images to present in case no render pass is applied

@@ -42,6 +42,7 @@ class Shader : public WrapperShader {
   Shader(Device const& device, std::vector<std::string> const& paths);
   Shader(Shader && dev);
   Shader(Shader const&) = delete;
+  ~Shader();
 
   Shader& operator=(Shader const&) = delete;
   Shader& operator=(Shader&& dev);

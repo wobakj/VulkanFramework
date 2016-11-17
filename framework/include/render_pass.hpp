@@ -46,6 +46,7 @@ class RenderPass : public WrapperRenderPass {
   RenderPass(Device const& device, std::vector<vk::ImageCreateInfo> const& images, std::vector<sub_pass_t> const& subpasses);
   RenderPass(RenderPass && dev);
   RenderPass(RenderPass const&) = delete;
+  ~RenderPass();
 
   RenderPass& operator=(RenderPass const&) = delete;
   RenderPass& operator=(RenderPass&& dev);

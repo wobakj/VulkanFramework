@@ -41,6 +41,7 @@ class SwapChain : public WrapperSwap {
   
   SwapChain(SwapChain const&) = delete;
   SwapChain& operator=(SwapChain const&) = delete;
+  ~SwapChain();
 
   SwapChain();
   SwapChain(SwapChain && chain);

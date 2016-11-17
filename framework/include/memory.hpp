@@ -20,7 +20,8 @@ class Memory : public WrapperMemory {
   Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& memProperties);
   Memory(Memory && dev);
   Memory(Memory const&) = delete;
-  
+  ~Memory();
+
   Memory& operator=(Memory const&) = delete;
   Memory& operator=(Memory&& dev);
 

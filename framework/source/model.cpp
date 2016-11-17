@@ -77,11 +77,11 @@ Model::Model(Device const& device, model_t const& model)
  }
 
 vk::Buffer const& Model::bufferVertex() const {
-  return m_buffer_vertex.get();
+  return m_buffer_vertex;
 }
 
 vk::Buffer const& Model::bufferIndex() const {
-  return m_buffer_index.get();
+  return m_buffer_index;
 }
 
 vk::PipelineVertexInputStateCreateInfo Model::inputInfo() const {

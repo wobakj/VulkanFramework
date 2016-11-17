@@ -185,7 +185,7 @@ void LauncherVulkan::draw() {
   }
 
   uint32_t imageIndex;
-  auto result = m_device->acquireNextImageKHR(m_swap_chain.get(), std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
   if (result == vk::Result::eErrorOutOfDateKHR) {
       recreateSwapChain();
       return;
@@ -217,7 +217,7 @@ void LauncherVulkan::draw() {
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = signalSemaphores;
 
-  vk::SwapchainKHR swapChains[]{m_swap_chain.get()};
+  vk::SwapchainKHR swapChains[]{m_swap_chain};
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains;
   presentInfo.pImageIndices = &imageIndex;
@@ -338,7 +338,7 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 }
 
 void LauncherVulkan::createFramebuffers() {
-  m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_pos.view(), m_image_normal.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
+  m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_pos.view(), m_image_normal.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass));
   // m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
 }
 
@@ -571,8 +571,8 @@ void LauncherVulkan::createDescriptorPool() {
   allocInfo.pSetLayouts = m_shaders.at("simple").setLayouts().data();
 
   auto sets = m_device->allocateDescriptorSets(allocInfo);
-  m_descriptor_sets.emplace("matrix", sets[0]);
-  m_descriptor_sets.emplace("textures", sets[1]);
+  m_descriptor_sets["matrix"] = sets[0];
+  m_descriptor_sets["textures"] = sets[1];
 
   m_buffer_uniform.writeToSet(m_descriptor_sets.at("matrix"), 0);
   m_image.writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
@@ -582,7 +582,7 @@ void LauncherVulkan::createDescriptorPool() {
   allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
   allocInfo.pSetLayouts = m_shaders.at("quad").setLayouts().data();
 
-  m_descriptor_sets.emplace("lighting", m_device->allocateDescriptorSets(allocInfo)[1]);
+  m_descriptor_sets["lighting"] = m_device->allocateDescriptorSets(allocInfo)[1];
 
   m_image_color.writeToSet(m_descriptor_sets.at("lighting"), 0);
   m_image_pos.writeToSet(m_descriptor_sets.at("lighting"), 1);
@@ -616,7 +616,7 @@ void LauncherVulkan::updateUniformBuffer() {
 }
 
 void LauncherVulkan::mainLoop() {
-  vkDeviceWaitIdle(m_device.get());
+  m_device->waitIdle();
 
   // do before framebuffer_resize call as it requires the projection uniform location
   // throw exception if shader compilation was unsuccessfull
@@ -625,7 +625,6 @@ void LauncherVulkan::mainLoop() {
   static double time_last = 0.0;
   // enable depth testing
   // rendering loop
-  vkDeviceWaitIdle(m_device.get());
 
   while (!glfwWindowShouldClose(m_window)) {
     // claculate delta time
@@ -654,6 +653,7 @@ void LauncherVulkan::recreateSwapChain() {
   createDepthResource();
   createRenderPass();
   createGraphicsPipeline();
+  createDescriptorPool();
 
   m_image_color.writeToSet(m_descriptor_sets.at("lighting"), 0);
   m_image_pos.writeToSet(m_descriptor_sets.at("lighting"), 1);

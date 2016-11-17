@@ -20,8 +20,8 @@ public:
         this->deleter = [&instance, deletef](T obj) { deletef(instance, obj, nullptr); };
     }
 
-    Deleter(Device const& device, std::function<void(VkDevice const, T, VkAllocationCallbacks*)> deletef) {
-        this->deleter = [&device, deletef](T obj) { deletef(device.get(), obj, nullptr); };
+    Deleter(Device const& device, std::function<void(vk::Device const, T, VkAllocationCallbacks*)> deletef) {
+        this->deleter = [&device, deletef](T obj) { deletef(device, obj, nullptr); };
     }
 
     Deleter(const Deleter<VkDevice>& device, std::function<void(VkDevice, T, VkAllocationCallbacks*)> deletef) {

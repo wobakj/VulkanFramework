@@ -116,6 +116,10 @@ Device::Device(Device && dev)
   swap(dev);
  }
 
+Device::~Device() {
+  cleanup();
+}
+
 void Device::destroy() {
   for(auto& pool : m_pools) {
     get().destroyCommandPool(pool.second);
