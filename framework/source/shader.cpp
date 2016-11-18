@@ -145,10 +145,10 @@ std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_
   for (auto const& set : shader_layout.bindings) {
     for(auto const& pair_desc : set) {
       if (size_map.find(pair_desc.second.descriptorType) != size_map.end()) {
-        ++size_map.at(pair_desc.second.descriptorType);
+        size_map.at(pair_desc.second.descriptorType) += pair_desc.second.descriptorCount;
       }
       else {
-        size_map.emplace(pair_desc.second.descriptorType, 1);
+        size_map.emplace(pair_desc.second.descriptorType, pair_desc.second.descriptorCount);
       }
     }
   } 
@@ -217,7 +217,6 @@ Shader::Shader(Device const& device, std::vector<std::string> const& paths)
 
 void Shader::destroy() {
   (*m_device)->destroyPipelineLayout(get());
-  m_object =VK_NULL_HANDLE;
   for(auto const& module : m_modules) {
     (*m_device)->destroyShaderModule(module);
   }
