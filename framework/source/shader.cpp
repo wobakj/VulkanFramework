@@ -43,9 +43,17 @@ layout_module_t::layout_module_t(spirv_cross::Compiler const& comp)
  {
   // The SPIR-V is now parsed, and we can perform reflection on it.
   spirv_cross::ShaderResources resources = comp.get_shader_resources();
-  // Get all sampled images in the shader.
+  // generic function to add resource
   auto add_func = [&comp, this](spirv_cross::Resource const& resource, vk::DescriptorType const& type) {
-    auto const& name = comp.get_name(resource.id);
+    std::string name{};
+    // get the type name from buffers, they dont require instance names
+    if (type == vk::DescriptorType::eStorageBuffer
+     || type  == vk::DescriptorType::eUniformBuffer) {
+      name = comp.get_name(resource.base_type_id);
+    }
+    else {
+      name = comp.get_name(resource.id);
+    }
     unsigned set = comp.get_decoration(resource.id, spv::DecorationDescriptorSet);
     unsigned binding = comp.get_decoration(resource.id, spv::DecorationBinding);
     auto const& res_type = comp.get_type(resource.type_id); 

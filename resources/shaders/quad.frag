@@ -17,8 +17,8 @@ struct light_t {
 };
 
 layout(set = 1, binding = 3) buffer LightBuffer {
-  light_t[] lights;
-} light_buff;
+  light_t[] Lights;
+};
 
 // material
 const float ks = 0.9;            // specular intensity
@@ -57,12 +57,12 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  // for (uint i  = 0; i < light_buff.lights.length(); ++i) {
-    float dist = distance(frag_Position, light_buff.lights[frag_InstanceId].position.xyz);
-    float radius = light_buff.lights[frag_InstanceId].radius;
+  // for (uint i  = 0; i < lights.length(); ++i) {
+    float dist = distance(frag_Position, Lights[frag_InstanceId].position.xyz);
+    float radius = Lights[frag_InstanceId].radius;
 
-    vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, light_buff.lights[frag_InstanceId].position.xyz);
-    vec3 color = light_buff.lights[frag_InstanceId].color.rgb;
+    vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, Lights[frag_InstanceId].position.xyz);
+    vec3 color = Lights[frag_InstanceId].color.rgb;
 
     out_Color += vec4(color * 0.005 * diffuseColor 
                     + color * diffuseColor * diffSpec.x

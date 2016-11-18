@@ -18,8 +18,8 @@ struct light_t {
 };
 
 layout(set = 1, binding = 3) buffer LightBuffer {
-  light_t[] lights;
-} light_buff;
+  light_t[] Lights;
+};
 
 out gl_PerVertex {
   vec4 gl_Position;
@@ -28,6 +28,6 @@ out gl_PerVertex {
 layout(location = 0) out flat int frag_InstanceId;
 
 void main() {
-  gl_Position = ubo.proj * vec4(light_buff.lights[gl_InstanceIndex].position + in_Position * light_buff.lights[gl_InstanceIndex].radius, 1.0);
+  gl_Position = ubo.proj * vec4(Lights[gl_InstanceIndex].position + in_Position * Lights[gl_InstanceIndex].radius, 1.0);
   frag_InstanceId = gl_InstanceIndex;
 }

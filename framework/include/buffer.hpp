@@ -28,7 +28,7 @@ class Buffer : public WrapperBuffer {
   void swap(Buffer& dev);
   
   vk::DescriptorBufferInfo const& descriptorInfo() const;
-  void writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const;
+  void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
 
  private:
   void destroy() override;

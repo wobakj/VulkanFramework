@@ -9,15 +9,12 @@
 #include <map>
 
 namespace shader_loader {
-  // compile shader
   std::vector<char> read_file(const std::string& filename);
   vk::ShaderModule module(std::string const& file_path, vk::Device const& device);
   vk::ShaderModule module(std::vector<char> const& code, vk::Device const& device);
 
   layout_module_t createLayout(std::string const& file_path);
   layout_module_t createLayout(std::vector<uint32_t> const& binary);
-
-  // create program from given list of stages and activate given varyings for transform feedback
 };
 
 #endif

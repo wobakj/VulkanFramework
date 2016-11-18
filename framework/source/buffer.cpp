@@ -83,11 +83,11 @@ vk::DescriptorBufferInfo const& Buffer::descriptorInfo() const {
   return m_desc_info;
 }
 // todo: write descriptor set wrapper to allow automatic type detection
-void Buffer::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
+void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index) const {
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.dstArrayElement = index;
   if (m_info.usage & vk::BufferUsageFlagBits::eUniformBuffer) {
     descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
   }
