@@ -3,14 +3,13 @@
 
 #include "image.hpp"
 
-sub_pass_t::sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs, int32_t depth, std::vector<uint32_t> const& preserves) {   
+sub_pass_t::sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs, int32_t depth) {   
   for(auto const& color : colors) {
     color_refs.emplace_back(vk::AttachmentReference{color, vk::ImageLayout::eColorAttachmentOptimal});
   }
   for(auto const& input : inputs) {
     input_refs.emplace_back(vk::AttachmentReference{input, vk::ImageLayout::eShaderReadOnlyOptimal});
   }
-  preserve_refs = preserves;
   if(depth >= 0) {
     depth_ref = vk::AttachmentReference{uint32_t(depth), vk::ImageLayout::eDepthStencilAttachmentOptimal};
   }
@@ -22,6 +21,8 @@ vk::SubpassDescription sub_pass_t::to_description() const {
   pass.pColorAttachments = color_refs.data();
   pass.inputAttachmentCount = std::uint32_t(input_refs.size());
   pass.pInputAttachments = input_refs.data();
+  pass.preserveAttachmentCount = std::uint32_t(preserve_refs.size());
+  pass.pPreserveAttachments = preserve_refs.data();
   if(depth_ref.layout != vk::ImageLayout::eUndefined) {
     pass.pDepthStencilAttachment = &depth_ref;
   }
@@ -67,6 +68,10 @@ render_pass_t::render_pass_t(std::vector<vk::ImageCreateInfo> const& images, std
         for(auto const& ref_in : sub_passes[j].inputs()) {
           if (ref_in.attachment == ref_out.attachment) {
             dependencies.emplace_back(img_to_dependency(ref_out.layout, ref_in.layout, i, j));
+            // add preserve attachments in passes between attachment ouput and usage
+            for(uint32_t k = i + 1; k < j; ++k) {
+              sub_passes[k].preserve_refs.push_back(ref_in.attachment);
+            }
           }
         }
       }

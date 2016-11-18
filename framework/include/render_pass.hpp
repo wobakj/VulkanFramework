@@ -11,7 +11,7 @@
 class Device;
 struct sub_pass_t {
   // attachments used as sampler in this stage must be referenced a spreserve to create dependency
-  sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs = std::vector<uint32_t>{}, int32_t depth = -1, std::vector<uint32_t> const& preserves = std::vector<uint32_t>{});
+  sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs = std::vector<uint32_t>{}, int32_t depth = -1);
 
   vk::SubpassDescription to_description() const;
   // indices of references produced by pass
