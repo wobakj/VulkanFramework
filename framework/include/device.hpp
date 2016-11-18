@@ -4,9 +4,8 @@
 #include "wrapper.hpp"
 
 #include <vulkan/vulkan.hpp>
-#include <iostream>
+
 #include <vector>
-#include <set>
 #include <map>
 #include <mutex>
 

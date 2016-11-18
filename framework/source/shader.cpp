@@ -1,5 +1,11 @@
 #include "shader.hpp"
+
 #include "shader_loader.hpp"
+#include "device.hpp"
+
+#include <spirv_cross.hpp>
+
+#include <map>
 
 vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model) {
   if (model == spv::ExecutionModelVertex) {
@@ -204,12 +210,7 @@ Shader::Shader(Device const& device, std::vector<std::string> const& paths)
     auto code = shader_loader::read_file(path);
     m_modules.emplace_back(shader_loader::module(code, device));
 
-    // Read SPIR-V from disk or similar.
-    std::vector<uint32_t> spirv_binary{};
-    spirv_binary.resize(code.size() / 4);
-    std::memcpy(spirv_binary.data(), code.data(), code.size() * sizeof(char));
-
-    module_layouts.emplace_back(shader_loader::createLayout(spirv_binary));
+    module_layouts.emplace_back(shader_loader::layout(code));
 
     vk::PipelineShaderStageCreateInfo stage_info{};
     stage_info.stage = module_layouts.back().stage;

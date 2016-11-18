@@ -1,16 +1,19 @@
 #ifndef SHADER_HPP
 #define SHADER_HPP
 
-#include "device.hpp"
 #include "wrapper.hpp"
 
-#include "spirv_cross.hpp"
 #include <vulkan/vulkan.hpp>
 
-#include <map>
 #include <vector>
+#include <map>
 
+namespace spirv_cross {
+  class Compiler;
+}
 // vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model);
+
+class Device;
 
 struct layout_module_t {
 
