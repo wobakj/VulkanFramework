@@ -9,6 +9,10 @@
 #include <unordered_set>
 
 class Device;
+
+vk::SubpassDependency img_to_dependency(vk::ImageLayout const& src_layout, vk::ImageLayout const& dst_layout, uint32_t src_pass, uint32_t dst_pass);
+vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info, bool clear = true);
+
 struct sub_pass_t {
   // attachments used as sampler in this stage must be referenced a spreserve to create dependency
   sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs = std::vector<uint32_t>{}, int32_t depth = -1);
