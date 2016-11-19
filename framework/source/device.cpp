@@ -174,7 +174,21 @@ uint32_t Device::getQueueIndex(std::string const& name) const {
 Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const {
   return Buffer{*this, size, usage, memProperties};
 }
+
+void Device::adjustStagingPool(uint32_t type, vk::DeviceSize const& size) {
+  if (m_pools_memory.find("stage") == m_pools_memory.end()) {
+    reallocateMemoryPool("stage", type, size);
+  }
+  else if (memoryPool("stage").size() < size) {
+    reallocateMemoryPool("stage", memoryPool("stage").memoryType(), size);
+  }
+  if(memoryPool("stage").memoryType() != type) {
+    throw std::runtime_error{"Staging memory types do not match"};
+  }
+}
+
 Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
+
   return Buffer{*this, data, size, usage};
 }
 
@@ -182,8 +196,21 @@ Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format 
   return Image{*this, width, height, format, tiling, usage, mem_flags};
 }
 
-Image Device::createImage(pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout) const {
-  return Image{*this, pixel_input, usage, layout};
+void Device::uploadImageData(void const* data_ptr, Image& image) {
+  Image image_stage{*this, image.info().extent.width, image.info().extent.height, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  // data size is dependent on target image size, not input data size!
+  adjustStagingPool(image_stage.memoryType(), image.size());
+  image_stage.bindTo(memoryPool("stage"), 0);
+
+  image_stage.setData(data_ptr, image.size());
+  image_stage.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
+
+  auto prev_layout = image.layout();
+
+  image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
+  copyImage(image_stage, image, image.info().extent.width, image.info().extent.height);
+
+  image.transitionToLayout(prev_layout);
 }
 
 void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size) const {

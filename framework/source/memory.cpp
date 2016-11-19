@@ -61,30 +61,36 @@ void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSiz
 }
 
 vk::DeviceSize Memory::bindBuffer(Buffer const& buffer) {
-  if (buffer.size() > space()) {
+  return bindBuffer(buffer, m_offset);
+}
+
+vk::DeviceSize Memory::bindImage(Image const& image) {
+  return bindImage(image, m_offset);
+}
+
+vk::DeviceSize Memory::bindBuffer(Buffer const& buffer, vk::DeviceSize offset) {
+  if (offset + buffer.size() > size()) {
     throw std::out_of_range{"Buffer size " + std::to_string(buffer.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
   // fulfill allignment requirements of object
-  auto offset = m_offset;
   auto alignment = buffer.requirements().alignment;
   offset = alignment * vk::DeviceSize(std::ceil(float(offset) / float(alignment)));
   (*m_device)->bindBufferMemory(buffer, get(), offset);
   // store new offset
-  m_offset = offset + buffer.size();
+  m_offset = std::max(m_offset, offset + buffer.size());
   return offset;
 }
 
-vk::DeviceSize Memory::bindImage(Image const& image) {
-  if (image.size() > space()) {
+vk::DeviceSize Memory::bindImage(Image const& image, vk::DeviceSize offset) {
+  if (offset + image.size() > size()) {
     throw std::out_of_range{"Image size " + std::to_string(image.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
   // fulfill allignment requirements of object
-  auto offset = m_offset;
   auto alignment = image.requirements().alignment;
   offset = alignment * vk::DeviceSize(std::ceil(float(offset) / float(alignment)));
   (*m_device)->bindImageMemory(image, get(), offset);
   // store new offset
-  m_offset = offset + image.size();
+  m_offset = std::max(m_offset, offset + image.size());
   return offset;
 }
 

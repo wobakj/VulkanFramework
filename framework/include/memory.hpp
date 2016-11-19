@@ -29,6 +29,9 @@ class Memory : public WrapperMemory {
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
   vk::DeviceSize bindBuffer(Buffer const& buffer);
   vk::DeviceSize bindImage(Image const& buffer);
+  // overwrite/alias memory range
+  vk::DeviceSize bindBuffer(Buffer const& buffer, vk::DeviceSize offset);
+  vk::DeviceSize bindImage(Image const& buffer, vk::DeviceSize offset);
   vk::DeviceSize size() const;
   vk::DeviceSize space() const;
   uint32_t memoryType() const;

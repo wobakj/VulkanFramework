@@ -552,21 +552,12 @@ void LauncherVulkan::createDepthResource() {
 void LauncherVulkan::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
-  vk::DeviceSize imageSize = pix_data .width * pix_data.height * num_channels(pix_data.format); 
-  Image image_stage{m_device, pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-
-  Memory memory_stage = Memory{m_device, image_stage.requirements(), image_stage.memFlags()};
-  image_stage.bindTo(memory_stage);
-  image_stage.setData(pix_data.ptr(), imageSize);
-  image_stage.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-
   m_image = m_device.createImage(pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_memorys.emplace("texture", Memory{m_device, m_image.requirements(), m_image.memFlags()});
   m_image.bindTo(m_memorys.at("texture"));
-  m_image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
-
-  m_device.copyImage(image_stage, m_image, pix_data.width, pix_data.height);
   m_image.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  
+  m_device.uploadImageData(pix_data.ptr(), m_image);
 }
 
 void LauncherVulkan::createTextureSampler() {

@@ -42,7 +42,9 @@ class Device : public WrapperDevice {
 
   // image functions
   Image createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) const; 
-  Image createImage(pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout) const; 
+  Image createImage(pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout);
+  void uploadImageData(void const* data_ptr, Image& image);
+
   void copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const;
   void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const;
 
@@ -61,6 +63,7 @@ class Device : public WrapperDevice {
   Memory& memoryPool(std::string const&);
   void allocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
   void reallocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
+  void adjustStagingPool(uint32_t type, vk::DeviceSize const& size);
 
   vk::CommandPool const& pool(std::string const&) const;
   std::vector<vk::CommandBuffer> createCommandBuffers(std::string const& name_pool, vk::CommandBufferLevel const& level = vk::CommandBufferLevel::ePrimary, uint32_t num = 1) const;

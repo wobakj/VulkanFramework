@@ -171,33 +171,6 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
   m_flags_mem = mem_flags;
 }
 
-
-Image::Image(Device const& device, pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout)
- :Image{}
-{
-  m_device = &device;
- 
-  vk::DeviceSize imageSize = pixel_input .width * pixel_input.height * num_channels(pixel_input.format); 
-
-  // create staging buffer and upload data
-  Image img_staging{device, pixel_input.width, pixel_input.height, pixel_input.format, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  // create storage buffer and transfer data
-  Image img_store{device, pixel_input.width, pixel_input.height, pixel_input.format, vk::ImageTiling::eOptimal, usage | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
-
-  img_staging.setData(pixel_input.ptr(), imageSize);
-
-  img_staging.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-  img_store.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
-  device.copyImage(img_staging, img_store, pixel_input.width, pixel_input.height);
-
-  img_store.transitionToLayout(layout);
-
-  // assign filled buffer to this
-  swap(img_store);
-
-  createView();
-}
-
 Image::~Image() {
   cleanup();
 }
@@ -208,6 +181,17 @@ void Image::setData(void const* data, vk::DeviceSize const& size) {
 
 void Image::bindTo(Memory& memory) {
   m_offset = memory.bindImage(*this);
+  m_memory = &memory;
+
+  if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
+      (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
+      (info().usage ^ (vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc))) {
+    createView();
+  }
+}
+
+void Image::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+  m_offset = memory.bindImage(*this, offset);
   m_memory = &memory;
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
