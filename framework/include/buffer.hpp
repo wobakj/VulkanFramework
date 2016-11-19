@@ -25,6 +25,7 @@ class Buffer : public WrapperBuffer {
 
   void setData(void const* data, vk::DeviceSize const& size);
   void bindTo(Memory& memory);
+  void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   void swap(Buffer& dev);
   vk::DeviceSize size() const;

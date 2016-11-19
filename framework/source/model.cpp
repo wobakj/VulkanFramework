@@ -35,8 +35,7 @@ Model::Model()
  ,m_device{nullptr}
  ,m_bind_info{}
  ,m_attrib_info{}
- ,m_buffer_vertex{}
- ,m_buffer_index{}
+ ,m_buffer{}
 {}
 
 Model::Model(Model && dev)
@@ -50,42 +49,31 @@ Model::Model(Device const& device, model_t const& model)
  ,m_device{&device}
  ,m_bind_info{}
  ,m_attrib_info{}
- ,m_buffer_vertex{}
- ,m_buffer_index{}
+ ,m_buffer{}
 {
   m_bind_info = model_to_bind(model);
   m_attrib_info = model_to_attr(model);
   // create one staging buffer for uploads
   vk::DeviceSize max_size = std::max(m_model.vertex_num * m_model.vertex_bytes, uint32_t(m_model.indices.size() * model_t::INDEX.size));
+  vk::DeviceSize combined_size = m_model.vertex_num * m_model.vertex_bytes + uint32_t(m_model.indices.size() * model_t::INDEX.size);
   // create staging buffer and memory which will be discarded afterwards
   Buffer buffer_stage{device, max_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
   buffer_stage.bindTo(memory_stage);
 
-  m_buffer_vertex = device.createBuffer(m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_buffer = device.createBuffer(combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-  if(!model.indices.empty()) {
-    m_buffer_index = device.createBuffer(m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    // if indices are contained, store in same memory
-    if (m_buffer_index.memoryType() != m_buffer_vertex.memoryType()) {
-      throw std::runtime_error{"memory types dont match"};
-    }
-    auto combined_requirements = m_buffer_vertex.requirements();
-    combined_requirements.size += m_buffer_index.requirements().size;
-    m_memory = Memory{device, combined_requirements, m_buffer_vertex.memFlags()};
-    m_buffer_index.bindTo(m_memory);
-    // upload index data
-    buffer_stage.setData(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size);
-    device.copyBuffer(buffer_stage.get(), m_buffer_index.get(), m_model.indices.size() * model_t::INDEX.size);
-  }
-  else {
-    m_memory = Memory{device, m_buffer_vertex.requirements(), m_buffer_vertex.memFlags()};
-  }
-  
-  m_buffer_vertex.bindTo(m_memory);
+  m_memory = Memory{device, m_buffer.requirements(), m_buffer.memFlags()};
+  m_buffer.bindTo(m_memory);
+
   // upload vertex data
   buffer_stage.setData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes);
-  device.copyBuffer(buffer_stage.get(), m_buffer_vertex.get(), m_model.vertex_num * m_model.vertex_bytes);
+  device.copyBuffer(buffer_stage.get(), m_buffer.get(), m_model.vertex_num * m_model.vertex_bytes);
+  // upload index data if existant
+  if(!model.indices.empty()) {
+    buffer_stage.setData(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size);
+    device.copyBuffer(buffer_stage.get(), m_buffer.get(), m_model.indices.size() * model_t::INDEX.size, 0, m_model.vertex_num * m_model.vertex_bytes);
+  }
 }
 
  Model& Model::operator=(Model&& dev) {
@@ -98,17 +86,12 @@ Model::Model(Device const& device, model_t const& model)
   std::swap(m_device, dev.m_device);
   std::swap(m_bind_info, dev.m_bind_info);
   std::swap(m_attrib_info, dev.m_attrib_info);
-  std::swap(m_buffer_vertex, dev.m_buffer_vertex);
-  std::swap(m_buffer_index, dev.m_buffer_index);
+  std::swap(m_buffer, dev.m_buffer);
   std::swap(m_memory, dev.m_memory);
  }
 
-vk::Buffer const& Model::bufferVertex() const {
-  return m_buffer_vertex;
-}
-
-vk::Buffer const& Model::bufferIndex() const {
-  return m_buffer_index;
+vk::Buffer const& Model::buffer() const {
+  return m_buffer;
 }
 
 vk::PipelineVertexInputStateCreateInfo Model::inputInfo() const {

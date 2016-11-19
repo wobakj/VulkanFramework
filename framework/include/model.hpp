@@ -21,8 +21,7 @@ class Model {
 
   void swap(Model& dev);
 
-  vk::Buffer const& bufferVertex() const;
-  vk::Buffer const& bufferIndex() const;
+  vk::Buffer const& buffer() const;
   vk::DeviceSize indexOffset() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numIndices() const;
@@ -32,8 +31,7 @@ class Model {
   Device const* m_device;
   vk::VertexInputBindingDescription m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
-  Buffer m_buffer_vertex;
-  Buffer m_buffer_index;
+  Buffer m_buffer;
   Memory m_memory;
 };
 

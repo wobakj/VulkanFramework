@@ -66,6 +66,11 @@ void Buffer::bindTo(Memory& memory) {
   m_memory = &memory;
 }
 
+void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+  m_offset = memory.bindBuffer(*this, offset);
+  m_memory = &memory;
+}
+
 Buffer::~Buffer() {
   cleanup();
 }

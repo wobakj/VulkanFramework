@@ -213,11 +213,13 @@ void Device::uploadImageData(void const* data_ptr, Image& image) {
   image.transitionToLayout(prev_layout);
 }
 
-void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size) const {
+void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
   vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
 
   vk::BufferCopy copyRegion{};
   copyRegion.size = size;
+  copyRegion.srcOffset = src_offset;
+  copyRegion.dstOffset = dst_offset;
   commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
 
   endSingleTimeCommands();
