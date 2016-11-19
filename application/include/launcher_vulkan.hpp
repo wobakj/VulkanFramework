@@ -142,7 +142,6 @@ class LauncherVulkan {
   std::atomic<bool> m_model_dirty;
   Camera m_camera;
   std::map<std::string, Shader> m_shaders;
-  std::map<std::string, Memory> m_memorys;
   // Application* m_application;
   bool m_sphere;
 };

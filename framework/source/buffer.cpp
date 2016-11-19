@@ -75,8 +75,8 @@ Buffer::~Buffer() {
   cleanup();
 }
 
-void Buffer::setData(void const* data, vk::DeviceSize const& size) {
-  m_memory->setData(data, size, m_offset);
+void Buffer::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  m_memory->setData(data, size, m_offset + offset);
 }
 
 void Buffer::destroy() {

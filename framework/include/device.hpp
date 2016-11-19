@@ -3,6 +3,7 @@
 
 #include "wrapper.hpp"
 #include "memory.hpp"
+#include "buffer.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -37,7 +38,8 @@ class Device : public WrapperDevice {
   void swap(Device& dev);
   // buffer functions
   Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const;
-  void uploadBufferData(void const* data_ptr, Buffer& buffer);
+  void uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& offset = 0);
+  void uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& offset = 0);
   void copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
 
   // image functions
@@ -62,7 +64,7 @@ class Device : public WrapperDevice {
   Memory& memoryPool(std::string const&);
   void allocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
   void reallocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
-  void adjustStagingPool(uint32_t type, vk::DeviceSize const& size);
+  void adjustStagingPool(vk::DeviceSize const& size);
 
   vk::CommandPool const& pool(std::string const&) const;
   std::vector<vk::CommandBuffer> createCommandBuffers(std::string const& name_pool, vk::CommandBufferLevel const& level = vk::CommandBufferLevel::ePrimary, uint32_t num = 1) const;
@@ -81,7 +83,7 @@ class Device : public WrapperDevice {
   std::map<std::string, Memory> m_pools_memory;
   std::vector<const char*> m_extensions;
   vk::CommandBuffer m_command_buffer_help;
-  
+  Buffer m_buffer_stage;
   mutable std::mutex m_mutex;
 };
 

@@ -175,15 +175,12 @@ Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags con
   return Buffer{*this, size, usage, memProperties};
 }
 
-void Device::adjustStagingPool(uint32_t type, vk::DeviceSize const& size) {
-  if (m_pools_memory.find("stage") == m_pools_memory.end()) {
-    reallocateMemoryPool("stage", type, size);
-  }
-  else if (memoryPool("stage").size() < size) {
-    reallocateMemoryPool("stage", memoryPool("stage").memoryType(), size);
-  }
-  if(memoryPool("stage").memoryType() != type) {
-    throw std::runtime_error{"Staging memory types do not match"};
+void Device::adjustStagingPool(vk::DeviceSize const& size) {
+  if (m_pools_memory.find("stage") == m_pools_memory.end() || memoryPool("stage").size() < size) {
+    // create new staging buffer
+    m_buffer_stage = Buffer{*this, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+    reallocateMemoryPool("stage", m_buffer_stage.memoryType(), size);
+    m_buffer_stage.bindTo(memoryPool("stage"), 0);
   }
 }
 
@@ -194,7 +191,7 @@ Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format 
 void Device::uploadImageData(void const* data_ptr, Image& image) {
   Image image_stage{*this, image.info().extent.width, image.info().extent.height, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   // data size is dependent on target image size, not input data size!
-  adjustStagingPool(image_stage.memoryType(), image.size());
+  adjustStagingPool(image.size());
   image_stage.bindTo(memoryPool("stage"), 0);
 
   image_stage.setData(data_ptr, image.size());
@@ -208,14 +205,17 @@ void Device::uploadImageData(void const* data_ptr, Image& image) {
   image.transitionToLayout(prev_layout);
 }
 
-void Device::uploadBufferData(void const* data_ptr, Buffer& buffer) {
-  Buffer buffer_stage{*this, buffer.size(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  // data size is dependent on target buffer size, not input data size!
-  adjustStagingPool(buffer_stage.memoryType(), buffer.size());
-  buffer_stage.bindTo(memoryPool("stage"), 0);
-  buffer_stage.setData(data_ptr, buffer.size());
+void Device::uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& dst_offset) {
+  uploadBufferData(data_ptr, buffer.size(), buffer, dst_offset);
+}
 
-  copyBuffer(buffer_stage, buffer, buffer.size());
+void Device::uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& dst_offset) {
+  // data size is dependent on target buffer size, not input data size!
+  adjustStagingPool(size);
+  // m_buffer_stage.bindTo(memoryPool("stage"), 0);
+  m_buffer_stage.setData(data_ptr, size, 0);
+
+  copyBuffer(m_buffer_stage, buffer, size, 0, dst_offset);
 }
 
 void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
@@ -351,10 +351,12 @@ Memory& Device::memoryPool(std::string const& name) {
 }
 
 void Device::allocateMemoryPool(std::string const& name, uint32_t type, vk::DeviceSize const& size) {
+  std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
   m_pools_memory.emplace(name, Memory{*this, type, size});
 }
 
 void Device::reallocateMemoryPool(std::string const& name, uint32_t type, vk::DeviceSize const& size) {
+  std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
   m_pools_memory[name] = Memory{*this, type, size};
 }
 

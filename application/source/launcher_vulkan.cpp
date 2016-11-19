@@ -502,8 +502,7 @@ void LauncherVulkan::updateLights() {
     temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
   }
 
-  m_buffer_light_stage.setData(&temp, sizeof(temp));
-  m_device.copyBuffer(m_buffer_light_stage, m_buffer_light, sizeof(temp));
+  m_device.uploadBufferData(&temp, m_buffer_light);
 }
 
 void LauncherVulkan::createSurface() {
@@ -606,20 +605,7 @@ void LauncherVulkan::createUniformBuffers() {
   VkDeviceSize size = sizeof(BufferLights);
   m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
 
-  m_buffer_light_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  m_memorys.emplace("light_stage", Memory{m_device, m_buffer_light_stage.requirements(), m_buffer_light_stage.memFlags()});
-  // m_device.adjustStagingPool(m_buffer_light_stage.memoryType(), m_buffer_light_stage.size() * 2);
-  m_buffer_light_stage.bindTo(m_memorys.at("light_stage"));
-  // m_buffer_light_stage.bindTo(m_memorys.at("light_stage"));
-
-
   size = sizeof(UniformBufferObject);
-  m_buffer_uniform_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  m_memorys.emplace("uniform_stage", Memory{m_device, m_buffer_uniform_stage.requirements(), m_buffer_uniform_stage.memFlags()});
-  // m_device.adjustStagingPool(m_buffer_uniform_stage.memoryType(), m_buffer_uniform_stage.size());
-  m_buffer_uniform_stage.bindTo(m_memorys.at("uniform_stage"));
-  // m_buffer_uniform_stage.bindTo(m_memorys.at("uniform_stage"));
-
   m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffer_light.memoryType(), m_buffer_light.size() * 16);
@@ -635,9 +621,7 @@ void LauncherVulkan::updateUniformBuffer() {
   ubo.proj = m_camera.projectionMatrix();
   ubo.proj[1][1] *= -1;
 
-  m_buffer_uniform_stage.setData(&ubo, sizeof(ubo));
-
-  m_device.copyBuffer(m_buffer_uniform_stage, m_buffer_uniform, sizeof(ubo));
+  m_device.uploadBufferData(&ubo, m_buffer_uniform);
 
   updateLights();
 }

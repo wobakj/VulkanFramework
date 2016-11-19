@@ -23,7 +23,7 @@ class Buffer : public WrapperBuffer {
   Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);
 
-  void setData(void const* data, vk::DeviceSize const& size);
+  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
   void bindTo(Memory& memory);
   void bindTo(Memory& memory, vk::DeviceSize const& offset);
 

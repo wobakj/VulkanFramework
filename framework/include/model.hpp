@@ -12,7 +12,7 @@ class Device;
 class Model {
  public:  
   Model();
-  Model(Device const& device, model_t const& model);
+  Model(Device& device, model_t const& model);
   Model(Model && dev);
   Model(Model const&) = delete;
 

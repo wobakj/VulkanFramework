@@ -44,7 +44,7 @@ Model::Model(Model && dev)
   swap(dev);
 }
 
-Model::Model(Device const& device, model_t const& model)
+Model::Model(Device& device, model_t const& model)
  :m_model{model}
  ,m_device{&device}
  ,m_bind_info{}
@@ -53,26 +53,18 @@ Model::Model(Device const& device, model_t const& model)
 {
   m_bind_info = model_to_bind(model);
   m_attrib_info = model_to_attr(model);
-  // create one staging buffer for uploads
-  vk::DeviceSize max_size = std::max(m_model.vertex_num * m_model.vertex_bytes, uint32_t(m_model.indices.size() * model_t::INDEX.size));
+  // create one buffer to store all data
   vk::DeviceSize combined_size = m_model.vertex_num * m_model.vertex_bytes + uint32_t(m_model.indices.size() * model_t::INDEX.size);
-  // create staging buffer and memory which will be discarded afterwards
-  Buffer buffer_stage{device, max_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
-  buffer_stage.bindTo(memory_stage);
-
   m_buffer = device.createBuffer(combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
   m_memory = Memory{device, m_buffer.requirements(), m_buffer.memFlags()};
   m_buffer.bindTo(m_memory);
 
   // upload vertex data
-  buffer_stage.setData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes);
-  device.copyBuffer(buffer_stage.get(), m_buffer.get(), m_model.vertex_num * m_model.vertex_bytes);
+  device.uploadBufferData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes, m_buffer);
   // upload index data if existant
   if(!model.indices.empty()) {
-    buffer_stage.setData(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size);
-    device.copyBuffer(buffer_stage.get(), m_buffer.get(), m_model.indices.size() * model_t::INDEX.size, 0, m_model.vertex_num * m_model.vertex_bytes);
+    device.uploadBufferData(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size, m_buffer, m_model.vertex_num * m_model.vertex_bytes);
   }
 }
 
