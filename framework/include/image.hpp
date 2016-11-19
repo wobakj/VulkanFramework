@@ -3,11 +3,11 @@
 
 #include "wrapper.hpp"
 #include "pixel_data.hpp"
-#include "memory.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 class Device;
+class Memory;
 
 bool is_depth(vk::Format const& format);
 bool has_stencil(vk::Format const& format);
@@ -60,8 +60,8 @@ class Image : public WrapperImage {
   void destroy() override;
   void createView();
 
-  vk::DeviceMemory m_memory;
   Device const* m_device;
+  Memory* m_memory;
   vk::ImageView m_view;
   vk::DeviceSize m_offset;
   vk::MemoryPropertyFlags m_flags_mem;

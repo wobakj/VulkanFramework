@@ -1,14 +1,14 @@
 #include "buffer.hpp"
 
 #include "device.hpp"
+#include "memory.hpp"
 
 #include <iostream>
 
 Buffer::Buffer()
  :WrapperBuffer{}
- ,m_memory{}
- // ,m_mem_info{}
  ,m_device{nullptr}
+ ,m_memory{nullptr}
  ,m_desc_info{}
 {}
 
@@ -36,11 +36,6 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
   }
   m_object = device->createBuffer(info());
 
-  auto memRequirements = device->getBufferMemoryRequirements(get());
-  m_memory = Memory{device, memRequirements, memProperties};
-
-  // m_memory.bindBuffer(*this, 0);
-
   m_desc_info.buffer = get();
   m_desc_info.offset = 0;
   m_desc_info.range = size;
@@ -67,8 +62,8 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
 }
 
 void Buffer::bindTo(Memory& memory) {
-  m_offset =  memory.bindBuffer(*this);
-  m_memory = memory;
+  m_offset = memory.bindBuffer(*this);
+  m_memory = &memory;
 }
 
 Buffer::~Buffer() {
@@ -76,11 +71,7 @@ Buffer::~Buffer() {
 }
 
 void Buffer::setData(void const* data, vk::DeviceSize const& size) {
-  // m_memory.setData(data, size);
-  void* buff_ptr = (*m_device)->mapMemory(m_memory, m_offset, size);
-  std::memcpy(buff_ptr, data, size_t(size));
-  (*m_device)->unmapMemory(m_memory);
-
+  m_memory->setData(data, size, m_offset);
 }
 
 void Buffer::destroy() {

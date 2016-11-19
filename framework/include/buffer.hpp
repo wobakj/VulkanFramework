@@ -2,12 +2,12 @@
 #define BUFFER_HPP
 
 #include "wrapper.hpp"
-#include "memory.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 class SwapChain;
 class Device;
+class Memory;
 
 using WrapperBuffer = Wrapper<vk::Buffer, vk::BufferCreateInfo>;
 class Buffer : public WrapperBuffer {
@@ -38,8 +38,8 @@ class Buffer : public WrapperBuffer {
  private:
   void destroy() override;
 
-  vk::DeviceMemory m_memory;
   Device const* m_device;
+  Memory* m_memory;
   vk::DescriptorBufferInfo m_desc_info;
   vk::DeviceSize m_offset;
   vk::MemoryPropertyFlags m_flags_mem;

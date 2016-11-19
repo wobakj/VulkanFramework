@@ -2,6 +2,7 @@
 
 #include "render_pass.hpp"
 #include "device.hpp"
+#include "memory.hpp"
 
 #include <iostream>
 
@@ -123,8 +124,8 @@ vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::ve
 
 Image::Image()
  :WrapperImage{}
- ,m_memory{}
  ,m_device{nullptr}
+ ,m_memory{nullptr}
  ,m_view{VK_NULL_HANDLE}
 {}
 
@@ -166,12 +167,7 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
     m_info.sharingMode = vk::SharingMode::eExclusive;
   }
 
-  m_object =device->createImage(info());
-
-  vk::MemoryRequirements memRequirements = device->getImageMemoryRequirements(get());
-  // m_memory = Memory{device, memRequirements, mem_flags};
-  // m_memory.bindImage(*this, 0);
-
+  m_object = device->createImage(info());
   m_flags_mem = mem_flags;
 }
 
@@ -207,16 +203,12 @@ Image::~Image() {
 }
 
 void Image::setData(void const* data, vk::DeviceSize const& size) {
-  // m_memory.setData(data, size);
-  void* buff_ptr = (*m_device)->mapMemory(m_memory, m_offset, size);
-  std::memcpy(buff_ptr, data, size_t(size));
-  (*m_device)->unmapMemory(m_memory);
-
+  m_memory->setData(data, size, m_offset);
 }
 
 void Image::bindTo(Memory& memory) {
   m_offset = memory.bindImage(*this);
-  m_memory = memory.get();
+  m_memory = &memory;
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
       (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
@@ -318,7 +310,6 @@ void Image::swap(Image& dev) {
   std::swap(m_memory, dev.m_memory);
   std::swap(m_device, dev.m_device);
   std::swap(m_view, dev.m_view);
-  std::swap(m_offset, dev.m_offset);
   std::swap(m_offset, dev.m_offset);
   std::swap(m_flags_mem, dev.m_flags_mem);
  }
