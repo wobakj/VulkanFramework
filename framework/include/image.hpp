@@ -38,9 +38,14 @@ class Image : public WrapperImage {
 
   void setData(void const* data, vk::DeviceSize const& size);
   void transitionToLayout(vk::ImageLayout const& newLayout);
+  void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   void swap(Image& dev);
-  
+
+
+  vk::MemoryRequirements requirements() const;
+  vk::MemoryPropertyFlags const& memFlags() const;
+ 
   vk::ImageLayout const& layout() const;
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
@@ -54,9 +59,11 @@ class Image : public WrapperImage {
   void destroy() override;
   void createView();
 
-  Memory m_memory;
+  vk::DeviceMemory m_memory;
   Device const* m_device;
   vk::ImageView m_view;
+  vk::DeviceSize m_offset;
+  vk::MemoryPropertyFlags m_flags_mem;
 };
 
 #endif

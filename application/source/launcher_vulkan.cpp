@@ -343,15 +343,6 @@ void LauncherVulkan::createFramebuffers() {
 }
 
 void LauncherVulkan::createRenderPass() {
-  // was needed for writing to acquired image
-  // vk::SubpassDependency dependency_1{};
-  // dependency_1.srcSubpass = VK_SUBPASS_EXTERNAL;
-  // dependency_1.dstSubpass = 0;
-  // dependency_1.srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
-  // dependency_1.srcAccessMask = vk::AccessFlagBits::eMemoryRead;
-  // dependency_1.dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  // dependency_1.dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-  
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -531,22 +522,49 @@ void LauncherVulkan::createDepthResource() {
 
   m_image_depth = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_depth.transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  m_memorys["depth"] = Memory{m_device, m_image_depth.requirements(), m_image_depth.memFlags()};
+  m_image_depth.bindTo(m_memorys.at("depth"), 0);
 
   m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_memorys["color"] = Memory{m_device, m_image_color.requirements(), m_image_color.memFlags()};
+  m_image_color.bindTo(m_memorys.at("color"), 0);
 
   m_image_pos = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_pos.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_memorys["pos"] = Memory{m_device, m_image_pos.requirements(), m_image_pos.memFlags()};
+  m_image_pos.bindTo(m_memorys.at("pos"), 0);
+
   m_image_normal = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_normal.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_memorys["normal"] = Memory{m_device, m_image_normal.requirements(), m_image_normal.memFlags()};
+  m_image_normal.bindTo(m_memorys.at("normal"), 0);
 
   m_image_color_2 = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color_2.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_memorys["color_2"] = Memory{m_device, m_image_color_2.requirements(), m_image_color_2.memFlags()};
+  m_image_color_2.bindTo(m_memorys.at("color_2"), 0);
+
 }
 
 void LauncherVulkan::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
-  m_image = m_device.createImage(pix_data, vk::ImageUsageFlagBits::eSampled, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+  vk::DeviceSize imageSize = pix_data .width * pix_data.height * num_channels(pix_data.format); 
+  Image image_stage{m_device, pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+
+  Memory memory_stage = Memory{m_device, image_stage.requirements(), image_stage.memFlags()};
+  image_stage.bindTo(memory_stage, 0);
+  image_stage.setData(pix_data.ptr(), imageSize);
+  image_stage.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
+
+  m_image = m_device.createImage(pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_memorys.emplace("texture", Memory{m_device, m_image.requirements(), m_image.memFlags()});
+  m_image.bindTo(m_memorys.at("texture"), 0);
+  m_image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
+
+  m_device.copyImage(image_stage, m_image, pix_data.width, pix_data.height);
+  m_image.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void LauncherVulkan::createTextureSampler() {
@@ -594,10 +612,18 @@ void LauncherVulkan::createUniformBuffers() {
   VkDeviceSize size = sizeof(UniformBufferObject);
   m_buffer_uniform_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+  m_memorys.emplace("uniform_stage", Memory{m_device, m_buffer_uniform_stage.requirements(), m_buffer_uniform_stage.memFlags()});
+  m_memorys.emplace("uniform", Memory{m_device, m_buffer_uniform.requirements(), m_buffer_uniform.memFlags()});
+  m_buffer_uniform_stage.bindTo(m_memorys.at("uniform_stage"), 0);
+  m_buffer_uniform.bindTo(m_memorys.at("uniform"), 0);
 
   size = sizeof(BufferLights);
   m_buffer_light_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+  m_memorys.emplace("light_stage", Memory{m_device, m_buffer_light_stage.requirements(), m_buffer_light_stage.memFlags()});
+  m_memorys.emplace("light", Memory{m_device, m_buffer_light.requirements(), m_buffer_light.memFlags()});
+  m_buffer_light_stage.bindTo(m_memorys.at("light_stage"), 0);
+  m_buffer_light.bindTo(m_memorys.at("light"), 0);
 }
 
 void LauncherVulkan::updateUniformBuffer() {

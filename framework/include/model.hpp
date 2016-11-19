@@ -2,6 +2,7 @@
 #define MODEL_HPP
 
 #include "buffer.hpp"
+#include "memory.hpp"
 #include "model_t.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -33,6 +34,8 @@ class Model {
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer_vertex;
   Buffer m_buffer_index;
+  Memory m_memory_vertex;
+  Memory m_memory_index;
 };
 
 #endif

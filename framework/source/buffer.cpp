@@ -34,16 +34,18 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
   else {
     m_info.sharingMode = vk::SharingMode::eExclusive;
   }
-  m_object =device->createBuffer(info());
+  m_object = device->createBuffer(info());
 
   auto memRequirements = device->getBufferMemoryRequirements(get());
   m_memory = Memory{device, memRequirements, memProperties};
 
-  m_memory.bindBuffer(*this, 0);
+  // m_memory.bindBuffer(*this, 0);
 
   m_desc_info.buffer = get();
   m_desc_info.offset = 0;
   m_desc_info.range = size;
+
+  m_flags_mem = memProperties;
 }
 
 Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) 
@@ -52,7 +54,9 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
   m_device = &device;
   // create staging buffer and upload data
   Buffer buffer_stage{device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  
+  Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
+  buffer_stage.bindTo(memory_stage, 0);
+
   buffer_stage.setData(data, size);
   // create storage buffer and transfer data
   Buffer buffer_store{device, size, usage | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
@@ -62,12 +66,22 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
   swap(buffer_store);
 }
 
+void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+  m_offset = offset;
+  memory.bindBuffer(*this, m_offset);
+  m_memory = memory;
+}
+
 Buffer::~Buffer() {
   cleanup();
 }
 
 void Buffer::setData(void const* data, vk::DeviceSize const& size) {
-  m_memory.setData(data, size);
+  // m_memory.setData(data, size);
+  void* buff_ptr = (*m_device)->mapMemory(m_memory, m_offset, size);
+  std::memcpy(buff_ptr, data, size_t(size));
+  (*m_device)->unmapMemory(m_memory);
+
 }
 
 void Buffer::destroy() {
@@ -102,9 +116,19 @@ void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
+vk::MemoryRequirements Buffer::requirements() const {
+  return (*m_device)->getBufferMemoryRequirements(get());
+}
+
+vk::MemoryPropertyFlags const& Buffer::memFlags() const {
+  return m_flags_mem;
+}
+
  void Buffer::swap(Buffer& buffer) {
   WrapperBuffer::swap(buffer);
   std::swap(m_memory, buffer.m_memory);
   std::swap(m_device, buffer.m_device);
   std::swap(m_desc_info, buffer.m_desc_info);
+  std::swap(m_offset, buffer.m_offset);
+  std::swap(m_flags_mem, buffer.m_flags_mem);
  }

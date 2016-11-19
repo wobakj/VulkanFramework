@@ -56,9 +56,27 @@ Model::Model(Device const& device, model_t const& model)
   m_bind_info = model_to_bind(model);
   m_attrib_info = model_to_attr(model);
 
-  m_buffer_vertex = device.createBuffer(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer);
+  Buffer buffer_stage{device, m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
+  buffer_stage.bindTo(memory_stage, 0);
+  buffer_stage.setData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes);
+
+  m_buffer_vertex = device.createBuffer(m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_memory_vertex = Memory{device, m_buffer_vertex.requirements(), m_buffer_vertex.memFlags()};
+  m_buffer_vertex.bindTo(m_memory_vertex, 0);
+  device.copyBuffer(buffer_stage.get(), m_buffer_vertex.get(), m_model.vertex_num * m_model.vertex_bytes);
+
   if(!model.indices.empty()) {
-    m_buffer_index = device.createBuffer(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer);
+    Buffer buffer_stage{device, m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+    Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
+    buffer_stage.bindTo(memory_stage, 0);
+    buffer_stage.setData(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size);
+
+
+    m_buffer_index = device.createBuffer(m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    m_memory_index = Memory{device, m_buffer_index.requirements(), m_buffer_index.memFlags()};
+    m_buffer_index.bindTo(m_memory_index, 0);
+    device.copyBuffer(buffer_stage.get(), m_buffer_index.get(), m_model.indices.size() * model_t::INDEX.size);
   }
 }
 
