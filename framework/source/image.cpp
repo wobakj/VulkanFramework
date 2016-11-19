@@ -263,6 +263,10 @@ vk::AttachmentDescription Image::toAttachment(bool clear) const {
   return img_to_attachment(info(), clear);
 }
 
+uint32_t Image::memoryType() const {
+  return findMemoryType(m_device->physical(), requirements().memoryTypeBits, m_flags_mem);
+}
+
 void Image::createView() {
   auto view_info = img_to_view(get(), info()); 
   m_view = (*m_device)->createImageView(view_info);  

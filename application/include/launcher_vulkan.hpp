@@ -62,6 +62,7 @@ class LauncherVulkan {
   void updateCommandBuffers();
   void createFramebuffers();
   void createRenderPass();
+  void createMemoryPools();
   void createGraphicsPipeline();
   void recreateSwapChain();
   void createVertexBuffer();

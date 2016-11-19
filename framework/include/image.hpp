@@ -45,6 +45,7 @@ class Image : public WrapperImage {
   vk::DeviceSize size() const;
   vk::MemoryRequirements requirements() const;
   vk::MemoryPropertyFlags const& memFlags() const;
+  uint32_t memoryType() const;
  
   vk::ImageLayout const& layout() const;
   vk::AttachmentDescription toAttachment(bool clear = true) const;

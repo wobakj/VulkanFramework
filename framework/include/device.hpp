@@ -2,6 +2,7 @@
 #define DEVICE_HPP
 
 #include "wrapper.hpp"
+#include "memory.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -57,6 +58,10 @@ class Device : public WrapperDevice {
   vk::Queue const& getQueue(std::string const& name) const;
   uint32_t getQueueIndex(std::string const& name) const;
 
+  Memory& memoryPool(std::string const&);
+  void allocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
+  void reallocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
+
   vk::CommandPool const& pool(std::string const&) const;
   std::vector<vk::CommandBuffer> createCommandBuffers(std::string const& name_pool, vk::CommandBufferLevel const& level = vk::CommandBufferLevel::ePrimary, uint32_t num = 1) const;
   vk::CommandBuffer createCommandBuffer(std::string const& name_pool, vk::CommandBufferLevel const& level = vk::CommandBufferLevel::ePrimary) const;
@@ -71,6 +76,7 @@ class Device : public WrapperDevice {
   std::map<std::string, uint32_t> m_queue_indices;
   std::map<std::string, vk::Queue> m_queues;
   std::map<std::string, vk::CommandPool> m_pools;
+  std::map<std::string, Memory> m_pools_memory;
   std::vector<const char*> m_extensions;
   vk::CommandBuffer m_command_buffer_help;
 

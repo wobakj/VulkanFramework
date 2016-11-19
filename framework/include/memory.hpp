@@ -16,6 +16,7 @@ class Memory : public WrapperMemory {
  public:
   
   Memory();
+  Memory(Device const& dev, uint32_t type_index, vk::DeviceSize const& size);
   Memory(Device const& dev, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& memProperties);
   Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& memProperties);
   Memory(Memory && dev);
@@ -30,6 +31,7 @@ class Memory : public WrapperMemory {
   vk::DeviceSize bindImage(Image const& buffer);
   vk::DeviceSize size() const;
   vk::DeviceSize space() const;
+  uint32_t memoryType() const;
   
   void swap(Memory& dev);
   

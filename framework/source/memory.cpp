@@ -29,15 +29,19 @@ Memory::Memory(Memory && mem)
   swap(mem);
 }
 
-Memory::Memory(Device const& device, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties)
+Memory::Memory(Device const& device, uint32_t type_index, vk::DeviceSize const& size)
  :Memory{}
 {
   m_device = &device;
-
-  m_info.allocationSize = requirements.size;
-  m_info.memoryTypeIndex = findMemoryType(device.physical(), requirements.memoryTypeBits, properties);
-  std::cout << "use memory type " << m_info.memoryTypeIndex << " for " << requirements.memoryTypeBits << " and " << to_string(properties) << std::endl;
+  m_info.allocationSize = size;
+  m_info.memoryTypeIndex = type_index;
   m_object = device->allocateMemory(info());
+}
+
+Memory::Memory(Device const& device, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties)
+ :Memory{device, findMemoryType(device.physical(), requirements.memoryTypeBits, properties), requirements.size}
+{
+  std::cout << "use memory type " << m_info.memoryTypeIndex << " for " << requirements.memoryTypeBits << " and " << to_string(properties) << std::endl;
 }
 
 Memory::Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties) 
@@ -57,8 +61,8 @@ void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSiz
 }
 
 vk::DeviceSize Memory::bindBuffer(Buffer const& buffer) {
-  if (m_offset + buffer.size() > size()) {
-    throw std::out_of_range{"Buffer too large for memory"};
+  if (buffer.size() > space()) {
+    throw std::out_of_range{"Buffer size " + std::to_string(buffer.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
   auto offset = m_offset;
   (*m_device)->bindBufferMemory(buffer, get(), offset);
@@ -67,8 +71,8 @@ vk::DeviceSize Memory::bindBuffer(Buffer const& buffer) {
 }
 
 vk::DeviceSize Memory::bindImage(Image const& image) {
-  if (m_offset + image.size() > size()) {
-    throw std::out_of_range{"Image too large for memory"};
+  if (image.size() > space()) {
+    throw std::out_of_range{"Image size " + std::to_string(image.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
   auto offset = m_offset;
   (*m_device)->bindImageMemory(image, get(), offset);
@@ -96,4 +100,8 @@ vk::DeviceSize Memory::size() const {
 }
 vk::DeviceSize Memory::space() const {
   return size() - m_offset;
+}
+
+uint32_t Memory::memoryType() const {
+  return m_info.memoryTypeIndex;
 }

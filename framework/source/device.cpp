@@ -311,3 +311,16 @@ void Device::endSingleTimeCommands() const {
 
   m_mutex.unlock();
 }
+
+Memory& Device::memoryPool(std::string const& name) {
+  return m_pools_memory.at(name);
+}
+
+void Device::allocateMemoryPool(std::string const& name, uint32_t type, vk::DeviceSize const& size) {
+  m_pools_memory.emplace(name, Memory{*this, type, size});
+}
+
+void Device::reallocateMemoryPool(std::string const& name, uint32_t type, vk::DeviceSize const& size) {
+  m_pools_memory[name] = Memory{*this, type, size};
+}
+

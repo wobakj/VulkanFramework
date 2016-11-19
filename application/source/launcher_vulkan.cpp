@@ -512,6 +512,17 @@ void LauncherVulkan::createSurface() {
   }
 }
 
+void LauncherVulkan::createMemoryPools() {
+  // allocate pool for 5 32x4 fb attachments
+  m_device.reallocateMemoryPool("framebuffer", m_image_pos.memoryType(), m_image_pos.size() * 5);
+  
+  m_image_depth.bindTo(m_device.memoryPool("framebuffer"));
+  m_image_color.bindTo(m_device.memoryPool("framebuffer"));
+  m_image_pos.bindTo(m_device.memoryPool("framebuffer"));
+  m_image_normal.bindTo(m_device.memoryPool("framebuffer"));
+  m_image_color_2.bindTo(m_device.memoryPool("framebuffer"));
+}
+
 void LauncherVulkan::createDepthResource() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
@@ -522,29 +533,20 @@ void LauncherVulkan::createDepthResource() {
 
   m_image_depth = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_depth.transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
-  m_memorys["depth"] = Memory{m_device, m_image_depth.requirements(), m_image_depth.memFlags()};
-  m_image_depth.bindTo(m_memorys.at("depth"));
 
   m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_memorys["color"] = Memory{m_device, m_image_depth.requirements(), m_image_color.memFlags()};
-  m_image_color.bindTo(m_memorys.at("color"));
 
   m_image_pos = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_pos.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_memorys["pos"] = Memory{m_device, m_image_pos.requirements(), m_image_pos.memFlags()};
-  m_image_pos.bindTo(m_memorys.at("pos"));
 
   m_image_normal = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_normal.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_memorys["normal"] = Memory{m_device, m_image_normal.requirements(), m_image_normal.memFlags()};
-  m_image_normal.bindTo(m_memorys.at("normal"));
 
   m_image_color_2 = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_image_color_2.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
-  m_memorys["color_2"] = Memory{m_device, m_image_color_2.requirements(), m_image_color_2.memFlags()};
-  m_image_color_2.bindTo(m_memorys.at("color_2"));
 
+  createMemoryPools();
 }
 
 void LauncherVulkan::createTextureImage() {
