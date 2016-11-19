@@ -26,8 +26,10 @@ class Memory : public WrapperMemory {
   Memory& operator=(Memory&& dev);
 
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
-  void bindBuffer(Buffer const& buffer, vk::DeviceSize const& offset = 0);
-  void bindImage(Image const& buffer, vk::DeviceSize const& offset = 0);
+  vk::DeviceSize bindBuffer(Buffer const& buffer);
+  vk::DeviceSize bindImage(Image const& buffer);
+  vk::DeviceSize size() const;
+  vk::DeviceSize space() const;
   
   void swap(Memory& dev);
   
@@ -35,6 +37,7 @@ class Memory : public WrapperMemory {
   void destroy() override;
 
   Device const* m_device;
+  vk::DeviceSize m_offset;
 };
 
 #endif

@@ -20,6 +20,7 @@ uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, v
 Memory::Memory()
  :WrapperMemory{}
  ,m_device{nullptr}
+ ,m_offset{0}
 {}
 
 Memory::Memory(Memory && mem)
@@ -55,12 +56,24 @@ void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSiz
   (*m_device)->unmapMemory(get());
 }
 
-void Memory::bindBuffer(Buffer const& buffer, vk::DeviceSize const& offset) {
+vk::DeviceSize Memory::bindBuffer(Buffer const& buffer) {
+  if (m_offset + buffer.size() > size()) {
+    throw std::out_of_range{"Buffer too large for memory"};
+  }
+  auto offset = m_offset;
   (*m_device)->bindBufferMemory(buffer, get(), offset);
+  m_offset += buffer.size();
+  return offset;
 }
 
-void Memory::bindImage(Image const& buffer, vk::DeviceSize const& offset) {
-  (*m_device)->bindImageMemory(buffer, get(), offset);
+vk::DeviceSize Memory::bindImage(Image const& image) {
+  if (m_offset + image.size() > size()) {
+    throw std::out_of_range{"Image too large for memory"};
+  }
+  auto offset = m_offset;
+  (*m_device)->bindImageMemory(image, get(), offset);
+  m_offset += image.size();
+  return offset;
 }
 
 void Memory::destroy() {
@@ -75,4 +88,12 @@ void Memory::destroy() {
  void Memory::swap(Memory& mem) {
   WrapperMemory::swap(mem);
   std::swap(m_device, mem.m_device);
+  std::swap(m_offset, mem.m_offset);
  }
+
+vk::DeviceSize Memory::size() const {
+  return info().allocationSize;
+}
+vk::DeviceSize Memory::space() const {
+  return size() - m_offset;
+}

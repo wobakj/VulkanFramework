@@ -55,29 +55,37 @@ Model::Model(Device const& device, model_t const& model)
 {
   m_bind_info = model_to_bind(model);
   m_attrib_info = model_to_attr(model);
+  // create one staging buffer for uploads
+  vk::DeviceSize max_size = std::max(m_model.vertex_num * m_model.vertex_bytes, uint32_t(m_model.indices.size() * model_t::INDEX.size));
 
-  Buffer buffer_stage{device, m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  Buffer buffer_stage{device, max_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
-  buffer_stage.bindTo(memory_stage, 0);
-  buffer_stage.setData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes);
+  buffer_stage.bindTo(memory_stage);
 
   m_buffer_vertex = device.createBuffer(m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  m_memory_vertex = Memory{device, m_buffer_vertex.requirements(), m_buffer_vertex.memFlags()};
-  m_buffer_vertex.bindTo(m_memory_vertex, 0);
-  device.copyBuffer(buffer_stage.get(), m_buffer_vertex.get(), m_model.vertex_num * m_model.vertex_bytes);
 
   if(!model.indices.empty()) {
-    Buffer buffer_stage{device, m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-    Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
-    buffer_stage.bindTo(memory_stage, 0);
-    buffer_stage.setData(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size);
-
-
     m_buffer_index = device.createBuffer(m_model.indices.size() * model_t::INDEX.size, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    m_memory_index = Memory{device, m_buffer_index.requirements(), m_buffer_index.memFlags()};
-    m_buffer_index.bindTo(m_memory_index, 0);
+    // if indices are contained, store in same memory
+    if (m_buffer_index.memoryType() != m_buffer_vertex.memoryType()) {
+      throw std::runtime_error{"memory types dont match"};
+    }
+    auto combined_requirements = m_buffer_vertex.requirements();
+    combined_requirements.size += m_buffer_index.requirements().size;
+    m_memory = Memory{device, combined_requirements, m_buffer_vertex.memFlags()};
+    m_buffer_vertex.bindTo(m_memory);
+    m_buffer_index.bindTo(m_memory);
+    // upload index data
+    buffer_stage.setData(m_model.indices.data(), m_model.indices.size() * model_t::INDEX.size);
     device.copyBuffer(buffer_stage.get(), m_buffer_index.get(), m_model.indices.size() * model_t::INDEX.size);
   }
+  else {
+    m_memory = Memory{device, m_buffer_vertex.requirements(), m_buffer_vertex.memFlags()};
+    m_buffer_vertex.bindTo(m_memory);
+  }
+  // upload vertex data
+  buffer_stage.setData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes);
+  device.copyBuffer(buffer_stage.get(), m_buffer_vertex.get(), m_model.vertex_num * m_model.vertex_bytes);
 }
 
  Model& Model::operator=(Model&& dev) {
@@ -92,6 +100,7 @@ Model::Model(Device const& device, model_t const& model)
   std::swap(m_attrib_info, dev.m_attrib_info);
   std::swap(m_buffer_vertex, dev.m_buffer_vertex);
   std::swap(m_buffer_index, dev.m_buffer_index);
+  std::swap(m_memory, dev.m_memory);
  }
 
 vk::Buffer const& Model::bufferVertex() const {
@@ -113,4 +122,8 @@ vk::PipelineVertexInputStateCreateInfo Model::inputInfo() const {
 
 std::uint32_t Model::numIndices() const {
   return std::uint32_t(m_model.indices.size());
+}
+
+vk::DeviceSize Model::indexOffset() const {
+  return m_model.vertex_num * m_model.vertex_bytes;
 }

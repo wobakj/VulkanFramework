@@ -24,13 +24,15 @@ class Buffer : public WrapperBuffer {
   Buffer& operator=(Buffer&& dev);
 
   void setData(void const* data, vk::DeviceSize const& size);
-  void bindTo(Memory& memory, vk::DeviceSize const& offset);
+  void bindTo(Memory& memory);
 
   void swap(Buffer& dev);
-
+  vk::DeviceSize size() const;
   vk::MemoryRequirements requirements() const;
   vk::MemoryPropertyFlags const& memFlags() const;
   vk::DescriptorBufferInfo const& descriptorInfo() const;
+  uint32_t memoryType() const;
+
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
 
  private:

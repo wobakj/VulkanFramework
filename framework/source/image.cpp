@@ -214,9 +214,8 @@ void Image::setData(void const* data, vk::DeviceSize const& size) {
 
 }
 
-void Image::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = offset;
-  memory.bindImage(*this, m_offset);
+void Image::bindTo(Memory& memory) {
+  m_offset = memory.bindImage(*this);
   m_memory = memory.get();
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
@@ -224,7 +223,6 @@ void Image::bindTo(Memory& memory, vk::DeviceSize const& offset) {
       (info().usage ^ (vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc))) {
     createView();
   }
-
 }
 
 void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
@@ -244,6 +242,10 @@ void Image::destroy() {
   swap(dev);
   return *this;
  }
+
+vk::DeviceSize Image::size() const {
+  return (*m_device)->getImageMemoryRequirements(get()).size;
+}
 
 vk::ImageLayout const& Image::layout() const {
   return m_info.initialLayout;

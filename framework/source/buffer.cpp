@@ -55,7 +55,7 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
   // create staging buffer and upload data
   Buffer buffer_stage{device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   Memory memory_stage = Memory{device, buffer_stage.requirements(), buffer_stage.memFlags()};
-  buffer_stage.bindTo(memory_stage, 0);
+  buffer_stage.bindTo(memory_stage);
 
   buffer_stage.setData(data, size);
   // create storage buffer and transfer data
@@ -66,9 +66,8 @@ Buffer::Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk:
   swap(buffer_store);
 }
 
-void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = offset;
-  memory.bindBuffer(*this, m_offset);
+void Buffer::bindTo(Memory& memory) {
+  m_offset =  memory.bindBuffer(*this);
   m_memory = memory;
 }
 
@@ -116,6 +115,10 @@ void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
+vk::DeviceSize Buffer::size() const {
+  return (*m_device)->getBufferMemoryRequirements(get()).size;
+}
+
 vk::MemoryRequirements Buffer::requirements() const {
   return (*m_device)->getBufferMemoryRequirements(get());
 }
@@ -124,7 +127,11 @@ vk::MemoryPropertyFlags const& Buffer::memFlags() const {
   return m_flags_mem;
 }
 
- void Buffer::swap(Buffer& buffer) {
+uint32_t Buffer::memoryType() const {
+  return findMemoryType(m_device->physical(), requirements().memoryTypeBits, m_flags_mem);
+}
+
+void Buffer::swap(Buffer& buffer) {
   WrapperBuffer::swap(buffer);
   std::swap(m_memory, buffer.m_memory);
   std::swap(m_device, buffer.m_device);

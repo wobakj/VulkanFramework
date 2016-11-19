@@ -38,11 +38,11 @@ class Image : public WrapperImage {
 
   void setData(void const* data, vk::DeviceSize const& size);
   void transitionToLayout(vk::ImageLayout const& newLayout);
-  void bindTo(Memory& memory, vk::DeviceSize const& offset);
+  void bindTo(Memory& memory);
 
   void swap(Image& dev);
 
-
+  vk::DeviceSize size() const;
   vk::MemoryRequirements requirements() const;
   vk::MemoryPropertyFlags const& memFlags() const;
  

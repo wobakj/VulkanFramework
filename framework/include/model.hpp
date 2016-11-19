@@ -23,7 +23,7 @@ class Model {
 
   vk::Buffer const& bufferVertex() const;
   vk::Buffer const& bufferIndex() const;
-  
+  vk::DeviceSize indexOffset() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numIndices() const;
 
@@ -34,8 +34,7 @@ class Model {
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer_vertex;
   Buffer m_buffer_index;
-  Memory m_memory_vertex;
-  Memory m_memory_index;
+  Memory m_memory;
 };
 
 #endif
