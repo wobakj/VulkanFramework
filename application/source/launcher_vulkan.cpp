@@ -325,7 +325,7 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 
   m_command_buffers.at("primary").endRenderPass();
   // make sure rendering to image is done before blitting
-  m_command_buffers.at("primary").pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer, {}, {}, {}, {});
+  // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
   blit.srcSubresource = img_to_resource_layer(m_image_color_2.info());
@@ -604,24 +604,27 @@ void LauncherVulkan::createDescriptorPool() {
 
 void LauncherVulkan::createUniformBuffers() {
   VkDeviceSize size = sizeof(BufferLights);
+  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+
   m_buffer_light_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   m_memorys.emplace("light_stage", Memory{m_device, m_buffer_light_stage.requirements(), m_buffer_light_stage.memFlags()});
   // m_device.adjustStagingPool(m_buffer_light_stage.memoryType(), m_buffer_light_stage.size() * 2);
   m_buffer_light_stage.bindTo(m_memorys.at("light_stage"));
+  // m_buffer_light_stage.bindTo(m_memorys.at("light_stage"));
 
-  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
-  m_memorys.emplace("light", Memory{m_device, m_buffer_light.requirements(), m_buffer_light.memFlags()});
-  m_buffer_light.bindTo(m_memorys.at("light"));
 
   size = sizeof(UniformBufferObject);
   m_buffer_uniform_stage = Buffer{m_device, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   m_memorys.emplace("uniform_stage", Memory{m_device, m_buffer_uniform_stage.requirements(), m_buffer_uniform_stage.memFlags()});
   // m_device.adjustStagingPool(m_buffer_uniform_stage.memoryType(), m_buffer_uniform_stage.size());
   m_buffer_uniform_stage.bindTo(m_memorys.at("uniform_stage"));
+  // m_buffer_uniform_stage.bindTo(m_memorys.at("uniform_stage"));
 
   m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
-  m_memorys.emplace("uniform", Memory{m_device, m_buffer_uniform.requirements(), m_buffer_uniform.memFlags()});
-  m_buffer_uniform.bindTo(m_memorys.at("uniform"));
+  // allocate memory pool for uniforms
+  m_device.allocateMemoryPool("uniforms", m_buffer_light.memoryType(), m_buffer_light.size() * 16);
+  m_buffer_light.bindTo(m_device.memoryPool("uniforms"));
+  m_buffer_uniform.bindTo(m_device.memoryPool("uniforms"));
 }
 
 void LauncherVulkan::updateUniformBuffer() {

@@ -37,12 +37,11 @@ class Device : public WrapperDevice {
   void swap(Device& dev);
   // buffer functions
   Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const;
-  Buffer createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const;
+  void uploadBufferData(void const* data_ptr, Buffer& buffer);
   void copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
 
   // image functions
   Image createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) const; 
-  Image createImage(pixel_data const& pixel_input, vk::ImageUsageFlags const& usage, vk::ImageLayout const& layout);
   void uploadImageData(void const* data_ptr, Image& image);
 
   void copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const;
@@ -82,7 +81,7 @@ class Device : public WrapperDevice {
   std::map<std::string, Memory> m_pools_memory;
   std::vector<const char*> m_extensions;
   vk::CommandBuffer m_command_buffer_help;
-
+  
   mutable std::mutex m_mutex;
 };
 

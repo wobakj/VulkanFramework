@@ -187,11 +187,6 @@ void Device::adjustStagingPool(uint32_t type, vk::DeviceSize const& size) {
   }
 }
 
-Buffer Device::createBuffer(void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
-
-  return Buffer{*this, data, size, usage};
-}
-
 Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) const {
   return Image{*this, width, height, format, tiling, usage, mem_flags};
 }
@@ -211,6 +206,16 @@ void Device::uploadImageData(void const* data_ptr, Image& image) {
   copyImage(image_stage, image, image.info().extent.width, image.info().extent.height);
 
   image.transitionToLayout(prev_layout);
+}
+
+void Device::uploadBufferData(void const* data_ptr, Buffer& buffer) {
+  Buffer buffer_stage{*this, buffer.size(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  // data size is dependent on target buffer size, not input data size!
+  adjustStagingPool(buffer_stage.memoryType(), buffer.size());
+  buffer_stage.bindTo(memoryPool("stage"), 0);
+  buffer_stage.setData(data_ptr, buffer.size());
+
+  copyBuffer(buffer_stage, buffer, buffer.size());
 }
 
 void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
