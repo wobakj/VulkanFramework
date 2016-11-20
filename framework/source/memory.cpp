@@ -38,7 +38,6 @@ Memory::Memory(Device const& device, uint32_t type_index, vk::DeviceSize const& 
   m_info.allocationSize = size;
   m_info.memoryTypeIndex = type_index;
   m_object = device->allocateMemory(info());
-  std::cout << "use memory type " << type_index << std::endl;
 }
 
 Memory::Memory(Device const& device, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties)
@@ -58,6 +57,7 @@ Memory::~Memory() {
 }
 
 void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  // assert(offset +)
   void* buff_ptr = (*m_device)->mapMemory(get(), offset, size);
   std::memcpy(buff_ptr, data, size_t(size));
   (*m_device)->unmapMemory(get());

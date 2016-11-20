@@ -25,6 +25,7 @@ class Model {
   vk::DeviceSize indexOffset() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numIndices() const;
+  std::uint32_t numVertices() const;
 
  private:
   model_t m_model;

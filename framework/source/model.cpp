@@ -99,6 +99,10 @@ std::uint32_t Model::numIndices() const {
   return std::uint32_t(m_model.indices.size());
 }
 
+std::uint32_t Model::numVertices() const {
+  return m_model.vertex_num;
+}
+
 vk::DeviceSize Model::indexOffset() const {
   return m_model.vertex_num * m_model.vertex_bytes;
 }

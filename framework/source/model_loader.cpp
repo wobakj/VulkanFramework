@@ -1,5 +1,6 @@
 #include "model_loader.hpp"
 #include "bvh.h"
+#include "lod_stream.h"
 
 // use floats and med precision operations
 #include <glm/gtc/type_precision.hpp>
@@ -179,23 +180,29 @@ struct serialized_triangle {
   float c2_x_, c2_y_;
 };
 
-model_t bvh(std::string const& path) {
+model_t bvh(std::string const& path, std::size_t idx_node) {
 
   vklod::bvh bvh(path);
   std::cout << "bvh has " << bvh.get_num_nodes() << " nodes" << std::endl;
   
-  for (vklod::node_t node_id = 0; node_id < bvh.get_num_nodes(); ++node_id) {
+  size_t stride_in_bytes = sizeof(serialized_triangle) * bvh.get_primitives_per_node();
+  // for (vklod::node_t node_id = 0; node_id < bvh.get_num_nodes(); ++node_id) {
     
-    //e.g. compute offset to data in lod file for current node
-    size_t stride_in_bytes = sizeof(serialized_triangle) * bvh.get_primitives_per_node();
-    size_t offset_in_bytes = node_id * stride_in_bytes;
+  //   //e.g. compute offset to data in lod file for current node
+  //   size_t offset_in_bytes = node_id * stride_in_bytes;
 
-    std::cout << "node_id " << node_id
-              << ", depth " << bvh.get_depth_of_node(node_id)
-              << ", address " << offset_in_bytes 
-              << ", length " << stride_in_bytes << std::endl;
-  }
-  return model_t{};
+  //   std::cout << "node_id " << node_id
+  //             << ", depth " << bvh.get_depth_of_node(node_id)
+  //             << ", address " << offset_in_bytes 
+  //             << ", length " << stride_in_bytes << std::endl;
+  // }
+  std::string path_lod = path.substr(0, path.size() - 3) + "lod";
+  std::vector<float> tri_data(stride_in_bytes / 4, 0);
+  lamure::ren::lod_stream access;
+  access.open(path_lod);
+  access.read((char*)tri_data.data(), stride_in_bytes * idx_node, stride_in_bytes);
+
+  return model_t{tri_data, model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
 }
 
 };
