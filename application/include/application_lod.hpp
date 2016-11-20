@@ -6,6 +6,7 @@
 #include "application.hpp"
 #include "deleter.hpp"
 #include "model.hpp"
+#include "model_lod.hpp"
 #include "buffer.hpp"
 #include "render_pass.hpp"
 #include "memory.hpp"
@@ -52,6 +53,7 @@ class ApplicationVulkan : public Application {
   FrameBuffer m_framebuffer;
   Model m_model;
   Model m_model_2;
+  ModelLod m_model_lod;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
   vk::DescriptorSet m_descriptorSet;

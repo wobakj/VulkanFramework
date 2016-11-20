@@ -1,6 +1,7 @@
-#include "application_vulkan.hpp"
+#include "application_lod.hpp"
 
 #include "launcher.hpp"
+#include "bvh.h"
 #include "image.hpp"
 #include "buffer.hpp"
 #include "shader.hpp"
@@ -128,18 +129,16 @@ void ApplicationVulkan::updateCommandBuffers() {
   m_command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
   m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // choose between sphere and house
-  Model const* model = nullptr;
   if (m_sphere) {
-    model = &m_model;
+    m_command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model.buffer()}, {0});
+    m_command_buffers.at("gbuffer").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+
+    m_command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
   }
   else {
-    model = &m_model_2;
+    m_command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
+    m_command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);
   }
-
-  m_command_buffers.at("gbuffer").bindVertexBuffers(0, {model->buffer()}, {0});
-  m_command_buffers.at("gbuffer").bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
-
-  m_command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
 
   m_command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -335,14 +334,9 @@ void ApplicationVulkan::createVertexBuffer() {
   m_model = Model{m_device, tri};
 }
 void ApplicationVulkan::loadModel() {
-  try {
-    model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
-    m_model_2 = Model{m_device, tri};
-    m_model_dirty = true;
-  }
-  catch (std::exception& e) {
-    assert(0);
-  }
+  auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
+  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 1, 1};
+  m_model_dirty = true;
 }
 
 void ApplicationVulkan::createLights() {

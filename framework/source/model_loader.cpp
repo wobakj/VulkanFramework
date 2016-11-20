@@ -201,8 +201,19 @@ model_t bvh(std::string const& path, std::size_t idx_node) {
   lamure::ren::lod_stream access;
   access.open(path_lod);
   access.read((char*)tri_data.data(), stride_in_bytes * idx_node, stride_in_bytes);
-
+  access.close();
   return model_t{tri_data, model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
+}
+
+vklod::bvh bvh(std::string const& path) {
+
+  return vklod::bvh{path};
+}
+
+lamure::ren::lod_stream&& lod(std::string const& path) {
+  lamure::ren::lod_stream access;
+  access.open(path);
+  return std::move(access);
 }
 
 };
