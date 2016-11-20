@@ -25,9 +25,11 @@ class ModelLod {
 
   void swap(ModelLod& dev);
 
-  vk::Buffer const& buffer() const;
+  vk::Buffer const& buffer(std::size_t i = 0) const;
+  std::vector<std::size_t> const& activeNodes() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numVertices() const;
+  void nodeToBuffer(std::size_t node, std::size_t buffer);
 
  private:
   model_t m_model;
@@ -40,9 +42,10 @@ class ModelLod {
   Memory m_memory_stage;
   std::size_t m_num_nodes; 
   std::size_t m_num_uploads;
-
   vklod::bvh m_bvh;
+  vk::DeviceSize m_size_node;
   std::vector<std::vector<float>> m_nodes;
+  std::vector<std::size_t> m_active_nodes;
 };
 
 #endif

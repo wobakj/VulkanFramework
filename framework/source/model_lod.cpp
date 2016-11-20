@@ -64,31 +64,33 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_num_nodes{num_nodes}
  ,m_num_uploads{num_uploads}
  ,m_bvh{bvh}
+ ,m_size_node{sizeof(serialized_triangle) * bvh.get_primitives_per_node()}
 {
-  // create one buffer to store all data
-  
-  vk::DeviceSize node_size = sizeof(serialized_triangle) * bvh.get_primitives_per_node();
+  // for simplifiction, use one staging buffer per buffer
+  m_num_uploads = m_num_nodes;
   // create staging memory and buffers
   for(std::size_t i = 0; i < num_uploads; ++i) {
-    m_buffers_stage.emplace_back(device.createBuffer(node_size, vk::BufferUsageFlagBits::eTransferSrc));
+    m_buffers_stage.emplace_back(device.createBuffer(m_size_node, vk::BufferUsageFlagBits::eTransferSrc));
   }
   auto requirements_stage = m_buffers_stage.front().requirements();
   // per-buffer offset
   auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(requirements_stage.size) / float(requirements_stage.alignment)));
-  requirements_stage.size = requirements_stage.size + offset_stage * (num_uploads - 1);
+  requirements_stage.size = requirements_stage.size + offset_stage * (m_num_uploads - 1);
   m_memory_stage = Memory{device, requirements_stage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+
   for(auto& buffer : m_buffers_stage) {
     buffer.bindTo(m_memory_stage);
   }
   // create drawing memory and buffers
   for(std::size_t i = 0; i < num_nodes; ++i) {
-    m_buffers.emplace_back(device.createBuffer(node_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst));
+    m_buffers.emplace_back(device.createBuffer(m_size_node, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst));
   }
   auto requirements_draw = m_buffers_stage.front().requirements();
   // per-buffer offset
   auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(requirements_draw.size) / float(requirements_draw.alignment)));
   requirements_draw.size = requirements_draw.size + offset_draw * (num_uploads - 1);
   m_memory = Memory{device, requirements_draw, vk::MemoryPropertyFlagBits::eDeviceLocal};
+
   for(auto& buffer : m_buffers) {
     buffer.bindTo(m_memory);
   }
@@ -97,20 +99,35 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   lod_stream.open(path);
 
   // read data from file
-  m_nodes = std::vector<std::vector<float>>(num_nodes, std::vector<float>(node_size / 4, 0.0));
+  m_nodes = std::vector<std::vector<float>>(num_nodes, std::vector<float>(m_size_node / 4, 0.0));
   for(std::size_t i = 0; i < num_nodes; ++i) {
-    size_t offset_in_bytes = i * node_size;
-    lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, node_size);
+    size_t offset_in_bytes = i * m_size_node;
+    lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, m_size_node);
   }
 
   m_model = model_t{m_nodes.front(), model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
 
-  m_buffers_stage.front().setData(m_model.data.data(), node_size, 0);
-
-  m_device->copyBuffer(m_buffers_stage.front(), m_buffers.front(), node_size, 0, 0);
+  nodeToBuffer(0,0);
 
   m_bind_info = model_to_bind(m_model);
   m_attrib_info = model_to_attr(m_model);
+
+  uint32_t level = 0;
+  while(m_num_nodes >= m_bvh.get_length_of_depth(level + 1)) {
+    ++level;
+  }
+  level -= 1;
+  std::cout << "drawing level " << level << std::endl;
+
+  for(std::size_t i = 0; i < bvh.get_length_of_depth(level); ++i) {
+    nodeToBuffer(bvh.get_first_node_id_of_depth(level) + i, i);
+    m_active_nodes.push_back(i);
+  }
+}
+
+void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
+  m_buffers_stage[buffer].setData(m_nodes[node].data(), m_size_node, 0);
+  m_device->copyBuffer(m_buffers_stage[buffer], m_buffers[buffer], m_size_node, 0, 0);
 }
 
  ModelLod& ModelLod::operator=(ModelLod&& dev) {
@@ -131,10 +148,16 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   std::swap(m_num_nodes, dev.m_num_nodes);
   std::swap(m_nodes, dev.m_nodes);
   std::swap(m_bvh, dev.m_bvh);
+  std::swap(m_size_node, dev.m_size_node);
+  std::swap(m_active_nodes, dev.m_active_nodes);
  }
 
-vk::Buffer const& ModelLod::buffer() const {
-  return m_buffers.front();
+vk::Buffer const& ModelLod::buffer(std::size_t i) const {
+  return m_buffers[i];
+}
+
+std::vector<std::size_t> const& ModelLod::activeNodes() const {
+  return m_active_nodes;
 }
 
 vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {

@@ -263,7 +263,6 @@ void LauncherVulkan::updateCommandBuffers() {
   m_command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
   m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // choose between sphere and house
-  Model const* model = nullptr;
   if (m_sphere) {
     m_command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model.buffer()}, {0});
     m_command_buffers.at("gbuffer").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
@@ -271,8 +270,10 @@ void LauncherVulkan::updateCommandBuffers() {
     m_command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
   }
   else {
-    m_command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
-    m_command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);
+    for(auto idx_node : m_model_lod.activeNodes()) {
+      m_command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer(idx_node)}, {0});
+      m_command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);
+    }
   }
 
   m_command_buffers.at("gbuffer").end();
@@ -481,7 +482,7 @@ void LauncherVulkan::createVertexBuffer() {
 void LauncherVulkan::loadModel() {
   // model_t tri = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh", 0);
   auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 1, 1};
+  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 5, 1};
   // model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
   // m_model_2 = Model{m_device, tri};
   m_model_dirty = true;
