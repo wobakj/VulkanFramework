@@ -198,17 +198,37 @@ std::uint32_t ModelLod::numVertices() const {
 
 float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
   auto centroid = m_bvh.get_centroid(node);
-  return 1.0f / glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
+  float dist = glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
+  return 1.0f / (dist * dist); 
 }
 
 bool ModelLod::nodeSplitable(std::size_t node) {
   return m_bvh.get_child_id(node, m_bvh.get_fan_factor()) < LAST_NODE;
 }
 
+struct pri_node {
+  pri_node(float err, std::size_t n)
+   :error{err}
+   ,node{n}
+  {}
+  float error;
+  std::size_t node;
+
+  bool operator<(pri_node const& n) const {
+    return error < n.error;
+  }
+  bool operator>(pri_node const& n) const {
+    return error > n.error;
+  }
+};
+
 void ModelLod::update(glm::fvec3 const& pos_view) {
-  std::queue<std::size_t> queue_collapse{};
-  std::queue<std::size_t> queue_split{};
-  std::queue<std::size_t> queue_keep{};
+  // collapse to node with lowest error first
+  std::priority_queue<pri_node, std::vector<pri_node>, std::less<pri_node>> queue_collapse{};
+  // split node woth highest error first
+  std::priority_queue<pri_node, std::vector<pri_node>, std::greater<pri_node>> queue_split{};
+  // keep node with lowest error first
+  std::priority_queue<pri_node, std::vector<pri_node>, std::less<pri_node>> queue_keep{};
   std::set<std::size_t> ignore{};
 
   const float max_threshold = 1.0f;
@@ -226,33 +246,33 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
       }
     }
     // all siblings in cut
+    float error_node = nodeError(pos_view, node);
     if (all_siblings) {
       // todo: check frustum intersection case
-      float error_node = nodeError(pos_view, node);
       // error too large
       if (error_node > max_threshold && nodeSplitable(node)) {
-        queue_split.emplace(node);    
+        queue_split.emplace(error_node, node);    
       }
       // error too small
       else if (error_node < min_threshold) {
         // never collapse root
         if (node == 0) continue;
-        queue_collapse.emplace(parent);
+        queue_collapse.emplace(nodeError(pos_view, parent), parent);
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
           ignore.emplace(m_bvh.get_child_id(parent, i));
         }
       }
       else {
-        queue_keep.emplace(node);
+        queue_keep.emplace(error_node, node);
       }
     }
     // not all siblings in cut
     else {
-      if (nodeError(pos_view, node) > max_threshold && nodeSplitable(node)) {
-        queue_split.emplace(node);
+      if (error_node > max_threshold && nodeSplitable(node)) {
+        queue_split.emplace(error_node, node);
       }
       else {
-        queue_keep.emplace(node);
+        queue_keep.emplace(error_node, node);
       }
     }
   }
@@ -261,13 +281,13 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   // collapse hodes to free space
   while (!queue_collapse.empty()) {
     // m_active_nodes
-    cut_new.push_back(queue_collapse.front());
+    cut_new.push_back(queue_collapse.top().node);
     queue_collapse.pop();
   }
   // add keep nodes
   while (!queue_keep.empty()) {
     // m_active_nodes
-    cut_new.push_back(queue_keep.front());
+    cut_new.push_back(queue_keep.top().node);
     queue_keep.pop();
   }
 
@@ -275,11 +295,11 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     // split if enough free memory
     if (m_num_nodes - cut_new.size() >= m_bvh.get_fan_factor()) {
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-        cut_new.push_back(m_bvh.get_child_id(queue_split.front(), i));
+        cut_new.push_back(m_bvh.get_child_id(queue_split.top().node, i));
       }
     }
     else {
-      cut_new.push_back(queue_split.front());
+      cut_new.push_back(queue_split.top().node);
     }
     queue_split.pop();
   }
