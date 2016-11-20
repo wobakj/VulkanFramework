@@ -9,6 +9,7 @@ namespace model_loader {
 
 model_t obj(std::string const& path, model_t::attrib_flag_t import_attribs = model_t::POSITION);
 
+model_t bvh(std::string const& path);
 }
 
 #endif

@@ -1,4 +1,5 @@
 #include "model_loader.hpp"
+#include "bvh.h"
 
 // use floats and med precision operations
 #include <glm/gtc/type_precision.hpp>
@@ -164,6 +165,37 @@ std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model) {
   throw std::logic_error("Tangent creation not implemented yet");
 
   return tangents;
+}
+
+struct serialized_triangle {
+  float v0_x_, v0_y_, v0_z_;   //vertex 0
+  float n0_x_, n0_y_, n0_z_;   //normal 0
+  float c0_x_, c0_y_;          //texcoord 0
+  float v1_x_, v1_y_, v1_z_;
+  float n1_x_, n1_y_, n1_z_;
+  float c1_x_, c1_y_;
+  float v2_x_, v2_y_, v2_z_;
+  float n2_x_, n2_y_, n2_z_;
+  float c2_x_, c2_y_;
+};
+
+model_t bvh(std::string const& path) {
+
+  vklod::bvh bvh(path);
+  std::cout << "bvh has " << bvh.get_num_nodes() << " nodes" << std::endl;
+  
+  for (vklod::node_t node_id = 0; node_id < bvh.get_num_nodes(); ++node_id) {
+    
+    //e.g. compute offset to data in lod file for current node
+    size_t stride_in_bytes = sizeof(serialized_triangle) * bvh.get_primitives_per_node();
+    size_t offset_in_bytes = node_id * stride_in_bytes;
+
+    std::cout << "node_id " << node_id
+              << ", depth " << bvh.get_depth_of_node(node_id)
+              << ", address " << offset_in_bytes 
+              << ", length " << stride_in_bytes << std::endl;
+  }
+  return model_t{};
 }
 
 };

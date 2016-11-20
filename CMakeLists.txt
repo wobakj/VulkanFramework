@@ -53,6 +53,8 @@ include_directories(SYSTEM external/stb_image-2.0.6)
 include_directories(external/tinyobjloader-aa07206)
 # just one file so it can be directly compiled into main exe
 file(GLOB TINYOBJLOADER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader-aa07206/*.cc)
+# bvh loading files
+add_sublibrary(bvh ${CMAKE_CURRENT_SOURCE_DIR}/external/bvh "")
 
 # add spirv cross build system
 add_subdirectory(external/SPIRV-Cross-8199986)
@@ -71,7 +73,7 @@ add_subdirectory(external/glfw-3.2.1)
 file(GLOB FRAMEWORK_SOURCES framework/source/*.cpp)
 add_library(framework STATIC ${FRAMEWORK_SOURCES} ${TINYOBJLOADER_SOURCES})
 target_include_directories(framework PUBLIC framework/include)
-target_link_libraries(framework glfw ${GLFW_LIBRARIES} vulkan spirv-cross-core)
+target_link_libraries(framework glfw ${GLFW_LIBRARIES} vulkan spirv-cross-core bvh)
 # set location of validation layers
 target_compile_definitions(framework PUBLIC "VULKAN_LAYER_DIR=${VULKAN_LAYER_DIR}")
 
@@ -83,6 +85,9 @@ target_link_libraries(vulkan_test framework)
 
 add_executable(vulkan_threaded application/source/application_threaded.cpp)
 target_link_libraries(vulkan_threaded framework)
+
+add_executable(vulkan_lod application/source/application_lod.cpp)
+target_link_libraries(vulkan_lod framework)
 
 # set build type dependent flags
 if(UNIX)
