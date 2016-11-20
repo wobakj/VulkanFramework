@@ -479,6 +479,7 @@ void LauncherVulkan::createVertexBuffer() {
 
   m_model = Model{m_device, tri};
 }
+
 void LauncherVulkan::loadModel() {
   // model_t tri = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh", 0);
   auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");

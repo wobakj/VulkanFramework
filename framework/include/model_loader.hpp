@@ -22,7 +22,6 @@ model_t obj(std::string const& path, model_t::attrib_flag_t import_attribs = mod
 model_t bvh(std::string const& path, std::size_t idx_node);
 vklod::bvh bvh(std::string const& path);
 lamure::ren::lod_stream&& lod(std::string const& path);
-
 }
 
 #endif
