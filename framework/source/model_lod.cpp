@@ -3,6 +3,8 @@
 #include "device.hpp"
 
 #include <iostream>
+#include <queue>
+#include <set>
 
 struct serialized_triangle {
   float v0_x_, v0_y_, v0_z_;   //vertex 0
@@ -42,6 +44,8 @@ static std::vector<vk::VertexInputAttributeDescription> model_to_attr(model_t co
   return attributeDescriptions;  
 }
 
+const std::size_t LAST_NODE = 64;
+
 ModelLod::ModelLod()
  :m_model{}
  ,m_device{nullptr}
@@ -64,7 +68,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_num_nodes{num_nodes}
  ,m_num_uploads{num_uploads}
  ,m_bvh{bvh}
- ,m_size_node{sizeof(serialized_triangle) * bvh.get_primitives_per_node()}
+ ,m_size_node{sizeof(serialized_triangle) * m_bvh.get_primitives_per_node()}
 {
   // for simplifiction, use one staging buffer per buffer
   m_num_uploads = m_num_nodes;
@@ -98,34 +102,48 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   lamure::ren::lod_stream lod_stream;
   lod_stream.open(path);
 
+  std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes" << std::endl;
+  //   size_t stride_in_bytes = sizeof(serialized_triangle) * bvh.get_primitives_per_node();
+  // for (vklod::node_t node_id = 0; node_id < bvh.get_num_nodes(); ++node_id) {
+    
+  //   //e.g. compute offset to data in lod file for current node
+  //   size_t offset_in_bytes = node_id * stride_in_bytes;
+
+  //   std::cout << "node_id " << node_id
+  //             << ", depth " << bvh.get_depth_of_node(node_id)
+  //             << ", address " << offset_in_bytes 
+  //             << ", length " << stride_in_bytes << std::endl;
+  // }
+
   // read data from file
-  m_nodes = std::vector<std::vector<float>>(num_nodes, std::vector<float>(m_size_node / 4, 0.0));
-  for(std::size_t i = 0; i < num_nodes; ++i) {
+  m_nodes = std::vector<std::vector<float>>(bvh.get_num_nodes(), std::vector<float>(m_size_node / 4, 0.0));
+  for(std::size_t i = 0; i < bvh.get_num_nodes() && i < LAST_NODE; ++i) {
     size_t offset_in_bytes = i * m_size_node;
     lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, m_size_node);
   }
 
   m_model = model_t{m_nodes.front(), model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
 
-  nodeToBuffer(0,0);
-
   m_bind_info = model_to_bind(m_model);
   m_attrib_info = model_to_attr(m_model);
-
+  // upload initial data
   uint32_t level = 0;
-  while(m_num_nodes >= m_bvh.get_length_of_depth(level + 1)) {
+  while(m_num_nodes >= m_bvh.get_length_of_depth(level)) {
     ++level;
   }
   level -= 1;
   std::cout << "drawing level " << level << std::endl;
 
-  for(std::size_t i = 0; i < bvh.get_length_of_depth(level); ++i) {
-    nodeToBuffer(bvh.get_first_node_id_of_depth(level) + i, i);
-    m_active_nodes.push_back(i);
+  std::vector<std::size_t> cut_new{};
+  for(std::size_t i = 0; i < m_bvh.get_length_of_depth(level); ++i) {
+    cut_new.push_back(m_bvh.get_first_node_id_of_depth(level) + i);
   }
+
+  setCut(cut_new);
 }
 
 void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
+  std::cout << "loading node " << node << " into buffer " << buffer << std::endl;
   m_buffers_stage[buffer].setData(m_nodes[node].data(), m_size_node, 0);
   m_device->copyBuffer(m_buffers_stage[buffer], m_buffers[buffer], m_size_node, 0, 0);
 }
@@ -149,15 +167,20 @@ void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
   std::swap(m_nodes, dev.m_nodes);
   std::swap(m_bvh, dev.m_bvh);
   std::swap(m_size_node, dev.m_size_node);
-  std::swap(m_active_nodes, dev.m_active_nodes);
+  std::swap(m_cut, dev.m_cut);
+  std::swap(m_active_buffers, dev.m_active_buffers);
  }
 
 vk::Buffer const& ModelLod::buffer(std::size_t i) const {
   return m_buffers[i];
 }
 
-std::vector<std::size_t> const& ModelLod::activeNodes() const {
-  return m_active_nodes;
+std::vector<std::size_t> const& ModelLod::cut() const {
+  return m_cut;
+}
+
+std::vector<std::size_t> const& ModelLod::activeBuffers() const {
+  return m_active_buffers;
 }
 
 vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {
@@ -171,4 +194,135 @@ vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {
 
 std::uint32_t ModelLod::numVertices() const {
   return m_model.vertex_num;
+}
+
+float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
+  auto centroid = m_bvh.get_centroid(node);
+  return 1.0f / glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
+}
+
+bool ModelLod::nodeSplitable(std::size_t node) {
+  return m_bvh.get_child_id(node, m_bvh.get_fan_factor()) < LAST_NODE;
+}
+
+void ModelLod::update(glm::fvec3 const& pos_view) {
+  std::queue<std::size_t> queue_collapse{};
+  std::queue<std::size_t> queue_split{};
+  std::queue<std::size_t> queue_keep{};
+  std::set<std::size_t> ignore{};
+
+  const float max_threshold = 1.0f;
+  const float min_threshold = 0.1f;
+
+  for (auto const& node : m_cut) {
+    if (ignore.find(node) != ignore.end()) continue;
+
+    auto parent = m_bvh.get_parent_id(node);
+    bool all_siblings = true;
+    for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+      auto curr_sibling = m_bvh.get_child_id(parent, i);
+      if (std::find(m_cut.begin(), m_cut.end(), curr_sibling) == m_cut.end()) {
+        all_siblings = false;
+      }
+    }
+    // all siblings in cut
+    if (all_siblings) {
+      // todo: check frustum intersection case
+      float error_node = nodeError(pos_view, node);
+      // error too large
+      if (error_node > max_threshold && nodeSplitable(node)) {
+        queue_split.emplace(node);    
+      }
+      // error too small
+      else if (error_node < min_threshold) {
+        // never collapse root
+        if (node == 0) continue;
+        queue_collapse.emplace(parent);
+        for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+          ignore.emplace(m_bvh.get_child_id(parent, i));
+        }
+      }
+      else {
+        queue_keep.emplace(node);
+      }
+    }
+    // not all siblings in cut
+    else {
+      if (nodeError(pos_view, node) > max_threshold && nodeSplitable(node)) {
+        queue_split.emplace(node);
+      }
+      else {
+        queue_keep.emplace(node);
+      }
+    }
+  }
+  // create new cut
+  std::vector<std::size_t> cut_new;
+  // collapse hodes to free space
+  while (!queue_collapse.empty()) {
+    // m_active_nodes
+    cut_new.push_back(queue_collapse.front());
+    queue_collapse.pop();
+  }
+  // add keep nodes
+  while (!queue_keep.empty()) {
+    // m_active_nodes
+    cut_new.push_back(queue_keep.front());
+    queue_keep.pop();
+  }
+
+  while (!queue_split.empty()) {
+    // split if enough free memory
+    if (m_num_nodes - cut_new.size() >= m_bvh.get_fan_factor()) {
+      for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+        cut_new.push_back(m_bvh.get_child_id(queue_split.front(), i));
+      }
+    }
+    else {
+      cut_new.push_back(queue_split.front());
+    }
+    queue_split.pop();
+  }
+  assert(cut_new.size() <= m_num_nodes);
+
+  setCut(cut_new);
+}
+
+void ModelLod::setCut(std::vector<std::size_t> const& cut) {
+  m_active_buffers.clear();
+  // collect nodes that were already in previous cut
+  std::set<std::size_t> slots_active{};
+  for (auto const& node : cut) {
+    for (std::size_t i = 0; i < m_cut.size(); ++i) {
+      if (m_cut[i] == node) {
+        slots_active.emplace(node);
+        m_active_buffers.push_back(i);
+        break;
+      }
+    }
+  }
+  // collect free nodes
+  std::queue<std::size_t> slots_free{};
+  for (std::size_t i = 0; i < m_num_nodes; ++i) {
+    if (slots_active.find(i) == slots_active.end()) {
+      slots_free.emplace(i);
+    }
+  }
+  // upload nodes not yet on GPU
+  for (auto const& node : cut) {
+    if (slots_active.find(node) == slots_active.end()) {
+      auto slot = slots_free.front();
+      slots_free.pop();
+      nodeToBuffer(node, slot);
+      m_active_buffers.push_back(slot);
+    }
+  }
+  // store new cut
+  m_cut = cut;
+
+  std::cout << "new cut is (";
+  for (auto const& node : m_cut) {
+    std::cout << node << ", ";
+  }
+  std::cout << ")" << std::endl;
 }

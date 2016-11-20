@@ -7,8 +7,10 @@
 
 #include "bvh.h"
 #include "lod_stream.h"
-
 #include <vulkan/vulkan.hpp>
+#include <glm/gtc/type_precision.hpp>
+
+#include <set>
 
 class Device;
 
@@ -25,13 +27,21 @@ class ModelLod {
 
   void swap(ModelLod& dev);
 
+  std::vector<std::size_t> const& cut() const;
+  std::vector<std::size_t> const& activeBuffers() const;
+
   vk::Buffer const& buffer(std::size_t i = 0) const;
-  std::vector<std::size_t> const& activeNodes() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numVertices() const;
-  void nodeToBuffer(std::size_t node, std::size_t buffer);
+
+  void update(glm::fvec3 const& pod_view);
 
  private:
+  void setCut(std::vector<std::size_t> const& cut);
+  void nodeToBuffer(std::size_t node, std::size_t buffer);
+  float nodeError(glm::fvec3 const& pos_view, std::size_t node);
+  bool nodeSplitable(std::size_t node);
+
   model_t m_model;
   Device const* m_device;
   vk::VertexInputBindingDescription m_bind_info;
@@ -45,7 +55,8 @@ class ModelLod {
   vklod::bvh m_bvh;
   vk::DeviceSize m_size_node;
   std::vector<std::vector<float>> m_nodes;
-  std::vector<std::size_t> m_active_nodes;
+  std::vector<std::size_t> m_cut;
+  std::vector<std::size_t> m_active_buffers;
 };
 
 #endif

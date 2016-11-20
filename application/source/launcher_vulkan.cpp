@@ -270,7 +270,7 @@ void LauncherVulkan::updateCommandBuffers() {
     m_command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
   }
   else {
-    for(auto idx_node : m_model_lod.activeNodes()) {
+    for(auto idx_node : m_model_lod.activeBuffers()) {
       m_command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer(idx_node)}, {0});
       m_command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);
     }
@@ -740,8 +740,13 @@ void LauncherVulkan::key_callback(GLFWwindow* m_window, int key, int scancode, i
   else if (key == GLFW_KEY_R && action == GLFW_PRESS) {
     update_shader_programs();
   }
+  else if (key == GLFW_KEY_U && action == GLFW_PRESS) {
+    m_model_lod.update(m_camera.position());
+  }
   else if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-    m_thread_load = std::thread(&LauncherVulkan::loadModel, this);
+    if (m_sphere) {
+      m_thread_load = std::thread(&LauncherVulkan::loadModel, this);
+    }
     // loadModel();
   }
 }
