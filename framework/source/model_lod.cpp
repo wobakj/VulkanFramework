@@ -158,10 +158,16 @@ void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
   std::swap(m_device, dev.m_device);
   std::swap(m_bind_info, dev.m_bind_info);
   std::swap(m_attrib_info, dev.m_attrib_info);
-  std::swap(m_buffers, dev.m_buffers);
-  std::swap(m_buffers_stage, dev.m_buffers_stage);
   std::swap(m_memory, dev.m_memory);
   std::swap(m_memory_stage, dev.m_memory_stage);
+  std::swap(m_buffers, dev.m_buffers);
+  std::swap(m_buffers_stage, dev.m_buffers_stage);
+  for (auto& buffer : m_buffers_stage) {
+    buffer.setMemory(m_memory_stage);
+  }
+  for (auto& buffer : m_buffers) {
+    buffer.setMemory(m_memory);
+  }
   std::swap(m_num_uploads, dev.m_num_uploads);
   std::swap(m_num_nodes, dev.m_num_nodes);
   std::swap(m_nodes, dev.m_nodes);

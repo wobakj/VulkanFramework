@@ -23,6 +23,8 @@ class Buffer : public ResourceBuffer {
   Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);
 
+  void setMemory(Memory& memory);
+
   void swap(Buffer& dev);
   vk::MemoryRequirements requirements() const;
 

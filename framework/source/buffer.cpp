@@ -72,7 +72,6 @@ void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
-
 vk::MemoryRequirements Buffer::requirements() const {
   return (*m_device)->getBufferMemoryRequirements(get());
 }
@@ -80,5 +79,8 @@ vk::MemoryRequirements Buffer::requirements() const {
 void Buffer::swap(Buffer& buffer) {
   ResourceBuffer::swap(buffer);
   std::swap(m_desc_info, buffer.m_desc_info);
-
  }
+
+void Buffer::setMemory(Memory& memory) {
+  m_memory = &memory;
+}
