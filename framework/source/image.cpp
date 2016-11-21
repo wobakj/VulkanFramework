@@ -96,7 +96,7 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
     return vk::AccessFlagBits::eShaderRead;
   } 
   else if (layout == vk::ImageLayout::ePresentSrcKHR) {
-    return vk::AccessFlags{};
+    return vk::AccessFlagBits::eMemoryRead;
   } 
   else {
     throw std::invalid_argument("unsupported layout for access mask!");

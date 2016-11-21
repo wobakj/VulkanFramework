@@ -57,9 +57,9 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
     }
   }
 
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
+  vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
     if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined) {
-      return {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+      return {vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear};
     }
 
     for (const auto& availableFormat : availableFormats) {

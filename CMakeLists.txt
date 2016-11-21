@@ -27,10 +27,11 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 set(GLOBAL_EXT_DIR ${CMAKE_SOURCE_DIR}/external)
 include(FindDependency)
+include(AddSubLibrary)
 
 # vulkan SDK
-set(VULKAN_INCLUDE_SEARCH_DIR "external/VulkanSDSK-1.0.26.0/x86_64/include")
-set(VULKAN_LIBRARY_SEARCH_DIR "external/VulkanSDSK-1.0.26.0/x86_64/lib")
+set(VULKAN_INCLUDE_SEARCH_DIR "external/VulkanSDK-1.0.30.0/x86_64/include")
+set(VULKAN_LIBRARY_SEARCH_DIR "external/VulkanSDK-1.0.30.0/x86_64/lib")
 find_dependency(VULKAN vulkan/vulkan.h vulkan)
 # get sdk location
 string(LENGTH ${VULKAN_INCLUDE_DIRS} DIR_LENGTH)
