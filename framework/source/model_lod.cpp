@@ -132,7 +132,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
     ++level;
   }
   level -= 1;
-  std::cout << "drawing level " << level << std::endl;
+  std::cout << "initially drawing level " << level << std::endl;
 
   std::vector<std::size_t> cut_new{};
   for(std::size_t i = 0; i < m_bvh.get_length_of_depth(level); ++i) {
@@ -143,7 +143,6 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
 }
 
 void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
-  std::cout << "loading node " << node << " into buffer " << buffer << std::endl;
   m_buffers_stage[buffer].setData(m_nodes[node].data(), m_size_node, 0);
   m_device->copyBuffer(m_buffers_stage[buffer], m_buffers[buffer], m_size_node, 0, 0);
 }
