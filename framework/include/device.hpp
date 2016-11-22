@@ -37,7 +37,7 @@ class Device : public WrapperDevice {
 
   void swap(Device& dev);
   // buffer functions
-  Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const;
+  Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const;
   void uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& offset = 0);
   void uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& offset = 0);
   void copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
@@ -62,8 +62,8 @@ class Device : public WrapperDevice {
   uint32_t getQueueIndex(std::string const& name) const;
 
   Memory& memoryPool(std::string const&);
-  void allocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
-  void reallocateMemoryPool(std::string const&, uint32_t type, vk::DeviceSize const& size);
+  void allocateMemoryPool(std::string const&, uint32_t type, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size);
+  void reallocateMemoryPool(std::string const&, uint32_t type, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size);
   void adjustStagingPool(vk::DeviceSize const& size);
 
   vk::CommandPool const& pool(std::string const&) const;

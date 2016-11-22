@@ -55,9 +55,9 @@ Model::Model(Device& device, model_t const& model)
   m_attrib_info = model_to_attr(model);
   // create one buffer to store all data
   vk::DeviceSize combined_size = m_model.vertex_num * m_model.vertex_bytes + uint32_t(m_model.indices.size() * model_t::INDEX.size);
-  m_buffer = device.createBuffer(combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_buffer = device.createBuffer(combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
 
-  m_memory = Memory{device, m_buffer.requirements(), m_buffer.memFlags()};
+  m_memory = Memory{device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   m_buffer.bindTo(m_memory);
 
   // upload vertex data

@@ -513,7 +513,7 @@ void LauncherVulkan::createSurface() {
 
 void LauncherVulkan::createMemoryPools() {
   // allocate pool for 5 32x4 fb attachments
-  m_device.reallocateMemoryPool("framebuffer", m_image_pos.memoryType(), m_image_pos.size() * 5);
+  m_device.reallocateMemoryPool("framebuffer", m_image_pos.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_image_pos.size() * 5);
   
   m_image_depth.bindTo(m_device.memoryPool("framebuffer"));
   m_image_color.bindTo(m_device.memoryPool("framebuffer"));
@@ -553,7 +553,7 @@ void LauncherVulkan::createTextureImage() {
 
   m_image = m_device.createImage(pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
   // space for 14 8x3 1028 textures
-  m_device.allocateMemoryPool("textures", m_image.memoryType(), m_image.size() * 16);
+  m_device.allocateMemoryPool("textures", m_image.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_image.size() * 16);
   m_image.bindTo(m_device.memoryPool("textures"));
   m_image.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
@@ -603,12 +603,12 @@ void LauncherVulkan::createDescriptorPool() {
 
 void LauncherVulkan::createUniformBuffers() {
   VkDeviceSize size = sizeof(BufferLights);
-  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
   size = sizeof(UniformBufferObject);
-  m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal};
+  m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffer_light.memoryType(), m_buffer_light.size() * 16);
+  m_device.allocateMemoryPool("uniforms", m_buffer_light.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffer_light.size() * 16);
   m_buffer_light.bindTo(m_device.memoryPool("uniforms"));
   m_buffer_uniform.bindTo(m_device.memoryPool("uniforms"));
 }

@@ -92,6 +92,7 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
     return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
   } 
   else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+    // read but not from input attachment
     return vk::AccessFlagBits::eShaderRead;
   } 
   else if (layout == vk::ImageLayout::ePresentSrcKHR) {
@@ -241,6 +242,10 @@ vk::AttachmentDescription Image::toAttachment(bool clear) const {
 
 uint32_t Image::memoryType() const {
   return findMemoryType(m_device->physical(), requirements().memoryTypeBits, m_flags_mem);
+}
+
+uint32_t Image::memoryTypeBits() const {
+  return requirements().memoryTypeBits;
 }
 
 void Image::createView() {

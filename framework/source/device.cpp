@@ -171,15 +171,15 @@ uint32_t Device::getQueueIndex(std::string const& name) const {
   return m_queue_indices.at(name);
 }
 
-Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties) const {
-  return Buffer{*this, size, usage, memProperties};
+Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
+  return Buffer{*this, size, usage};
 }
 
 void Device::adjustStagingPool(vk::DeviceSize const& size) {
   if (m_pools_memory.find("stage") == m_pools_memory.end() || memoryPool("stage").size() < size) {
     // create new staging buffer
-    m_buffer_stage = Buffer{*this, size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-    reallocateMemoryPool("stage", m_buffer_stage.memoryType(), size);
+    m_buffer_stage = Buffer{*this, size, vk::BufferUsageFlagBits::eTransferSrc};
+    reallocateMemoryPool("stage", m_buffer_stage.requirements().memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, size);
     m_buffer_stage.bindTo(memoryPool("stage"), 0);
   }
 }
@@ -350,13 +350,13 @@ Memory& Device::memoryPool(std::string const& name) {
   return m_pools_memory.at(name);
 }
 
-void Device::allocateMemoryPool(std::string const& name, uint32_t type, vk::DeviceSize const& size) {
-  std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
-  m_pools_memory.emplace(name, Memory{*this, type, size});
+void Device::allocateMemoryPool(std::string const& name, uint32_t type_bits, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size) {
+  // std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
+  m_pools_memory.emplace(name, Memory{*this, findMemoryType(physical(), type_bits, mem_flags), size});
 }
 
-void Device::reallocateMemoryPool(std::string const& name, uint32_t type, vk::DeviceSize const& size) {
-  std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
-  m_pools_memory[name] = Memory{*this, type, size};
+void Device::reallocateMemoryPool(std::string const& name, uint32_t type_bits, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size) {
+  // std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
+  m_pools_memory[name] = Memory{*this, findMemoryType(physical(), type_bits, mem_flags), size};
 }
 

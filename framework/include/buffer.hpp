@@ -14,8 +14,7 @@ class Buffer : public WrapperBuffer {
  public:
   
   Buffer();
-  Buffer(Device const& dev, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
-  Buffer(Device const& device, void* data, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
+  Buffer(Device const& dev, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage);
   Buffer(Buffer && dev);
   Buffer(Buffer const&) = delete;
   ~Buffer();
@@ -30,9 +29,8 @@ class Buffer : public WrapperBuffer {
   void swap(Buffer& dev);
   vk::DeviceSize size() const;
   vk::MemoryRequirements requirements() const;
-  vk::MemoryPropertyFlags const& memFlags() const;
-  vk::DescriptorBufferInfo const& descriptorInfo() const;
-  uint32_t memoryType() const;
+  // vk::DescriptorBufferInfo const& descriptorInfo() const;
+  uint32_t memoryTypeBits() const;
 
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
 
@@ -43,7 +41,6 @@ class Buffer : public WrapperBuffer {
   Memory* m_memory;
   vk::DescriptorBufferInfo m_desc_info;
   vk::DeviceSize m_offset;
-  vk::MemoryPropertyFlags m_flags_mem;
 };
 
 #endif

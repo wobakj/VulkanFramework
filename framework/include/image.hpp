@@ -27,8 +27,6 @@ class Image : public WrapperImage {
   Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags); 
   ~Image();
 
-  // Image(Device const& dev, vk::DeviceSize const& size, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& memProperties);
-  // Image(Device const& device, void* data, vk::DeviceSize const& size, vk::ImageUsageFlags const& usage);
   Image(Image && dev);
   Image(Image const&) = delete;
   
@@ -46,6 +44,7 @@ class Image : public WrapperImage {
   vk::MemoryRequirements requirements() const;
   vk::MemoryPropertyFlags const& memFlags() const;
   uint32_t memoryType() const;
+  uint32_t memoryTypeBits() const;
  
   vk::ImageLayout const& layout() const;
   vk::AttachmentDescription toAttachment(bool clear = true) const;

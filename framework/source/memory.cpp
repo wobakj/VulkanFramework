@@ -5,6 +5,7 @@
 #include "image.hpp"
 
 #include <iostream>
+#include <cmath>
 
 uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
   auto memProperties = device.getMemoryProperties();
