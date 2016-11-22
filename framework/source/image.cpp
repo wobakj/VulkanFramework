@@ -136,7 +136,7 @@ Image::Image(Image && dev)
   swap(dev);
 }
 
-Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) 
+Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
  :Image{}
 {  
   m_device = &device;
@@ -149,8 +149,8 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
   m_info.arrayLayers = 1;
   m_info.format = format;
   m_info.tiling = tiling;
-  // if memory is host visible, image is likely target of upload
-  if (mem_flags & vk::MemoryPropertyFlagBits::eHostVisible) {
+  // if image is linear, its probably for data upload
+  if (tiling == vk::ImageTiling::eLinear) {
     m_info.initialLayout = vk::ImageLayout::ePreinitialized;
   }
   else {
@@ -169,7 +169,6 @@ Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk
   }
 
   m_object = device->createImage(info());
-  m_flags_mem = mem_flags;
 }
 
 Image::~Image() {
@@ -240,10 +239,6 @@ vk::AttachmentDescription Image::toAttachment(bool clear) const {
   return img_to_attachment(info(), clear);
 }
 
-uint32_t Image::memoryType() const {
-  return findMemoryType(m_device->physical(), requirements().memoryTypeBits, m_flags_mem);
-}
-
 uint32_t Image::memoryTypeBits() const {
   return requirements().memoryTypeBits;
 }
@@ -290,15 +285,10 @@ vk::MemoryRequirements Image::requirements() const {
   return (*m_device)->getImageMemoryRequirements(get());
 }
 
-vk::MemoryPropertyFlags const& Image::memFlags() const {
-  return m_flags_mem;
-}
-
 void Image::swap(Image& dev) {
   WrapperImage::swap(dev);
   std::swap(m_memory, dev.m_memory);
   std::swap(m_device, dev.m_device);
   std::swap(m_view, dev.m_view);
   std::swap(m_offset, dev.m_offset);
-  std::swap(m_flags_mem, dev.m_flags_mem);
  }

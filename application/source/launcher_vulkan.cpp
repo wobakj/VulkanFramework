@@ -489,9 +489,9 @@ void LauncherVulkan::createLights() {
   std::srand(5);
   for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     light_t light;
-    light.position = glm::fvec3{float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX} * 25.0f - 12.5f;
-    light.color = glm::fvec3{float(rand()) / RAND_MAX, float(rand()) / RAND_MAX, float(rand()) / RAND_MAX};
-    light.radius = float(rand()) / RAND_MAX * 5.0f + 5.0f;
+    light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
+    light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
+    light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
 }
@@ -530,19 +530,19 @@ void LauncherVulkan::createDepthResource() {
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
 
-  m_image_depth = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_depth = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
   m_image_depth.transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-  m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_color = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
   m_image_color.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-  m_image_pos = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_pos = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
   m_image_pos.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-  m_image_normal = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_normal = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
   m_image_normal.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-  m_image_color_2 = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image_color_2 = m_device.createImage(m_swap_chain.extent().width, m_swap_chain.extent().height, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc);
   m_image_color_2.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
   createMemoryPools();
@@ -551,7 +551,7 @@ void LauncherVulkan::createDepthResource() {
 void LauncherVulkan::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
-  m_image = m_device.createImage(pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_image = m_device.createImage(pix_data.width, pix_data.height, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
   // space for 14 8x3 1028 textures
   m_device.allocateMemoryPool("textures", m_image.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_image.size() * 16);
   m_image.bindTo(m_device.memoryPool("textures"));

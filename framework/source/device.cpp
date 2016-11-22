@@ -184,12 +184,12 @@ void Device::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) const {
-  return Image{*this, width, height, format, tiling, usage, mem_flags};
+Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) const {
+  return Image{*this, width, height, format, tiling, usage};
 }
 
 void Device::uploadImageData(void const* data_ptr, Image& image) {
-  Image image_stage{*this, image.info().extent.width, image.info().extent.height, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  Image image_stage{*this, image.info().extent.width, image.info().extent.height, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc};
   // data size is dependent on target image size, not input data size!
   adjustStagingPool(image.size());
   image_stage.bindTo(memoryPool("stage"), 0);

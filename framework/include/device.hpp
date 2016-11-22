@@ -43,7 +43,7 @@ class Device : public WrapperDevice {
   void copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
 
   // image functions
-  Image createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags) const; 
+  Image createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) const; 
   void uploadImageData(void const* data_ptr, Image& image);
 
   void copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const;

@@ -24,7 +24,7 @@ class Image : public WrapperImage {
  public:
   
   Image();
-  Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage, vk::MemoryPropertyFlags const& mem_flags); 
+  Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage); 
   ~Image();
 
   Image(Image && dev);
@@ -42,8 +42,6 @@ class Image : public WrapperImage {
 
   vk::DeviceSize size() const;
   vk::MemoryRequirements requirements() const;
-  vk::MemoryPropertyFlags const& memFlags() const;
-  uint32_t memoryType() const;
   uint32_t memoryTypeBits() const;
  
   vk::ImageLayout const& layout() const;
@@ -63,7 +61,6 @@ class Image : public WrapperImage {
   Memory* m_memory;
   vk::ImageView m_view;
   vk::DeviceSize m_offset;
-  vk::MemoryPropertyFlags m_flags_mem;
 };
 
 #endif
