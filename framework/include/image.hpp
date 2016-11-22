@@ -40,7 +40,6 @@ class Image : public ResourceImage {
 
   void swap(Image& dev);
 
- 
   vk::ImageLayout const& layout() const;
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;

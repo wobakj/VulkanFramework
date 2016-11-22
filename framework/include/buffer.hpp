@@ -27,14 +27,15 @@ class Buffer : public ResourceBuffer {
   void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   void swap(Buffer& dev);
+  vk::MemoryRequirements requirements() const;
 
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const override;
 
-  vk::MemoryRequirements requirements() const;
  private:
   void destroy() override;
 
   vk::DescriptorBufferInfo m_desc_info;
+
 };
 
 #endif

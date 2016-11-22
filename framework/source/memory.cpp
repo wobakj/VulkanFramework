@@ -3,10 +3,10 @@
 #include "device.hpp"
 #include "buffer.hpp"
 #include "image.hpp"
+#include "resource.hpp"
 
 #include <iostream>
 #include <cmath>
-#include "resource.hpp"
 
 uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
   auto memProperties = device.getMemoryProperties();

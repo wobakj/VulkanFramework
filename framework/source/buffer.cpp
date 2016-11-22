@@ -62,11 +62,6 @@ void Buffer::destroy() {
   return *this;
  }
 
-
-vk::MemoryRequirements Buffer::requirements() const {
-  return (*m_device)->getBufferMemoryRequirements(get());
-}
-
 // todo: write descriptor set wrapper to allow automatic type detection
 void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index) const {
   vk::WriteDescriptorSet descriptorWrite{};
@@ -87,7 +82,13 @@ void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
+
+vk::MemoryRequirements Buffer::requirements() const {
+  return (*m_device)->getBufferMemoryRequirements(get());
+}
+
 void Buffer::swap(Buffer& buffer) {
   ResourceBuffer::swap(buffer);
   std::swap(m_desc_info, buffer.m_desc_info);
+
  }
