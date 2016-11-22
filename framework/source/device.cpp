@@ -178,9 +178,9 @@ Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags con
 void Device::adjustStagingPool(vk::DeviceSize const& size) {
   if (m_pools_memory.find("stage") == m_pools_memory.end() || memoryPool("stage").size() < size) {
     // create new staging buffer
-    m_buffer_stage = Buffer{*this, size, vk::BufferUsageFlagBits::eTransferSrc};
-    reallocateMemoryPool("stage", m_buffer_stage.requirements().memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, size);
-    m_buffer_stage.bindTo(memoryPool("stage"), 0);
+    m_buffer_stage = std::unique_ptr<Buffer>{new Buffer{*this, size, vk::BufferUsageFlagBits::eTransferSrc}};
+    reallocateMemoryPool("stage", m_buffer_stage->requirements().memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, size);
+    m_buffer_stage->bindTo(memoryPool("stage"), 0);
   }
 }
 
@@ -213,9 +213,9 @@ void Device::uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, 
   // data size is dependent on target buffer size, not input data size!
   adjustStagingPool(size);
   // m_buffer_stage.bindTo(memoryPool("stage"), 0);
-  m_buffer_stage.setData(data_ptr, size, 0);
+  m_buffer_stage->setData(data_ptr, size, 0);
 
-  copyBuffer(m_buffer_stage, buffer, size, 0, dst_offset);
+  copyBuffer(*m_buffer_stage, buffer, size, 0, dst_offset);
 }
 
 void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {

@@ -3,13 +3,13 @@
 
 #include "wrapper.hpp"
 #include "memory.hpp"
-#include "buffer.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 #include <vector>
 #include <map>
 #include <mutex>
+#include <memory>
 
 class SwapChain;
 class Buffer;
@@ -83,7 +83,7 @@ class Device : public WrapperDevice {
   std::map<std::string, Memory> m_pools_memory;
   std::vector<const char*> m_extensions;
   vk::CommandBuffer m_command_buffer_help;
-  Buffer m_buffer_stage;
+  std::unique_ptr<Buffer> m_buffer_stage;
   mutable std::mutex m_mutex;
 };
 

@@ -2,6 +2,7 @@
 #define BUFFER_HPP
 
 #include "wrapper.hpp"
+#include "resource.hpp"
 
 #include <vulkan/vulkan.hpp>
 

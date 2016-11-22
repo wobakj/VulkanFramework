@@ -774,7 +774,6 @@ void LauncherVulkan::quit(int status) {
   std::exit(status);
 }
 
-
 void glfw_error(int error, const char* description) {
   std::cerr << "GLFW Error " << error << " : "<< description << std::endl;
 }
