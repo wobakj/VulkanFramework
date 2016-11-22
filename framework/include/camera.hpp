@@ -15,10 +15,11 @@ class Camera {
   void update(float delta_time);
   void setAspect(std::size_t width, std::size_t height);
 
-  glm::mat4 const& viewMatrix() const;
-  glm::mat4 const& projectionMatrix() const;
-  glm::vec3 position() const;
-  glm::vec2 const& fov() const;
+  glm::fmat4 const& viewMatrix() const;
+  glm::fmat4 const& projectionMatrix() const;
+  glm::fvec3 position() const;
+  glm::fvec2 const& fov() const;
+  bool changed() const;
 
  private:
   void queryKeyboard(float delta_time);
@@ -30,25 +31,25 @@ class Camera {
   double last_x_;
   double last_y_;
   // camera movement to apply in frame
-  glm::vec3 movement_;
+  glm::fvec3 movement_;
   // camera position
-  glm::vec3 position_;
-  glm::vec2 rotation_;
+  glm::fvec3 position_;
+  glm::fvec2 rotation_;
   // world transformation
-  glm::mat4 transformation_;
+  glm::fmat4 transformation_;
   // inverted transformation
-  glm::mat4 view_matrix_;
+  glm::fmat4 view_matrix_;
   // whether 1stperson cma is on
   bool flying_cam_;
   // projection parameters
-  glm::mat4 projection_matrix_;
+  glm::fmat4 projection_matrix_;
   // the static fov
   float fov_y_;
   // the dynamic fov, depending on aspect
-  glm::vec2 fov_;
+  glm::fvec2 fov_;
   float z_near_;
   float z_far_;
-
+  mutable bool m_changed;
   static const float translation_speed;
   static const float rotation_speed;
 };

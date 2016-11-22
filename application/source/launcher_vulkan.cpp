@@ -644,7 +644,9 @@ void LauncherVulkan::mainLoop() {
     time_last = time_current;
     // update buffers
     m_camera.update(time_delta);
-    updateUniformBuffer();
+    if (m_camera.changed()) {
+      updateUniformBuffer();
+    }
     // draw geometry
     draw();
     // query input
