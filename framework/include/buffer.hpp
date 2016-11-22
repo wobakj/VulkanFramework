@@ -10,8 +10,8 @@ class SwapChain;
 class Device;
 class Memory;
 
-using WrapperBuffer = Wrapper<vk::Buffer, vk::BufferCreateInfo>;
-class Buffer : public WrapperBuffer {
+using ResourceBuffer = Resource<vk::Buffer, vk::BufferCreateInfo>;
+class Buffer : public ResourceBuffer {
  public:
   
   Buffer();
@@ -23,25 +23,18 @@ class Buffer : public WrapperBuffer {
   Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);
 
-  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
   void bindTo(Memory& memory);
   void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   void swap(Buffer& dev);
-  vk::DeviceSize size() const;
+
+  void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const override;
+
   vk::MemoryRequirements requirements() const;
-  // vk::DescriptorBufferInfo const& descriptorInfo() const;
-  uint32_t memoryTypeBits() const;
-
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
-
  private:
   void destroy() override;
 
-  Device const* m_device;
-  Memory* m_memory;
   vk::DescriptorBufferInfo m_desc_info;
-  vk::DeviceSize m_offset;
 };
 
 #endif

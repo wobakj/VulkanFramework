@@ -124,9 +124,7 @@ vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::ve
 }
 
 Image::Image()
- :WrapperImage{}
- ,m_device{nullptr}
- ,m_memory{nullptr}
+ :ResourceImage{}
  ,m_view{VK_NULL_HANDLE}
 {}
 
@@ -175,10 +173,6 @@ Image::~Image() {
   cleanup();
 }
 
-void Image::setData(void const* data, vk::DeviceSize const& size) {
-  m_memory->setData(data, size, m_offset);
-}
-
 void Image::bindTo(Memory& memory) {
   m_offset = memory.bindImage(*this);
   m_memory = &memory;
@@ -219,10 +213,6 @@ void Image::destroy() {
   return *this;
  }
 
-vk::DeviceSize Image::size() const {
-  return (*m_device)->getImageMemoryRequirements(get()).size;
-}
-
 vk::ImageLayout const& Image::layout() const {
   return m_info.initialLayout;
 }
@@ -239,16 +229,12 @@ vk::AttachmentDescription Image::toAttachment(bool clear) const {
   return img_to_attachment(info(), clear);
 }
 
-uint32_t Image::memoryTypeBits() const {
-  return requirements().memoryTypeBits;
-}
-
 void Image::createView() {
   auto view_info = img_to_view(get(), info()); 
   m_view = (*m_device)->createImageView(view_info);  
 }
 
-void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler) const {
+void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
   imageInfo.imageView = m_view;
@@ -257,7 +243,7 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sample
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.dstArrayElement = index;
   descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &imageInfo;
@@ -265,7 +251,7 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sample
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
-void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
+void Image::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
   imageInfo.imageView = m_view;
@@ -273,7 +259,7 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = 0;
+  descriptorWrite.dstArrayElement = index;
   descriptorWrite.descriptorType = vk::DescriptorType::eInputAttachment;
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &imageInfo;
@@ -286,9 +272,6 @@ vk::MemoryRequirements Image::requirements() const {
 }
 
 void Image::swap(Image& dev) {
-  WrapperImage::swap(dev);
-  std::swap(m_memory, dev.m_memory);
-  std::swap(m_device, dev.m_device);
+  ResourceImage::swap(dev);
   std::swap(m_view, dev.m_view);
-  std::swap(m_offset, dev.m_offset);
  }

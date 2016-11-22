@@ -20,19 +20,22 @@ class Resource : public Wrapper<T, U> {
    ,m_memory{nullptr}
   {}
 
-  void bindTo(Memory& memory) {
-    m_offset = memory.bindBuffer(*this);
-    m_memory = &memory;
-  }
+  // void bindTo(Memory& memory) {
+  //   m_offset = memory.bindBuffer(*this);
+  //   m_memory = &memory;
+  // }
 
-  void bindTo(Memory& memory, vk::DeviceSize const& offset) {
-    m_offset = memory.bindBuffer(*this, offset);
-    m_memory = &memory;
-  }
+  // void bindTo(Memory& memory, vk::DeviceSize const& offset) {
+  //   m_offset = memory.bindBuffer(*this, offset);
+  //   m_memory = &memory;
+  // }
 
-  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0) {
     m_memory->setData(data, size, m_offset + offset);
   }
+
+  virtual void bindTo(Memory& memory) = 0;
+  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset) = 0;
 
   void swap(Resource& rhs) {
     WrapperResource::swap(rhs);
@@ -42,12 +45,14 @@ class Resource : public Wrapper<T, U> {
   }
 
   vk::DeviceSize size() const {
-    return (*m_device)->getBufferMemoryRequirements(WrapperResource::get()).size;
+    return requirements().size;
   }
 
-  vk::MemoryRequirements requirements() const {
-    return (*m_device)->getBufferMemoryRequirements(WrapperResource::get());
+  vk::DeviceSize alignment() const {
+    return requirements().alignment;
   }
+
+  virtual vk::MemoryRequirements requirements() const = 0;
 
   uint32_t memoryTypeBits() const {
     return requirements().memoryTypeBits;
@@ -55,8 +60,7 @@ class Resource : public Wrapper<T, U> {
 
   virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const = 0;
 
- private:
-
+ protected:
   Device const* m_device;
   Memory* m_memory;
   vk::DeviceSize m_offset;

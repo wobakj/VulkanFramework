@@ -75,7 +75,7 @@ vk::DeviceSize Memory::bindBuffer(Buffer const& buffer, vk::DeviceSize offset) {
     throw std::out_of_range{"Buffer size " + std::to_string(buffer.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
   // fulfill allignment requirements of object
-  auto alignment = buffer.requirements().alignment;
+  auto alignment = buffer.alignment();
   offset = alignment * vk::DeviceSize(std::ceil(float(offset) / float(alignment)));
   (*m_device)->bindBufferMemory(buffer, get(), offset);
   // store new offset
@@ -88,7 +88,7 @@ vk::DeviceSize Memory::bindImage(Image const& image, vk::DeviceSize offset) {
     throw std::out_of_range{"Image size " + std::to_string(image.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
   // fulfill allignment requirements of object
-  auto alignment = image.requirements().alignment;
+  auto alignment = image.alignment();
   offset = alignment * vk::DeviceSize(std::ceil(float(offset) / float(alignment)));
   (*m_device)->bindImageMemory(image, get(), offset);
   // store new offset

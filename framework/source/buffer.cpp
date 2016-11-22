@@ -6,9 +6,7 @@
 #include <iostream>
 
 Buffer::Buffer()
- :WrapperBuffer{}
- ,m_device{nullptr}
- ,m_memory{nullptr}
+ :ResourceBuffer{}
  ,m_desc_info{}
 {}
 
@@ -55,10 +53,6 @@ Buffer::~Buffer() {
   cleanup();
 }
 
-void Buffer::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  m_memory->setData(data, size, m_offset + offset);
-}
-
 void Buffer::destroy() {
   (*m_device)->destroyBuffer(get());
 }
@@ -68,9 +62,11 @@ void Buffer::destroy() {
   return *this;
  }
 
-// vk::DescriptorBufferInfo const& Buffer::descriptorInfo() const {
-//   return m_desc_info;
-// }
+
+vk::MemoryRequirements Buffer::requirements() const {
+  return (*m_device)->getBufferMemoryRequirements(get());
+}
+
 // todo: write descriptor set wrapper to allow automatic type detection
 void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index) const {
   vk::WriteDescriptorSet descriptorWrite{};
@@ -91,22 +87,7 @@ void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
-vk::DeviceSize Buffer::size() const {
-  return (*m_device)->getBufferMemoryRequirements(get()).size;
-}
-
-vk::MemoryRequirements Buffer::requirements() const {
-  return (*m_device)->getBufferMemoryRequirements(get());
-}
-
-uint32_t Buffer::memoryTypeBits() const {
-  return requirements().memoryTypeBits;
-}
-
 void Buffer::swap(Buffer& buffer) {
-  WrapperBuffer::swap(buffer);
-  std::swap(m_memory, buffer.m_memory);
-  std::swap(m_device, buffer.m_device);
+  ResourceBuffer::swap(buffer);
   std::swap(m_desc_info, buffer.m_desc_info);
-  std::swap(m_offset, buffer.m_offset);
  }
