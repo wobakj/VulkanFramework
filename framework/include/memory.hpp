@@ -3,6 +3,8 @@
 
 #include "wrapper.hpp"
 
+template<typename T, typename U>
+class Resource;
 #include <vulkan/vulkan.hpp>
 
 class Buffer;
@@ -27,11 +29,19 @@ class Memory : public WrapperMemory {
   Memory& operator=(Memory&& dev);
 
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
-  vk::DeviceSize bindBuffer(Buffer const& buffer);
-  vk::DeviceSize bindImage(Image const& buffer);
+  vk::DeviceSize bindResource(Buffer const& buffer);
+  vk::DeviceSize bindResource(Image const& buffer);
+  // vk::DeviceSize bindBuffer(Buffer const& buffer);
+  // vk::DeviceSize bindImage(Image const& buffer);
   // overwrite/alias memory range
-  vk::DeviceSize bindBuffer(Buffer const& buffer, vk::DeviceSize offset);
-  vk::DeviceSize bindImage(Image const& buffer, vk::DeviceSize offset);
+  // vk::DeviceSize bindBuffer(Buffer const& buffer, vk::DeviceSize offset);
+  // vk::DeviceSize bindImage(Image const& buffer, vk::DeviceSize offset);
+  vk::DeviceSize bindResource(Buffer const& resource, vk::DeviceSize offset);
+  vk::DeviceSize bindResource(Image const& resource, vk::DeviceSize offset);
+  template<typename T,typename U>
+  vk::DeviceSize bindResource(Resource<T, U> const& resource);
+  template<typename T,typename U>
+  vk::DeviceSize bindResource(Resource<T, U> const& resource, vk::DeviceSize offset);
   vk::DeviceSize size() const;
   vk::DeviceSize space() const;
   uint32_t memoryType() const;
@@ -39,6 +49,9 @@ class Memory : public WrapperMemory {
   void swap(Memory& dev);
   
  private:
+  void bindResourceMemory(Buffer const& buffer, vk::DeviceSize offset);
+  void bindResourceMemory(Image const& image, vk::DeviceSize offset);
+
   void destroy() override;
 
   Device const* m_device;

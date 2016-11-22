@@ -40,12 +40,12 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
 }
 
 void Buffer::bindTo(Memory& memory) {
-  m_offset = memory.bindBuffer(*this);
+  m_offset = memory.bindResource(*this);
   m_memory = &memory;
 }
 
 void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = memory.bindBuffer(*this, offset);
+  m_offset = memory.bindResource(*this, offset);
   m_memory = &memory;
 }
 

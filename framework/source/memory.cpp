@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <cmath>
+#include "resource.hpp"
 
 uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
   auto memProperties = device.getMemoryProperties();
@@ -62,15 +63,20 @@ void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSiz
   (*m_device)->unmapMemory(get());
 }
 
-vk::DeviceSize Memory::bindBuffer(Buffer const& buffer) {
-  return bindBuffer(buffer, m_offset);
+vk::DeviceSize Memory::bindResource(Buffer const& buffer) {
+  return bindResource(buffer, m_offset);
 }
 
-vk::DeviceSize Memory::bindImage(Image const& image) {
-  return bindImage(image, m_offset);
+vk::DeviceSize Memory::bindResource(Image const& image) {
+  return bindResource(image, m_offset);
 }
 
-vk::DeviceSize Memory::bindBuffer(Buffer const& buffer, vk::DeviceSize offset) {
+template<typename T, typename U>
+vk::DeviceSize Memory::bindResource(Resource<T, U> const& image) {
+  return bindResource(image, m_offset);
+}
+
+vk::DeviceSize Memory::bindResource(Buffer const& buffer, vk::DeviceSize offset) {
   if (offset + buffer.size() > size()) {
     throw std::out_of_range{"Buffer size " + std::to_string(buffer.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
@@ -83,7 +89,7 @@ vk::DeviceSize Memory::bindBuffer(Buffer const& buffer, vk::DeviceSize offset) {
   return offset;
 }
 
-vk::DeviceSize Memory::bindImage(Image const& image, vk::DeviceSize offset) {
+vk::DeviceSize Memory::bindResource(Image const& image, vk::DeviceSize offset) {
   if (offset + image.size() > size()) {
     throw std::out_of_range{"Image size " + std::to_string(image.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
@@ -93,6 +99,28 @@ vk::DeviceSize Memory::bindImage(Image const& image, vk::DeviceSize offset) {
   (*m_device)->bindImageMemory(image, get(), offset);
   // store new offset
   m_offset = std::max(m_offset, offset + image.size());
+  return offset;
+}
+
+void Memory::bindResourceMemory(Buffer const& buffer, vk::DeviceSize offset) {
+  (*m_device)->bindBufferMemory(buffer, get(), offset);
+}
+
+void Memory::bindResourceMemory(Image const& image, vk::DeviceSize offset) {
+  (*m_device)->bindImageMemory(image, get(), offset);
+}
+
+template<typename T, typename U>
+vk::DeviceSize Memory::bindResource(Resource<T, U> const& resource, vk::DeviceSize offset) {
+  if (offset + resource.size() > size()) {
+    throw std::out_of_range{"Image size " + std::to_string(resource.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
+  }
+  // fulfill allignment requirements of object
+  auto alignment = resource.alignment();
+  offset = alignment * vk::DeviceSize(std::ceil(float(offset) / float(alignment)));
+  bindResourceMemory(resource, offset);
+  // store new offset
+  m_offset = std::max(m_offset, offset + resource.size());
   return offset;
 }
 

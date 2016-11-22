@@ -2,13 +2,12 @@
 #define RESOURCE_HPP
 
 #include "wrapper.hpp"
-#include "device.hpp"
-#include "memory.hpp"
+// #include "device.hpp"
 
 #include <vulkan/vulkan.hpp>
 
-// class Device;
-// class Memory;
+class Device;
+class Memory;
 
 template<typename T, typename U>
 class Resource : public Wrapper<T, U> {
@@ -20,22 +19,14 @@ class Resource : public Wrapper<T, U> {
    ,m_memory{nullptr}
   {}
 
-  // void bindTo(Memory& memory) {
-  //   m_offset = memory.bindBuffer(*this);
-  //   m_memory = &memory;
-  // }
+  void bindTo(Memory& memory);
 
-  // void bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  //   m_offset = memory.bindBuffer(*this, offset);
-  //   m_memory = &memory;
-  // }
+  void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
-  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0) {
-    m_memory->setData(data, size, m_offset + offset);
-  }
+  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
 
-  virtual void bindTo(Memory& memory) = 0;
-  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset) = 0;
+  // virtual void bindTo(Memory& memory);
+  // virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   void swap(Resource& rhs) {
     WrapperResource::swap(rhs);
@@ -65,5 +56,23 @@ class Resource : public Wrapper<T, U> {
   Memory* m_memory;
   vk::DeviceSize m_offset;
 };
+
+#include "memory.hpp"
+
+template<typename T, typename U>
+  void Resource<T, U>::bindTo(Memory& memory) {
+    m_offset = memory.bindResource(*this);
+    m_memory = &memory;
+  }
+template<typename T, typename U>
+  void Resource<T, U>::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+    m_offset = memory.bindResource(*this, offset);
+    m_memory = &memory;
+  }
+template<typename T, typename U>
+  void Resource<T, U>::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+    m_memory->setData(data, size, m_offset + offset);
+  }
+
 
 #endif
