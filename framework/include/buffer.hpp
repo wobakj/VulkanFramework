@@ -23,9 +23,6 @@ class Buffer : public ResourceBuffer {
   Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);
 
-  void bindTo(Memory& memory);
-  void bindTo(Memory& memory, vk::DeviceSize const& offset);
-
   void swap(Buffer& dev);
   vk::MemoryRequirements requirements() const;
 

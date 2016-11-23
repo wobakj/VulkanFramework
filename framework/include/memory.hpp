@@ -5,6 +5,7 @@
 
 template<typename T, typename U>
 class Resource;
+
 #include <vulkan/vulkan.hpp>
 
 class Buffer;
@@ -29,19 +30,11 @@ class Memory : public WrapperMemory {
   Memory& operator=(Memory&& dev);
 
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
-  vk::DeviceSize bindResource(Buffer const& buffer);
-  vk::DeviceSize bindResource(Image const& buffer);
-  // vk::DeviceSize bindBuffer(Buffer const& buffer);
-  // vk::DeviceSize bindImage(Image const& buffer);
-  // overwrite/alias memory range
-  // vk::DeviceSize bindBuffer(Buffer const& buffer, vk::DeviceSize offset);
-  // vk::DeviceSize bindImage(Image const& buffer, vk::DeviceSize offset);
-  vk::DeviceSize bindResource(Buffer const& resource, vk::DeviceSize offset);
-  vk::DeviceSize bindResource(Image const& resource, vk::DeviceSize offset);
   template<typename T,typename U>
   vk::DeviceSize bindResource(Resource<T, U> const& resource);
   template<typename T,typename U>
   vk::DeviceSize bindResource(Resource<T, U> const& resource, vk::DeviceSize offset);
+  
   vk::DeviceSize size() const;
   vk::DeviceSize space() const;
   uint32_t memoryType() const;
@@ -49,13 +42,35 @@ class Memory : public WrapperMemory {
   void swap(Memory& dev);
   
  private:
-  void bindResourceMemory(Buffer const& buffer, vk::DeviceSize offset);
-  void bindResourceMemory(Image const& image, vk::DeviceSize offset);
+  void bindResourceMemory(vk::Buffer const& buffer, vk::DeviceSize offset);
+  void bindResourceMemory(vk::Image const& image, vk::DeviceSize offset);
 
   void destroy() override;
 
   Device const* m_device;
   vk::DeviceSize m_offset;
 };
+
+
+#include "resource.hpp"
+
+template<typename T, typename U>
+vk::DeviceSize Memory::bindResource(Resource<T, U> const& image) {
+  return bindResource<T, U>(image, m_offset);
+}
+
+template<typename T, typename U>
+vk::DeviceSize Memory::bindResource(Resource<T, U> const& resource, vk::DeviceSize offset) {
+  if (offset + resource.size() > size()) {
+    throw std::out_of_range{"Image size " + std::to_string(resource.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
+  }
+  // fulfill allignment requirements of object
+  auto alignment = resource.alignment();
+  offset = alignment * vk::DeviceSize(std::ceil(float(offset) / float(alignment)));
+  bindResourceMemory(resource.get(), offset);
+  // store new offset
+  m_offset = std::max(m_offset, offset + resource.size());
+  return offset;
+}
 
 #endif

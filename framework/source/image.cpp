@@ -174,8 +174,7 @@ Image::~Image() {
 }
 
 void Image::bindTo(Memory& memory) {
-  m_offset = memory.bindResource(*this);
-  m_memory = &memory;
+  ResourceImage::bindTo(memory);
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
       (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
@@ -185,8 +184,7 @@ void Image::bindTo(Memory& memory) {
 }
 
 void Image::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = memory.bindResource(*this, offset);
-  m_memory = &memory;
+  ResourceImage::bindTo(memory, offset);
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
       (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&

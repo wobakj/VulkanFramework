@@ -39,16 +39,6 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
   m_desc_info.range = size;
 }
 
-void Buffer::bindTo(Memory& memory) {
-  m_offset = memory.bindResource(*this);
-  m_memory = &memory;
-}
-
-void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = memory.bindResource(*this, offset);
-  m_memory = &memory;
-}
-
 Buffer::~Buffer() {
   cleanup();
 }

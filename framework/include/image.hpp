@@ -35,8 +35,8 @@ class Image : public ResourceImage {
   Image& operator=(Image&& dev);
 
   void transitionToLayout(vk::ImageLayout const& newLayout);
-  void bindTo(Memory& memory);
-  void bindTo(Memory& memory, vk::DeviceSize const& offset);
+  void bindTo(Memory& memory) override;
+  void bindTo(Memory& memory, vk::DeviceSize const& offset) override;
 
   void swap(Image& dev);
 
