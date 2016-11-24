@@ -11,8 +11,6 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
  ,m_camera{45.0f, 10, 10, 0.1f, 500.0f, window}
  ,m_device(device)
  ,m_swap_chain(chain)
- ,m_sema_image_ready{m_device, vkDestroySemaphore}
- // ,m_shaders{}
 {
 	initialize();
 }
@@ -22,10 +20,20 @@ Application::~Application() {
   for(auto const& command_buffer : m_command_buffers) {
     m_device->freeCommandBuffers(m_device.pool("graphics"), {command_buffer.second});    
   }
+  for(auto const& semaphore : m_semaphores) {
+    m_device->destroySemaphore(semaphore.second);    
+  }
+  for(auto const& fence : m_fences) {
+    m_device->destroyFence(fence.second);    
+  }
 }
 
 void Application::initialize() {
-  m_sema_image_ready = m_device->createSemaphore({});
+  m_semaphores.emplace("acquire", m_device->createSemaphore({}));
+  m_semaphores.emplace("draw", m_device->createSemaphore({}));
+  m_fences.emplace("draw", m_device->createFence({}));
+  m_device->resetFences({fenceDraw()});
+  
 }
 
 void Application::updateShaderPrograms() {
@@ -55,10 +63,21 @@ void Application::update() {
 	render();
 }
 
+vk::Semaphore const& Application::semaphoreAcquire() {
+  return m_semaphores.at("acquire");
+}
+
+vk::Semaphore const& Application::semaphoreDraw() {
+  return m_semaphores.at("draw");
+}
+
+vk::Fence const& Application::fenceDraw() {
+  return m_fences.at("draw");
+}
 
 uint32_t Application::acquireImage() {
   uint32_t imageIndex;
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), semaphoreAcquire(), VK_NULL_HANDLE, &imageIndex);
   if (result == vk::Result::eErrorOutOfDateKHR) {
   		// handle swapchain recreation
       // recreateSwapChain();

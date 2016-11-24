@@ -27,10 +27,14 @@ class Application {
   virtual void update();
   virtual void updateView() = 0;
   virtual void recreatePipeline() = 0;
-  virtual void resize(std::size_t with, std::size_t height);
+  void resize(std::size_t with, std::size_t height);
   virtual void resize() = 0;
-  virtual void initialize();
+  void initialize();
   uint32_t acquireImage();
+
+  vk::Semaphore const& semaphoreAcquire();
+  vk::Semaphore const& semaphoreDraw();
+  vk::Fence const& fenceDraw();
 
  protected:
 
@@ -41,12 +45,15 @@ class Application {
   Device& m_device;
   SwapChain const& m_swap_chain;
 
-  Deleter<VkSemaphore> m_sema_image_ready;
-  std::map<std::string, Shader> m_shaders;
   std::map<std::string, vk::CommandBuffer> m_command_buffers;
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
+  std::map<std::string, vk::Semaphore> m_semaphores;
+  std::map<std::string, vk::Fence> m_fences;
+  std::map<std::string, Shader> m_shaders;
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
+
+ private:
 };
 
 #endif

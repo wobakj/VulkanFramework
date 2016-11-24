@@ -47,9 +47,9 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_fence_draw{m_device, vkDestroyFence}
  ,m_model_dirty{false}
  ,m_sphere{true}
+ ,m_initializing{true}
 {
 
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
@@ -65,7 +65,7 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createCommandBuffers();
 
   resize();
-  createSemaphores();
+  m_initializing = false;
 }
 
 void ApplicationVulkan::render() {
@@ -73,7 +73,7 @@ void ApplicationVulkan::render() {
 
   // make sure no command buffer is in use
   if(!first) {
-    m_device.waitFence(m_fence_draw.get());
+    m_device.waitFence(fenceDraw());
   } 
 
   if(m_model_dirty.is_lock_free()) {
@@ -99,7 +99,7 @@ void ApplicationVulkan::render() {
 
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
-  vk::Semaphore waitSemaphores[]{m_sema_image_ready.get()};
+  vk::Semaphore waitSemaphores[]{semaphoreAcquire()};
   vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
   submitInfos[0].setWaitSemaphoreCount(1);
   submitInfos[0].setPWaitSemaphores(waitSemaphores);
@@ -108,12 +108,12 @@ void ApplicationVulkan::render() {
   submitInfos[0].setCommandBufferCount(1);
   submitInfos[0].setPCommandBuffers(&m_command_buffers.at("primary"));
 
-  vk::Semaphore signalSemaphores[]{m_sema_render_done.get()};
+  vk::Semaphore signalSemaphores[]{semaphoreDraw()};
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  m_device->resetFences({m_fence_draw.get()});
-  m_device.getQueue("graphics").submit(submitInfos, m_fence_draw.get());
+  m_device->resetFences({fenceDraw()});
+  m_device.getQueue("graphics").submit(submitInfos, fenceDraw());
 
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
@@ -130,14 +130,6 @@ void ApplicationVulkan::render() {
   first = false;
 }
 
-void ApplicationVulkan::createSemaphores() {
-  m_sema_render_done = m_device->createSemaphore({});
-  m_fence_draw = m_device->createFence({});
-  // m_device->resetFences({m_fence_draw.get()});
-
-  m_fence_command = m_device->createFence({});
-}
-
 void ApplicationVulkan::createCommandBuffers() {
   m_command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   m_command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
@@ -146,7 +138,9 @@ void ApplicationVulkan::createCommandBuffers() {
 }
 
 void ApplicationVulkan::updateCommandBuffers() {
-  m_device.waitFence(m_fence_draw.get());
+  if (!m_initializing) {
+    m_device.waitFence(fenceDraw());
+  }
 
   m_command_buffers.at("gbuffer").reset({});
 
@@ -227,7 +221,6 @@ void ApplicationVulkan::createRenderPass() {
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
   sub_pass_t pass_2({4},{0,1,2});
-  // m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
@@ -295,11 +288,6 @@ void ApplicationVulkan::createGraphicsPipeline() {
   pipelineInfo.renderPass = m_render_pass;
   pipelineInfo.subpass = 0;
 
-  pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-  pipelineInfo.basePipelineIndex = -1; // Optional
-
-  m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
-
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
   pipelineInfo2.pVertexInputState = &vert_info;
@@ -307,39 +295,54 @@ void ApplicationVulkan::createGraphicsPipeline() {
   pipelineInfo2.pInputAssemblyState = &inputAssembly;
 
   // cull frontfaces 
-  rasterizer.cullMode = vk::CullModeFlagBits::eFront;
-  pipelineInfo2.pRasterizationState = &rasterizer;
+  vk::PipelineRasterizationStateCreateInfo rasterizer2{};
+  rasterizer2.lineWidth = 1.0f;
+  rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
+  pipelineInfo2.pRasterizationState = &rasterizer2;
 
   pipelineInfo2.pViewportState = &viewportState;
   pipelineInfo2.pMultisampleState = &multisampling;
   pipelineInfo2.pDepthStencilState = nullptr; // Optional
 
-  colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment.blendEnable = VK_TRUE;
-  colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-  colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
+  vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
+  colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  colorBlendAttachment2.blendEnable = VK_TRUE;
+  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
+  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
 
-  colorBlending.attachmentCount = 1;
-  colorBlending.pAttachments = &colorBlendAttachment;
-  pipelineInfo2.pColorBlendState = &colorBlending;
+  vk::PipelineColorBlendStateCreateInfo colorBlending2{};
+  colorBlending2.attachmentCount = 1;
+  colorBlending2.pAttachments = &colorBlendAttachment2;
+  pipelineInfo2.pColorBlendState = &colorBlending2;
   
   pipelineInfo2.pDynamicState = nullptr; // Optional
 
-  depthStencil.depthTestEnable = VK_FALSE;
-  depthStencil.depthWriteEnable = VK_FALSE;
-  pipelineInfo2.pDepthStencilState = &depthStencil;
+  vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
+  depthStencil2.depthTestEnable = VK_FALSE;
+  depthStencil2.depthWriteEnable = VK_FALSE;
+  pipelineInfo2.pDepthStencilState = &depthStencil2;
   
   pipelineInfo2.renderPass = m_render_pass;
   pipelineInfo2.subpass = 1;
 
-  pipelineInfo2.basePipelineHandle = VK_NULL_HANDLE;
-  pipelineInfo2.basePipelineIndex = -1; // Optional
-
-  m_pipeline_2 = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo2)[0];
+  pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
+  pipelineInfo2.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
+  if (!m_initializing) {
+    pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
+    pipelineInfo2.flags |= vk::PipelineCreateFlagBits::eDerivative;
+    // insert previously created pipeline here to derive this one from
+    pipelineInfo.basePipelineHandle = m_pipeline.get();
+    pipelineInfo.basePipelineIndex = -1; // Optional
+    pipelineInfo2.basePipelineHandle = m_pipeline_2.get();
+    pipelineInfo2.basePipelineIndex = -1; // Optional
+  }
+  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo, pipelineInfo2});
+  m_pipeline = pipelines[0];
+  m_pipeline_2 = pipelines[1];
 }
 
 void ApplicationVulkan::createVertexBuffer() {
@@ -438,16 +441,7 @@ void ApplicationVulkan::createTextureImage() {
 }
 
 void ApplicationVulkan::createTextureSampler() {
-  vk::SamplerCreateInfo samplerInfo{};
-  samplerInfo.magFilter = vk::Filter::eLinear;
-  samplerInfo.minFilter = vk::Filter::eLinear;
-  samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
-  samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
-  samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
-  samplerInfo.anisotropyEnable = VK_TRUE;
-  samplerInfo.maxAnisotropy = 16;
-
-  m_textureSampler = m_device->createSampler(samplerInfo);
+  m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
 }
 
 void ApplicationVulkan::createDescriptorPool() {
@@ -479,11 +473,8 @@ void ApplicationVulkan::createDescriptorPool() {
 }
 
 void ApplicationVulkan::createUniformBuffers() {
-  VkDeviceSize size = sizeof(BufferLights);
-  m_buffers["light"] = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-
-  size = sizeof(UniformBufferObject);
-  m_buffers["uniform"] = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["light"] = Buffer{m_device, sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniform"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("light").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("light").size() * 16);
   m_buffers.at("light").bindTo(m_device.memoryPool("uniforms"));
@@ -513,7 +504,9 @@ void ApplicationVulkan::resize() {
 }
 void ApplicationVulkan::recreatePipeline() {
   // make sure pipeline is free before rebuilding
-  m_device.waitFence(m_fence_draw.get());
+  if (!m_initializing) {
+    m_device.waitFence(fenceDraw());
+  }
   createGraphicsPipeline();
   createDescriptorPool();
 

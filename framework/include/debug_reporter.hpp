@@ -15,8 +15,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
   void* userData) {
 
   std::string string_flag;
+  bool throwing = false; 
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
     string_flag += "Error ";
+    throwing = true;
   }
   if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
     string_flag += "Warning ";
@@ -31,7 +33,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     string_flag += "Debug ";
   }
   std::cerr << string_flag << "- " << msg << std::endl;
-  throw std::runtime_error{"msg"};
+  if (throwing) {
+    throw std::runtime_error{"msg"};
+  }
   return VK_FALSE;
 }
 

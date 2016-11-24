@@ -325,7 +325,7 @@ vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
 void Device::waitFence(vk::Fence const& fence) const {
   if (fence) {
     // only try to wait if fence is actually in use
-    if (get().getFenceStatus(fence) != vk::Result::eSuccess) {
+    if (get().getFenceStatus(fence) == vk::Result::eNotReady) {
       if (get().waitForFences({fence}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
         throw std::exception();
       }
