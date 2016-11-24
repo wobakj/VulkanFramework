@@ -2,6 +2,7 @@
 #define MEMORY_HPP
 
 #include "wrapper.hpp"
+#include "wrapper.hpp"
 
 template<typename T, typename U>
 class Resource;
@@ -53,6 +54,7 @@ class Memory : public WrapperMemory {
 
 
 #include "resource.hpp"
+#include <cmath>
 
 template<typename T, typename U>
 vk::DeviceSize Memory::bindResource(Resource<T, U> const& image) {

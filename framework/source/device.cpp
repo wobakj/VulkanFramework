@@ -141,7 +141,7 @@ void Device::destroy() {
   std::swap(m_pools, dev.m_pools);
   std::swap(m_extensions, dev.m_extensions);
   std::swap(m_command_buffer_help, dev.m_command_buffer_help);
-  // std::swap(m_mutex, dev.m_mutex);
+  // std::swap(m_mutex_single_command, dev.m_mutex_single_command);
  }
 
  vk::PhysicalDevice const& Device::physical() const {
@@ -190,17 +190,18 @@ Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format 
 
 void Device::uploadImageData(void const* data_ptr, Image& image) {
   Image image_stage{*this, image.info().extent.width, image.info().extent.height, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc};
-  // data size is dependent on target image size, not input data size!
-  adjustStagingPool(image.size());
-  image_stage.bindTo(memoryPool("stage"), 0);
-
-  image_stage.setData(data_ptr, image.size());
-  image_stage.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-
   auto prev_layout = image.layout();
+  { //lock staging memory
+    std::lock_guard<std::mutex> lock{m_mutex_staging};
+    adjustStagingPool(image.size());
+    image_stage.bindTo(memoryPool("stage"), 0);
+    // data size is dependent on target image size, not input data size!
+    image_stage.setData(data_ptr, image.size());
+    image_stage.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
 
-  image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
-  copyImage(image_stage, image, image.info().extent.width, image.info().extent.height);
+    image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
+    copyImage(image_stage, image, image.info().extent.width, image.info().extent.height);
+  }
 
   image.transitionToLayout(prev_layout);
 }
@@ -210,12 +211,13 @@ void Device::uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSi
 }
 
 void Device::uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& dst_offset) {
-  // data size is dependent on target buffer size, not input data size!
-  adjustStagingPool(size);
-  // m_buffer_stage.bindTo(memoryPool("stage"), 0);
-  m_buffer_stage->setData(data_ptr, size, 0);
+  { //lock staging memory and buffer
+    std::lock_guard<std::mutex> lock{m_mutex_staging};
+    adjustStagingPool(size);
+    m_buffer_stage->setData(data_ptr, size, 0);
 
-  copyBuffer(*m_buffer_stage, buffer, size, 0, dst_offset);
+    copyBuffer(*m_buffer_stage, buffer, size, 0, dst_offset);
+  }
 }
 
 void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
@@ -311,7 +313,7 @@ void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const&
 }
 
 vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
-  m_mutex.lock();
+  m_mutex_single_command.lock();
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
@@ -343,7 +345,7 @@ void Device::endSingleTimeCommands() const {
   getQueue("transfer").waitIdle();
   m_command_buffer_help.reset({});
 
-  m_mutex.unlock();
+  m_mutex_single_command.unlock();
 }
 
 Memory& Device::memoryPool(std::string const& name) {

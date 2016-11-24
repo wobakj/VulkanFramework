@@ -84,7 +84,8 @@ class Device : public WrapperDevice {
   std::vector<const char*> m_extensions;
   vk::CommandBuffer m_command_buffer_help;
   std::unique_ptr<Buffer> m_buffer_stage;
-  mutable std::mutex m_mutex;
+  mutable std::mutex m_mutex_single_command;
+  mutable std::mutex m_mutex_staging;
 };
 
 #endif

@@ -25,6 +25,7 @@
 #include <fstream>
 #include <chrono>
 
+#define THREADING
 // helper functions
 std::string resourcePath(int argc, char* argv[]);
 void glfw_error(int error, const char* description);
@@ -174,13 +175,14 @@ void LauncherVulkan::draw() {
       // std::swap(m_model, m_model_2);
       updateCommandBuffers();
       m_model_dirty = false;
-
+      #ifdef THREADING
       if(m_thread_load.joinable()) {
         m_thread_load.join();
       }
       else {
         throw std::runtime_error{"could not join thread"};
       }
+      #endif
     }
   }
 
@@ -480,9 +482,14 @@ void LauncherVulkan::createVertexBuffer() {
   m_model = Model{m_device, tri};
 }
 void LauncherVulkan::loadModel() {
-  model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
-  m_model_2 = Model{m_device, tri};
-  m_model_dirty = true;
+  try {
+    model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
+    m_model_2 = Model{m_device, tri};
+    m_model_dirty = true;
+  }
+  catch (std::exception& e) {
+    assert(0);
+  }
 }
 
 void LauncherVulkan::createLights() {
@@ -740,8 +747,16 @@ void LauncherVulkan::key_callback(GLFWwindow* m_window, int key, int scancode, i
     update_shader_programs();
   }
   else if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-    m_thread_load = std::thread(&LauncherVulkan::loadModel, this);
-    // loadModel();
+    if (m_sphere) {
+    #ifdef THREADING
+      // prevent thread creation form being triggered mutliple times
+      if (!m_thread_load.joinable()) {
+        m_thread_load = std::thread(&LauncherVulkan::loadModel, this);
+      }
+    #else
+      loadModel();
+    #endif
+    }
   }
 }
 
