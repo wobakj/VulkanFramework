@@ -133,7 +133,7 @@ void Launcher::resize(GLFWwindow* m_window, int width, int height) {
 
   if (width > 0 && height > 0) {
     m_device->waitIdle();
-    m_swap_chain.recreate(vk::Extent2D{width, height});
+    m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
 
     m_application->resize(width, height);
   }

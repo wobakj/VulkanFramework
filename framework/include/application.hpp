@@ -1,14 +1,16 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-#include "shader.hpp"
 #include "camera.hpp"
 #include "device.hpp"
 #include "swap_chain.hpp"
 
 #include <map>
 
-// gpu representation of model
+class Image;
+class Shader;
+class Buffer;
+
 class Application {
  public:
   // allocate and initialize objects
@@ -35,14 +37,16 @@ class Application {
   std::string m_resource_path; 
 
   // container for the shader programs
-  std::map<std::string, Shader> m_shaders{};
   Camera m_camera;
   Device& m_device;
   SwapChain const& m_swap_chain;
 
   Deleter<VkSemaphore> m_sema_image_ready;
+  std::map<std::string, Shader> m_shaders;
   std::map<std::string, vk::CommandBuffer> m_command_buffers;
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
+  std::map<std::string, Image> m_images;
+  std::map<std::string, Buffer> m_buffers;
 };
 
 #endif

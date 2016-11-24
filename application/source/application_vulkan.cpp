@@ -1,10 +1,11 @@
 #include "application_vulkan.hpp"
 
 #include "launcher.hpp"
-#include "shader_loader.hpp"
+#include "image.hpp"
+#include "buffer.hpp"
+#include "shader.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
-#include "model_t.hpp"
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>
@@ -13,15 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
-#include <cstdlib>
-#include <stdlib.h>
-#include <cstring>
-#include <functional>
 #include <iostream>
-#include <set>
-#include <vector>
-#include <fstream>
-#include <chrono>
 
 #define THREADING
 // helper functions
@@ -63,18 +56,16 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
 
   createVertexBuffer();
+  createLights();  
   createUniformBuffers();
   createTextureImage();
   createTextureSampler();
   createDepthResource();
   createRenderPass();
-  createGraphicsPipeline();
-  createDescriptorPool();
-  createFramebuffers();
   createCommandBuffers();
-  updateCommandBuffers();
+
+  resize();
   createSemaphores();
-  createLights();  
 }
 
 void ApplicationVulkan::render() {
@@ -218,17 +209,17 @@ void ApplicationVulkan::createPrimaryCommandBuffer(int index_fb) {
   // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
-  blit.srcSubresource = img_to_resource_layer(m_image_color_2.info());
+  blit.srcSubresource = img_to_resource_layer(m_images.at("color_2").info());
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  m_command_buffers.at("primary").blitImage(m_image_color_2, m_image_color_2.layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  m_command_buffers.at("primary").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
   m_command_buffers.at("primary").end();
 }
 
 void ApplicationVulkan::createFramebuffers() {
-  m_framebuffer = FrameBuffer{m_device, {&m_image_color, &m_image_pos, &m_image_normal, &m_image_depth, &m_image_color_2}, m_render_pass};
+  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
 }
 
 void ApplicationVulkan::createRenderPass() {
@@ -236,8 +227,8 @@ void ApplicationVulkan::createRenderPass() {
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
   sub_pass_t pass_2({4},{0,1,2});
-  // m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
-  m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_pos.info(), m_image_normal.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
+  // m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
+  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
 void ApplicationVulkan::createGraphicsPipeline() {
@@ -394,18 +385,18 @@ void ApplicationVulkan::updateLights() {
     temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
   }
 
-  m_device.uploadBufferData(&temp, m_buffer_light);
+  m_device.uploadBufferData(&temp, m_buffers.at("light"));
 }
 
 void ApplicationVulkan::createMemoryPools() {
   // allocate pool for 5 32x4 fb attachments
-  m_device.reallocateMemoryPool("framebuffer", m_image_pos.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_image_pos.size() * 5);
+  m_device.reallocateMemoryPool("framebuffer", m_images.at("pos").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("pos").size() * 5);
   
-  m_image_depth.bindTo(m_device.memoryPool("framebuffer"));
-  m_image_color.bindTo(m_device.memoryPool("framebuffer"));
-  m_image_pos.bindTo(m_device.memoryPool("framebuffer"));
-  m_image_normal.bindTo(m_device.memoryPool("framebuffer"));
-  m_image_color_2.bindTo(m_device.memoryPool("framebuffer"));
+  m_images.at("depth").bindTo(m_device.memoryPool("framebuffer"));
+  m_images.at("color").bindTo(m_device.memoryPool("framebuffer"));
+  m_images.at("pos").bindTo(m_device.memoryPool("framebuffer"));
+  m_images.at("normal").bindTo(m_device.memoryPool("framebuffer"));
+  m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
 }
 
 void ApplicationVulkan::createDepthResource() {
@@ -416,20 +407,20 @@ void ApplicationVulkan::createDepthResource() {
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
-  m_image_depth = m_device.createImage(extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
-  m_image_depth.transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  m_images["depth"] = m_device.createImage(extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
+  m_images.at("depth").transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-  m_image_color = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_image_color.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_images["color"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
+  m_images.at("color").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-  m_image_pos = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_image_pos.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_images["pos"] = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
+  m_images.at("pos").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-  m_image_normal = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_image_normal.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_images["normal"] = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
+  m_images.at("normal").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-  m_image_color_2 = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc);
-  m_image_color_2.transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_images["color_2"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc);
+  m_images.at("color_2").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
   createMemoryPools();
 }
@@ -437,13 +428,13 @@ void ApplicationVulkan::createDepthResource() {
 void ApplicationVulkan::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
-  m_image = m_device.createImage(pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
+  m_images["texture"] = m_device.createImage(pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
   // space for 14 8x3 1028 textures
-  m_device.allocateMemoryPool("textures", m_image.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_image.size() * 16);
-  m_image.bindTo(m_device.memoryPool("textures"));
-  m_image.transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_device.allocateMemoryPool("textures", m_images.at("texture").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("texture").size() * 16);
+  m_images.at("texture").bindTo(m_device.memoryPool("textures"));
+  m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
-  m_device.uploadImageData(pix_data.ptr(), m_image);
+  m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
 void ApplicationVulkan::createTextureSampler() {
@@ -471,8 +462,8 @@ void ApplicationVulkan::createDescriptorPool() {
   m_descriptor_sets["matrix"] = sets[0];
   m_descriptor_sets["textures"] = sets[1];
 
-  m_buffer_uniform.writeToSet(m_descriptor_sets.at("matrix"), 0);
-  m_image.writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_buffers.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 
   m_descriptorPool_2 = m_shaders.at("quad").createPool(2);
   allocInfo.descriptorPool = m_descriptorPool_2;
@@ -481,24 +472,25 @@ void ApplicationVulkan::createDescriptorPool() {
 
   m_descriptor_sets["lighting"] = m_device->allocateDescriptorSets(allocInfo)[1];
 
-  m_image_color.writeToSet(m_descriptor_sets.at("lighting"), 0);
-  m_image_pos.writeToSet(m_descriptor_sets.at("lighting"), 1);
-  m_image_normal.writeToSet(m_descriptor_sets.at("lighting"), 2);
-  m_buffer_light.writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0);
+  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1);
+  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2);
+  m_buffers.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 void ApplicationVulkan::createUniformBuffers() {
   VkDeviceSize size = sizeof(BufferLights);
-  m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["light"] = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
   size = sizeof(UniformBufferObject);
-  m_buffer_uniform = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniform"] = Buffer{m_device, size, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffer_light.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffer_light.size() * 16);
-  m_buffer_light.bindTo(m_device.memoryPool("uniforms"));
-  m_buffer_uniform.bindTo(m_device.memoryPool("uniforms"));
+  m_device.allocateMemoryPool("uniforms", m_buffers.at("light").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("light").size() * 16);
+  m_buffers.at("light").bindTo(m_device.memoryPool("uniforms"));
+  m_buffers.at("uniform").bindTo(m_device.memoryPool("uniforms"));
 }
 
+///////////////////////////// update functions ////////////////////////////////
 void ApplicationVulkan::updateView() {
   UniformBufferObject ubo{};
   ubo.model = glm::mat4();
@@ -507,7 +499,7 @@ void ApplicationVulkan::updateView() {
   ubo.proj = m_camera.projectionMatrix();
   ubo.proj[1][1] *= -1;
 
-  m_device.uploadBufferData(&ubo, m_buffer_uniform);
+  m_device.uploadBufferData(&ubo, m_buffers.at("uniform"));
 
   updateLights();
 }
@@ -515,22 +507,16 @@ void ApplicationVulkan::updateView() {
 void ApplicationVulkan::resize() {
   createDepthResource();
   createRenderPass();
-  createGraphicsPipeline();
-  createDescriptorPool();
-
-  m_image_color.writeToSet(m_descriptor_sets.at("lighting"), 0);
-  m_image_pos.writeToSet(m_descriptor_sets.at("lighting"), 1);
-  m_image_normal.writeToSet(m_descriptor_sets.at("lighting"), 2);
-
   createFramebuffers();
-  updateCommandBuffers();
+
+  recreatePipeline();
 }
-///////////////////////////// update functions ////////////////////////////////
-// load shader programs and update uniform locations
 void ApplicationVulkan::recreatePipeline() {
   // make sure pipeline is free before rebuilding
   m_device.waitFence(m_fence_draw.get());
   createGraphicsPipeline();
+  createDescriptorPool();
+
   updateCommandBuffers();
 }
 

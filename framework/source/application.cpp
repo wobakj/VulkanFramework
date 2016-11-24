@@ -1,14 +1,16 @@
 #include "application.hpp"
 
 #include "shader.hpp"
+#include "image.hpp"
+#include "buffer.hpp"
 
 #include <iostream>
 
 Application::Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window)
  :m_resource_path{resource_path}
  ,m_camera{45.0f, 10, 10, 0.1f, 500.0f, window}
- ,m_device{device}
- ,m_swap_chain{chain}
+ ,m_device(device)
+ ,m_swap_chain(chain)
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  // ,m_shaders{}
 {
@@ -21,20 +23,7 @@ Application::~Application() {
     m_device->freeCommandBuffers(m_device.pool("graphics"), {command_buffer.second});    
   }
 }
-// void Application::setProjection(glm::fmat4 const& projection_mat) {
-//   m_view_projection = projection_mat;
-//   updateProjection();
-// }
 
-// update shader uniform locations
-// void Application::updateUniformLocations() {
-//   for (auto& pair : m_shaders) {
-//   }
-// }
-
-// std::map<std::string, shader_program>& Application::getShaderPrograms() {
-//   return m_shaders;
-// }
 void Application::initialize() {
   m_sema_image_ready = m_device->createSemaphore({});
 }
