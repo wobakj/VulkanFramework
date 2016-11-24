@@ -255,11 +255,8 @@ void LauncherVulkan::updateCommandBuffers() {
   inheritanceInfo.framebuffer = m_framebuffer;
   inheritanceInfo.subpass = 0;
 
-  vk::CommandBufferBeginInfo beginInfo{};
-  beginInfo.flags = vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse;
-  beginInfo.pInheritanceInfo = &inheritanceInfo;
   // first pass
-  m_command_buffers.at("gbuffer").begin(beginInfo);
+  m_command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   m_command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
   m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
@@ -281,7 +278,7 @@ void LauncherVulkan::updateCommandBuffers() {
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   m_command_buffers.at("lighting").reset({});
-  m_command_buffers.at("lighting").begin(beginInfo);
+  m_command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   m_command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
   m_command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
@@ -297,9 +294,7 @@ void LauncherVulkan::updateCommandBuffers() {
 void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffers.at("primary").reset({});
 
-  vk::CommandBufferBeginInfo beginInfo{};
-  beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-  m_command_buffers.at("primary").begin(beginInfo);
+  m_command_buffers.at("primary").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
   m_command_buffers.at("primary").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer

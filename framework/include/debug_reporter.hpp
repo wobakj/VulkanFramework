@@ -14,7 +14,23 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
   const char* msg,
   void* userData) {
 
-  std::cerr << "validation layer: " << msg << std::endl;
+  std::string string_flag;
+  if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+    string_flag += "Error ";
+  }
+  if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
+    string_flag += "Warning ";
+  }
+  if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
+    string_flag += "Performance ";
+  }
+  if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
+    string_flag += "Info ";
+  }
+  if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
+    string_flag += "Debug ";
+  }
+  std::cerr << string_flag << "- " << msg << std::endl;
   throw std::runtime_error{"msg"};
   return VK_FALSE;
 }
