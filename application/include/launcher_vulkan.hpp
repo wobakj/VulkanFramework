@@ -16,6 +16,7 @@
 #include "shader.hpp"
 #include "render_pass.hpp"
 #include "memory.hpp"
+#include "frame_buffer.hpp"
 
 #include <string>
 #include <vector>
@@ -111,7 +112,7 @@ class LauncherVulkan {
   RenderPass m_render_pass;
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkPipeline> m_pipeline_2;
-  Deleter<VkFramebuffer> m_framebuffer;
+  FrameBuffer m_framebuffer;
   std::map<std::string, vk::CommandBuffer> m_command_buffers;
   Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;

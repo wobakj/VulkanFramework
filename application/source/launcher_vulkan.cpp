@@ -62,7 +62,6 @@ LauncherVulkan::LauncherVulkan(int argc, char* argv[])
  ,m_surface{m_instance, vkDestroySurfaceKHR}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
- ,m_framebuffer{m_device, vkDestroyFramebuffer}
  ,m_sema_image_ready{m_device, vkDestroySemaphore}
  ,m_sema_render_done{m_device, vkDestroySemaphore}
  ,m_device{}
@@ -340,8 +339,7 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 }
 
 void LauncherVulkan::createFramebuffers() {
-  m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_pos.view(), m_image_normal.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass));
-  // m_framebuffer = m_device->createFramebuffer(view_to_fb({m_image_color.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass.get()));
+  m_framebuffer = FrameBuffer{m_device, {m_image_color.view(), m_image_pos.view(), m_image_normal.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass};
 }
 
 void LauncherVulkan::createRenderPass() {
@@ -765,7 +763,7 @@ void LauncherVulkan::show_fps() {
   ++m_frames_per_second;
   double current_time = glfwGetTime();
   if (current_time - m_last_second_time >= 1.0) {
-    std::string title{"OpenGL Framework - "};
+    std::string title{"Vulkan Framework - "};
     title += std::to_string(m_frames_per_second) + " fps";
 
     glfwSetWindowTitle(m_window, title.c_str());
