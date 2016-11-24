@@ -78,7 +78,7 @@ target_compile_definitions(framework PUBLIC "VULKAN_LAYER_DIR=${VULKAN_LAYER_DIR
 include_directories(application/include)
 
 # output executables
-add_executable(vulkan_test application/source/launcher_vulkan.cpp)
+add_executable(vulkan_test application/source/application_vulkan.cpp)
 target_link_libraries(vulkan_test framework)
 
 # set build type dependent flags

@@ -1,5 +1,6 @@
-#include "launcher_vulkan.hpp"
+#include "application_vulkan.hpp"
 
+#include "launcher.hpp"
 #include "shader_loader.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
@@ -7,9 +8,6 @@
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>
-
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -49,85 +47,20 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-LauncherVulkan::LauncherVulkan(int argc, char* argv[]) 
- :m_camera_fov{glm::radians(60.0f)}
- ,m_window_width{640u}
- ,m_window_height{480u}
- ,m_window{nullptr}
- ,m_last_second_time{0.0}
- ,m_frames_per_second{0u}
- ,m_resource_path{resourcePath(argc, argv)}
- ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
- ,m_instance{}
- ,m_surface{m_instance, vkDestroySurfaceKHR}
+ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
+ :Application{resource_path, device, chain, window}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
- ,m_sema_image_ready{m_device, vkDestroySemaphore}
- ,m_sema_render_done{m_device, vkDestroySemaphore}
- ,m_device{}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_fence_draw{m_device, vkDestroyFence}
  ,m_model_dirty{false}
- ,m_camera{m_camera_fov, m_window_width, m_window_height, 0.1f, 500.0f, m_window}
  ,m_sphere{true}
-{}
+{
 
-std::string resourcePath(int argc, char* argv[]) {
-  std::string resource_path{};
-  //first argument is resource path
-  if (argc > 1) {
-    resource_path = argv[1];
-  }
-  // no resource path specified, use default
-  else {
-    std::string exe_path{argv[0]};
-    resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
-    resource_path += "/../../resources/";
-  }
-
-  return resource_path;
-}
-
-void LauncherVulkan::initialize() {
-
-  glfwSetErrorCallback(glfw_error);
-
-  if (!glfwInit()) {
-    std::exit(EXIT_FAILURE);
-  }
-
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  // create m_window, if unsuccessfull, quit
-  m_window = glfwCreateWindow(m_window_width, m_window_height, "Vulkan Framework", NULL, NULL);
-  if (!m_window) {
-    glfwTerminate();
-    std::exit(EXIT_FAILURE);
-  }
-  m_camera = Camera{m_camera_fov, m_window_width, m_window_height, 0.1f, 50.0f, m_window};
-  auto extensions =  vk::enumerateInstanceExtensionProperties(nullptr);
-
-  std::cout << "available extensions:" << std::endl;
-
-  for (const auto& extension : extensions) {
-      std::cout << "\t" << extension.extensionName << std::endl;
-  }
-
-  // ugly workaround to use the local validation layers within this process
-  std::string define{std::string{"VK_LAYER_PATH="} + VULKAN_LAYER_DIR}; 
-  putenv(&define[0]);
-
-  m_instance.create();
-  createSurface();
-
-  std::vector<const char*> deviceExtensions = {
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME
-  };
-  m_device = m_instance.createLogicalDevice(vk::SurfaceKHR{m_surface}, deviceExtensions);
-
-  m_swap_chain = m_device.createSwapChain(vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height});
-
+  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -141,26 +74,10 @@ void LauncherVulkan::initialize() {
   createCommandBuffers();
   updateCommandBuffers();
   createSemaphores();
-  createLights();
-
-  // // set user pointer to access this instance statically
-  glfwSetWindowUserPointer(m_window, this);
-  // register resizing function
-  auto resize_func = [](GLFWwindow* w, int a, int b) {
-        static_cast<LauncherVulkan*>(glfwGetWindowUserPointer(w))->update_projection(w, a, b);
-  };
-  glfwSetFramebufferSizeCallback(m_window, resize_func);
-
-  // // register key input function
-  auto key_func = [](GLFWwindow* w, int a, int b, int c, int d) {
-        static_cast<LauncherVulkan*>(glfwGetWindowUserPointer(w))->key_callback(w, a, b, c, d);
-  };
-  glfwSetKeyCallback(m_window, key_func);
-  // // allow free mouse movement
-  // glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  createLights();  
 }
 
-void LauncherVulkan::draw() {
+void ApplicationVulkan::render() {
   static bool first = true;
 
   // make sure no command buffer is in use
@@ -185,15 +102,8 @@ void LauncherVulkan::draw() {
     }
   }
 
-  uint32_t imageIndex;
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), m_sema_image_ready.get(), VK_NULL_HANDLE, &imageIndex);
-  if (result == vk::Result::eErrorOutOfDateKHR) {
-      recreateSwapChain();
-      return;
-  } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-      throw std::runtime_error("failed to acquire swap chain image!");
-  }
-
+  auto imageIndex = acquireImage();
+  if (imageIndex == std::numeric_limits<uint32_t>::max()) return;
   createPrimaryCommandBuffer(imageIndex);
 
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
@@ -229,8 +139,7 @@ void LauncherVulkan::draw() {
   first = false;
 }
 
-void LauncherVulkan::createSemaphores() {
-  m_sema_image_ready = m_device->createSemaphore({});
+void ApplicationVulkan::createSemaphores() {
   m_sema_render_done = m_device->createSemaphore({});
   m_fence_draw = m_device->createFence({});
   // m_device->resetFences({m_fence_draw.get()});
@@ -238,14 +147,14 @@ void LauncherVulkan::createSemaphores() {
   m_fence_command = m_device->createFence({});
 }
 
-void LauncherVulkan::createCommandBuffers() {
+void ApplicationVulkan::createCommandBuffers() {
   m_command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   m_command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
 
   m_command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
 }
 
-void LauncherVulkan::updateCommandBuffers() {
+void ApplicationVulkan::updateCommandBuffers() {
   m_device.waitFence(m_fence_draw.get());
 
   m_command_buffers.at("gbuffer").reset({});
@@ -291,7 +200,7 @@ void LauncherVulkan::updateCommandBuffers() {
   m_command_buffers.at("lighting").end();
 }
 
-void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
+void ApplicationVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffers.at("primary").reset({});
 
   m_command_buffers.at("primary").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
@@ -318,11 +227,11 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffers.at("primary").end();
 }
 
-void LauncherVulkan::createFramebuffers() {
+void ApplicationVulkan::createFramebuffers() {
   m_framebuffer = FrameBuffer{m_device, {&m_image_color, &m_image_pos, &m_image_normal, &m_image_depth, &m_image_color_2}, m_render_pass};
 }
 
-void LauncherVulkan::createRenderPass() {
+void ApplicationVulkan::createRenderPass() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -331,8 +240,7 @@ void LauncherVulkan::createRenderPass() {
   m_render_pass = RenderPass{m_device, {m_image_color.info(), m_image_pos.info(), m_image_normal.info(), m_image_depth.info(), m_image_color_2.info()}, {pass_1, pass_2}};
 }
 
-void LauncherVulkan::createGraphicsPipeline() {
-  m_shaders["simple"] = Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}};
+void ApplicationVulkan::createGraphicsPipeline() {
   
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -401,7 +309,6 @@ void LauncherVulkan::createGraphicsPipeline() {
 
   m_pipeline = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo)[0];
 
-  m_shaders["quad"] = Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}};
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
   pipelineInfo2.pVertexInputState = &vert_info;
@@ -444,7 +351,7 @@ void LauncherVulkan::createGraphicsPipeline() {
   m_pipeline_2 = m_device->createGraphicsPipelines(vk::PipelineCache{}, pipelineInfo2)[0];
 }
 
-void LauncherVulkan::createVertexBuffer() {
+void ApplicationVulkan::createVertexBuffer() {
   std::vector<float> vertex_data{
     0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
     0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
@@ -459,7 +366,7 @@ void LauncherVulkan::createVertexBuffer() {
 
   m_model = Model{m_device, tri};
 }
-void LauncherVulkan::loadModel() {
+void ApplicationVulkan::loadModel() {
   try {
     model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
     m_model_2 = Model{m_device, tri};
@@ -470,7 +377,7 @@ void LauncherVulkan::loadModel() {
   }
 }
 
-void LauncherVulkan::createLights() {
+void ApplicationVulkan::createLights() {
   std::srand(5);
   for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     light_t light;
@@ -481,7 +388,7 @@ void LauncherVulkan::createLights() {
   }
 }
 
-void LauncherVulkan::updateLights() {
+void ApplicationVulkan::updateLights() {
   BufferLights temp = buff_l; 
   for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
@@ -490,13 +397,7 @@ void LauncherVulkan::updateLights() {
   m_device.uploadBufferData(&temp, m_buffer_light);
 }
 
-void LauncherVulkan::createSurface() {
-  if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create window surface!");
-  }
-}
-
-void LauncherVulkan::createMemoryPools() {
+void ApplicationVulkan::createMemoryPools() {
   // allocate pool for 5 32x4 fb attachments
   m_device.reallocateMemoryPool("framebuffer", m_image_pos.memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_image_pos.size() * 5);
   
@@ -507,7 +408,7 @@ void LauncherVulkan::createMemoryPools() {
   m_image_color_2.bindTo(m_device.memoryPool("framebuffer"));
 }
 
-void LauncherVulkan::createDepthResource() {
+void ApplicationVulkan::createDepthResource() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -533,7 +434,7 @@ void LauncherVulkan::createDepthResource() {
   createMemoryPools();
 }
 
-void LauncherVulkan::createTextureImage() {
+void ApplicationVulkan::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   m_image = m_device.createImage(pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
@@ -545,7 +446,7 @@ void LauncherVulkan::createTextureImage() {
   m_device.uploadImageData(pix_data.ptr(), m_image);
 }
 
-void LauncherVulkan::createTextureSampler() {
+void ApplicationVulkan::createTextureSampler() {
   vk::SamplerCreateInfo samplerInfo{};
   samplerInfo.magFilter = vk::Filter::eLinear;
   samplerInfo.minFilter = vk::Filter::eLinear;
@@ -558,7 +459,7 @@ void LauncherVulkan::createTextureSampler() {
   m_textureSampler = m_device->createSampler(samplerInfo);
 }
 
-void LauncherVulkan::createDescriptorPool() {
+void ApplicationVulkan::createDescriptorPool() {
   m_descriptorPool = m_shaders.at("simple").createPool(2);
 
   vk::DescriptorSetAllocateInfo allocInfo{};
@@ -586,7 +487,7 @@ void LauncherVulkan::createDescriptorPool() {
   m_buffer_light.writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
-void LauncherVulkan::createUniformBuffers() {
+void ApplicationVulkan::createUniformBuffers() {
   VkDeviceSize size = sizeof(BufferLights);
   m_buffer_light = Buffer{m_device, size, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
@@ -598,7 +499,7 @@ void LauncherVulkan::createUniformBuffers() {
   m_buffer_uniform.bindTo(m_device.memoryPool("uniforms"));
 }
 
-void LauncherVulkan::updateUniformBuffer() {
+void ApplicationVulkan::updateView() {
   UniformBufferObject ubo{};
   ubo.model = glm::mat4();
   ubo.view = m_camera.viewMatrix();
@@ -611,43 +512,7 @@ void LauncherVulkan::updateUniformBuffer() {
   updateLights();
 }
 
-void LauncherVulkan::mainLoop() {
-  m_device->waitIdle();
-
-  // do before framebuffer_resize call as it requires the projection uniform location
-  // throw exception if shader compilation was unsuccessfull
-  // update_shader_programs();
-
-  static double time_last = 0.0;
-  // enable depth testing
-  // rendering loop
-
-  while (!glfwWindowShouldClose(m_window)) {
-    // claculate delta time
-    double time_current = glfwGetTime();
-    float time_delta = float(time_current - time_last);
-    time_last = time_current;
-    // update buffers
-    m_camera.update(time_delta);
-    if (m_camera.changed()) {
-      updateUniformBuffer();
-    }
-    // draw geometry
-    draw();
-    // query input
-    glfwPollEvents();
-    // display fps
-    show_fps();
-  }
-
-  quit(EXIT_SUCCESS);
-}
-
-
-void LauncherVulkan::recreateSwapChain() {
-  m_device->waitIdle();
-
-  m_swap_chain.recreate(vk::Extent2D{m_window_width, m_window_height});
+void ApplicationVulkan::resize() {
   createDepthResource();
   createRenderPass();
   createGraphicsPipeline();
@@ -661,75 +526,23 @@ void LauncherVulkan::recreateSwapChain() {
   updateCommandBuffers();
 }
 ///////////////////////////// update functions ////////////////////////////////
-// update viewport and field of view
-void LauncherVulkan::update_projection(GLFWwindow* m_window, int width, int height) {
-  m_window_width = width;
-  m_window_height = height;
-
-  if (width > 0 && height > 0) {
-    recreateSwapChain();
-  }
-  // update projection matrix
-  m_camera.setAspect(width, height);
-}
-
 // load shader programs and update uniform locations
-void LauncherVulkan::update_shader_programs() {
+void ApplicationVulkan::recreatePipeline() {
   // make sure pipeline is free before rebuilding
   m_device.waitFence(m_fence_draw.get());
   createGraphicsPipeline();
   updateCommandBuffers();
-
-  // // actual functionality in lambda to allow update with and without throwing
-  // auto update_lambda = [&](){
-  //   // reload all shader programs
-  //   for (auto& pair : m_application->getShaderPrograms()) {
-  //     // throws exception when compiling was unsuccessfull
-  //     GLuint new_program = shader_loader::program(pair.second.vertex_path,
-  //                                                 pair.second.fragment_path);
-  //     // free old shader program
-  //     glDeleteProgram(pair.second.handle);
-  //     // save new shader program
-  //     pair.second.handle = new_program;
-  //   }
-  // };
-
-  // if (throwing) {
-  //   update_lambda();
-  // }
-  // else {
-  //   try {
-  //    update_lambda();
-  //   }
-  //   catch(std::exception&) {
-  //     // dont crash, allow another try
-  //   }
-  // }
-
-  // // after shader programs are recompiled, uniform locations may change
-  // m_application->uploadUniforms();
-  
-  // // upload projection matrix to new shaders
-  // int width, height;
-  // glfwGetFramebufferSize(m_window, &width, &height);
-  // update_projection(m_window, width, height);
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
-void LauncherVulkan::key_callback(GLFWwindow* m_window, int key, int scancode, int action, int mods) {
-  if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
-    glfwSetWindowShouldClose(m_window, 1);
-  }
-  else if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-    update_shader_programs();
-  }
-  else if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+void ApplicationVulkan::keyCallback(int key, int scancode, int action, int mods) {
+  if (key == GLFW_KEY_L && action == GLFW_PRESS) {
     if (m_sphere) {
     #ifdef THREADING
       // prevent thread creation form being triggered mutliple times
       if (!m_thread_load.joinable()) {
-        m_thread_load = std::thread(&LauncherVulkan::loadModel, this);
+        m_thread_load = std::thread(&ApplicationVulkan::loadModel, this);
       }
     #else
       loadModel();
@@ -738,42 +551,7 @@ void LauncherVulkan::key_callback(GLFWwindow* m_window, int key, int scancode, i
   }
 }
 
-// calculate fps and show in m_window title
-void LauncherVulkan::show_fps() {
-  ++m_frames_per_second;
-  double current_time = glfwGetTime();
-  if (current_time - m_last_second_time >= 1.0) {
-    std::string title{"Vulkan Framework - "};
-    title += std::to_string(m_frames_per_second) + " fps";
-
-    glfwSetWindowTitle(m_window, title.c_str());
-    m_frames_per_second = 0;
-    m_last_second_time = current_time;
-  }
-}
-
-void LauncherVulkan::quit(int status) {
-  // wait until all resources are accessible
-  m_device->waitIdle();
-  // free opengl resources
-  for(auto const& command_buffer : m_command_buffers) {
-    m_device->freeCommandBuffers(m_device.pool("graphics"), {command_buffer.second});    
-  }
-  // delete m_application;
-  // free glfw resources
-  glfwDestroyWindow(m_window);
-  glfwTerminate();
-
-  std::exit(status);
-}
-
-void glfw_error(int error, const char* description) {
-  std::cerr << "GLFW Error " << error << " : "<< description << std::endl;
-}
-
 // exe entry point
 int main(int argc, char* argv[]) {
-  LauncherVulkan launcher{argc, argv};
-  launcher.initialize();
-  launcher.mainLoop();
+  Launcher::run<ApplicationVulkan>(argc, argv);
 }

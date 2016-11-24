@@ -59,11 +59,11 @@ class Shader : public WrapperShader {
 
   vk::DescriptorPool createPool(uint32_t max_sets = 1) const;
   vk::GraphicsPipelineCreateInfo startPipelineInfo() const;
+  std::vector<std::string> m_paths;
  private:
   void destroy() override;
 
   Device const* m_device;
-  std::vector<std::string> m_paths;
   std::vector<vk::ShaderModule> m_modules;
   std::vector<vk::DescriptorSetLayout> m_set_layouts;
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stages;

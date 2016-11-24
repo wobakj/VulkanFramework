@@ -1,9 +1,10 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-// #include "structs.hpp"
-struct shader_program {};
-#include <glm/gtc/type_precision.hpp>
+#include "shader.hpp"
+#include "camera.hpp"
+#include "device.hpp"
+#include "swap_chain.hpp"
 
 #include <map>
 
@@ -11,32 +12,37 @@ struct shader_program {};
 class Application {
  public:
   // allocate and initialize objects
-  Application(std::string const& resource_path);
+  Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
   // free
   virtual ~Application();
 
-  // update uniform locations and values
-  inline virtual void uploadUniforms() {};
-  // update projection matrix
-  void setProjection(glm::fmat4 const& projection_mat);
-  virtual void updateProjection() = 0;
   // react to key input
   inline virtual void keyCallback(int key, int scancode, int action, int mods) {};
   // 
-  virtual std::map<std::string, shader_program>& getShaderPrograms();
+  void updateShaderPrograms();
   // draw all objects
-  virtual void render() const = 0;
+  virtual void render() = 0;
+  virtual void update();
+  virtual void updateView() = 0;
+  virtual void recreatePipeline() = 0;
+  virtual void resize(std::size_t with, std::size_t height);
+  virtual void resize() = 0;
+  virtual void initialize();
+  uint32_t acquireImage();
 
  protected:
-  void updateUniformLocations();
 
   std::string m_resource_path; 
 
-  glm::fmat4 m_view_transform;
-  glm::fmat4 m_view_projection;
-
   // container for the shader programs
-  std::map<std::string, shader_program> m_shaders{};
+  std::map<std::string, Shader> m_shaders{};
+  Camera m_camera;
+  Device& m_device;
+  SwapChain const& m_swap_chain;
+
+  Deleter<VkSemaphore> m_sema_image_ready;
+  std::map<std::string, vk::CommandBuffer> m_command_buffers;
+  std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
 };
 
 #endif

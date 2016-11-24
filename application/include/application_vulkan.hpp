@@ -1,8 +1,9 @@
-#ifndef LAUNCHER_VULKAN_HPP
-#define LAUNCHER_VULKAN_HPP
+#ifndef APPLICATION_VULKAN_HPP
+#define APPLICATION_VULKAN_HPP
 
 #include <vulkan/vulkan.hpp>
 
+#include "application.hpp"
 #include "deleter.hpp"
 #include "wrapper.hpp"
 #include "device.hpp"
@@ -10,7 +11,6 @@
 #include "image.hpp"
 #include "instance.hpp"
 #include "buffer.hpp"
-#include "debug_reporter.hpp"
 #include "swap_chain.hpp"
 #include "camera.hpp"
 #include "shader.hpp"
@@ -45,16 +45,12 @@ class GLFWwindow;
 // };
 uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties);
 
-class LauncherVulkan {
+class ApplicationVulkan : public Application {
  public:
-  LauncherVulkan(int argc, char* argv[]);
-  // create window and set callbacks
-  void initialize();
-  // start main loop
-  void mainLoop();
+  ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
 
  private:
-  void draw();
+  void render() override;
   void createLights();
   void updateLights();
   void createSemaphores();
@@ -65,59 +61,26 @@ class LauncherVulkan {
   void createRenderPass();
   void createMemoryPools();
   void createGraphicsPipeline();
-  void recreateSwapChain();
+  void resize() override;
+  void recreatePipeline() override;
   void createVertexBuffer();
-  void createSurface();
-  void createInstance();
-  void updateUniformBuffer();
+  void updateView() override;
   void createDescriptorPool();
   void createTextureImage();
   void createTextureSampler();
   void createDepthResource();
   void loadModel();
   void createPrimaryCommandBuffer(int index_fb);
-
-  void transitionImageLayout(vk::Image image, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout);
-  
-  // update viewport and field of view
-  void update_projection(GLFWwindow* window, int width, int height);
-  // load shader programs and update uniform locations
-  void update_shader_programs();
   // handle key input
-  void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-  // calculate fps and show in window title
-  void show_fps();
-  // free resources
-  void quit(int status);
-
-  // vertical field of view of camera
-  const float m_camera_fov;
-
-  // initial window dimensions
-  unsigned m_window_width;
-  unsigned m_window_height;
-  // the rendering window
-  GLFWwindow* m_window;
-
-  // variables for fps computation
-  double m_last_second_time;
-  unsigned m_frames_per_second;
+  void keyCallback(int key, int scancode, int action, int mods) override;
 
   // path to the resource folders
-  std::string m_resource_path;
-  const std::vector<const char*> m_validation_layers;
-  Instance m_instance;
-  DebugReporter m_debug_report;
-  Deleter<VkSurfaceKHR> m_surface;
   RenderPass m_render_pass;
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkPipeline> m_pipeline_2;
   FrameBuffer m_framebuffer;
   std::map<std::string, vk::CommandBuffer> m_command_buffers;
-  Deleter<VkSemaphore> m_sema_image_ready;
   Deleter<VkSemaphore> m_sema_render_done;
-  SwapChain m_swap_chain;
-  Device m_device;
   Model m_model;
   Model m_model_2;
   Buffer m_buffer_light; 
@@ -141,7 +104,6 @@ class LauncherVulkan {
   Image m_image;
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;
-  Camera m_camera;
   std::map<std::string, Shader> m_shaders;
   // Application* m_application;
   bool m_sphere;
