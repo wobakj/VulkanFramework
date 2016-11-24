@@ -1,18 +1,16 @@
-#ifndef APPLICATION_VULKAN_HPP
-#define APPLICATION_VULKAN_HPP
-
-#include <vulkan/vulkan.hpp>
+#ifndef APPLICATION_LOD_HPP
+#define APPLICATION_LOD_HPP
 
 #include "application.hpp"
+
 #include "deleter.hpp"
 #include "model.hpp"
 #include "model_lod.hpp"
-#include "buffer.hpp"
 #include "render_pass.hpp"
-#include "memory.hpp"
 #include "frame_buffer.hpp"
 
-#include <vector>
+#include <vulkan/vulkan.hpp>
+
 #include <atomic>
 #include <thread>
 
@@ -52,7 +50,6 @@ class ApplicationVulkan : public Application {
   Deleter<VkPipeline> m_pipeline_2;
   FrameBuffer m_framebuffer;
   Model m_model;
-  Model m_model_2;
   ModelLod m_model_lod;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;

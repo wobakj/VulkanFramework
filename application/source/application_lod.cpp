@@ -3,13 +3,9 @@
 #include "launcher.hpp"
 #include "bvh.h"
 #include "image.hpp"
-#include "buffer.hpp"
 #include "shader.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
-
-// c++ warpper
-#include <vulkan/vulkan.hpp>
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,9 +14,6 @@
 #include <iostream>
 
 #define THREADING
-// helper functions
-std::string resourcePath(int argc, char* argv[]);
-void glfw_error(int error, const char* description);
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -330,12 +323,12 @@ void ApplicationVulkan::createVertexBuffer() {
   // model_t tri = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
-
   m_model = Model{m_device, tri};
 }
+
 void ApplicationVulkan::loadModel() {
   auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 1, 1};
+  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 8, 8};
   m_model_dirty = true;
 }
 
@@ -459,7 +452,9 @@ void ApplicationVulkan::updateView() {
   ubo.proj[1][1] *= -1;
 
   m_device.uploadBufferData(&ubo, m_buffers.at("uniform"));
-
+  if (!m_sphere) {
+    m_model_lod.update(m_camera.position());
+  }
   updateLights();
 }
 

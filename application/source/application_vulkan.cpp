@@ -7,9 +7,6 @@
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
 
-// c++ warpper
-#include <vulkan/vulkan.hpp>
-
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -17,9 +14,6 @@
 #include <iostream>
 
 #define THREADING
-// helper functions
-std::string resourcePath(int argc, char* argv[]);
-void glfw_error(int error, const char* description);
 
 struct UniformBufferObject {
     glm::mat4 model;

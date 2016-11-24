@@ -1,18 +1,16 @@
 #ifndef APPLICATION_VULKAN_HPP
 #define APPLICATION_VULKAN_HPP
 
-#include <vulkan/vulkan.hpp>
-
 #include "application.hpp"
+
 #include "deleter.hpp"
 #include "model.hpp"
-#include "buffer.hpp"
 #include "render_pass.hpp"
-#include "memory.hpp"
 #include "frame_buffer.hpp"
 #include "frame_resource.hpp"
 
-#include <vector>
+#include <vulkan/vulkan.hpp>
+
 #include <atomic>
 #include <thread>
 
