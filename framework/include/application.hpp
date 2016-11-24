@@ -23,20 +23,25 @@ class Application {
   // 
   void updateShaderPrograms();
   // draw all objects
-  virtual void render() = 0;
   virtual void update();
-  virtual void updateView() = 0;
-  virtual void recreatePipeline() = 0;
   void resize(std::size_t with, std::size_t height);
-  virtual void resize() = 0;
-  void initialize();
-  uint32_t acquireImage();
+
 
   vk::Semaphore const& semaphoreAcquire();
   vk::Semaphore const& semaphoreDraw();
   vk::Fence const& fenceDraw();
 
  protected:
+  virtual void render() = 0;
+  virtual void updateView() = 0;
+  virtual void recreatePipeline() = 0;
+  virtual void resize() = 0;
+  
+  void initialize();
+
+  uint32_t acquireImage();
+  void submitDraw(vk::CommandBuffer const& buffer);
+  void present(uint32_t index_image);
 
   std::string m_resource_path; 
 

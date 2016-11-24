@@ -97,36 +97,9 @@ void ApplicationVulkan::render() {
   if (imageIndex == std::numeric_limits<uint32_t>::max()) return;
   createPrimaryCommandBuffer(imageIndex);
 
-  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
+  submitDraw(m_command_buffers.at("primary"));
 
-  vk::Semaphore waitSemaphores[]{semaphoreAcquire()};
-  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfos[0].setWaitSemaphoreCount(1);
-  submitInfos[0].setPWaitSemaphores(waitSemaphores);
-  submitInfos[0].setPWaitDstStageMask(waitStages);
-
-  submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&m_command_buffers.at("primary"));
-
-  vk::Semaphore signalSemaphores[]{semaphoreDraw()};
-  submitInfos[0].signalSemaphoreCount = 1;
-  submitInfos[0].pSignalSemaphores = signalSemaphores;
-
-  m_device->resetFences({fenceDraw()});
-  m_device.getQueue("graphics").submit(submitInfos, fenceDraw());
-
-  vk::PresentInfoKHR presentInfo{};
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = signalSemaphores;
-
-  vk::SwapchainKHR swapChains[]{m_swap_chain};
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = swapChains;
-  presentInfo.pImageIndices = &imageIndex;
-
-  m_device.getQueue("present").presentKHR(presentInfo);
-  m_device.getQueue("present").waitIdle();
-
+  present(imageIndex);
   first = false;
 }
 
@@ -220,7 +193,7 @@ void ApplicationVulkan::createRenderPass() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
-  sub_pass_t pass_2({4},{0,1,2});
+  sub_pass_t pass_2({4},{0,1,2}, 3);
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
@@ -320,10 +293,11 @@ void ApplicationVulkan::createGraphicsPipeline() {
   pipelineInfo2.pColorBlendState = &colorBlending2;
   
   pipelineInfo2.pDynamicState = nullptr; // Optional
-
+  // shade fragment only if light sphere reaches behind it
   vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  depthStencil2.depthTestEnable = VK_FALSE;
+  depthStencil2.depthTestEnable = VK_TRUE;
   depthStencil2.depthWriteEnable = VK_FALSE;
+  depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
   pipelineInfo2.pDepthStencilState = &depthStencil2;
   
   pipelineInfo2.renderPass = m_render_pass;

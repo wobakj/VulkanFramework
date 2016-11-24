@@ -33,7 +33,7 @@ void Application::initialize() {
   m_semaphores.emplace("draw", m_device->createSemaphore({}));
   m_fences.emplace("draw", m_device->createFence({}));
   m_device->resetFences({fenceDraw()});
-  
+
 }
 
 void Application::updateShaderPrograms() {
@@ -87,4 +87,37 @@ uint32_t Application::acquireImage() {
       throw std::runtime_error("failed to acquire swap chain image!");
   }
   return imageIndex;
+}
+
+void Application::present(uint32_t index_image) {
+  vk::PresentInfoKHR presentInfo{};
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = &semaphoreDraw();
+
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = &m_swap_chain.get();
+  presentInfo.pImageIndices = &index_image;
+
+  m_device.getQueue("present").presentKHR(presentInfo);
+  m_device.getQueue("present").waitIdle();
+}
+
+void Application::submitDraw(vk::CommandBuffer const& buffer) {
+  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
+
+  vk::Semaphore waitSemaphores[]{semaphoreAcquire()};
+  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  submitInfos[0].setWaitSemaphoreCount(1);
+  submitInfos[0].setPWaitSemaphores(waitSemaphores);
+  submitInfos[0].setPWaitDstStageMask(waitStages);
+
+  submitInfos[0].setCommandBufferCount(1);
+  submitInfos[0].setPCommandBuffers(&buffer);
+
+  vk::Semaphore signalSemaphores[]{semaphoreDraw()};
+  submitInfos[0].signalSemaphoreCount = 1;
+  submitInfos[0].pSignalSemaphores = signalSemaphores;
+
+  m_device->resetFences({fenceDraw()});
+  m_device.getQueue("graphics").submit(submitInfos, fenceDraw());
 }
