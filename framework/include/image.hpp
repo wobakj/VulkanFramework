@@ -25,7 +25,7 @@ class Image : public ResourceImage {
  public:
   
   Image();
-  Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage); 
+  Image(Device const& device, vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage); 
   ~Image();
 
   Image(Image && dev);

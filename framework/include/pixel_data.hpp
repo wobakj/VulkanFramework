@@ -29,17 +29,13 @@ inline std::uint8_t num_channels(vk::Format const& format) {
 struct pixel_data {
   pixel_data()
    :pixels()
-   ,width{0}
-   ,height{0}
-   ,depth{0}
+   ,extent{}
    ,format{vk::Format::eUndefined}
   {}
 
   pixel_data(std::vector<std::uint8_t> dat, vk::Format f, std::uint32_t w, std::uint32_t h = 1, std::uint32_t d = 1)
    :pixels(dat)
-   ,width{w}
-   ,height{h}
-   ,depth{d}
+   ,extent{w, h, d}
    ,format{f}
   {}
 
@@ -48,9 +44,7 @@ struct pixel_data {
   }
 
   std::vector<std::uint8_t> pixels;
-  std::uint32_t width;
-  std::uint32_t height;
-  std::uint32_t depth;
+  vk::Extent3D extent;
 
   // channel format
   vk::Format format; 

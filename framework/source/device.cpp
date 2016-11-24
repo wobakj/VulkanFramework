@@ -184,12 +184,12 @@ void Device::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-Image Device::createImage(std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) const {
-  return Image{*this, width, height, format, tiling, usage};
+Image Device::createImage(vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) const {
+  return Image{*this, extent, format, tiling, usage};
 }
 
 void Device::uploadImageData(void const* data_ptr, Image& image) {
-  Image image_stage{*this, image.info().extent.width, image.info().extent.height, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc};
+  Image image_stage{*this, image.info().extent, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc};
   auto prev_layout = image.layout();
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};

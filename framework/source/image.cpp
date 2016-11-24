@@ -134,15 +134,13 @@ Image::Image(Image && dev)
   swap(dev);
 }
 
-Image::Image(Device const& device, std::uint32_t width, std::uint32_t height, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
+Image::Image(Device const& device,  vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
  :Image{}
 {  
   m_device = &device;
 
   m_info.imageType = vk::ImageType::e2D;
-  m_info.extent.width = width;
-  m_info.extent.height = height;
-  m_info.extent.depth = 1;
+  m_info.extent = extent;
   m_info.mipLevels = 1;
   m_info.arrayLayers = 1;
   m_info.format = format;
