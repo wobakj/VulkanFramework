@@ -297,26 +297,11 @@ void LauncherVulkan::updateCommandBuffers() {
 void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
   m_command_buffers.at("primary").reset({});
 
-  vk::RenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.renderPass = m_render_pass;
-  renderPassInfo.framebuffer = m_framebuffer;
-
-  renderPassInfo.renderArea.extent = m_swap_chain.extent();
-  // vk::ClearValue clearColor = vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}};
-  std::vector<vk::ClearValue> clearValues{5, vk::ClearValue{}};
-  clearValues[0].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
-  clearValues[1].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
-  clearValues[2].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
-  clearValues[3].setDepthStencil({1.0f, 0});
-  clearValues[4].setColor(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
-  renderPassInfo.clearValueCount = std::uint32_t(clearValues.size());
-  renderPassInfo.pClearValues = clearValues.data();
-
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
   m_command_buffers.at("primary").begin(beginInfo);
 
-  m_command_buffers.at("primary").beginRenderPass(&renderPassInfo, vk::SubpassContents::eSecondaryCommandBuffers);
+  m_command_buffers.at("primary").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
   m_command_buffers.at("primary").executeCommands({m_command_buffers.at("gbuffer")});
   
@@ -339,7 +324,7 @@ void LauncherVulkan::createPrimaryCommandBuffer(int index_fb) {
 }
 
 void LauncherVulkan::createFramebuffers() {
-  m_framebuffer = FrameBuffer{m_device, {m_image_color.view(), m_image_pos.view(), m_image_normal.view(), m_image_depth.view(), m_image_color_2.view()}, m_image_color.info(), m_render_pass};
+  m_framebuffer = FrameBuffer{m_device, {&m_image_color, &m_image_pos, &m_image_normal, &m_image_depth, &m_image_color_2}, m_render_pass};
 }
 
 void LauncherVulkan::createRenderPass() {

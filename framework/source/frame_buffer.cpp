@@ -1,19 +1,7 @@
 #include "frame_buffer.hpp"
 
 #include "device.hpp"
-
-vk::FramebufferCreateInfo view_to_fb(vk::ImageView const& view, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass) {
-  vk::ImageView attachments[] = {view};
-
-  vk::FramebufferCreateInfo fb_info{};
-  fb_info.renderPass = pass;
-  fb_info.attachmentCount = 1;
-  fb_info.pAttachments = attachments;
-  fb_info.width = img_info.extent.width;
-  fb_info.height = img_info.extent.height;
-  fb_info.layers = img_info.arrayLayers;
-  return fb_info;
-}
+#include "image.hpp"
 
 vk::FramebufferCreateInfo view_to_fb(std::vector<vk::ImageView> const& attachments, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass) {
   vk::FramebufferCreateInfo fb_info{};
@@ -29,16 +17,27 @@ vk::FramebufferCreateInfo view_to_fb(std::vector<vk::ImageView> const& attachmen
 FrameBuffer::FrameBuffer()
  :WrapperFrameBuffer{}
  ,m_device{nullptr}
- ,m_attachments{}
 {}
 
-FrameBuffer::FrameBuffer(Device const& device, std::vector<vk::ImageView> const& attachments, vk::ImageCreateInfo const& img_info, vk::RenderPass const& pass)
+FrameBuffer::FrameBuffer(Device const& device, std::vector<Image const*> const& images, vk::RenderPass const& pass)
  :FrameBuffer{}
  {
   m_device = &device;
-  m_attachments = attachments;
-  m_info = view_to_fb(m_attachments, img_info, pass);
+  std::vector<vk::ImageView> attachments;
+  for (auto const& image : images) {
+    attachments.emplace_back(image->view());
+  }
+  m_info = view_to_fb(attachments, images.front()->info(), pass);
   m_object = (*m_device)->createFramebuffer(info());
+
+  for(auto const& image : images) {
+    if (!is_depth(image->format())) {
+      m_clear_values.emplace_back(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
+    }
+    else {
+      m_clear_values.emplace_back(vk::ClearDepthStencilValue{{1.0f, 0}});
+    }
+  }
  }
 
 void FrameBuffer::destroy() {
@@ -63,5 +62,19 @@ FrameBuffer& FrameBuffer::operator=(FrameBuffer&& rhs) {
 void FrameBuffer::swap(FrameBuffer& rhs) {
   WrapperFrameBuffer::swap(rhs);
   std::swap(m_device, rhs.m_device);
-  std::swap(m_attachments, rhs.m_attachments);
+  std::swap(m_clear_values, rhs.m_clear_values);
+}
+
+vk::Extent2D FrameBuffer::extent() const {
+  return vk::Extent2D{info().width, info().height};
+}
+
+vk::RenderPassBeginInfo FrameBuffer::beginInfo() const {
+  vk::RenderPassBeginInfo begin_info{};
+  begin_info.renderPass = info().renderPass;
+  begin_info.framebuffer = get();
+  begin_info.renderArea.extent = extent();
+  begin_info.clearValueCount = std::uint32_t(m_clear_values.size());
+  begin_info.pClearValues = m_clear_values.data();
+  return begin_info;
 }
