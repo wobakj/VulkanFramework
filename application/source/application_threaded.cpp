@@ -84,8 +84,8 @@ ApplicationThreaded::~ApplicationThreaded() {
 }
 
 void ApplicationThreaded::render() {
-
   if (!m_done_rendering) return;
+  // prevent rendering
   m_done_recording = false;
   // make sure no command buffer is in use
   // if(!first) {
@@ -115,31 +115,31 @@ void ApplicationThreaded::render() {
 
   m_curr_img = imageIndex;
   // submitDraw(m_draw_buffers.front());
-
   // present(imageIndex);
   m_draw_buffers.swap();
   m_done_recording = true;
 }
 
 void ApplicationThreaded::renderLoop() {
-  static bool first = true;
+  // static bool first = true;
 
   while (m_should_render) {
+    // render only when new commandbuffer was recorded
     if (!m_done_recording) continue;
+    // prevent command buffer recreation during rendering
     m_done_rendering = false;
-
-    // auto imageIndex = acquireImage();
-    // if (imageIndex == std::numeric_limits<uint32_t>::max()) return;
-    // createPrimaryCommandBuffer(imageIndex);
+    // request new commad buffer after blocking recreation
+    m_done_recording = false;
 
     submitDraw(m_draw_buffers.front());
 
     present(m_curr_img);
     // make sure no command buffer is in use
-    if(!first) {
+    // if(!first) {
       m_device.waitFence(fenceDraw());
-    } 
-    first = false;
+    // } 
+    // first = false;
+    // allow recording
     m_done_rendering = true;
   }
 }

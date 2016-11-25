@@ -34,6 +34,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
   }
   std::cerr << string_flag << "- " << msg << std::endl;
   if (throwing) {
+    assert(0);
     throw std::runtime_error{"msg"};
   }
   return VK_FALSE;
