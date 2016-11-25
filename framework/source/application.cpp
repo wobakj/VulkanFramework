@@ -32,13 +32,14 @@ void Application::initialize() {
   m_semaphores.emplace("acquire", m_device->createSemaphore({}));
   m_semaphores.emplace("draw", m_device->createSemaphore({}));
   m_fences.emplace("draw", m_device->createFence({}));
+  m_fences.emplace("acquire", m_device->createFence({}));
   m_device->resetFences({fenceDraw()});
 
 }
 
 void Application::updateShaderPrograms() {
 	for (auto& pair : m_shaders) {
-    m_shaders.at("first") =  Shader{m_device, pair.second.m_paths};
+    pair.second = Shader{m_device, pair.second.m_paths};
   }
   recreatePipeline();
 }
@@ -75,9 +76,13 @@ vk::Fence const& Application::fenceDraw() {
   return m_fences.at("draw");
 }
 
+vk::Fence const& Application::fenceAcquire() {
+  return m_fences.at("acquire");
+}
+
 uint32_t Application::acquireImage() {
   uint32_t imageIndex;
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), semaphoreAcquire(), VK_NULL_HANDLE, &imageIndex);
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), semaphoreAcquire(), fenceAcquire(), &imageIndex);
   if (result == vk::Result::eErrorOutOfDateKHR) {
   		// handle swapchain recreation
       // recreateSwapChain();
@@ -120,4 +125,11 @@ void Application::submitDraw(vk::CommandBuffer const& buffer) {
 
   m_device->resetFences({fenceDraw()});
   m_device.getQueue("graphics").submit(submitInfos, fenceDraw());
+}
+
+void Application::blockSwapChain() {
+  m_mutex_swapchain.lock();
+}
+void Application::unblockSwapChain() {
+  m_mutex_swapchain.unlock();
 }

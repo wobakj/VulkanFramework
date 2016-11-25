@@ -6,6 +6,7 @@
 #include "swap_chain.hpp"
 
 #include <map>
+#include <mutex>
 
 class Image;
 class Shader;
@@ -26,10 +27,13 @@ class Application {
   virtual void update();
   void resize(std::size_t with, std::size_t height);
 
+  void blockSwapChain();
+  void unblockSwapChain();
 
   vk::Semaphore const& semaphoreAcquire();
   vk::Semaphore const& semaphoreDraw();
   vk::Fence const& fenceDraw();
+  vk::Fence const& fenceAcquire();
 
  protected:
   virtual void render() = 0;
@@ -57,6 +61,7 @@ class Application {
   std::map<std::string, Shader> m_shaders;
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
+  std::mutex m_mutex_swapchain;
 
  private:
 };

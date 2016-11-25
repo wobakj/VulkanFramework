@@ -327,7 +327,7 @@ void Device::waitFence(vk::Fence const& fence) const {
     // only try to wait if fence is actually in use
     if (get().getFenceStatus(fence) == vk::Result::eNotReady) {
       if (get().waitForFences({fence}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
-        throw std::exception();
+        throw std::runtime_error{"waited too long for fence"};
       }
       // get().resetFences({fence});
     }

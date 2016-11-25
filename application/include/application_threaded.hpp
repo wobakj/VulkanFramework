@@ -48,7 +48,6 @@ class ApplicationThreaded : public Application {
   void keyCallback(int key, int scancode, int action, int mods) override;
   void renderLoop();
   void acquireBackImage();
-  void resizeFunc();
 
   // path to the resource folders
   RenderPass m_render_pass;
@@ -63,27 +62,20 @@ class ApplicationThreaded : public Application {
   vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
-  // Deleter<VkFence> m_fence_draw;
+
+  bool m_sphere;
+  bool m_initializing;
+
   std::thread m_thread_load;
   std::thread m_thread_render;
   std::atomic<bool> m_model_dirty;
-  // Application* m_application;
-  bool m_sphere;
-  bool m_initializing;
-  bool m_should_resize;
-
   std::atomic<bool> m_should_render;
-  std::atomic<bool> m_done_rendering;
-  std::atomic<bool> m_done_recording;
   std::atomic<bool> m_new_frame;
-  std::atomic<uint32_t> m_curr_img;
   std::mutex m_mutex_resources_front;
-  std::mutex m_mutex_resources_back;
 
-  DoubleBuffer<vk::CommandBuffer> m_draw_buffers;
+  DoubleBuffer<vk::CommandBuffer> m_db_draw_buffers;
   std::vector<uint32_t> m_draw_images;
   DoubleBuffer<uint32_t> m_db_draw_images;
-  DoubleBuffer<std::mutex> m_db_mutexes;
 };
 
 #endif

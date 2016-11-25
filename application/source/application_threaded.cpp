@@ -47,13 +47,10 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_model_dirty{false}
  ,m_sphere{true}
  ,m_initializing{true}
- ,m_should_resize{false}
+ ,m_model_dirty{false}
  ,m_should_render{true}
- ,m_done_rendering{true}
- ,m_done_recording{false}
  ,m_new_frame{false}
  ,m_draw_images{{0,0}}
 {
@@ -70,8 +67,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   createCommandBuffers();
 
   m_db_draw_images = DoubleBuffer<uint32_t>{m_draw_images[0], m_draw_images[1]};
-  m_db_mutexes = DoubleBuffer<std::mutex>{m_mutex_resources_front, m_mutex_resources_back};
-  resizeFunc();
+  resize();
   render();
 
   m_initializing = false;
@@ -82,6 +78,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
 }
 
 ApplicationThreaded::~ApplicationThreaded() {
+  // shut down render thread
   m_should_render = false;
   if(m_thread_render.joinable()) {
     m_thread_render.join();
@@ -89,6 +86,9 @@ ApplicationThreaded::~ApplicationThreaded() {
   else {
     throw std::runtime_error{"could not join thread"};
   }
+  // wait until fences are done
+  m_device.waitFence(fenceDraw());
+  m_device.waitFence(fenceAcquire());
 }
 
 void ApplicationThreaded::acquireBackImage() {
@@ -101,10 +101,8 @@ void ApplicationThreaded::acquireBackImage() {
 }
 
 void ApplicationThreaded::render() {
+  // only calculate new frame if previous one was rendered
   if (m_new_frame) return;
-  m_mutex_resources_back.lock();
-
-  m_device.waitFence(fenceDraw());
 
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
@@ -122,19 +120,18 @@ void ApplicationThreaded::render() {
       #endif
     }
   }
-  // when resizing, lock front resources
-  if (m_should_resize) {
-    m_mutex_resources_front.lock();
-    resizeFunc();
-    m_mutex_resources_front.unlock();
-  }
 
+  if (!m_initializing) {
+    // acquire image after previous acquisition was successfull
+    m_device.waitFence(fenceAcquire());
+    m_device->resetFences(fenceAcquire());
+  }
+  acquireBackImage();
   createPrimaryCommandBuffer(m_db_draw_images.back());
 
-  m_mutex_resources_back.unlock();
-  // swap resources, lock front esources for that
+  // lock front resources before swapping
   m_mutex_resources_front.lock();
-  m_draw_buffers.swap();
+  m_db_draw_buffers.swap();
   m_db_draw_images.swap();
   // allow drawing
   m_mutex_resources_front.unlock();
@@ -145,18 +142,22 @@ void ApplicationThreaded::renderLoop() {
   while (m_should_render) {
     // render only when new commandbuffer was recorded
     if (!m_new_frame) continue;
-    m_mutex_resources_front.lock();
-
-    submitDraw(m_draw_buffers.front());
-    // acquire image after submission, can be a blocking operation
-    acquireBackImage();
-    // after next image is known, allow recording of new command buffer
+    // allow new buffer recording
     m_new_frame = false;
+    // wait until swap chain is avaible
+    m_mutex_swapchain.lock();
+    // block resource swap
+    m_mutex_resources_front.lock();
+    // wait until drawing is finished before issuing next draw
+    m_device.waitFence(fenceDraw());
+    submitDraw(m_db_draw_buffers.front());
+    // after next image is known, allow recording of new command buffer
     // present image and wait for result
     present(m_db_draw_images.front());
-    m_device.waitFence(fenceDraw());
-    // allow recording
+    // allow resource swap
     m_mutex_resources_front.unlock();
+    // free swap chain
+    m_mutex_swapchain.unlock();
   }
 }
 
@@ -167,7 +168,7 @@ void ApplicationThreaded::createCommandBuffers() {
   m_command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
   m_command_buffers.emplace("primary2", m_device.createCommandBuffer("graphics"));
 
-  m_draw_buffers = DoubleBuffer<vk::CommandBuffer>{m_command_buffers.at("primary"), m_command_buffers.at("primary2")};
+  m_db_draw_buffers = DoubleBuffer<vk::CommandBuffer>{m_command_buffers.at("primary"), m_command_buffers.at("primary2")};
 }
 
 void ApplicationThreaded::updateCommandBuffers() {
@@ -216,24 +217,22 @@ void ApplicationThreaded::updateCommandBuffers() {
   m_command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
 
   m_command_buffers.at("lighting").end();
-
-  // m_device->resetFences(fenceDraw());
 }
 
 void ApplicationThreaded::createPrimaryCommandBuffer(int index_fb) {
-  m_draw_buffers.back().reset({});
+  m_db_draw_buffers.back().reset({});
 
-  m_draw_buffers.back().begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  m_db_draw_buffers.back().begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  m_draw_buffers.back().beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  m_db_draw_buffers.back().beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  m_draw_buffers.back().executeCommands({m_command_buffers.at("gbuffer")});
+  m_db_draw_buffers.back().executeCommands({m_command_buffers.at("gbuffer")});
   
-  m_draw_buffers.back().nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  m_db_draw_buffers.back().nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  m_draw_buffers.back().executeCommands({m_command_buffers.at("lighting")});
+  m_db_draw_buffers.back().executeCommands({m_command_buffers.at("lighting")});
 
-  m_draw_buffers.back().endRenderPass();
+  m_db_draw_buffers.back().endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -242,9 +241,9 @@ void ApplicationThreaded::createPrimaryCommandBuffer(int index_fb) {
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  m_draw_buffers.back().blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  m_db_draw_buffers.back().blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
-  m_draw_buffers.back().end();
+  m_db_draw_buffers.back().end();
 }
 
 void ApplicationThreaded::createFramebuffers() {
@@ -531,25 +530,19 @@ void ApplicationThreaded::updateView() {
   updateLights();
 }
 
-void ApplicationThreaded::resizeFunc() {
+void ApplicationThreaded::resize() {
+  // wait until draw resources are avaible before recallocation
+  if (!m_initializing) {
+    m_device.waitFence(fenceDraw());
+    m_device.waitFence(fenceAcquire());
+  }
   createDepthResource();
   createRenderPass();
   createFramebuffers();
 
   recreatePipeline();
-  // get image form new swap chain
-  acquireBackImage();
-  m_should_resize = false;
 }
 
-void ApplicationThreaded::resize() {
-  // wait until rendering is done
-  // if (!m_initializing) {
-  //   m_device.waitFence(fenceDraw());
-  // }
-
-  m_should_resize = true;
-}
 void ApplicationThreaded::recreatePipeline() {
   // make sure pipeline is free before rebuilding
   if (!m_initializing) {
@@ -559,8 +552,6 @@ void ApplicationThreaded::recreatePipeline() {
   createDescriptorPool();
 
   updateCommandBuffers();
-
-  // m_device->resetFences(fenceDraw());
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
