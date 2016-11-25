@@ -69,7 +69,12 @@ class DebugReporter {
 
     m_instance = &inst;
     vk::DebugReportCallbackCreateInfoEXT createInfo = {};
-    createInfo.flags = vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning;
+    createInfo.flags = vk::DebugReportFlagBitsEXT::eError
+                     | vk::DebugReportFlagBitsEXT::eWarning 
+                     | vk::DebugReportFlagBitsEXT::ePerformanceWarning 
+                     // | vk::DebugReportFlagBitsEXT::eDebug 
+                     // | vk::DebugReportFlagBitsEXT::eInformation
+                     ;
     createInfo.pfnCallback = debug_callback;
     m_callback = inst.createDebugReportCallbackEXT(createInfo);
   }
