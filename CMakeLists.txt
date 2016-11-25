@@ -81,6 +81,9 @@ include_directories(application/include)
 add_executable(vulkan_test application/source/application_vulkan.cpp)
 target_link_libraries(vulkan_test framework)
 
+add_executable(vulkan_threaded application/source/application_threaded.cpp)
+target_link_libraries(vulkan_threaded framework)
+
 # set build type dependent flags
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
