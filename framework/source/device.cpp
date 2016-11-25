@@ -329,7 +329,7 @@ void Device::waitFence(vk::Fence const& fence) const {
       if (get().waitForFences({fence}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
         throw std::exception();
       }
-      get().resetFences({fence});
+      // get().resetFences({fence});
     }
   }
 }

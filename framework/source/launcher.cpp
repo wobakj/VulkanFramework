@@ -108,10 +108,10 @@ void Launcher::mainLoop() {
 
   // rendering loop
   while (!glfwWindowShouldClose(m_window)) {
-    // draw geometry
-    m_application->update();
     // query input
     glfwPollEvents();
+    // draw geometry
+    m_application->update();
     // display fps
     show_fps();
   }

@@ -50,9 +50,12 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_model_dirty{false}
  ,m_sphere{true}
  ,m_initializing{true}
+ ,m_should_resize{false}
  ,m_should_render{true}
  ,m_done_rendering{true}
  ,m_done_recording{false}
+ ,m_new_frame{false}
+ ,m_draw_images{{0,0}}
 {
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
@@ -66,13 +69,18 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   createRenderPass();
   createCommandBuffers();
 
-  resize();
+  m_db_draw_images = DoubleBuffer<uint32_t>{m_draw_images[0], m_draw_images[1]};
+  m_db_mutexes = DoubleBuffer<std::mutex>{m_mutex_resources_front, m_mutex_resources_back};
+  resizeFunc();
+  render();
+
   m_initializing = false;
 
   if (!m_thread_render.joinable()) {
     m_thread_render = std::thread(&ApplicationThreaded::renderLoop, this);
   }
 }
+
 ApplicationThreaded::~ApplicationThreaded() {
   m_should_render = false;
   if(m_thread_render.joinable()) {
@@ -83,14 +91,20 @@ ApplicationThreaded::~ApplicationThreaded() {
   }
 }
 
+void ApplicationThreaded::acquireBackImage() {
+  // acquire first image
+  auto imageIndex = acquireImage();
+  if (imageIndex == std::numeric_limits<uint32_t>::max()) {
+    throw std::runtime_error{"pipeline bad"};
+  }
+  m_db_draw_images.back() = imageIndex;
+}
+
 void ApplicationThreaded::render() {
-  if (!m_done_rendering) return;
-  // prevent rendering
-  m_done_recording = false;
-  // make sure no command buffer is in use
-  // if(!first) {
-  //   m_device.waitFence(fenceDraw());
-  // } 
+  if (m_new_frame) return;
+  m_mutex_resources_back.lock();
+
+  m_device.waitFence(fenceDraw());
 
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
@@ -108,39 +122,41 @@ void ApplicationThreaded::render() {
       #endif
     }
   }
+  // when resizing, lock front resources
+  if (m_should_resize) {
+    m_mutex_resources_front.lock();
+    resizeFunc();
+    m_mutex_resources_front.unlock();
+  }
 
-  auto imageIndex = acquireImage();
-  if (imageIndex == std::numeric_limits<uint32_t>::max()) return;
-  createPrimaryCommandBuffer(imageIndex);
+  createPrimaryCommandBuffer(m_db_draw_images.back());
 
-  m_curr_img = imageIndex;
-  // submitDraw(m_draw_buffers.front());
-  // present(imageIndex);
+  m_mutex_resources_back.unlock();
+  // swap resources, lock front esources for that
+  m_mutex_resources_front.lock();
   m_draw_buffers.swap();
-  m_done_recording = true;
+  m_db_draw_images.swap();
+  // allow drawing
+  m_mutex_resources_front.unlock();
+  m_new_frame = true;
 }
 
 void ApplicationThreaded::renderLoop() {
-  // static bool first = true;
-
   while (m_should_render) {
     // render only when new commandbuffer was recorded
-    if (!m_done_recording) continue;
-    // prevent command buffer recreation during rendering
-    m_done_rendering = false;
-    // request new commad buffer after blocking recreation
-    m_done_recording = false;
+    if (!m_new_frame) continue;
+    m_mutex_resources_front.lock();
 
     submitDraw(m_draw_buffers.front());
-
-    present(m_curr_img);
-    // make sure no command buffer is in use
-    // if(!first) {
-      m_device.waitFence(fenceDraw());
-    // } 
-    // first = false;
+    // acquire image after submission, can be a blocking operation
+    acquireBackImage();
+    // after next image is known, allow recording of new command buffer
+    m_new_frame = false;
+    // present image and wait for result
+    present(m_db_draw_images.front());
+    m_device.waitFence(fenceDraw());
     // allow recording
-    m_done_rendering = true;
+    m_mutex_resources_front.unlock();
   }
 }
 
@@ -200,6 +216,8 @@ void ApplicationThreaded::updateCommandBuffers() {
   m_command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
 
   m_command_buffers.at("lighting").end();
+
+  // m_device->resetFences(fenceDraw());
 }
 
 void ApplicationThreaded::createPrimaryCommandBuffer(int index_fb) {
@@ -513,12 +531,24 @@ void ApplicationThreaded::updateView() {
   updateLights();
 }
 
-void ApplicationThreaded::resize() {
+void ApplicationThreaded::resizeFunc() {
   createDepthResource();
   createRenderPass();
   createFramebuffers();
 
   recreatePipeline();
+  // get image form new swap chain
+  acquireBackImage();
+  m_should_resize = false;
+}
+
+void ApplicationThreaded::resize() {
+  // wait until rendering is done
+  // if (!m_initializing) {
+  //   m_device.waitFence(fenceDraw());
+  // }
+
+  m_should_resize = true;
 }
 void ApplicationThreaded::recreatePipeline() {
   // make sure pipeline is free before rebuilding
@@ -529,6 +559,8 @@ void ApplicationThreaded::recreatePipeline() {
   createDescriptorPool();
 
   updateCommandBuffers();
+
+  // m_device->resetFences(fenceDraw());
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
