@@ -222,8 +222,8 @@ vk::ImageCreateInfo SwapChain::imgInfo() const {
   return chain_to_img(*this);
 }
 
-std::size_t SwapChain::numImages() const {
-  return m_views_swap.size();
+uint32_t SwapChain::numImages() const {
+  return uint32_t(m_views_swap.size());
 }
 
 vk::Format SwapChain::format() const {

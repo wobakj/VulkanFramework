@@ -40,6 +40,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
+
 ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
  ,m_pipeline{m_device, vkDestroyPipeline}
@@ -51,8 +52,6 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_initializing{true}
  ,m_model_dirty{false}
  ,m_should_render{true}
- ,m_new_frame{false}
- ,m_draw_images{{0,0}}
 {
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
@@ -64,9 +63,9 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   createTextureSampler();
   createDepthResource();
   createRenderPass();
-  createCommandBuffers();
 
-  m_db_draw_images = DoubleBuffer<uint32_t>{m_draw_images[0], m_draw_images[1]};
+  createFrameResources();
+
   resize();
   render();
 
@@ -91,24 +90,41 @@ ApplicationThreaded::~ApplicationThreaded() {
   m_device.waitFence(fenceAcquire());
 }
 
-void ApplicationThreaded::acquireBackImage() {
-  // acquire first image
-  auto imageIndex = acquireImage();
-  if (imageIndex == std::numeric_limits<uint32_t>::max()) {
-    throw std::runtime_error{"pipeline bad"};
+void ApplicationThreaded::createFrameResources() {
+  // create resources for one less image than swap chain
+  // only numImages - 1 images can be acquired at a time
+  for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
+    m_frame_resources.emplace_back(m_device);
+    createCommandBuffers(m_frame_resources.back());
+    m_queue_record_frames.push(i);
   }
-  m_db_draw_images.back() = imageIndex;
+}
+
+void ApplicationThreaded::acquireBackImage() {
 }
 
 void ApplicationThreaded::render() {
   // only calculate new frame if previous one was rendered
-  if (m_new_frame) return;
+  m_mutex_record_queue.lock();
+  if (m_queue_record_frames.empty()) {
+    m_mutex_record_queue.unlock();
+    return;
+  }
+  uint32_t frame_record = m_queue_record_frames.front();
+  m_queue_record_frames.pop();
+  m_mutex_record_queue.unlock();
 
+
+  if (!m_initializing) {
+    // acquire image after previous acquisition was successfull
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       m_sphere = false;
       // std::swap(m_model, m_model_2);
-      updateCommandBuffers();
+      // updateCommandBuffers();
+      for (auto& res : m_frame_resources) {
+        updateCommandBuffers(res);
+      }
       m_model_dirty = false;
       #ifdef THREADING
       if(m_thread_load.joinable()) {
@@ -120,63 +136,114 @@ void ApplicationThreaded::render() {
       #endif
     }
   }
-
-  if (!m_initializing) {
-    // acquire image after previous acquisition was successfull
-    m_device.waitFence(fenceAcquire());
-    m_device->resetFences(fenceAcquire());
+    m_device.waitFence(m_frame_resources.at(frame_record).fenceAcquire());
+    m_device->resetFences(m_frame_resources.at(frame_record).fenceAcquire());
   }
-  acquireBackImage();
-  createPrimaryCommandBuffer(m_db_draw_images.back());
+  // acquire first image
+  acquireImage(m_frame_resources.at(frame_record));
+  // acquireBackImage();
+  m_device.waitFence(m_frame_resources.at(frame_record).fenceDraw());
+  createPrimaryCommandBuffer(m_frame_resources.at(frame_record));
 
   // lock front resources before swapping
-  m_mutex_resources_front.lock();
-  m_db_draw_buffers.swap();
-  m_db_draw_images.swap();
+  // m_mutex_resources_front.lock();
+  // m_db_draw_buffers.swap();
+  // m_db_draw_images.swap();
+  m_mutex_draw_queue.lock();
+  m_queue_draw_frames.push(frame_record);
+  m_mutex_draw_queue.unlock();
+
   // allow drawing
-  m_mutex_resources_front.unlock();
-  m_new_frame = true;
+  // m_mutex_resources_front.unlock();
+  // m_new_frame = true;
 }
 
 void ApplicationThreaded::renderLoop() {
+  // static uint32_t last_frame = 0;
   while (m_should_render) {
-    // render only when new commandbuffer was recorded
-    if (!m_new_frame) continue;
-    // allow new buffer recording
-    m_new_frame = false;
+    // render only when new frame is avaible
+    m_mutex_draw_queue.lock();
+    if (m_queue_draw_frames.empty()) {
+      m_mutex_draw_queue.unlock();
+      continue;
+    }
+    // get frame to draw
+    auto frame_draw = m_queue_draw_frames.front();
+    m_queue_draw_frames.pop();
+    m_mutex_draw_queue.unlock();
+
     // wait until swap chain is avaible
     m_mutex_swapchain.lock();
     // block resource swap
-    m_mutex_resources_front.lock();
     // wait until drawing is finished before issuing next draw
-    m_device.waitFence(fenceDraw());
-    submitDraw(m_db_draw_buffers.front());
-    // after next image is known, allow recording of new command buffer
+    m_device.waitFence(m_frame_resources.at(frame_draw).fenceDraw());
+    submitDraw(m_frame_resources.at(frame_draw));
     // present image and wait for result
-    present(m_db_draw_images.front());
-    // allow resource swap
-    m_mutex_resources_front.unlock();
+    present(m_frame_resources.at(frame_draw));
+    m_mutex_record_queue.lock();
+    m_queue_record_frames.push(frame_draw);
+    m_mutex_record_queue.unlock();
     // free swap chain
     m_mutex_swapchain.unlock();
   }
 }
 
-void ApplicationThreaded::createCommandBuffers() {
-  m_command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  m_command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-
-  m_command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
-  m_command_buffers.emplace("primary2", m_device.createCommandBuffer("graphics"));
-
-  m_db_draw_buffers = DoubleBuffer<vk::CommandBuffer>{m_command_buffers.at("primary"), m_command_buffers.at("primary2")};
+void ApplicationThreaded::acquireImage(frame_resources_t& res) {
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
+  if (result == vk::Result::eErrorOutOfDateKHR) {
+      // handle swapchain recreation
+      // recreateSwapChain();
+      throw std::runtime_error("swapchain out if date!");
+  } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+      throw std::runtime_error("failed to acquire swap chain image!");
+  }
 }
 
-void ApplicationThreaded::updateCommandBuffers() {
+void ApplicationThreaded::present(frame_resources_t& res) {
+  vk::PresentInfoKHR presentInfo{};
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = &res.semaphoreDraw();
+
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = &m_swap_chain.get();
+  presentInfo.pImageIndices = &res.image;
+
+  m_device.getQueue("present").presentKHR(presentInfo);
+  m_device.getQueue("present").waitIdle();
+}
+
+void ApplicationThreaded::submitDraw(frame_resources_t& res) {
+  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
+
+  vk::Semaphore waitSemaphores[]{res.semaphoreAcquire()};
+  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  submitInfos[0].setWaitSemaphoreCount(1);
+  submitInfos[0].setPWaitSemaphores(waitSemaphores);
+  submitInfos[0].setPWaitDstStageMask(waitStages);
+
+  submitInfos[0].setCommandBufferCount(1);
+  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("primary"));
+
+  vk::Semaphore signalSemaphores[]{res.semaphoreDraw()};
+  submitInfos[0].signalSemaphoreCount = 1;
+  submitInfos[0].pSignalSemaphores = signalSemaphores;
+
+  m_device->resetFences({res.fenceDraw()});
+  m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
+}
+
+void ApplicationThreaded::createCommandBuffers(frame_resources_t& resource) {
+  resource.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  resource.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  resource.command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
+}
+
+void ApplicationThreaded::updateCommandBuffers(frame_resources_t& resource) {
   if (!m_initializing) {
     m_device.waitFence(fenceDraw());
   }
 
-  m_command_buffers.at("gbuffer").reset({});
+  resource.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
@@ -184,10 +251,10 @@ void ApplicationThreaded::updateCommandBuffers() {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  m_command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  resource.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  m_command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-  m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  resource.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  resource.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // choose between sphere and house
   Model const* model = nullptr;
   if (m_sphere) {
@@ -197,42 +264,42 @@ void ApplicationThreaded::updateCommandBuffers() {
     model = &m_model_2;
   }
 
-  m_command_buffers.at("gbuffer").bindVertexBuffers(0, {model->buffer()}, {0});
-  m_command_buffers.at("gbuffer").bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
+  resource.command_buffers.at("gbuffer").bindVertexBuffers(0, {model->buffer()}, {0});
+  resource.command_buffers.at("gbuffer").bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
 
-  m_command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
+  resource.command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
 
-  m_command_buffers.at("gbuffer").end();
+  resource.command_buffers.at("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
-  m_command_buffers.at("lighting").reset({});
-  m_command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  resource.command_buffers.at("lighting").reset({});
+  resource.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  m_command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
-  m_command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  resource.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
+  resource.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  m_command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
-  m_command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  resource.command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
+  resource.command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
 
-  m_command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  resource.command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
 
-  m_command_buffers.at("lighting").end();
+  resource.command_buffers.at("lighting").end();
 }
 
-void ApplicationThreaded::createPrimaryCommandBuffer(int index_fb) {
-  m_db_draw_buffers.back().reset({});
+void ApplicationThreaded::createPrimaryCommandBuffer(frame_resources_t& res) {
+  res.command_buffers.at("primary").reset({});
 
-  m_db_draw_buffers.back().begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("primary").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  m_db_draw_buffers.back().beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("primary").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  m_db_draw_buffers.back().executeCommands({m_command_buffers.at("gbuffer")});
+  res.command_buffers.at("primary").executeCommands({res.command_buffers.at("gbuffer")});
   
-  m_db_draw_buffers.back().nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("primary").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  m_db_draw_buffers.back().executeCommands({m_command_buffers.at("lighting")});
+  res.command_buffers.at("primary").executeCommands({res.command_buffers.at("lighting")});
 
-  m_db_draw_buffers.back().endRenderPass();
+  res.command_buffers.at("primary").endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -241,9 +308,9 @@ void ApplicationThreaded::createPrimaryCommandBuffer(int index_fb) {
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  m_db_draw_buffers.back().blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("primary").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
-  m_db_draw_buffers.back().end();
+  res.command_buffers.at("primary").end();
 }
 
 void ApplicationThreaded::createFramebuffers() {
@@ -531,6 +598,8 @@ void ApplicationThreaded::updateView() {
 }
 
 void ApplicationThreaded::resize() {
+  // prevent drawing during resource recreation
+  m_mutex_draw_queue.lock();
   // wait until draw resources are avaible before recallocation
   if (!m_initializing) {
     m_device.waitFence(fenceDraw());
@@ -541,6 +610,7 @@ void ApplicationThreaded::resize() {
   createFramebuffers();
 
   recreatePipeline();
+  m_mutex_draw_queue.unlock();
 }
 
 void ApplicationThreaded::recreatePipeline() {
@@ -550,8 +620,9 @@ void ApplicationThreaded::recreatePipeline() {
   }
   createGraphicsPipeline();
   createDescriptorPool();
-
-  updateCommandBuffers();
+  for (auto& res : m_frame_resources) {
+    updateCommandBuffers(res);
+  }
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

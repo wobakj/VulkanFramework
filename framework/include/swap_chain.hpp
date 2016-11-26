@@ -58,7 +58,7 @@ class SwapChain : public WrapperSwap {
   std::vector<vk::Image> const& images() const;
 
   vk::ImageCreateInfo imgInfo() const;
-  std::size_t numImages() const;
+  uint32_t numImages() const;
   vk::Format format() const;
   vk::Extent2D const& extent() const;
   vk::ImageLayout const& layout() const;
