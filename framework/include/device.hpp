@@ -54,6 +54,7 @@ class Device : public WrapperDevice {
   void endSingleTimeCommands() const;
 
   void waitFence(vk::Fence const& fence) const;
+  void waitFences(std::vector<vk::Fence> const& fences) const;
 
   // getter
   vk::PhysicalDevice const& physical() const;

@@ -64,6 +64,14 @@ struct frame_resources_t {
     return fences.at("acquire");
   }
 
+  void waitFences() const {
+    std::vector<vk::Fence> wait_fences;
+    for(auto const& pair_fence : fences) {
+      wait_fences.emplace_back(pair_fence.second);
+    }
+    m_device.waitFences(wait_fences);
+  }
+
   ~frame_resources_t() {
     // free resources
     for(auto const& command_buffer : command_buffers) {
@@ -111,6 +119,7 @@ class ApplicationThreaded : public Application {
   void renderLoop();
   void acquireBackImage();
   void createFrameResources();
+  void emptyDrawQueue();
 
   // path to the resource folders
   RenderPass m_render_pass;

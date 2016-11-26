@@ -86,8 +86,9 @@ ApplicationThreaded::~ApplicationThreaded() {
     throw std::runtime_error{"could not join thread"};
   }
   // wait until fences are done
-  m_device.waitFence(fenceDraw());
-  m_device.waitFence(fenceAcquire());
+  for (auto const& res : m_frame_resources) {
+    res.waitFences();
+  }
 }
 
 void ApplicationThreaded::createFrameResources() {
@@ -110,18 +111,20 @@ void ApplicationThreaded::render() {
     m_mutex_record_queue.unlock();
     return;
   }
+  // get next frame to record
   uint32_t frame_record = m_queue_record_frames.front();
   m_queue_record_frames.pop();
   m_mutex_record_queue.unlock();
+  auto& resource_record = m_frame_resources.at(frame_record);
 
-
-  if (!m_initializing) {
-    // acquire image after previous acquisition was successfull
+  // acquire image after previous acquisition was successfull
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       m_sphere = false;
-      // std::swap(m_model, m_model_2);
-      // updateCommandBuffers();
+      // wait until fences are done
+      for (auto const& res : m_frame_resources) {
+        res.waitFences();
+      }
       for (auto& res : m_frame_resources) {
         updateCommandBuffers(res);
       }
@@ -136,30 +139,23 @@ void ApplicationThreaded::render() {
       #endif
     }
   }
-    m_device.waitFence(m_frame_resources.at(frame_record).fenceAcquire());
-    m_device->resetFences(m_frame_resources.at(frame_record).fenceAcquire());
+  if (!m_initializing) {
+    // wait for last acquisition until acquiring again
+    m_device.waitFence(resource_record.fenceAcquire());
+    m_device->resetFences(resource_record.fenceAcquire());
   }
-  // acquire first image
-  acquireImage(m_frame_resources.at(frame_record));
-  // acquireBackImage();
-  m_device.waitFence(m_frame_resources.at(frame_record).fenceDraw());
-  createPrimaryCommandBuffer(m_frame_resources.at(frame_record));
+  acquireImage(resource_record);
+  // wait for drawing finish until rerecording
+  m_device.waitFence(resource_record.fenceDraw());
+  createPrimaryCommandBuffer(resource_record);
 
-  // lock front resources before swapping
-  // m_mutex_resources_front.lock();
-  // m_db_draw_buffers.swap();
-  // m_db_draw_images.swap();
+  // add newly recorded frame for drawing
   m_mutex_draw_queue.lock();
   m_queue_draw_frames.push(frame_record);
   m_mutex_draw_queue.unlock();
-
-  // allow drawing
-  // m_mutex_resources_front.unlock();
-  // m_new_frame = true;
 }
 
 void ApplicationThreaded::renderLoop() {
-  // static uint32_t last_frame = 0;
   while (m_should_render) {
     // render only when new frame is avaible
     m_mutex_draw_queue.lock();
@@ -167,24 +163,26 @@ void ApplicationThreaded::renderLoop() {
       m_mutex_draw_queue.unlock();
       continue;
     }
+    // wait until swap chain is avaible
+    m_mutex_swapchain.lock();
     // get frame to draw
     auto frame_draw = m_queue_draw_frames.front();
     m_queue_draw_frames.pop();
     m_mutex_draw_queue.unlock();
+    auto& resource_draw = m_frame_resources.at(frame_draw);
 
-    // wait until swap chain is avaible
-    m_mutex_swapchain.lock();
     // block resource swap
     // wait until drawing is finished before issuing next draw
-    m_device.waitFence(m_frame_resources.at(frame_draw).fenceDraw());
-    submitDraw(m_frame_resources.at(frame_draw));
+    m_device.waitFence(resource_draw.fenceDraw());
+    submitDraw(resource_draw);
     // present image and wait for result
-    present(m_frame_resources.at(frame_draw));
+    present(resource_draw);
+    // free swap chain
+    m_mutex_swapchain.unlock();
+    // make frame avaible for rerecording
     m_mutex_record_queue.lock();
     m_queue_record_frames.push(frame_draw);
     m_mutex_record_queue.unlock();
-    // free swap chain
-    m_mutex_swapchain.unlock();
   }
 }
 
@@ -597,32 +595,49 @@ void ApplicationThreaded::updateView() {
   updateLights();
 }
 
+void ApplicationThreaded::emptyDrawQueue() {
+  // wait until draw resources are avaible before recallocation
+  if (!m_initializing) {
+    for (auto const& res : m_frame_resources) {
+      res.waitFences();
+    }
+    // move all draw frames to rerecording
+    m_mutex_record_queue.lock();
+    while(!m_queue_draw_frames.empty()) {
+      m_queue_record_frames.push(m_queue_record_frames.front());
+      m_queue_draw_frames.pop();
+    }
+    m_mutex_record_queue.unlock();
+  }
+}
+
 void ApplicationThreaded::resize() {
   // prevent drawing during resource recreation
   m_mutex_draw_queue.lock();
-  // wait until draw resources are avaible before recallocation
-  if (!m_initializing) {
-    m_device.waitFence(fenceDraw());
-    m_device.waitFence(fenceAcquire());
-  }
+  emptyDrawQueue();
   createDepthResource();
   createRenderPass();
   createFramebuffers();
 
-  recreatePipeline();
-  m_mutex_draw_queue.unlock();
-}
-
-void ApplicationThreaded::recreatePipeline() {
-  // make sure pipeline is free before rebuilding
-  if (!m_initializing) {
-    m_device.waitFence(fenceDraw());
-  }
   createGraphicsPipeline();
   createDescriptorPool();
   for (auto& res : m_frame_resources) {
     updateCommandBuffers(res);
   }
+  m_mutex_draw_queue.unlock();
+}
+
+void ApplicationThreaded::recreatePipeline() {
+  // prevent drawing during resource recreation
+  m_mutex_draw_queue.lock();
+  // wait until draw resources are avaible before recallocation
+  emptyDrawQueue();
+  createGraphicsPipeline();
+  createDescriptorPool();
+  for (auto& res : m_frame_resources) {
+    updateCommandBuffers(res);
+  }
+  m_mutex_draw_queue.unlock();
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

@@ -325,12 +325,18 @@ vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
 void Device::waitFence(vk::Fence const& fence) const {
   if (fence) {
     // only try to wait if fence is actually in use
-    if (get().getFenceStatus(fence) == vk::Result::eNotReady) {
+    // if (get().getFenceStatus(fence) == vk::Result::eNotReady) {
       if (get().waitForFences({fence}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
         throw std::runtime_error{"waited too long for fence"};
       }
       // get().resetFences({fence});
-    }
+    // }
+  }
+}
+
+void Device::waitFences(std::vector<vk::Fence> const& fences) const {
+  if (get().waitForFences(fences, VK_TRUE, 100000000) != vk::Result::eSuccess) {
+    throw std::runtime_error{"waited too long for fence"};
   }
 }
 
