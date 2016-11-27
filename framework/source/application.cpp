@@ -57,9 +57,9 @@ void Application::update() {
 	time_last = time_current;
 	// update buffers
 	m_camera.update(time_delta);
-	if (m_camera.changed()) {
-	  updateView();
-	}
+	// if (m_camera.changed()) {
+	//   updateView();
+	// }
 	// do actual rendering
 	render();
 }
@@ -82,7 +82,7 @@ vk::Fence const& Application::fenceAcquire() {
 
 uint32_t Application::acquireImage() {
   uint32_t imageIndex;
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), semaphoreAcquire(), fenceAcquire(), &imageIndex);
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), semaphoreAcquire(), VK_NULL_HANDLE, &imageIndex);
   if (result == vk::Result::eErrorOutOfDateKHR) {
   		// handle swapchain recreation
       // recreateSwapChain();

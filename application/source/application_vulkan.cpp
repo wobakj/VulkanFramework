@@ -71,6 +71,9 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
 void ApplicationVulkan::render() {
   static bool first = true;
 
+  if (m_camera.changed()) {
+    updateView();
+  }
   // make sure no command buffer is in use
   if(!first) {
     m_device.waitFence(fenceDraw());
@@ -92,7 +95,6 @@ void ApplicationVulkan::render() {
       #endif
     }
   }
-
   auto imageIndex = acquireImage();
   if (imageIndex == std::numeric_limits<uint32_t>::max()) return;
   createPrimaryCommandBuffer(imageIndex);

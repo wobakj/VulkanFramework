@@ -116,8 +116,8 @@ class ApplicationThreaded : public Application {
   void createDepthResource();
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
-  void renderLoop();
-  void acquireBackImage();
+  void drawLoop();
+  void draw();
   void createFrameResources();
   void emptyDrawQueue();
 
@@ -141,8 +141,7 @@ class ApplicationThreaded : public Application {
   std::thread m_thread_load;
   std::thread m_thread_render;
   std::atomic<bool> m_model_dirty;
-  std::atomic<bool> m_should_render;
-  std::atomic<bool> m_new_frame;
+  std::atomic<bool> m_should_draw;
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_record_queue;
 

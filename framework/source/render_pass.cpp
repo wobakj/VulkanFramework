@@ -70,6 +70,11 @@ vk::SubpassDependency img_to_dependency(vk::ImageLayout const& src_layout, vk::I
   else {
     throw std::runtime_error{"destination layout" + to_string(dst_layout) + " not supported"};
   }
+  // goal of subpasses is to have no full barriers between
+  // define dependencys only per-tile 
+  if (src_pass != VK_SUBPASS_EXTERNAL && dst_pass != VK_SUBPASS_EXTERNAL) {
+    dependency.dependencyFlags = vk::DependencyFlagBits::eByRegion;
+  }
 
   return dependency;
 }

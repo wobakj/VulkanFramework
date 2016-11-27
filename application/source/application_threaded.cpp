@@ -15,6 +15,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include <iostream>
+#include <chrono>
 
 #define THREADING
 // helper functions
@@ -26,7 +27,7 @@ struct UniformBufferObject {
     glm::mat4 view;
     glm::mat4 proj;
     glm::mat4 normal;
-};
+} ubo_cam;
 
 struct light_t {
   glm::fvec3 position;
@@ -51,7 +52,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_sphere{true}
  ,m_initializing{true}
  ,m_model_dirty{false}
- ,m_should_render{true}
+ ,m_should_draw{true}
 {
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
@@ -72,13 +73,13 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   m_initializing = false;
 
   if (!m_thread_render.joinable()) {
-    m_thread_render = std::thread(&ApplicationThreaded::renderLoop, this);
+    m_thread_render = std::thread(&ApplicationThreaded::drawLoop, this);
   }
 }
 
 ApplicationThreaded::~ApplicationThreaded() {
   // shut down render thread
-  m_should_render = false;
+  m_should_draw = false;
   if(m_thread_render.joinable()) {
     m_thread_render.join();
   }
@@ -101,12 +102,9 @@ void ApplicationThreaded::createFrameResources() {
   }
 }
 
-void ApplicationThreaded::acquireBackImage() {
-}
-
 void ApplicationThreaded::render() {
   // only calculate new frame if previous one was rendered
-  m_mutex_record_queue.lock();
+  if (!m_mutex_record_queue.try_lock()) return;
   if (m_queue_record_frames.empty()) {
     m_mutex_record_queue.unlock();
     return;
@@ -118,13 +116,18 @@ void ApplicationThreaded::render() {
   auto& resource_record = m_frame_resources.at(frame_record);
 
   // acquire image after previous acquisition was successfull
+
+  if (!m_initializing) {
+    // wait for last acquisition until acquiring again
+    m_device.waitFence(resource_record.fenceAcquire());
+    m_device->resetFences(resource_record.fenceAcquire());
+  }
+  acquireImage(resource_record);
+  // wait for drawing finish until rerecording
+  m_device.waitFence(resource_record.fenceDraw());
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       m_sphere = false;
-      // wait until fences are done
-      for (auto const& res : m_frame_resources) {
-        res.waitFences();
-      }
       for (auto& res : m_frame_resources) {
         updateCommandBuffers(res);
       }
@@ -139,50 +142,47 @@ void ApplicationThreaded::render() {
       #endif
     }
   }
-  if (!m_initializing) {
-    // wait for last acquisition until acquiring again
-    m_device.waitFence(resource_record.fenceAcquire());
-    m_device->resetFences(resource_record.fenceAcquire());
-  }
-  acquireImage(resource_record);
-  // wait for drawing finish until rerecording
-  m_device.waitFence(resource_record.fenceDraw());
   createPrimaryCommandBuffer(resource_record);
 
   // add newly recorded frame for drawing
   m_mutex_draw_queue.lock();
   m_queue_draw_frames.push(frame_record);
   m_mutex_draw_queue.unlock();
+  std::this_thread::sleep_for(std::chrono::milliseconds{10});
 }
 
-void ApplicationThreaded::renderLoop() {
-  while (m_should_render) {
-    // render only when new frame is avaible
-    m_mutex_draw_queue.lock();
-    if (m_queue_draw_frames.empty()) {
-      m_mutex_draw_queue.unlock();
-      continue;
-    }
-    // wait until swap chain is avaible
-    m_mutex_swapchain.lock();
-    // get frame to draw
-    auto frame_draw = m_queue_draw_frames.front();
-    m_queue_draw_frames.pop();
+void ApplicationThreaded::draw() {
+  // draw only when new frame is avaible
+  if (!m_mutex_draw_queue.try_lock()) return;
+  if (m_queue_draw_frames.empty()) {
     m_mutex_draw_queue.unlock();
-    auto& resource_draw = m_frame_resources.at(frame_draw);
+    return;
+  }
+  // wait until swap chain is avaible
+  m_mutex_swapchain.lock();
+  // get frame to draw
+  auto frame_draw = m_queue_draw_frames.front();
+  m_queue_draw_frames.pop();
+  m_mutex_draw_queue.unlock();
+  auto& resource_draw = m_frame_resources.at(frame_draw);
+  // wait until drawing with these resources is finished before issuing next draw
+  m_device.waitFence(resource_draw.fenceDraw());
+  m_device->resetFences(resource_draw.fenceDraw());
+  submitDraw(resource_draw);
+  // present image and wait for result
+  present(resource_draw);
+  // free swap chain
+  m_mutex_swapchain.unlock();
+  // make frame avaible for rerecording
+  m_mutex_record_queue.lock();
+  m_queue_record_frames.push(frame_draw);
+  m_mutex_record_queue.unlock();
+  std::this_thread::sleep_for(std::chrono::milliseconds{10});
+}
 
-    // block resource swap
-    // wait until drawing is finished before issuing next draw
-    m_device.waitFence(resource_draw.fenceDraw());
-    submitDraw(resource_draw);
-    // present image and wait for result
-    present(resource_draw);
-    // free swap chain
-    m_mutex_swapchain.unlock();
-    // make frame avaible for rerecording
-    m_mutex_record_queue.lock();
-    m_queue_record_frames.push(frame_draw);
-    m_mutex_record_queue.unlock();
+void ApplicationThreaded::drawLoop() {
+  while (m_should_draw) {
+    draw();
   }
 }
 
@@ -226,7 +226,7 @@ void ApplicationThreaded::submitDraw(frame_resources_t& res) {
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  m_device->resetFences({res.fenceDraw()});
+  // m_device->resetFences(res.fenceDraw());
   m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
 }
 
@@ -285,9 +285,35 @@ void ApplicationThreaded::updateCommandBuffers(frame_resources_t& resource) {
 }
 
 void ApplicationThreaded::createPrimaryCommandBuffer(frame_resources_t& res) {
+   if (m_camera.changed()) {
+    updateView();
+    updateLights();
+  }
+
   res.command_buffers.at("primary").reset({});
 
   res.command_buffers.at("primary").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+  // if (m_camera.changed()) {
+  //   updateView();
+    // barrier to make new data visible to vertex shader
+    // res.command_buffers.at("primary").updateBuffer(m_buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
+    // vk::BufferMemoryBarrier barrier_buffer{};
+    // barrier_buffer.buffer = m_buffers.at("uniform");
+    // barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    // barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
+    // barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    // barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    // res.command_buffers.at("primary").pipelineBarrier(
+    //   vk::PipelineStageFlagBits::eTransfer,
+    //   vk::PipelineStageFlagBits::eVertexShader,
+    //   vk::DependencyFlags{},
+    //   {},
+    //   {barrier_buffer},
+    //   {}
+    // );
+  // }
 
   res.command_buffers.at("primary").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -583,16 +609,15 @@ void ApplicationThreaded::createUniformBuffers() {
 
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationThreaded::updateView() {
-  UniformBufferObject ubo{};
-  ubo.model = glm::mat4();
-  ubo.view = m_camera.viewMatrix();
-  ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
-  ubo.proj = m_camera.projectionMatrix();
-  ubo.proj[1][1] *= -1;
+  ubo_cam.model = glm::mat4();
+  ubo_cam.view = m_camera.viewMatrix();
+  ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
+  ubo_cam.proj = m_camera.projectionMatrix();
+  ubo_cam.proj[1][1] *= -1;
 
-  m_device.uploadBufferData(&ubo, m_buffers.at("uniform"));
+  m_device.uploadBufferData(&ubo_cam, m_buffers.at("uniform"));
 
-  updateLights();
+  // updateLights();
 }
 
 void ApplicationThreaded::emptyDrawQueue() {
