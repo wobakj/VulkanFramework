@@ -1,8 +1,6 @@
 #include "application.hpp"
 
-#include "shader.hpp"
-#include "image.hpp"
-#include "buffer.hpp"
+#include "frame_resource.hpp"
 
 #include <iostream>
 
@@ -11,31 +9,7 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
  ,m_camera{45.0f, 10, 10, 0.1f, 500.0f, window}
  ,m_device(device)
  ,m_swap_chain(chain)
-{
-	initialize();
-}
-
-Application::~Application() {
-	 // free resources
-  for(auto const& command_buffer : m_command_buffers) {
-    m_device->freeCommandBuffers(m_device.pool("graphics"), {command_buffer.second});    
-  }
-  for(auto const& semaphore : m_semaphores) {
-    m_device->destroySemaphore(semaphore.second);    
-  }
-  for(auto const& fence : m_fences) {
-    m_device->destroyFence(fence.second);    
-  }
-}
-
-void Application::initialize() {
-  m_semaphores.emplace("acquire", m_device->createSemaphore({}));
-  m_semaphores.emplace("draw", m_device->createSemaphore({}));
-  m_fences.emplace("draw", m_device->createFence({}));
-  m_fences.emplace("acquire", m_device->createFence({}));
-  m_device->resetFences({fenceDraw()});
-
-}
+{}
 
 void Application::updateShaderPrograms() {
 	for (auto& pair : m_shaders) {
@@ -57,74 +31,8 @@ void Application::update() {
 	time_last = time_current;
 	// update buffers
 	m_camera.update(time_delta);
-	// if (m_camera.changed()) {
-	//   updateView();
-	// }
 	// do actual rendering
 	render();
-}
-
-vk::Semaphore const& Application::semaphoreAcquire() {
-  return m_semaphores.at("acquire");
-}
-
-vk::Semaphore const& Application::semaphoreDraw() {
-  return m_semaphores.at("draw");
-}
-
-vk::Fence const& Application::fenceDraw() {
-  return m_fences.at("draw");
-}
-
-vk::Fence const& Application::fenceAcquire() {
-  return m_fences.at("acquire");
-}
-
-uint32_t Application::acquireImage() {
-  uint32_t imageIndex;
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), semaphoreAcquire(), VK_NULL_HANDLE, &imageIndex);
-  if (result == vk::Result::eErrorOutOfDateKHR) {
-  		// handle swapchain recreation
-      // recreateSwapChain();
-      imageIndex = std::numeric_limits<uint32_t>::max();
-      throw std::runtime_error("swapchain out if date!");
-  } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-      throw std::runtime_error("failed to acquire swap chain image!");
-  }
-  return imageIndex;
-}
-
-void Application::present(uint32_t index_image) {
-  vk::PresentInfoKHR presentInfo{};
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &semaphoreDraw();
-
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = &m_swap_chain.get();
-  presentInfo.pImageIndices = &index_image;
-
-  m_device.getQueue("present").presentKHR(presentInfo);
-  m_device.getQueue("present").waitIdle();
-}
-
-void Application::submitDraw(vk::CommandBuffer const& buffer) {
-  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
-
-  vk::Semaphore waitSemaphores[]{semaphoreAcquire()};
-  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfos[0].setWaitSemaphoreCount(1);
-  submitInfos[0].setPWaitSemaphores(waitSemaphores);
-  submitInfos[0].setPWaitDstStageMask(waitStages);
-
-  submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&buffer);
-
-  vk::Semaphore signalSemaphores[]{semaphoreDraw()};
-  submitInfos[0].signalSemaphoreCount = 1;
-  submitInfos[0].pSignalSemaphores = signalSemaphores;
-
-  m_device->resetFences({fenceDraw()});
-  m_device.getQueue("graphics").submit(submitInfos, fenceDraw());
 }
 
 void Application::blockSwapChain() {
@@ -132,4 +40,48 @@ void Application::blockSwapChain() {
 }
 void Application::unblockSwapChain() {
   m_mutex_swapchain.unlock();
+}
+
+void Application::acquireImage(FrameResource& res) {
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
+  if (result == vk::Result::eErrorOutOfDateKHR) {
+      // handle swapchain recreation
+      // recreateSwapChain();
+      throw std::runtime_error("swapchain out if date!");
+  } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+      throw std::runtime_error("failed to acquire swap chain image!");
+  }
+}
+
+void Application::present(FrameResource& res) {
+  vk::PresentInfoKHR presentInfo{};
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = &res.semaphoreDraw();
+
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = &m_swap_chain.get();
+  presentInfo.pImageIndices = &res.image;
+
+  m_device.getQueue("present").presentKHR(presentInfo);
+  m_device.getQueue("present").waitIdle();
+}
+
+void Application::submitDraw(FrameResource& res) {
+  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
+
+  vk::Semaphore waitSemaphores[]{res.semaphoreAcquire()};
+  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+  submitInfos[0].setWaitSemaphoreCount(1);
+  submitInfos[0].setPWaitSemaphores(waitSemaphores);
+  submitInfos[0].setPWaitDstStageMask(waitStages);
+
+  submitInfos[0].setCommandBufferCount(1);
+  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw"));
+
+  vk::Semaphore signalSemaphores[]{res.semaphoreDraw()};
+  submitInfos[0].signalSemaphoreCount = 1;
+  submitInfos[0].pSignalSemaphores = signalSemaphores;
+
+  // m_device->resetFences(res.fenceDraw());
+  m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
 }

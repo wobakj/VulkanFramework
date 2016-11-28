@@ -10,6 +10,7 @@
 #include "render_pass.hpp"
 #include "memory.hpp"
 #include "frame_buffer.hpp"
+#include "frame_resource.hpp"
 
 #include <vector>
 #include <atomic>
@@ -18,16 +19,16 @@
 class ApplicationVulkan : public Application {
  public:
   ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
-
+  ~ApplicationVulkan();
  private:
   void render() override;
-  void createPrimaryCommandBuffer(int index_fb);
+  void createPrimaryCommandBuffer(FrameResource& res);
   
   void createLights();
   void updateLights();
   void loadModel();
   void createUniformBuffers();
-  void createCommandBuffers();
+  void createCommandBuffers(FrameResource& res);
   void createVertexBuffer();
   void createTextureImage();
   void createTextureSampler();
@@ -35,7 +36,7 @@ class ApplicationVulkan : public Application {
   void resize() override;
   void recreatePipeline() override;
   void updateView() override;
-  void updateCommandBuffers();
+  void updateCommandBuffers(FrameResource& res);
   void createFramebuffers();
   void createRenderPass();
   void createMemoryPools();
@@ -64,6 +65,7 @@ class ApplicationVulkan : public Application {
   // Application* m_application;
   bool m_sphere;
   bool m_initializing;
+  FrameResource m_frame_resource;
 };
 
 #endif

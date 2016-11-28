@@ -80,9 +80,6 @@ class ApplicationThreaded : public Application {
   std::vector<FrameResource> m_frame_resources;
   std::queue<uint32_t> m_queue_draw_frames;
   std::queue<uint32_t> m_queue_record_frames;
-  void acquireImage(FrameResource& res);
-  void present(FrameResource& res);
-  void submitDraw(FrameResource& res);
 };
 
 #endif

@@ -189,54 +189,9 @@ void ApplicationThreaded::drawLoop() {
   }
 }
 
-void ApplicationThreaded::acquireImage(FrameResource& res) {
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
-  if (result == vk::Result::eErrorOutOfDateKHR) {
-      // handle swapchain recreation
-      // recreateSwapChain();
-      throw std::runtime_error("swapchain out if date!");
-  } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-      throw std::runtime_error("failed to acquire swap chain image!");
-  }
-}
-
-void ApplicationThreaded::present(FrameResource& res) {
-  vk::PresentInfoKHR presentInfo{};
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &res.semaphoreDraw();
-
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = &m_swap_chain.get();
-  presentInfo.pImageIndices = &res.image;
-
-  m_device.getQueue("present").presentKHR(presentInfo);
-  m_device.getQueue("present").waitIdle();
-}
-
-void ApplicationThreaded::submitDraw(FrameResource& res) {
-  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
-
-  vk::Semaphore waitSemaphores[]{res.semaphoreAcquire()};
-  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfos[0].setWaitSemaphoreCount(1);
-  submitInfos[0].setPWaitSemaphores(waitSemaphores);
-  submitInfos[0].setPWaitDstStageMask(waitStages);
-
-  submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("primary"));
-
-  vk::Semaphore signalSemaphores[]{res.semaphoreDraw()};
-  submitInfos[0].signalSemaphoreCount = 1;
-  submitInfos[0].pSignalSemaphores = signalSemaphores;
-
-  // m_device->resetFences(res.fenceDraw());
-  m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
-}
-
 void ApplicationThreaded::createCommandBuffers(FrameResource& resource) {
   resource.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   resource.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  resource.command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
 }
 
 void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
@@ -290,14 +245,14 @@ void ApplicationThreaded::createPrimaryCommandBuffer(FrameResource& res) {
     updateLights();
   }
 
-  res.command_buffers.at("primary").reset({});
+  res.command_buffers.at("draw").reset({});
 
-  res.command_buffers.at("primary").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
   // if (m_camera.changed()) {
   //   updateView();
     // barrier to make new data visible to vertex shader
-    // res.command_buffers.at("primary").updateBuffer(m_buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
+    // res.command_buffers.at("draw").updateBuffer(m_buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
     // vk::BufferMemoryBarrier barrier_buffer{};
     // barrier_buffer.buffer = m_buffers.at("uniform");
     // barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
@@ -305,7 +260,7 @@ void ApplicationThreaded::createPrimaryCommandBuffer(FrameResource& res) {
     // barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     // barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-    // res.command_buffers.at("primary").pipelineBarrier(
+    // res.command_buffers.at("draw").pipelineBarrier(
     //   vk::PipelineStageFlagBits::eTransfer,
     //   vk::PipelineStageFlagBits::eVertexShader,
     //   vk::DependencyFlags{},
@@ -315,15 +270,15 @@ void ApplicationThreaded::createPrimaryCommandBuffer(FrameResource& res) {
     // );
   // }
 
-  res.command_buffers.at("primary").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("primary").executeCommands({res.command_buffers.at("gbuffer")});
+  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
   
-  res.command_buffers.at("primary").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  res.command_buffers.at("primary").executeCommands({res.command_buffers.at("lighting")});
+  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("lighting")});
 
-  res.command_buffers.at("primary").endRenderPass();
+  res.command_buffers.at("draw").endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -332,9 +287,9 @@ void ApplicationThreaded::createPrimaryCommandBuffer(FrameResource& res) {
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  res.command_buffers.at("primary").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
-  res.command_buffers.at("primary").end();
+  res.command_buffers.at("draw").end();
 }
 
 void ApplicationThreaded::createFramebuffers() {

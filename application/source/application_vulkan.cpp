@@ -50,6 +50,7 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_model_dirty{false}
  ,m_sphere{true}
  ,m_initializing{true}
+ ,m_frame_resource{device}
 {
 
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
@@ -62,28 +63,29 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createTextureSampler();
   createDepthResource();
   createRenderPass();
-  createCommandBuffers();
+  createCommandBuffers(m_frame_resource);
 
   resize();
   m_initializing = false;
 }
 
-void ApplicationVulkan::render() {
-  static bool first = true;
+ApplicationVulkan::~ApplicationVulkan() {
+  m_frame_resource.waitFences();
+}
 
-  if (m_camera.changed()) {
-    updateView();
-  }
+void ApplicationVulkan::render() {
+  m_frame_resource.fenceAcquire().wait();
+  m_frame_resource.fenceAcquire().reset();
+  acquireImage(m_frame_resource);
+
   // make sure no command buffer is in use
-  if(!first) {
-    m_device.waitFence(fenceDraw());
-  } 
+  m_frame_resource.fenceDraw().wait();
 
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       m_sphere = false;
       // std::swap(m_model, m_model_2);
-      updateCommandBuffers();
+      updateCommandBuffers(m_frame_resource);
       m_model_dirty = false;
       #ifdef THREADING
       if(m_thread_load.joinable()) {
@@ -95,29 +97,24 @@ void ApplicationVulkan::render() {
       #endif
     }
   }
-  auto imageIndex = acquireImage();
-  if (imageIndex == std::numeric_limits<uint32_t>::max()) return;
-  createPrimaryCommandBuffer(imageIndex);
 
-  submitDraw(m_command_buffers.at("primary"));
-
-  present(imageIndex);
-  first = false;
-}
-
-void ApplicationVulkan::createCommandBuffers() {
-  m_command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  m_command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-
-  m_command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
-}
-
-void ApplicationVulkan::updateCommandBuffers() {
-  if (!m_initializing) {
-    m_device.waitFence(fenceDraw());
+  if (m_camera.changed()) {
+    updateView();
   }
+  createPrimaryCommandBuffer(m_frame_resource);
+  m_frame_resource.fenceDraw().reset();
+  submitDraw(m_frame_resource);
 
-  m_command_buffers.at("gbuffer").reset({});
+  present(m_frame_resource);
+}
+
+void ApplicationVulkan::createCommandBuffers(FrameResource& res) {
+  res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+}
+
+void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
+  res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
@@ -125,10 +122,10 @@ void ApplicationVulkan::updateCommandBuffers() {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  m_command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  m_command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-  m_command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // choose between sphere and house
   Model const* model = nullptr;
   if (m_sphere) {
@@ -138,42 +135,42 @@ void ApplicationVulkan::updateCommandBuffers() {
     model = &m_model_2;
   }
 
-  m_command_buffers.at("gbuffer").bindVertexBuffers(0, {model->buffer()}, {0});
-  m_command_buffers.at("gbuffer").bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("gbuffer").bindVertexBuffers(0, {model->buffer()}, {0});
+  res.command_buffers.at("gbuffer").bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
 
-  m_command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
+  res.command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
 
-  m_command_buffers.at("gbuffer").end();
+  res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
-  m_command_buffers.at("lighting").reset({});
-  m_command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("lighting").reset({});
+  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  m_command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
-  m_command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
+  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  m_command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
-  m_command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
+  res.command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
 
-  m_command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  res.command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
 
-  m_command_buffers.at("lighting").end();
+  res.command_buffers.at("lighting").end();
 }
 
-void ApplicationVulkan::createPrimaryCommandBuffer(int index_fb) {
-  m_command_buffers.at("primary").reset({});
+void ApplicationVulkan::createPrimaryCommandBuffer(FrameResource& res) {
+  res.command_buffers.at("draw").reset({});
 
-  m_command_buffers.at("primary").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  m_command_buffers.at("primary").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  m_command_buffers.at("primary").executeCommands({m_command_buffers.at("gbuffer")});
+  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
   
-  m_command_buffers.at("primary").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  m_command_buffers.at("primary").executeCommands({m_command_buffers.at("lighting")});
+  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("lighting")});
 
-  m_command_buffers.at("primary").endRenderPass();
+  res.command_buffers.at("draw").endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -182,9 +179,9 @@ void ApplicationVulkan::createPrimaryCommandBuffer(int index_fb) {
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  m_command_buffers.at("primary").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images()[index_fb], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images()[res.image], m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
-  m_command_buffers.at("primary").end();
+  res.command_buffers.at("draw").end();
 }
 
 void ApplicationVulkan::createFramebuffers() {
@@ -307,7 +304,7 @@ void ApplicationVulkan::createGraphicsPipeline() {
 
   pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
   pipelineInfo2.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  if (!m_initializing) {
+  if (m_pipeline && m_pipeline_2) {
     pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
     pipelineInfo2.flags |= vk::PipelineCreateFlagBits::eDerivative;
     // insert previously created pipeline here to derive this one from
@@ -472,6 +469,7 @@ void ApplicationVulkan::updateView() {
 }
 
 void ApplicationVulkan::resize() {
+  m_frame_resource.fenceDraw().wait();
   createDepthResource();
   createRenderPass();
   createFramebuffers();
@@ -480,13 +478,11 @@ void ApplicationVulkan::resize() {
 }
 void ApplicationVulkan::recreatePipeline() {
   // make sure pipeline is free before rebuilding
-  if (!m_initializing) {
-    m_device.waitFence(fenceDraw());
-  }
+  m_frame_resource.fenceDraw().wait();
   createGraphicsPipeline();
   createDescriptorPool();
 
-  updateCommandBuffers();
+  updateCommandBuffers(m_frame_resource);
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

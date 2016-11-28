@@ -16,10 +16,12 @@ class FrameResource {
   FrameResource(Device& dev)
    :m_device(&dev)
    {
+    // frame resource always has these objects
     semaphores.emplace("acquire", (*m_device)->createSemaphore({}));
     semaphores.emplace("draw", (*m_device)->createSemaphore({}));
     fences.emplace("draw", Fence{dev, vk::FenceCreateFlagBits::eSignaled});
     fences.emplace("acquire", Fence{dev, vk::FenceCreateFlagBits::eSignaled});
+    command_buffers.emplace("draw", m_device->createCommandBuffer("graphics"));
   }
 
   FrameResource(FrameResource&& rhs)
