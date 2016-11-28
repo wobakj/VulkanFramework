@@ -118,11 +118,11 @@ void ApplicationThreaded::render() {
   auto& resource_record = m_frame_resources.at(frame_record);
 
   // wait for last acquisition until acquiring again
-  m_device.waitFence(resource_record.fenceAcquire());
-  m_device->resetFences(resource_record.fenceAcquire());
+  resource_record.fenceAcquire().wait();
+  resource_record.fenceAcquire().reset();
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
-  m_device.waitFence(resource_record.fenceDraw());
+  resource_record.fenceDraw().wait();
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       m_sphere = false;
@@ -143,40 +143,43 @@ void ApplicationThreaded::render() {
   createPrimaryCommandBuffer(resource_record);
 
   // add newly recorded frame for drawing
-  m_mutex_draw_queue.lock();
-  m_queue_draw_frames.push(frame_record);
-  m_mutex_draw_queue.unlock();
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+    m_queue_draw_frames.push(frame_record);
+  }
   // std::this_thread::sleep_for(std::chrono::milliseconds{10});
 }
 
 void ApplicationThreaded::draw() {
   static std::uint64_t frame = 0;
   ++frame;
-  // wait until swap chain is avaible
-  m_mutex_swapchain.lock();
   // draw only when new frame is avaible
-  if (!m_mutex_draw_queue.try_lock()) return;
-  if (m_queue_draw_frames.empty()) {
-    m_mutex_draw_queue.unlock();
-    return;
+  uint32_t frame_draw = 0;
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+    if (m_queue_draw_frames.empty()) {
+      return;
+    }
+    // get frame to draw
+    frame_draw = m_queue_draw_frames.front();
+    m_queue_draw_frames.pop();
   }
-  // get frame to draw
-  auto frame_draw = m_queue_draw_frames.front();
-  m_queue_draw_frames.pop();
-  m_mutex_draw_queue.unlock();
   auto& resource_draw = m_frame_resources.at(frame_draw);
   // wait until drawing with these resources is finished before issuing next draw
-  m_device.waitFence(resource_draw.fenceDraw());
-  m_device->resetFences(resource_draw.fenceDraw());
+  resource_draw.fenceDraw().wait();
+  resource_draw.fenceDraw().reset();
   submitDraw(resource_draw);
-  // present image and wait for result
-  present(resource_draw);
+  // wait until swap chain is avaible
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_swapchain};
+    // present image and wait for result
+    present(resource_draw);
+  }
   // make frame avaible for rerecording
-  m_mutex_record_queue.lock();
-  m_queue_record_frames.push(frame_draw);
-  m_mutex_record_queue.unlock();
-  // free swap chain
-  m_mutex_swapchain.unlock();
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    m_queue_record_frames.push(frame_draw);
+  }
   std::this_thread::sleep_for(std::chrono::milliseconds{10});
 }
 
@@ -237,7 +240,6 @@ void ApplicationThreaded::createCommandBuffers(frame_resources_t& resource) {
 }
 
 void ApplicationThreaded::updateCommandBuffers(frame_resources_t& resource) {
-  m_device.waitFence(resource.fenceDraw());
 
   resource.command_buffers.at("gbuffer").reset({});
 
@@ -516,6 +518,8 @@ void ApplicationThreaded::updateLights() {
 }
 
 void ApplicationThreaded::createMemoryPools() {
+  m_device->waitIdle();
+
   // allocate pool for 5 32x4 fb attachments
   m_device.reallocateMemoryPool("framebuffer", m_images.at("pos").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("pos").size() * 5);
   
@@ -623,42 +627,46 @@ void ApplicationThreaded::emptyDrawQueue() {
       res.waitFences();
     }
     // move all draw frames to rerecording
-    m_mutex_record_queue.lock();
-    while(!m_queue_draw_frames.empty()) {
-      m_queue_record_frames.push(m_queue_record_frames.front());
-      m_queue_draw_frames.pop();
+    {
+      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+      while(!m_queue_draw_frames.empty()) {
+        m_queue_record_frames.push(m_queue_record_frames.front());
+        m_queue_draw_frames.pop();
+      }
     }
-    m_mutex_record_queue.unlock();
   }
 }
 
 void ApplicationThreaded::resize() {
   // prevent drawing during resource recreation
-  m_mutex_draw_queue.lock();
-  emptyDrawQueue();
-  createDepthResource();
-  createRenderPass();
-  createFramebuffers();
+  { 
+    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+    emptyDrawQueue();
+    m_device->waitIdle();
+    createDepthResource();
+    createRenderPass();
+    createFramebuffers();
 
-  createGraphicsPipeline();
-  createDescriptorPool();
-  for (auto& res : m_frame_resources) {
-    updateCommandBuffers(res);
+    createGraphicsPipeline();
+    createDescriptorPool();
+    for (auto& res : m_frame_resources) {
+      updateCommandBuffers(res);
+    }
   }
-  m_mutex_draw_queue.unlock();
 }
 
 void ApplicationThreaded::recreatePipeline() {
   // prevent drawing during resource recreation
-  m_mutex_swapchain.lock();
-  // wait until draw resources are avaible before recallocation
-  emptyDrawQueue();
-  createGraphicsPipeline();
-  createDescriptorPool();
-  for (auto& res : m_frame_resources) {
-    updateCommandBuffers(res);
+  { 
+    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+    // wait until draw resources are avaible before recallocation
+    emptyDrawQueue();
+    createGraphicsPipeline();
+    createDescriptorPool();
+    for (auto& res : m_frame_resources) {
+      updateCommandBuffers(res);
+    }
   }
-  m_mutex_swapchain.unlock();
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

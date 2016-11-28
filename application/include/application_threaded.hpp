@@ -11,6 +11,7 @@
 #include "memory.hpp"
 #include "frame_buffer.hpp"
 #include "double_buffer.hpp"
+#include "fence.hpp"
 
 #include <vector>
 #include <atomic>
@@ -23,8 +24,8 @@ struct frame_resources_t {
    {
     semaphores.emplace("acquire", m_device->createSemaphore({}));
     semaphores.emplace("draw", m_device->createSemaphore({}));
-    fences.emplace("draw", m_device->createFence({vk::FenceCreateFlagBits::eSignaled}));
-    fences.emplace("acquire", m_device->createFence({vk::FenceCreateFlagBits::eSignaled}));
+    fences.emplace("draw", Fence{dev, vk::FenceCreateFlagBits::eSignaled});
+    fences.emplace("acquire", Fence{dev, vk::FenceCreateFlagBits::eSignaled});
     // device->resetFences({fenceDraw()});
   }
 
@@ -45,7 +46,7 @@ struct frame_resources_t {
   uint32_t image;
   std::map<std::string, vk::CommandBuffer> command_buffers;
   std::map<std::string, vk::Semaphore> semaphores;
-  std::map<std::string, vk::Fence> fences;
+  std::map<std::string, Fence> fences;
   std::map<std::string, vk::DescriptorSet> descriptor_sets;
 
   vk::Semaphore const& semaphoreAcquire() {
@@ -56,11 +57,11 @@ struct frame_resources_t {
     return semaphores.at("draw");
   }
 
-  vk::Fence const& fenceDraw() {
+  Fence& fenceDraw() {
     return fences.at("draw");
   }
 
-  vk::Fence const& fenceAcquire() {
+  Fence& fenceAcquire() {
     return fences.at("acquire");
   }
 
@@ -79,9 +80,6 @@ struct frame_resources_t {
     }
     for(auto const& semaphore : semaphores) {
       m_device->destroySemaphore(semaphore.second);    
-    }
-    for(auto const& fence : fences) {
-      m_device->destroyFence(fence.second);    
     }
   }
 };
