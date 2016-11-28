@@ -25,7 +25,7 @@ class ApplicationThreaded : public Application {
 
  private:
   void render() override;
-  void createPrimaryCommandBuffer(FrameResource& res);
+  void recordDrawBuffer(FrameResource& res) override;
   
   void createLights();
   void updateLights();
@@ -68,7 +68,6 @@ class ApplicationThreaded : public Application {
   Deleter<VkSampler> m_textureSampler;
 
   bool m_sphere;
-  bool m_initializing;
 
   std::thread m_thread_load;
   std::thread m_thread_render;

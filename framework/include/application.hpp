@@ -17,7 +17,7 @@ class Application {
  public:
   // allocate and initialize objects
   Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
-  // free
+  // free resources
   virtual ~Application(){};
 
   // react to key input
@@ -40,6 +40,7 @@ class Application {
   void acquireImage(FrameResource& res);
   void present(FrameResource& res);
   void submitDraw(FrameResource& res);
+  virtual void recordDrawBuffer(FrameResource& res) = 0;
 
   std::string m_resource_path; 
 

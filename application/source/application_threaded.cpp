@@ -50,7 +50,6 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_sphere{true}
- ,m_initializing{true}
  ,m_model_dirty{false}
  ,m_should_draw{true}
 {
@@ -70,7 +69,6 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   resize();
   render();
 
-  m_initializing = false;
 
   if (!m_thread_render.joinable()) {
     m_thread_render = std::thread(&ApplicationThreaded::drawLoop, this);
@@ -140,7 +138,7 @@ void ApplicationThreaded::render() {
       #endif
     }
   }
-  createPrimaryCommandBuffer(resource_record);
+  recordDrawBuffer(resource_record);
 
   // add newly recorded frame for drawing
   {
@@ -239,7 +237,7 @@ void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
   resource.command_buffers.at("lighting").end();
 }
 
-void ApplicationThreaded::createPrimaryCommandBuffer(FrameResource& res) {
+void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
    if (m_camera.changed()) {
     updateView();
     updateLights();
@@ -412,7 +410,7 @@ void ApplicationThreaded::createGraphicsPipeline() {
 
   pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
   pipelineInfo2.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  if (!m_initializing) {
+  if (m_pipeline && m_pipeline_2) {
     pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
     pipelineInfo2.flags |= vk::PipelineCreateFlagBits::eDerivative;
     // insert previously created pipeline here to derive this one from
@@ -577,17 +575,15 @@ void ApplicationThreaded::updateView() {
 
 void ApplicationThreaded::emptyDrawQueue() {
   // wait until draw resources are avaible before recallocation
-  if (!m_initializing) {
-    for (auto const& res : m_frame_resources) {
-      res.waitFences();
-    }
-    // move all draw frames to rerecording
-    {
-      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-      while(!m_queue_draw_frames.empty()) {
-        m_queue_record_frames.push(m_queue_record_frames.front());
-        m_queue_draw_frames.pop();
-      }
+  for (auto const& res : m_frame_resources) {
+    res.waitFences();
+  }
+  // move all draw frames to rerecording
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    while(!m_queue_draw_frames.empty()) {
+      m_queue_record_frames.push(m_queue_record_frames.front());
+      m_queue_draw_frames.pop();
     }
   }
 }

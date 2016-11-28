@@ -22,7 +22,7 @@ class ApplicationVulkan : public Application {
   ~ApplicationVulkan();
  private:
   void render() override;
-  void createPrimaryCommandBuffer(FrameResource& res);
+  void recordDrawBuffer(FrameResource& res) override;
   
   void createLights();
   void updateLights();
@@ -59,12 +59,9 @@ class ApplicationVulkan : public Application {
   vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
-  // Deleter<VkFence> m_fence_draw;
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;
-  // Application* m_application;
   bool m_sphere;
-  bool m_initializing;
   FrameResource m_frame_resource;
 };
 

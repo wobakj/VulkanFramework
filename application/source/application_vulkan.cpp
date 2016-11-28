@@ -49,7 +49,6 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_model_dirty{false}
  ,m_sphere{true}
- ,m_initializing{true}
  ,m_frame_resource{device}
 {
 
@@ -66,7 +65,6 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createCommandBuffers(m_frame_resource);
 
   resize();
-  m_initializing = false;
 }
 
 ApplicationVulkan::~ApplicationVulkan() {
@@ -101,7 +99,7 @@ void ApplicationVulkan::render() {
   if (m_camera.changed()) {
     updateView();
   }
-  createPrimaryCommandBuffer(m_frame_resource);
+  recordDrawBuffer(m_frame_resource);
   m_frame_resource.fenceDraw().reset();
   submitDraw(m_frame_resource);
 
@@ -157,7 +155,7 @@ void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").end();
 }
 
-void ApplicationVulkan::createPrimaryCommandBuffer(FrameResource& res) {
+void ApplicationVulkan::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").reset({});
 
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
