@@ -202,7 +202,6 @@ void Image::destroy() {
     (*m_device)->destroyImageView(m_view);
   }
   (*m_device)->destroyImage(get());
-  std::cout << "killed img with" << to_string(info().format) << " usage " << to_string(info().usage) << std::endl;
 }
 
  Image& Image::operator=(Image&& dev) {

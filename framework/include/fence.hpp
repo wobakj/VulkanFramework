@@ -26,9 +26,8 @@ class Fence : public WrapperFence {
 
  private:
   void destroy() override;
-  
+
   Device const* m_device;
-  bool m_first_use;
 };
 
 #endif

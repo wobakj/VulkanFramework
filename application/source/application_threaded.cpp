@@ -189,7 +189,7 @@ void ApplicationThreaded::drawLoop() {
   }
 }
 
-void ApplicationThreaded::acquireImage(frame_resources_t& res) {
+void ApplicationThreaded::acquireImage(FrameResource& res) {
   auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
   if (result == vk::Result::eErrorOutOfDateKHR) {
       // handle swapchain recreation
@@ -200,7 +200,7 @@ void ApplicationThreaded::acquireImage(frame_resources_t& res) {
   }
 }
 
-void ApplicationThreaded::present(frame_resources_t& res) {
+void ApplicationThreaded::present(FrameResource& res) {
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = &res.semaphoreDraw();
@@ -213,7 +213,7 @@ void ApplicationThreaded::present(frame_resources_t& res) {
   m_device.getQueue("present").waitIdle();
 }
 
-void ApplicationThreaded::submitDraw(frame_resources_t& res) {
+void ApplicationThreaded::submitDraw(FrameResource& res) {
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
   vk::Semaphore waitSemaphores[]{res.semaphoreAcquire()};
@@ -233,13 +233,13 @@ void ApplicationThreaded::submitDraw(frame_resources_t& res) {
   m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
 }
 
-void ApplicationThreaded::createCommandBuffers(frame_resources_t& resource) {
+void ApplicationThreaded::createCommandBuffers(FrameResource& resource) {
   resource.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   resource.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   resource.command_buffers.emplace("primary", m_device.createCommandBuffer("graphics"));
 }
 
-void ApplicationThreaded::updateCommandBuffers(frame_resources_t& resource) {
+void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
 
   resource.command_buffers.at("gbuffer").reset({});
 
@@ -284,7 +284,7 @@ void ApplicationThreaded::updateCommandBuffers(frame_resources_t& resource) {
   resource.command_buffers.at("lighting").end();
 }
 
-void ApplicationThreaded::createPrimaryCommandBuffer(frame_resources_t& res) {
+void ApplicationThreaded::createPrimaryCommandBuffer(FrameResource& res) {
    if (m_camera.changed()) {
     updateView();
     updateLights();
