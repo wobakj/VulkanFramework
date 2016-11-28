@@ -94,10 +94,9 @@ vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info,
     attachment.initialLayout = img_info.initialLayout;
   }
   // store data only when it is used afterwards
-  if ((img_info.usage & vk::ImageUsageFlagBits::eSampled) 
-   || (img_info.usage & vk::ImageUsageFlagBits::eStorage)
-   || (img_info.usage & vk::ImageUsageFlagBits::eInputAttachment)
-   || (img_info.usage & vk::ImageUsageFlagBits::eTransferSrc)
+  if (img_info.initialLayout == vk::ImageLayout::eShaderReadOnlyOptimal
+   || img_info.initialLayout == vk::ImageLayout::eDepthStencilReadOnlyOptimal
+   || img_info.initialLayout == vk::ImageLayout::eTransferSrcOptimal
    || img_info.initialLayout == vk::ImageLayout::ePresentSrcKHR) {
     attachment.storeOp = vk::AttachmentStoreOp::eStore;
     attachment.stencilStoreOp = vk::AttachmentStoreOp::eStore;
