@@ -387,16 +387,16 @@ void ApplicationVulkan::createDepthResource() {
   m_images.at("depth").transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
   m_images["color"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_images.at("color").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_images.at("color").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
   m_images["pos"] = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_images.at("pos").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_images.at("pos").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
   m_images["normal"] = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_images.at("normal").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_images.at("normal").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
   m_images["color_2"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc);
-  m_images.at("color_2").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
 
   createMemoryPools();
 }
