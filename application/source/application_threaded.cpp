@@ -70,11 +70,11 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   resize();
   render();
 
-  m_initializing = false;
 
   if (!m_thread_render.joinable()) {
     m_thread_render = std::thread(&ApplicationThreaded::drawLoop, this);
   }
+  m_initializing = false;
 }
 
 ApplicationThreaded::~ApplicationThreaded() {
@@ -103,6 +103,8 @@ void ApplicationThreaded::createFrameResources() {
 }
 
 void ApplicationThreaded::render() {
+  static uint64_t frame = 0;
+  ++frame;
   // only calculate new frame if previous one was rendered
   if (!m_mutex_record_queue.try_lock()) return;
   if (m_queue_record_frames.empty()) {
@@ -117,14 +119,17 @@ void ApplicationThreaded::render() {
 
   // acquire image after previous acquisition was successfull
 
-  if (!m_initializing) {
+  if (!resource_record.first_acquire) {
     // wait for last acquisition until acquiring again
     m_device.waitFence(resource_record.fenceAcquire());
     m_device->resetFences(resource_record.fenceAcquire());
   }
   acquireImage(resource_record);
+  resource_record.first_acquire = false;
   // wait for drawing finish until rerecording
-  m_device.waitFence(resource_record.fenceDraw());
+  if (!resource_record.first_draw) {
+    m_device.waitFence(resource_record.fenceDraw());
+  }
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       m_sphere = false;
@@ -148,26 +153,31 @@ void ApplicationThreaded::render() {
   m_mutex_draw_queue.lock();
   m_queue_draw_frames.push(frame_record);
   m_mutex_draw_queue.unlock();
-  std::this_thread::sleep_for(std::chrono::milliseconds{10});
+  // std::this_thread::sleep_for(std::chrono::milliseconds{10});
 }
 
 void ApplicationThreaded::draw() {
+  static std::uint64_t frame = 0;
+  ++frame;
   // draw only when new frame is avaible
   if (!m_mutex_draw_queue.try_lock()) return;
   if (m_queue_draw_frames.empty()) {
     m_mutex_draw_queue.unlock();
     return;
   }
-  // wait until swap chain is avaible
-  m_mutex_swapchain.lock();
   // get frame to draw
   auto frame_draw = m_queue_draw_frames.front();
   m_queue_draw_frames.pop();
   m_mutex_draw_queue.unlock();
+  // wait until swap chain is avaible
+  m_mutex_swapchain.lock();
   auto& resource_draw = m_frame_resources.at(frame_draw);
   // wait until drawing with these resources is finished before issuing next draw
-  m_device.waitFence(resource_draw.fenceDraw());
-  m_device->resetFences(resource_draw.fenceDraw());
+  if (!resource_draw.first_draw) {
+    m_device.waitFence(resource_draw.fenceDraw());
+    m_device->resetFences(resource_draw.fenceDraw());
+  }
+  resource_draw.first_draw = false;
   submitDraw(resource_draw);
   // present image and wait for result
   present(resource_draw);
@@ -237,8 +247,8 @@ void ApplicationThreaded::createCommandBuffers(frame_resources_t& resource) {
 }
 
 void ApplicationThreaded::updateCommandBuffers(frame_resources_t& resource) {
-  if (!m_initializing) {
-    m_device.waitFence(fenceDraw());
+  if (!resource.first_draw) {
+    m_device.waitFence(resource.fenceDraw());
   }
 
   resource.command_buffers.at("gbuffer").reset({});

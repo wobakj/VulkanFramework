@@ -20,6 +20,8 @@
 struct frame_resources_t {
   frame_resources_t(Device& dev)
    :m_device(dev)
+   ,first_acquire{true}
+   ,first_draw{true}
    {
     semaphores.emplace("acquire", m_device->createSemaphore({}));
     semaphores.emplace("draw", m_device->createSemaphore({}));
@@ -47,6 +49,9 @@ struct frame_resources_t {
   std::map<std::string, vk::Semaphore> semaphores;
   std::map<std::string, vk::Fence> fences;
   std::map<std::string, vk::DescriptorSet> descriptor_sets;
+  // need to be atomic
+  std::atomic<bool> first_acquire;
+  std::atomic<bool> first_draw;
 
   vk::Semaphore const& semaphoreAcquire() {
     return semaphores.at("acquire");
