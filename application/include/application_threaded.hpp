@@ -52,6 +52,7 @@ class ApplicationThreaded : public Application {
   void draw();
   void createFrameResources();
   void emptyDrawQueue();
+  void updateModel();
 
   // path to the resource folders
   RenderPass m_render_pass;

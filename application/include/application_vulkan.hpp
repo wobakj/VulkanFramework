@@ -45,6 +45,7 @@ class ApplicationVulkan : public Application {
   void createDepthResource();
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
+  void updateModel();
 
   // path to the resource folders
   RenderPass m_render_pass;

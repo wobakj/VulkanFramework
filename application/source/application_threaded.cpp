@@ -100,6 +100,23 @@ void ApplicationThreaded::createFrameResources() {
   }
 }
 
+void ApplicationThreaded::updateModel() {
+  m_sphere = false;
+  emptyDrawQueue();
+  for (auto& res : m_frame_resources) {
+    updateCommandBuffers(res);
+  }
+  m_model_dirty = false;
+  #ifdef THREADING
+  if(m_thread_load.joinable()) {
+    m_thread_load.join();
+  }
+  else {
+    throw std::runtime_error{"could not join thread"};
+  }
+  #endif
+}
+
 void ApplicationThreaded::render() {
   static uint64_t frame = 0;
   ++frame;
@@ -123,19 +140,7 @@ void ApplicationThreaded::render() {
   resource_record.fenceDraw().wait();
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
-      m_sphere = false;
-      for (auto& res : m_frame_resources) {
-        updateCommandBuffers(res);
-      }
-      m_model_dirty = false;
-      #ifdef THREADING
-      if(m_thread_load.joinable()) {
-        m_thread_load.join();
-      }
-      else {
-        throw std::runtime_error{"could not join thread"};
-      }
-      #endif
+      updateModel();
     }
   }
   recordDrawBuffer(resource_record);
@@ -145,40 +150,38 @@ void ApplicationThreaded::render() {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     m_queue_draw_frames.push(frame_record);
   }
-  // std::this_thread::sleep_for(std::chrono::milliseconds{10});
 }
 
 void ApplicationThreaded::draw() {
   static std::uint64_t frame = 0;
   ++frame;
   // draw only when new frame is avaible
-  uint32_t frame_draw = 0;
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    if (m_queue_draw_frames.empty()) {
-      return;
-    }
-    // get frame to draw
-    frame_draw = m_queue_draw_frames.front();
-    m_queue_draw_frames.pop();
-  }
-  auto& resource_draw = m_frame_resources.at(frame_draw);
-  // wait until drawing with these resources is finished before issuing next draw
-  resource_draw.fenceDraw().wait();
-  resource_draw.fenceDraw().reset();
-  submitDraw(resource_draw);
-  // wait until swap chain is avaible
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_swapchain};
-    // present image and wait for result
-    present(resource_draw);
+    uint32_t frame_draw = 0;
+    {
+      std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+      if (m_queue_draw_frames.empty()) {
+        return;
+      }
+      // get frame to draw
+      frame_draw = m_queue_draw_frames.front();
+      m_queue_draw_frames.pop();
+    }
+    auto& resource_draw = m_frame_resources.at(frame_draw);
+    // wait until drawing with these resources is finished before issuing next draw
+    resource_draw.fenceDraw().wait();
+    resource_draw.fenceDraw().reset();
+    submitDraw(resource_draw);
+    // wait until swap chain is avaible
+      // present image and wait for result
+      present(resource_draw);
+    // make frame avaible for rerecording
+    {
+      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+      m_queue_record_frames.push(frame_draw);
+    }
   }
-  // make frame avaible for rerecording
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    m_queue_record_frames.push(frame_draw);
-  }
-  std::this_thread::sleep_for(std::chrono::milliseconds{10});
 }
 
 void ApplicationThreaded::drawLoop() {

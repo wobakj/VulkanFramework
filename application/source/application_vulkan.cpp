@@ -71,6 +71,20 @@ ApplicationVulkan::~ApplicationVulkan() {
   m_frame_resource.waitFences();
 }
 
+void ApplicationVulkan::updateModel() {
+  m_sphere = false;
+  updateCommandBuffers(m_frame_resource);
+  m_model_dirty = false;
+  #ifdef THREADING
+  if(m_thread_load.joinable()) {
+    m_thread_load.join();
+  }
+  else {
+    throw std::runtime_error{"could not join thread"};
+  }
+  #endif
+}
+
 void ApplicationVulkan::render() {
   m_frame_resource.fenceAcquire().wait();
   m_frame_resource.fenceAcquire().reset();
@@ -81,18 +95,7 @@ void ApplicationVulkan::render() {
 
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
-      m_sphere = false;
-      // std::swap(m_model, m_model_2);
-      updateCommandBuffers(m_frame_resource);
-      m_model_dirty = false;
-      #ifdef THREADING
-      if(m_thread_load.joinable()) {
-        m_thread_load.join();
-      }
-      else {
-        throw std::runtime_error{"could not join thread"};
-      }
-      #endif
+      updateModel();
     }
   }
 
