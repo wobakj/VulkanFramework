@@ -28,6 +28,6 @@ out gl_PerVertex {
 layout(location = 0) out flat int frag_InstanceId;
 
 void main() {
-  gl_Position = ubo.proj * vec4(Lights[gl_InstanceIndex].position + in_Position * Lights[gl_InstanceIndex].radius, 1.0);
+  gl_Position = ubo.proj * ubo.view * vec4(Lights[gl_InstanceIndex].position + in_Position * Lights[gl_InstanceIndex].radius, 1.0);
   frag_InstanceId = gl_InstanceIndex;
 }

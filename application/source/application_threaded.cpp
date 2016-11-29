@@ -59,8 +59,8 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
 
   createVertexBuffer();
-  createLights();  
   createUniformBuffers();
+  createLights();  
   createTextureImage();
   createTextureSampler();
   createDepthResource();
@@ -248,35 +248,36 @@ void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
 }
 
 void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
-   if (m_camera.changed()) {
-    updateView();
-    updateLights();
-  }
+  //  if (m_camera.changed()) {
+  //   updateView();
+  //   updateLights();
+  // }
 
   res.command_buffers.at("draw").reset({});
 
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  // if (m_camera.changed()) {
-  //   updateView();
+  if (m_camera.changed()) {
+    updateView();
+    // updateLights();
     // barrier to make new data visible to vertex shader
-    // res.command_buffers.at("draw").updateBuffer(m_buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
-    // vk::BufferMemoryBarrier barrier_buffer{};
-    // barrier_buffer.buffer = m_buffers.at("uniform");
-    // barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-    // barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
-    // barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    // barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    res.command_buffers.at("draw").updateBuffer(m_buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
+    vk::BufferMemoryBarrier barrier_buffer{};
+    barrier_buffer.buffer = m_buffers.at("uniform");
+    barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
+    barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-    // res.command_buffers.at("draw").pipelineBarrier(
-    //   vk::PipelineStageFlagBits::eTransfer,
-    //   vk::PipelineStageFlagBits::eVertexShader,
-    //   vk::DependencyFlags{},
-    //   {},
-    //   {barrier_buffer},
-    //   {}
-    // );
-  // }
+    res.command_buffers.at("draw").pipelineBarrier(
+      vk::PipelineStageFlagBits::eTransfer,
+      vk::PipelineStageFlagBits::eVertexShader,
+      vk::DependencyFlags{},
+      {},
+      {barrier_buffer},
+      {}
+    );
+  }
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -469,6 +470,7 @@ void ApplicationThreaded::createLights() {
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
+  m_device.uploadBufferData(&buff_l, m_buffers.at("light"));
 }
 
 void ApplicationThreaded::updateLights() {
@@ -580,7 +582,7 @@ void ApplicationThreaded::updateView() {
   ubo_cam.proj = m_camera.projectionMatrix();
   ubo_cam.proj[1][1] *= -1;
 
-  m_device.uploadBufferData(&ubo_cam, m_buffers.at("uniform"));
+  // m_device.uploadBufferData(&ubo_cam, m_buffers.at("uniform"));
 }
 
 void ApplicationThreaded::emptyDrawQueue() {

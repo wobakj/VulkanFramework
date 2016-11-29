@@ -15,6 +15,12 @@ struct light_t {
   vec3 color;
   float radius;
 };
+layout(set = 0, binding = 0) uniform MatrixBuffer {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+    mat4 normal;
+} ubo;
 
 layout(set = 1, binding = 3) buffer LightBuffer {
   light_t[] Lights;
@@ -57,14 +63,14 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  // for (uint i  = 0; i < lights.length(); ++i) {
-    float dist = distance(frag_Position, Lights[frag_InstanceId].position.xyz);
-    float radius = Lights[frag_InstanceId].radius;
+  vec3 pos_light = (ubo.view * vec4(Lights[frag_InstanceId].position, 1.0)).xyz;
+  float dist = distance(frag_Position, pos_light);
+  float radius = Lights[frag_InstanceId].radius;
 
-    vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, Lights[frag_InstanceId].position.xyz);
-    vec3 color = Lights[frag_InstanceId].color.rgb;
+  vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
+  vec3 color = Lights[frag_InstanceId].color.rgb;
 
-    out_Color += vec4(color * 0.005 * diffuseColor 
-                    + color * diffuseColor * diffSpec.x
+  out_Color += vec4(color * 0.005 * diffuseColor 
+                  + color * diffuseColor * diffSpec.x
                     + color * ks * diffSpec.y, 1.0 - dist / radius);
 }
