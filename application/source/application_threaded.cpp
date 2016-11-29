@@ -99,6 +99,7 @@ void ApplicationThreaded::createFrameResources() {
     m_frame_resources.emplace_back(m_device);
     createCommandBuffers(m_frame_resources.back());
     m_queue_record_frames.push(i);
+    m_frame_resources.back().buffers["uniform"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   }
 }
 
@@ -248,10 +249,6 @@ void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
 }
 
 void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
-  //  if (m_camera.changed()) {
-  //   updateView();
-  //   updateLights();
-  // }
 
   res.command_buffers.at("draw").reset({});
 
@@ -259,9 +256,8 @@ void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
 
   if (m_camera.changed()) {
     updateView();
-    // updateLights();
-    // barrier to make new data visible to vertex shader
     res.command_buffers.at("draw").updateBuffer(m_buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
+    // barrier to make new data visible to vertex shader
     vk::BufferMemoryBarrier barrier_buffer{};
     barrier_buffer.buffer = m_buffers.at("uniform");
     barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
@@ -539,25 +535,14 @@ void ApplicationThreaded::createTextureSampler() {
 
 void ApplicationThreaded::createDescriptorPool() {
   m_descriptorPool = m_shaders.at("simple").createPool(2);
-
-  vk::DescriptorSetAllocateInfo allocInfo{};
-  allocInfo.descriptorPool = m_descriptorPool;
-  allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("simple").setLayouts().size());
-  allocInfo.pSetLayouts = m_shaders.at("simple").setLayouts().data();
-
-  auto sets = m_device->allocateDescriptorSets(allocInfo);
-  m_descriptor_sets["matrix"] = sets[0];
-  m_descriptor_sets["textures"] = sets[1];
+  m_descriptor_sets["matrix"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 0);
+  m_descriptor_sets["textures"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 1);
 
   m_buffers.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 
-  m_descriptorPool_2 = m_shaders.at("quad").createPool(2);
-  allocInfo.descriptorPool = m_descriptorPool_2;
-  allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
-  allocInfo.pSetLayouts = m_shaders.at("quad").setLayouts().data();
-
-  m_descriptor_sets["lighting"] = m_device->allocateDescriptorSets(allocInfo)[1];
+  m_descriptorPool_2 = m_shaders.at("quad").createPool(1);
+  m_descriptor_sets["lighting"] = m_shaders.at("quad").allocateSet(m_descriptorPool_2.get(), 1);
 
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1);

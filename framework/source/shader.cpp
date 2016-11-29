@@ -6,6 +6,7 @@
 #include <spirv_cross.hpp>
 
 #include <map>
+#include <iostream>
 
 vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model) {
   if (model == spv::ExecutionModelVertex) {
@@ -33,15 +34,15 @@ vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model) {
 }
 
 void layout_module_t::add_resource(std::string const& name, unsigned set, unsigned binding, unsigned num, vk::DescriptorType const& type) {
-  if (bindings.size() <= set) {
-    bindings.resize(set + 1);
+  if (sets.size() <= set) {
+    sets.resize(set + 1);
   }
   vk::DescriptorSetLayoutBinding layoutBinding{};
   layoutBinding.binding = binding;
   layoutBinding.descriptorType = type;
   layoutBinding.descriptorCount = num;
   layoutBinding.stageFlags = stage;
-  bindings.at(set).emplace(name, layoutBinding);
+  sets.at(set).emplace(name, layoutBinding);
 }
 
 layout_module_t::layout_module_t(spirv_cross::Compiler const& comp)
@@ -90,7 +91,7 @@ layout_module_t::layout_module_t(spirv_cross::Compiler const& comp)
 }
 // check if descriptor is contained
 bool layout_module_t::has_descriptor(std::string const& name) {
-  for (auto const& set : bindings) {
+  for (auto const& set : sets) {
     if (set.find(name) != set.end()) {
       return true;
     }
@@ -102,17 +103,17 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
  :modules{mod}
 {
   for(std::size_t i = 0; i < modules.size(); ++i) {
-    for(std::size_t idx_set = 0; idx_set < modules[i].bindings.size(); ++idx_set) {
-      //resize shader bindings if module has more sets
-      if(bindings.size() <= idx_set) {
-        bindings.resize(idx_set + 1);
+    for(std::size_t idx_set = 0; idx_set < modules[i].sets.size(); ++idx_set) {
+      //resize shader sets if module has more sets
+      if(sets.size() <= idx_set) {
+        sets.resize(idx_set + 1);
       }
-      for(auto const& pair_desc : modules[i].bindings[idx_set]) {
+      for(auto const& pair_desc : modules[i].sets[idx_set]) {
         auto descriptor = pair_desc.second;
         for(std::size_t j = i + 1; j < modules.size(); ++j) {
-          auto iter = modules[j].bindings[idx_set].find(pair_desc.first);
+          auto iter = modules[j].sets[idx_set].find(pair_desc.first);
           // descriptor with same name exists in set
-          if (iter != modules[j].bindings[idx_set].end()) {
+          if (iter != modules[j].sets[idx_set].end()) {
             if (iter->second.binding == descriptor.binding) {
               if (iter->second.descriptorType == descriptor.descriptorType) {
                 if (iter->second.descriptorCount == descriptor.descriptorCount) {
@@ -139,7 +140,7 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
               throw std::runtime_error{"Descriptor '" + pair_desc.first + "' set varies between stages"};
             }
             // make sure no other descriptor is bound to same binding 
-            for(auto const& pair_desc2 : modules[j].bindings[idx_set]) {
+            for(auto const& pair_desc2 : modules[j].sets[idx_set]) {
               if (pair_desc2.second.binding == descriptor.binding 
                && pair_desc2.second.descriptorType == descriptor.descriptorType ) {
                 throw std::runtime_error{"Descriptor '" + pair_desc.first + "' and '" + pair_desc2.first + "' have the same set and binding"};
@@ -147,7 +148,7 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
             }
           }
         }
-        bindings[idx_set].emplace(pair_desc.first, descriptor);
+        sets[idx_set].emplace(pair_desc.first, descriptor);
       }
     }
   }
@@ -156,7 +157,7 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
 std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_layout) {
   std::map<vk::DescriptorType, uint32_t> size_map{};
   // collect all descriptor types and sizes
-  for (auto const& set : shader_layout.bindings) {
+  for (auto const& set : shader_layout.sets) {
     for(auto const& pair_desc : set) {
       if (size_map.find(pair_desc.second.descriptorType) != size_map.end()) {
         size_map.at(pair_desc.second.descriptorType) += pair_desc.second.descriptorCount;
@@ -175,17 +176,22 @@ std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_
 }
 
 
+vk::DescriptorSetLayout to_set_layout(vk::Device const& device, std::map<std::string, vk::DescriptorSetLayoutBinding> const& set) {
+  std::vector<vk::DescriptorSetLayoutBinding> bindings{};
+  // collect set layout bindings
+  for(auto const& pair_desc : set) {
+    bindings.emplace_back(pair_desc.second);
+  }
+  vk::DescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.bindingCount = std::uint32_t(bindings.size());
+  layoutInfo.pBindings = bindings.data();
+  return device.createDescriptorSetLayout(layoutInfo);
+}
+
 std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader) {
   std::vector<vk::DescriptorSetLayout> set_layouts{};
-  for(std::size_t idx_set = 0; idx_set < shader.bindings.size(); ++idx_set) {
-    std::vector<vk::DescriptorSetLayoutBinding> bindings{};
-    for(auto const& pair_desc : shader.bindings[idx_set]) {
-      bindings.emplace_back(pair_desc.second);
-    }
-    vk::DescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.bindingCount = std::uint32_t(bindings.size());
-    layoutInfo.pBindings = bindings.data();
-    set_layouts.emplace_back(device.createDescriptorSetLayout(layoutInfo));
+  for(auto const& set : shader.sets) {
+    set_layouts.emplace_back(to_set_layout(device, set));
   }
   return set_layouts;
 }
@@ -294,4 +300,32 @@ vk::GraphicsPipelineCreateInfo Shader::startPipelineInfo() const {
   pipelineInfo.layout = pipelineLayout();
 
   return pipelineInfo;
+}
+
+vk::DescriptorSetAllocateInfo Shader::allocateInfos(vk::DescriptorPool const& pool) const {
+  vk::DescriptorSetAllocateInfo allocInfo{};
+  allocInfo.descriptorPool = pool;
+  allocInfo.descriptorSetCount = std::uint32_t(setLayouts().size());
+  allocInfo.pSetLayouts = setLayouts().data();
+  return allocInfo;
+}
+
+vk::DescriptorSetAllocateInfo Shader::allocateInfo(vk::DescriptorPool const& pool, uint32_t idx_set) const {
+  vk::DescriptorSetAllocateInfo allocInfo{};
+  allocInfo.descriptorPool = pool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &setLayouts().at(idx_set);
+  return allocInfo;
+}
+
+vk::DescriptorSet Shader::allocateSet(vk::DescriptorPool const& pool, uint32_t idx_set) const {
+  return (*m_device)->allocateDescriptorSets(allocateInfo(pool, idx_set))[0];
+}
+
+std::vector<vk::DescriptorSet> Shader::allocateSets(vk::DescriptorPool const& pool) const {
+  return (*m_device)->allocateDescriptorSets(allocateInfos(pool));
+}
+
+std::vector<std::string> const& Shader::paths() const {
+  return m_paths;
 }

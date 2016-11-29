@@ -13,7 +13,7 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
 
 void Application::updateShaderPrograms() {
 	for (auto& pair : m_shaders) {
-    pair.second = Shader{m_device, pair.second.m_paths};
+    pair.second = Shader{m_device, pair.second.paths()};
   }
   recreatePipeline();
 }

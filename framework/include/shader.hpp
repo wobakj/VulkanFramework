@@ -23,7 +23,7 @@ struct layout_module_t {
   // check if descriptor is contained
   bool has_descriptor(std::string const& name);
 
-  std::vector<std::map<std::string, vk::DescriptorSetLayoutBinding>> bindings;
+  std::vector<std::map<std::string, vk::DescriptorSetLayoutBinding>> sets;
   vk::ShaderStageFlagBits stage;
 };
 
@@ -31,7 +31,7 @@ struct layout_shader_t {
   layout_shader_t(){};
   layout_shader_t(std::vector<layout_module_t> const& mod);
 
-  std::vector<std::map<std::string, vk::DescriptorSetLayoutBinding>> bindings;
+  std::vector<std::map<std::string, vk::DescriptorSetLayoutBinding>> sets;
   std::vector<layout_module_t> modules;
 };
 
@@ -59,11 +59,17 @@ class Shader : public WrapperShader {
 
   vk::DescriptorPool createPool(uint32_t max_sets = 1) const;
   vk::GraphicsPipelineCreateInfo startPipelineInfo() const;
-  std::vector<std::string> m_paths;
+
+  vk::DescriptorSetAllocateInfo allocateInfos(vk::DescriptorPool const& pool) const;
+  vk::DescriptorSetAllocateInfo allocateInfo(vk::DescriptorPool const& pool, uint32_t idx_set) const;
+  vk::DescriptorSet allocateSet(vk::DescriptorPool const& pool, uint32_t idx_set) const;
+  std::vector<vk::DescriptorSet> allocateSets(vk::DescriptorPool const& pool) const;
+  std::vector<std::string> const& paths() const;
  private:
   void destroy() override;
 
   Device const* m_device;
+  std::vector<std::string> m_paths;
   std::vector<vk::ShaderModule> m_modules;
   std::vector<vk::DescriptorSetLayout> m_set_layouts;
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stages;

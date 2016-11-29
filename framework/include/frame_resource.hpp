@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "fence.hpp"
+#include "buffer.hpp"
 
 #include <vector>
 
@@ -79,6 +80,7 @@ class FrameResource {
     std::swap(semaphores, rhs.semaphores);
     std::swap(fences, rhs.fences);
     std::swap(descriptor_sets, rhs.descriptor_sets);
+    std::swap(buffers, rhs.buffers);
   }
 
   uint32_t image;
@@ -86,6 +88,7 @@ class FrameResource {
   std::map<std::string, vk::Semaphore> semaphores;
   std::map<std::string, Fence> fences;
   std::map<std::string, vk::DescriptorSet> descriptor_sets;
+  std::map<std::string, Buffer> buffers;
 
  private:
   Device const* m_device;
