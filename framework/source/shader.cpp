@@ -154,16 +154,16 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
   }
 }
 
-std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_layout) {
+std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_layout, uint32_t num) {
   std::map<vk::DescriptorType, uint32_t> size_map{};
   // collect all descriptor types and sizes
   for (auto const& set : shader_layout.sets) {
     for(auto const& pair_desc : set) {
       if (size_map.find(pair_desc.second.descriptorType) != size_map.end()) {
-        size_map.at(pair_desc.second.descriptorType) += pair_desc.second.descriptorCount;
+        size_map.at(pair_desc.second.descriptorType) += pair_desc.second.descriptorCount * num;
       }
       else {
-        size_map.emplace(pair_desc.second.descriptorType, pair_desc.second.descriptorCount);
+        size_map.emplace(pair_desc.second.descriptorType, pair_desc.second.descriptorCount * num);
       }
     }
   } 
@@ -283,12 +283,13 @@ std::vector<vk::PipelineShaderStageCreateInfo> const& Shader::shaderStages() con
   return m_shader_stages;
 }
 
-vk::DescriptorPool Shader::createPool(uint32_t max_sets) const {
-  auto pool_sizes = to_pool_sizes(info());
+vk::DescriptorPool Shader::createPool(uint32_t times) const {
+  auto pool_sizes = to_pool_sizes(info(), times);
   vk::DescriptorPoolCreateInfo poolInfo{};
   poolInfo.poolSizeCount = std::uint32_t(pool_sizes.size());
   poolInfo.pPoolSizes = pool_sizes.data();
-  poolInfo.maxSets = max_sets;
+  // each set can be allocated times
+  poolInfo.maxSets = times * uint32_t(info().sets.size());
 
   return (*m_device)->createDescriptorPool(poolInfo);
 }

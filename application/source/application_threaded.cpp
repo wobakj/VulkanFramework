@@ -97,9 +97,11 @@ void ApplicationThreaded::createFrameResources() {
   // only numImages - 1 images can be acquired at a time
   for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
     m_frame_resources.emplace_back(m_device);
-    createCommandBuffers(m_frame_resources.back());
+    auto& res = m_frame_resources.back();
+    createCommandBuffers(res);
     m_queue_record_frames.push(i);
-    m_frame_resources.back().buffers["uniform"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+    res.buffers["uniform"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+    res.buffers.at("uniform").bindTo(m_device.memoryPool("uniforms"));
   }
 }
 
@@ -198,14 +200,19 @@ void ApplicationThreaded::drawLoop() {
   }
 }
 
-void ApplicationThreaded::createCommandBuffers(FrameResource& resource) {
-  resource.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  resource.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+void ApplicationThreaded::createCommandBuffers(FrameResource& res) {
+  res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
 }
 
-void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
+void ApplicationThreaded::updateDescriptors(FrameResource& res) {
+  res.descriptor_sets["matrix"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 0);
+  res.buffers.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
+}
 
-  resource.command_buffers.at("gbuffer").reset({});
+void ApplicationThreaded::updateCommandBuffers(FrameResource& res) {
+
+  res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
@@ -213,10 +220,10 @@ void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  resource.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  resource.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
-  resource.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // choose between sphere and house
   Model const* model = nullptr;
   if (m_sphere) {
@@ -226,26 +233,26 @@ void ApplicationThreaded::updateCommandBuffers(FrameResource& resource) {
     model = &m_model_2;
   }
 
-  resource.command_buffers.at("gbuffer").bindVertexBuffers(0, {model->buffer()}, {0});
-  resource.command_buffers.at("gbuffer").bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("gbuffer").bindVertexBuffers(0, {model->buffer()}, {0});
+  res.command_buffers.at("gbuffer").bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
 
-  resource.command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
+  res.command_buffers.at("gbuffer").drawIndexed(model->numIndices(), 1, 0, 0, 0);
 
-  resource.command_buffers.at("gbuffer").end();
+  res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
-  resource.command_buffers.at("lighting").reset({});
-  resource.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("lighting").reset({});
+  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  resource.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
-  resource.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
+  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  resource.command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
-  resource.command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
+  res.command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
 
-  resource.command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  res.command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
 
-  resource.command_buffers.at("lighting").end();
+  res.command_buffers.at("lighting").end();
 }
 
 void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
@@ -253,27 +260,25 @@ void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").reset({});
 
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  // always update, because last update could have been to other frame
+  updateView();
+  res.command_buffers.at("draw").updateBuffer(res.buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_buffer{};
+  barrier_buffer.buffer = res.buffers.at("uniform");
+  barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
+  barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  if (m_camera.changed()) {
-    updateView();
-    res.command_buffers.at("draw").updateBuffer(m_buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
-    // barrier to make new data visible to vertex shader
-    vk::BufferMemoryBarrier barrier_buffer{};
-    barrier_buffer.buffer = m_buffers.at("uniform");
-    barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-    barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
-    barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-    res.command_buffers.at("draw").pipelineBarrier(
-      vk::PipelineStageFlagBits::eTransfer,
-      vk::PipelineStageFlagBits::eVertexShader,
-      vk::DependencyFlags{},
-      {},
-      {barrier_buffer},
-      {}
-    );
-  }
+  res.command_buffers.at("draw").pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eVertexShader,
+    vk::DependencyFlags{},
+    {},
+    {barrier_buffer},
+    {}
+  );
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -534,11 +539,10 @@ void ApplicationThreaded::createTextureSampler() {
 }
 
 void ApplicationThreaded::createDescriptorPool() {
-  m_descriptorPool = m_shaders.at("simple").createPool(2);
-  m_descriptor_sets["matrix"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 0);
+  // descriptor sets can be allocated for each frame resource
+  m_descriptorPool = m_shaders.at("simple").createPool(m_swap_chain.numImages() - 1);
   m_descriptor_sets["textures"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 1);
 
-  m_buffers.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 
   m_descriptorPool_2 = m_shaders.at("quad").createPool(1);
@@ -552,11 +556,9 @@ void ApplicationThreaded::createDescriptorPool() {
 
 void ApplicationThreaded::createUniformBuffers() {
   m_buffers["light"] = Buffer{m_device, sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffers["uniform"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("light").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("light").size() * 16);
   m_buffers.at("light").bindTo(m_device.memoryPool("uniforms"));
-  m_buffers.at("uniform").bindTo(m_device.memoryPool("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////
@@ -598,6 +600,7 @@ void ApplicationThreaded::resize() {
     createGraphicsPipeline();
     createDescriptorPool();
     for (auto& res : m_frame_resources) {
+      updateDescriptors(res);
       updateCommandBuffers(res);
     }
   }
@@ -612,6 +615,7 @@ void ApplicationThreaded::recreatePipeline() {
     createGraphicsPipeline();
     createDescriptorPool();
     for (auto& res : m_frame_resources) {
+      updateDescriptors(res);
       updateCommandBuffers(res);
     }
   }

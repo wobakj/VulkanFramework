@@ -27,12 +27,14 @@ class ApplicationThreaded : public Application {
  private:
   void render() override;
   void recordDrawBuffer(FrameResource& res) override;
+  void createCommandBuffers(FrameResource& res);
+  void updateCommandBuffers(FrameResource& res);
+  void updateDescriptors(FrameResource& resource);
   
   void createLights();
   void updateLights();
   void loadModel();
   void createUniformBuffers();
-  void createCommandBuffers(FrameResource& res);
   void createVertexBuffer();
   void createTextureImage();
   void createTextureSampler();
@@ -40,7 +42,7 @@ class ApplicationThreaded : public Application {
   void resize() override;
   void recreatePipeline() override;
   void updateView() override;
-  void updateCommandBuffers(FrameResource& res);
+
   void createFramebuffers();
   void createRenderPass();
   void createMemoryPools();
