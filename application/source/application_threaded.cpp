@@ -52,6 +52,8 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_sphere{true}
  ,m_model_dirty{false}
  ,m_should_draw{true}
+ ,m_semaphore_draw{0}
+ ,m_semaphore_record{m_swap_chain.numImages() - 1}
 {
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
@@ -118,6 +120,7 @@ void ApplicationThreaded::updateModel() {
 }
 
 void ApplicationThreaded::render() {
+  m_semaphore_record.wait();
   static uint64_t frame = 0;
   ++frame;
   // only calculate new frame if previous one was rendered
@@ -149,26 +152,29 @@ void ApplicationThreaded::render() {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     m_queue_draw_frames.push(frame_record);
+    m_semaphore_draw.signal();
   }
+  std::this_thread::sleep_for(std::chrono::milliseconds{10}); 
 }
 
 void ApplicationThreaded::draw() {
+  m_semaphore_draw.wait();
   static std::uint64_t frame = 0;
   ++frame;
+  uint32_t frame_draw = 0;
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+    if (m_queue_draw_frames.empty()) {
+      return;
+    }
+    // get frame to draw
+    frame_draw = m_queue_draw_frames.front();
+    m_queue_draw_frames.pop();
+  }
+  auto& resource_draw = m_frame_resources.at(frame_draw);
   // draw only when new frame is avaible
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_swapchain};
-    uint32_t frame_draw = 0;
-    {
-      std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-      if (m_queue_draw_frames.empty()) {
-        return;
-      }
-      // get frame to draw
-      frame_draw = m_queue_draw_frames.front();
-      m_queue_draw_frames.pop();
-    }
-    auto& resource_draw = m_frame_resources.at(frame_draw);
     // wait until drawing with these resources is finished before issuing next draw
     resource_draw.fenceDraw().wait();
     resource_draw.fenceDraw().reset();
@@ -180,6 +186,7 @@ void ApplicationThreaded::draw() {
     {
       std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
       m_queue_record_frames.push(frame_draw);
+      m_semaphore_record.signal();
     }
   }
 }

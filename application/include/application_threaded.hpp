@@ -12,6 +12,7 @@
 #include "frame_buffer.hpp"
 #include "fence.hpp"
 #include "frame_resource.hpp"
+#include "semaphore.hpp"
 
 #include <vector>
 #include <atomic>
@@ -80,6 +81,8 @@ class ApplicationThreaded : public Application {
   std::vector<FrameResource> m_frame_resources;
   std::queue<uint32_t> m_queue_draw_frames;
   std::queue<uint32_t> m_queue_record_frames;
+  Semaphore m_semaphore_draw;
+  Semaphore m_semaphore_record;
 };
 
 #endif
