@@ -22,6 +22,10 @@ class ModelLod {
   ModelLod(ModelLod && dev);
   ModelLod(ModelLod const&) = delete;
 
+  void createStagingBuffers();
+  void createDrawingBuffers();
+  void setFirstCut();
+
   ModelLod& operator=(ModelLod const&) = delete;
   ModelLod& operator=(ModelLod&& dev);
 
@@ -29,6 +33,7 @@ class ModelLod {
 
   std::vector<std::size_t> const& cut() const;
   std::vector<std::size_t> const& activeBuffers() const;
+  std::vector<std::size_t> const& activeBuffers2() const;
 
   vk::Buffer const& buffer(std::size_t i = 0) const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
@@ -51,12 +56,14 @@ class ModelLod {
   Memory m_memory;
   Memory m_memory_stage;
   std::size_t m_num_nodes; 
+  std::size_t m_num_slots; 
   std::size_t m_num_uploads;
   vklod::bvh m_bvh;
   vk::DeviceSize m_size_node;
   std::vector<std::vector<float>> m_nodes;
   std::vector<std::size_t> m_cut;
   std::vector<std::size_t> m_active_buffers;
+  std::vector<std::size_t> m_active_buffers2;
 };
 
 #endif

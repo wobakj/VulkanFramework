@@ -73,47 +73,14 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   // for simplifiction, use one staging buffer per buffer
   m_num_uploads = m_num_nodes;
   // create staging memory and buffers
-  for(std::size_t i = 0; i < num_uploads; ++i) {
-    m_buffers_stage.emplace_back(device.createBuffer(m_size_node, vk::BufferUsageFlagBits::eTransferSrc));
-  }
-  auto requirements_stage = m_buffers_stage.front().requirements();
-  // per-buffer offset
-  auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(requirements_stage.size) / float(requirements_stage.alignment)));
-  requirements_stage.size = requirements_stage.size + offset_stage * (m_num_uploads - 1);
-  m_memory_stage = Memory{device, requirements_stage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-
-  for(auto& buffer : m_buffers_stage) {
-    buffer.bindTo(m_memory_stage);
-  }
+  createStagingBuffers();
   // create drawing memory and buffers
-  for(std::size_t i = 0; i < num_nodes; ++i) {
-    m_buffers.emplace_back(device.createBuffer(m_size_node, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst));
-  }
-  auto requirements_draw = m_buffers_stage.front().requirements();
-  // per-buffer offset
-  auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(requirements_draw.size) / float(requirements_draw.alignment)));
-  requirements_draw.size = requirements_draw.size + offset_draw * (num_uploads - 1);
-  m_memory = Memory{device, requirements_draw, vk::MemoryPropertyFlagBits::eDeviceLocal};
-
-  for(auto& buffer : m_buffers) {
-    buffer.bindTo(m_memory);
-  }
+  createDrawingBuffers();
 
   lamure::ren::lod_stream lod_stream;
   lod_stream.open(path);
 
   std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes" << std::endl;
-  //   size_t stride_in_bytes = sizeof(serialized_triangle) * bvh.get_primitives_per_node();
-  // for (vklod::node_t node_id = 0; node_id < bvh.get_num_nodes(); ++node_id) {
-    
-  //   //e.g. compute offset to data in lod file for current node
-  //   size_t offset_in_bytes = node_id * stride_in_bytes;
-
-  //   std::cout << "node_id " << node_id
-  //             << ", depth " << bvh.get_depth_of_node(node_id)
-  //             << ", address " << offset_in_bytes 
-  //             << ", length " << stride_in_bytes << std::endl;
-  // }
 
   // read data from file
   m_nodes = std::vector<std::vector<float>>(bvh.get_num_nodes(), std::vector<float>(m_size_node / 4, 0.0));
@@ -121,12 +88,45 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
     size_t offset_in_bytes = i * m_size_node;
     lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, m_size_node);
   }
-
+  // store model for easier descriptor generation
   m_model = model_t{m_nodes.front(), model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
-
   m_bind_info = model_to_bind(m_model);
   m_attrib_info = model_to_attr(m_model);
-  // upload initial data
+
+  setFirstCut();
+}
+
+void ModelLod::createStagingBuffers() {
+  for(std::size_t i = 0; i < m_num_uploads; ++i) {
+    m_buffers_stage.emplace_back(m_device->createBuffer(m_size_node, vk::BufferUsageFlagBits::eTransferSrc));
+  }
+  auto requirements_stage = m_buffers_stage.front().requirements();
+  // per-buffer offset
+  auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(requirements_stage.size) / float(requirements_stage.alignment)));
+  requirements_stage.size = requirements_stage.size + offset_stage * (m_num_uploads - 1);
+  m_memory_stage = Memory{*m_device, requirements_stage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+
+  for(auto& buffer : m_buffers_stage) {
+    buffer.bindTo(m_memory_stage);
+  } 
+}
+
+void ModelLod::createDrawingBuffers() {
+  for(std::size_t i = 0; i < m_num_nodes; ++i) {
+    m_buffers.emplace_back(m_device->createBuffer(m_size_node, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst));
+  }
+  auto requirements_draw = m_buffers_stage.front().requirements();
+  // per-buffer offset
+  auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(requirements_draw.size) / float(requirements_draw.alignment)));
+  requirements_draw.size = requirements_draw.size + offset_draw * (m_num_nodes - 1);
+  m_memory = Memory{*m_device, requirements_draw, vk::MemoryPropertyFlagBits::eDeviceLocal};
+
+  for(auto& buffer : m_buffers) {
+    buffer.bindTo(m_memory);
+  }
+}
+
+void ModelLod::setFirstCut() {
   uint32_t level = 0;
   while(m_num_nodes >= m_bvh.get_length_of_depth(level)) {
     ++level;
@@ -169,6 +169,7 @@ void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
   }
   std::swap(m_num_uploads, dev.m_num_uploads);
   std::swap(m_num_nodes, dev.m_num_nodes);
+  std::swap(m_num_slots, dev.m_num_slots);
   std::swap(m_nodes, dev.m_nodes);
   std::swap(m_bvh, dev.m_bvh);
   std::swap(m_size_node, dev.m_size_node);
