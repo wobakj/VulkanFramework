@@ -62,6 +62,8 @@ class ModelLod {
   vk::DeviceSize m_size_node;
   std::vector<std::vector<float>> m_nodes;
   std::vector<std::size_t> m_cut;
+  std::vector<std::size_t> m_slots;
+  std::set<std::size_t> m_slots_keep;
   std::vector<std::size_t> m_active_buffers;
   std::vector<std::size_t> m_active_buffers2;
 };

@@ -71,7 +71,8 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_size_node{sizeof(serialized_triangle) * m_bvh.get_primitives_per_node()}
 {
   // for simplifiction, use one staging buffer per buffer
-  m_num_uploads = m_num_nodes;
+  m_num_slots = m_num_nodes * 2;
+  m_num_uploads = m_num_slots;
   // create staging memory and buffers
   createStagingBuffers();
   // create drawing memory and buffers
@@ -112,13 +113,13 @@ void ModelLod::createStagingBuffers() {
 }
 
 void ModelLod::createDrawingBuffers() {
-  for(std::size_t i = 0; i < m_num_nodes; ++i) {
+  for(std::size_t i = 0; i < m_num_slots; ++i) {
     m_buffers.emplace_back(m_device->createBuffer(m_size_node, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst));
   }
   auto requirements_draw = m_buffers_stage.front().requirements();
   // per-buffer offset
   auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(requirements_draw.size) / float(requirements_draw.alignment)));
-  requirements_draw.size = requirements_draw.size + offset_draw * (m_num_nodes - 1);
+  requirements_draw.size = requirements_draw.size + offset_draw * (m_num_slots - 1);
   m_memory = Memory{*m_device, requirements_draw, vk::MemoryPropertyFlagBits::eDeviceLocal};
 
   for(auto& buffer : m_buffers) {
@@ -140,6 +141,19 @@ void ModelLod::setFirstCut() {
   }
 
   setCut(cut_new);
+// set up slot management conainers
+  // upload nodes which are not yet on GPU
+  std::size_t idx_slot = 0;
+  for (auto const& idx_node : cut_new) {
+    // upload to free slot
+    nodeToBuffer(idx_node, idx_slot);
+    m_active_buffers.push_back(idx_slot);
+    // keep slot during next update
+    m_slots_keep.emplace(idx_node);
+    // update slot occupation
+    m_slots[idx_slot] = idx_node;
+    ++idx_slot;
+  }
 }
 
 void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
@@ -175,6 +189,8 @@ void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
   std::swap(m_size_node, dev.m_size_node);
   std::swap(m_cut, dev.m_cut);
   std::swap(m_active_buffers, dev.m_active_buffers);
+  std::swap(m_slots_keep, dev.m_slots_keep);
+  std::swap(m_slots, dev.m_slots);
  }
 
 vk::Buffer const& ModelLod::buffer(std::size_t i) const {
@@ -333,41 +349,60 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   }
   assert(cut_new.size() <= m_num_nodes);
 
-
   setCut(cut_new);
 }
 
 void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   m_active_buffers.clear();
+  std::set<std::size_t> slots_keep_new{};
   // collect nodes that were already in previous cut
   std::set<std::size_t> slots_active{};
-  for (auto const& node : cut) {
-    for (std::size_t i = 0; i < m_cut.size(); ++i) {
-      if (m_cut[i] == node) {
-        slots_active.emplace(node);
-        m_active_buffers.push_back(i);
+  for (auto const& idx_node : cut) {
+    for (std::size_t idx_slot = 0; idx_slot < m_slots.size(); ++idx_slot) {
+      if (m_slots[idx_slot] == idx_node) {
+        // slot is now active for this cut
+        slots_active.emplace(idx_node);
+        m_active_buffers.push_back(idx_slot);
+        // keep slot during next update
+        slots_keep_new.emplace(idx_slot);
+        // update slot occupation
+        m_slots[idx_slot] = idx_node;
         break;
       }
     }
   }
   // collect free nodes
   std::queue<std::size_t> slots_free{};
-  for (std::size_t i = 0; i < m_num_nodes; ++i) {
-    if (slots_active.find(i) == slots_active.end()) {
-      slots_free.emplace(i);
+  for (std::size_t idx_slot = 0; idx_slot < m_num_slots; ++idx_slot) {
+    // node is free if it doesnt need to be kept
+    if (m_slots_keep.find(idx_slot) == m_slots_keep.end()
+    // and is not active for this cut
+     && slots_active.find(idx_slot) == slots_active.end()) {
+      slots_free.emplace(idx_slot);
     }
   }
-  // upload nodes not yet on GPU
-  for (auto const& node : cut) {
-    if (slots_active.find(node) == slots_active.end()) {
-      auto slot = slots_free.front();
+  // upload nodes which are not yet on GPU
+  for (auto const& idx_node : cut) {
+    // node is not yet in active slot
+    if (slots_active.find(idx_node) == slots_active.end()) {
+      // get free slot
+      auto idx_slot = slots_free.front();
       slots_free.pop();
-      nodeToBuffer(node, slot);
-      m_active_buffers.push_back(slot);
+      // upload to free slot
+      nodeToBuffer(idx_node, idx_slot);
+      m_active_buffers.push_back(idx_slot);
+      // keep slot during next update
+      slots_keep_new.emplace(idx_node);
+      // update slot occupation
+      m_slots[idx_slot] = idx_node;
     }
   }
+  // 
+  assert(m_slots_keep.size() == m_num_nodes);
   // store new cut
   m_cut = cut;
+  // update slots to keep
+  m_slots_keep = slots_keep_new;
 
   std::cout << "new cut is (";
   for (auto const& node : m_cut) {

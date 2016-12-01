@@ -157,7 +157,7 @@ void ApplicationThreaded::render() {
     m_queue_draw_frames.push(frame_record);
     m_semaphore_draw.signal();
   }
-  std::this_thread::sleep_for(std::chrono::milliseconds{10}); 
+  // std::this_thread::sleep_for(std::chrono::milliseconds{10}); 
 }
 
 void ApplicationThreaded::draw() {
