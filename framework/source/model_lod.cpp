@@ -44,7 +44,7 @@ static std::vector<vk::VertexInputAttributeDescription> model_to_attr(model_t co
   return attributeDescriptions;  
 }
 
-const std::size_t LAST_NODE = 64;
+const std::size_t LAST_NODE = 128;
 
 ModelLod::ModelLod()
  :m_model{}
@@ -71,7 +71,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_size_node{sizeof(serialized_triangle) * m_bvh.get_primitives_per_node()}
 {
   // for simplifiction, use one staging buffer per buffer
-  m_num_slots = m_num_nodes * 2;
+  m_num_slots = m_num_nodes + num_uploads;
   // create staging memory and buffers
   createStagingBuffers();
   // create drawing memory and buffers
@@ -148,7 +148,7 @@ void ModelLod::setFirstCut() {
     nodeToSlot(idx_node, idx_slot);
     m_active_buffers.push_back(idx_slot);
     // keep slot during next update
-    m_slots_keep.emplace(idx_node);
+    m_slots_keep.emplace(idx_slot);
     // update slot occupation
     m_slots[idx_slot] = idx_node;
     ++idx_slot;
@@ -197,12 +197,8 @@ void ModelLod::setFirstCut() {
     }
   }
 
-  std::cout << "first cut is (";
-  for (auto const& node : m_cut) {
-    std::cout << node << ", ";
-  }
-  std::cout << ")" << std::endl;
-  
+  printCut();
+  printSlots();
 }
 
 void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
@@ -281,8 +277,8 @@ float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
   return glm::length(bbox_dims) / (dist * dist); 
 }
 
-bool ModelLod::nodeSplitable(std::size_t node) {
-  return m_bvh.get_child_id(node, m_bvh.get_fan_factor()) < LAST_NODE;
+bool ModelLod::nodeSplitable(std::size_t idx_node) {
+  return m_bvh.get_depth_of_node(idx_node) < m_bvh.get_depth() - 1 && m_bvh.get_child_id(idx_node, m_bvh.get_fan_factor()) < LAST_NODE;
 }
 
 struct pri_node {
@@ -364,9 +360,9 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   std::vector<std::size_t> cut_new;
   std::size_t num_uploads = 0;
   auto check_sanity = [this, &num_uploads, &cut_new]() {
-    for(std::size_t i = 0; i < m_cut.size(); ++i) {
-      for(std::size_t j = i + 1; j < m_cut.size(); ++j) {
-        if (m_cut[i] == m_cut[j]) {
+    for(std::size_t i = 0; i < cut_new.size(); ++i) {
+      for(std::size_t j = i + 1; j < cut_new.size(); ++j) {
+        if (cut_new[i] == cut_new[j]) {
           assert(0);
         }
       }
@@ -407,7 +403,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
       std::size_t split_uploads = 0;
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         if (!inCore(m_bvh.get_child_id(queue_split.top().node, i))) {
-          ++ split_uploads;
+          ++split_uploads;
         }
         cut_new.push_back(m_bvh.get_child_id(queue_split.top().node, i));
       } 
@@ -431,12 +427,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     check_sanity();
   }
 
-  std::cout << "new cut is (";
-  for (auto const& node : m_cut) {
-    std::cout << node << ", ";
-  }
-  std::cout << ")" << std::endl;
-
+  printCut();
   setCut(cut_new);
 }
 
@@ -457,12 +448,12 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   m_active_buffers.clear();
   std::set<std::size_t> slots_keep_new{};
   // collect nodes that were already in previous cut
-  std::set<std::size_t> slots_active{};
+  std::set<std::size_t> nodes_incore{};
   for (auto const& idx_node : cut) {
     for (std::size_t idx_slot = 0; idx_slot < m_slots.size(); ++idx_slot) {
       if (m_slots[idx_slot] == idx_node) {
         // slot is now active for this cut
-        slots_active.emplace(idx_node);
+        nodes_incore.emplace(idx_node);
         m_active_buffers.push_back(idx_slot);
         // keep slot during next update
         slots_keep_new.emplace(idx_slot);
@@ -478,14 +469,17 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
     // node is free if it doesnt need to be kept
     if (m_slots_keep.find(idx_slot) == m_slots_keep.end()
     // and is not active for this cut
-     && slots_active.find(idx_slot) == slots_active.end()) {
+     && slots_keep_new.find(idx_slot) == slots_keep_new.end()) {
       slots_free.emplace(idx_slot);
     }
   }
+  std::cout << slots_free.size()  << " free slots" << std::endl;
+  std::size_t num_uploads = 0; 
   // upload nodes which are not yet on GPU
   for (auto const& idx_node : cut) {
     // node is not yet in active slot
-    if (slots_active.find(idx_node) == slots_active.end()) {
+    if (nodes_incore.find(idx_node) == nodes_incore.end()) {
+      assert(!slots_free.empty());
       // get free slot
       auto idx_slot = slots_free.front();
       slots_free.pop();
@@ -493,22 +487,36 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
       nodeToSlot(idx_node, idx_slot);
       m_active_buffers.push_back(idx_slot);
       // keep slot during next update
-      slots_keep_new.emplace(idx_node);
+      slots_keep_new.emplace(idx_slot);
       // update slot occupation
       m_slots[idx_slot] = idx_node;
+      ++num_uploads;
     }
   }
   // 
-  assert(m_slots_keep.size() <= m_num_nodes);
   // store new cut
   m_cut = cut;
   // update slots to keep
   m_slots_keep = slots_keep_new;
+  assert(m_slots_keep.size() <= m_num_nodes);
+  assert(nodes_incore.size() <= m_num_nodes);
+  assert(m_active_buffers.size() <= m_num_nodes);
 
-  std::cout << "slots are (";
-  for (auto const& slot : m_slots) {
-    std::cout << slot << ", ";
+  printSlots();
+}
+
+void ModelLod::printCut() const {
+  std::cout << "cut is (";
+  for (auto const& node : m_cut) {
+    std::cout << node << ", ";
   }
   std::cout << ")" << std::endl;
-  
+}
+
+void ModelLod::printSlots() const {
+  std::cout << "slots are (";
+  for (auto const& node : m_slots) {
+    std::cout << node << ", ";
+  }
+  std::cout << ")" << std::endl;
 }

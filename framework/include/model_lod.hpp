@@ -48,6 +48,8 @@ class ModelLod {
   void setFirstCut();
   float collapseError(uint64_t idx_node);
   bool inCore(std::size_t idx_node);
+  void printCut() const;
+  void printSlots() const;
 
   model_t m_model;
   Device const* m_device;
