@@ -135,18 +135,17 @@ void ModelLod::setFirstCut() {
   level -= 1;
   std::cout << "initially drawing level " << level << std::endl;
 
-  std::vector<std::size_t> cut_new{};
   for(std::size_t i = 0; i < m_bvh.get_length_of_depth(level); ++i) {
-    cut_new.push_back(m_bvh.get_first_node_id_of_depth(level) + i);
+    m_cut.push_back(m_bvh.get_first_node_id_of_depth(level) + i);
   }
 
-  setCut(cut_new);
 // set up slot management conainers
+  m_slots = std::vector<std::size_t>(m_num_slots, 0);
   // upload nodes which are not yet on GPU
   std::size_t idx_slot = 0;
-  for (auto const& idx_node : cut_new) {
+  for (auto const& idx_node : m_cut) {
     // upload to free slot
-    nodeToBuffer(idx_node, idx_slot);
+    nodeToSlot(idx_node, idx_slot);
     m_active_buffers.push_back(idx_slot);
     // keep slot during next update
     m_slots_keep.emplace(idx_node);
@@ -154,9 +153,59 @@ void ModelLod::setFirstCut() {
     m_slots[idx_slot] = idx_node;
     ++idx_slot;
   }
+  // fill remaining free slots with parent level
+  uint32_t curr_level = level - 1;
+  uint32_t i = 0;
+  uint64_t first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+  for(; idx_slot < m_num_slots; ++ idx_slot) {
+    uint64_t idx_node = first_node + i;
+    // upload to free slot
+    nodeToSlot(idx_node, idx_slot);
+
+    // update slot occupation
+    m_slots[idx_slot] = idx_node;
+    ++i;
+    // go one curr_level down
+    if (i >= m_bvh.get_length_of_depth(curr_level)) {
+      if (curr_level == 0) {
+        break;
+      }
+      --curr_level;
+      first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+      i = 0;
+    }
+  }
+  // upload slots woth next level
+  curr_level = level + 1;
+  i = 0;
+  first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+  for(; idx_slot < m_num_slots; ++ idx_slot) {
+    uint64_t idx_node = first_node + i;
+    // upload to free slot
+    nodeToSlot(idx_node, idx_slot);
+    // update slot occupation
+    m_slots[idx_slot] = idx_node;
+    ++i;
+    // go one curr_level down
+    if (i >= m_bvh.get_length_of_depth(curr_level)) {
+      ++curr_level;
+      if (curr_level > m_bvh.get_depth()) {
+        throw std::runtime_error{"slots not filled"};
+      }
+      first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+      i = 0;
+    }
+  }
+
+  std::cout << "first cut is (";
+  for (auto const& node : m_cut) {
+    std::cout << node << ", ";
+  }
+  std::cout << ")" << std::endl;
+  
 }
 
-void ModelLod::nodeToBuffer(std::size_t node, std::size_t buffer) {
+void ModelLod::nodeToSlot(std::size_t node, std::size_t buffer) {
   m_buffers_stage[buffer].setData(m_nodes[node].data(), m_size_node, 0);
   m_device->copyBuffer(m_buffers_stage[buffer], m_buffers[buffer], m_size_node, 0, 0);
 }
@@ -253,8 +302,8 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   std::priority_queue<pri_node, std::vector<pri_node>, std::less<pri_node>> queue_keep{};
   std::set<std::size_t> ignore{};
 
-  const float max_threshold = 1.0f;
-  const float min_threshold = 0.1f;
+  const float max_threshold = 0.5f;
+  const float min_threshold = 0.05f;
 
   for (auto const& node : m_cut) {
     if (ignore.find(node) != ignore.end()) continue;
@@ -338,18 +387,32 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     if (m_num_nodes - cut_new.size() >= m_bvh.get_fan_factor()) {
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         cut_new.push_back(m_bvh.get_child_id(queue_split.top().node, i));
-        check_cut();
       }
     }
     else {
       cut_new.push_back(queue_split.top().node);
-      check_cut();
     }
+    check_cut();
     queue_split.pop();
   }
   assert(cut_new.size() <= m_num_nodes);
 
+  std::cout << "new cut is (";
+  for (auto const& node : m_cut) {
+    std::cout << node << ", ";
+  }
+  std::cout << ")" << std::endl;
+
   setCut(cut_new);
+}
+
+float ModelLod::collapseError(uint64_t idx_node) {
+  float child_extent = 0.0f;
+  for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+    child_extent += m_bvh.get_avg_primitive_extent(m_bvh.get_child_id(idx_node, i));
+  }
+  child_extent /= float(m_bvh.get_fan_factor());
+  return m_bvh.get_avg_primitive_extent(idx_node) / child_extent; 
 }
 
 void ModelLod::setCut(std::vector<std::size_t> const& cut) {
@@ -389,7 +452,7 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
       auto idx_slot = slots_free.front();
       slots_free.pop();
       // upload to free slot
-      nodeToBuffer(idx_node, idx_slot);
+      nodeToSlot(idx_node, idx_slot);
       m_active_buffers.push_back(idx_slot);
       // keep slot during next update
       slots_keep_new.emplace(idx_node);
@@ -398,15 +461,16 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
     }
   }
   // 
-  assert(m_slots_keep.size() == m_num_nodes);
+  assert(m_slots_keep.size() <= m_num_nodes);
   // store new cut
   m_cut = cut;
   // update slots to keep
   m_slots_keep = slots_keep_new;
 
-  std::cout << "new cut is (";
-  for (auto const& node : m_cut) {
-    std::cout << node << ", ";
+  std::cout << "slots are (";
+  for (auto const& slot : m_slots) {
+    std::cout << slot << ", ";
   }
   std::cout << ")" << std::endl;
+  
 }

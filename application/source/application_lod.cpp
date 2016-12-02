@@ -148,6 +148,9 @@ void ApplicationLod::render() {
     if(m_model_dirty) {
       updateModel();
     }
+    else {
+      updateCommandBuffers(resource_record);
+    }
   }
   recordDrawBuffer(resource_record);
 
@@ -211,8 +214,6 @@ void ApplicationLod::updateDescriptors(FrameResource& res) {
 }
 
 void ApplicationLod::updateCommandBuffers(FrameResource& res) {
-  std::cout << "rerecording" << std::endl;
-
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -233,7 +234,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
     res.command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
   }
   else {
-    std::cout << "no sphere" << std::endl;
+    m_model_lod.update(m_camera.position());
     for(auto const& idx_buffer : m_model_lod.activeBuffers()) {
       res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer(idx_buffer)}, {0});
       res.command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);      
@@ -454,14 +455,9 @@ void ApplicationLod::createVertexBuffer() {
   m_model = Model{m_device, tri};
 }
 void ApplicationLod::loadModel() {
-  try {
-    auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
-    m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 8, 8};
-    m_model_dirty = true;
-  }
-  catch (std::exception& e) {
-    assert(0);
-  }
+  auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
+  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 8, 8};
+  m_model_dirty = true;
 }
 
 void ApplicationLod::createLights() {

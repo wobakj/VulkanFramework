@@ -25,6 +25,7 @@ class ModelLod {
   void createStagingBuffers();
   void createDrawingBuffers();
   void setFirstCut();
+  float collapseError(uint64_t idx_node);
 
   ModelLod& operator=(ModelLod const&) = delete;
   ModelLod& operator=(ModelLod&& dev);
@@ -33,7 +34,6 @@ class ModelLod {
 
   std::vector<std::size_t> const& cut() const;
   std::vector<std::size_t> const& activeBuffers() const;
-  std::vector<std::size_t> const& activeBuffers2() const;
 
   vk::Buffer const& buffer(std::size_t i = 0) const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
@@ -43,7 +43,7 @@ class ModelLod {
 
  private:
   void setCut(std::vector<std::size_t> const& cut);
-  void nodeToBuffer(std::size_t node, std::size_t buffer);
+  void nodeToSlot(std::size_t node, std::size_t buffer);
   float nodeError(glm::fvec3 const& pos_view, std::size_t node);
   bool nodeSplitable(std::size_t node);
 
