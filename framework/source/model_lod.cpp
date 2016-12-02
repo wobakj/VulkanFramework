@@ -270,7 +270,9 @@ std::uint32_t ModelLod::numVertices() const {
 float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
   auto centroid = m_bvh.get_centroid(node);
   float dist = glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
-  return 1.0f / (dist * dist); 
+  auto const& bbox = m_bvh.get_bounding_box(node);
+  glm::fvec3 bbox_dims = glm::fvec3{glm::abs(bbox.max()[0] - bbox.min()[0]), glm::abs(bbox.max()[1] - bbox.min()[1]), glm::abs(bbox.max()[2] - bbox.min()[2])};
+  return glm::length(bbox_dims) / (dist * dist); 
 }
 
 bool ModelLod::nodeSplitable(std::size_t node) {
@@ -317,7 +319,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
       }
     }
     // all siblings in cut
-    float error_node = nodeError(pos_view, node);
+    float error_node = nodeError(pos_view, node) * collapseError(node);
     if (all_siblings) {
       // todo: check frustum intersection case
       // error too large
@@ -332,7 +334,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
           queue_keep.emplace(error_node, node);
         }
         else {
-          queue_collapse.emplace(nodeError(pos_view, parent), parent);
+          queue_collapse.emplace(nodeError(pos_view, parent) * collapseError(parent), parent);
           for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
             ignore.emplace(m_bvh.get_child_id(parent, i));
           }
@@ -371,6 +373,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     check_cut();
     queue_collapse.pop();
   }
+  assert(cut_new.size() <= m_num_nodes);
   // add keep nodes
   while (!queue_keep.empty()) {
     // keep only if sibling was not collapsed to parent
@@ -381,10 +384,11 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     }
     queue_keep.pop();
   }
+  assert(cut_new.size() <= m_num_nodes);
 
   while (!queue_split.empty()) {
-    // split if enough free memory
-    if (m_num_nodes - cut_new.size() >= m_bvh.get_fan_factor()) {
+    // split only if enough memory for remaining nodes
+    if (m_num_nodes - cut_new.size() >= m_bvh.get_fan_factor() + queue_split.size() - 1) {
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         cut_new.push_back(m_bvh.get_child_id(queue_split.top().node, i));
       }
@@ -394,8 +398,8 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     }
     check_cut();
     queue_split.pop();
+    assert(cut_new.size() <= m_num_nodes);
   }
-  assert(cut_new.size() <= m_num_nodes);
 
   std::cout << "new cut is (";
   for (auto const& node : m_cut) {
