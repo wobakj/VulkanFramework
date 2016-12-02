@@ -11,6 +11,7 @@
 #include <glm/gtc/type_precision.hpp>
 
 #include <set>
+#include <queue>
 
 class Device;
 
@@ -21,11 +22,6 @@ class ModelLod {
   // ModelLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads);
   ModelLod(ModelLod && dev);
   ModelLod(ModelLod const&) = delete;
-
-  void createStagingBuffers();
-  void createDrawingBuffers();
-  void setFirstCut();
-  float collapseError(uint64_t idx_node);
 
   ModelLod& operator=(ModelLod const&) = delete;
   ModelLod& operator=(ModelLod&& dev);
@@ -47,12 +43,19 @@ class ModelLod {
   float nodeError(glm::fvec3 const& pos_view, std::size_t node);
   bool nodeSplitable(std::size_t node);
 
+  void createStagingBuffers();
+  void createDrawingBuffers();
+  void setFirstCut();
+  float collapseError(uint64_t idx_node);
+  bool inCore(std::size_t idx_node);
+
   model_t m_model;
   Device const* m_device;
   vk::VertexInputBindingDescription m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   std::vector<Buffer> m_buffers;
   std::vector<Buffer> m_buffers_stage;
+  std::queue<std::size_t> m_queue_stage;
   Memory m_memory;
   Memory m_memory_stage;
   std::size_t m_num_nodes; 

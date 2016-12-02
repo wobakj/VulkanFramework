@@ -456,7 +456,7 @@ void ApplicationLod::createVertexBuffer() {
 }
 void ApplicationLod::loadModel() {
   auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 8, 8};
+  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 8, 2};
   m_model_dirty = true;
 }
 
