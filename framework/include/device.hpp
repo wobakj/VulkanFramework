@@ -13,6 +13,7 @@
 
 class SwapChain;
 class Buffer;
+class BufferView;
 class Image;
 struct pixel_data;
 class QueueFamilyIndices;
@@ -37,10 +38,12 @@ class Device : public WrapperDevice {
 
   void swap(Device& dev);
   // buffer functions
+  void uploadBufferData(void const* data_ptr, BufferView& buffer);
+  
   Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const;
   void uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& offset = 0);
   void uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& offset = 0);
-  void copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
+  void copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
 
   // image functions
   Image createImage(vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) const; 

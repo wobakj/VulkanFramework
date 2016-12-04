@@ -356,7 +356,7 @@ void ApplicationVulkan::updateLights() {
     temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
   }
 
-  m_device.uploadBufferData(&temp, m_buffers.at("light"));
+  m_device.uploadBufferData(&temp, m_buffer_views.at("light"));
 }
 
 void ApplicationVulkan::createMemoryPools() {
@@ -424,7 +424,7 @@ void ApplicationVulkan::createDescriptorPool() {
   m_descriptor_sets["matrix"] = sets[0];
   m_descriptor_sets["textures"] = sets[1];
 
-  m_buffers.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 
   m_descriptorPool_2 = m_shaders.at("quad").createPool(2);
@@ -437,16 +437,22 @@ void ApplicationVulkan::createDescriptorPool() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2);
-  m_buffers.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 void ApplicationVulkan::createUniformBuffers() {
-  m_buffers["light"] = Buffer{m_device, sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffers["uniform"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  // m_buffers["light"] = Buffer{m_device, sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffers.at("light").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("light").size() * 16);
-  m_buffers.at("light").bindTo(m_device.memoryPool("uniforms"));
-  m_buffers.at("uniform").bindTo(m_device.memoryPool("uniforms"));
+  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
+  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
+  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+
+  // m_buffers.at("light").bindTo(m_device.memoryPool("uniforms"));
+  m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
+
+  m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
+  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////
@@ -458,7 +464,7 @@ void ApplicationVulkan::updateView() {
   ubo.proj = m_camera.projectionMatrix();
   ubo.proj[1][1] *= -1;
 
-  m_device.uploadBufferData(&ubo, m_buffers.at("uniform"));
+  m_device.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 
   updateLights();
 }

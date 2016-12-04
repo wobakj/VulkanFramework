@@ -5,6 +5,7 @@
 
 #include "fence.hpp"
 #include "buffer.hpp"
+#include "buffer_view.hpp"
 
 #include <vector>
 
@@ -89,6 +90,7 @@ class FrameResource {
   std::map<std::string, Fence> fences;
   std::map<std::string, vk::DescriptorSet> descriptor_sets;
   std::map<std::string, Buffer> buffers;
+  std::map<std::string, BufferView> buffer_views;
 
  private:
   Device const* m_device;

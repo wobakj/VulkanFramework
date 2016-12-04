@@ -9,6 +9,7 @@
 class SwapChain;
 class Device;
 class Memory;
+class BufferView;
 
 using ResourceBuffer = MemoryResource<vk::Buffer, vk::BufferCreateInfo>;
 class Buffer : public ResourceBuffer {
@@ -29,12 +30,17 @@ class Buffer : public ResourceBuffer {
   vk::MemoryRequirements requirements() const;
 
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const override;
+  
+  vk::DeviceSize bindView(BufferView const&);
+  vk::DeviceSize bindView(BufferView const&, vk::DeviceSize offset);
+  vk::DeviceSize space() const;
 
  private:
   void destroy() override;
 
   vk::DescriptorBufferInfo m_desc_info;
-
+  vk::DeviceSize m_offset_view;
+  friend class BufferView;
 };
 
 #endif

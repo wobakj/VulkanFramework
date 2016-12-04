@@ -8,6 +8,7 @@
 #include "render_pass.hpp"
 #include "frame_buffer.hpp"
 #include "frame_resource.hpp"
+#include "frame_resource.hpp"
 
 #include <vulkan/vulkan.hpp>
 

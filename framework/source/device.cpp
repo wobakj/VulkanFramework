@@ -1,6 +1,7 @@
 #include "device.hpp"
 
 #include "buffer.hpp"
+#include "buffer_view.hpp"
 #include "image.hpp"
 #include "pixel_data.hpp"
 #include "swap_chain.hpp"
@@ -206,6 +207,16 @@ void Device::uploadImageData(void const* data_ptr, Image& image) {
   image.transitionToLayout(prev_layout);
 }
 
+void Device::uploadBufferData(void const* data_ptr, BufferView& buffer_view) {
+  { //lock staging memory and buffer
+    std::lock_guard<std::mutex> lock{m_mutex_staging};
+    adjustStagingPool(buffer_view.size());
+    m_buffer_stage->setData(data_ptr, buffer_view.size(), 0);
+
+    copyBuffer(m_buffer_stage->get(), buffer_view.buffer(), buffer_view.size(), 0, buffer_view.offset());
+  }
+}
+
 void Device::uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& dst_offset) {
   uploadBufferData(data_ptr, buffer.size(), buffer, dst_offset);
 }
@@ -216,11 +227,11 @@ void Device::uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, 
     adjustStagingPool(size);
     m_buffer_stage->setData(data_ptr, size, 0);
 
-    copyBuffer(*m_buffer_stage, buffer, size, 0, dst_offset);
+    copyBuffer(m_buffer_stage->get(), buffer.get(), size, 0, dst_offset);
   }
 }
 
-void Device::copyBuffer(vk::Buffer const srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
+void Device::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
   vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
 
   vk::BufferCopy copyRegion{};

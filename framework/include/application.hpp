@@ -4,6 +4,7 @@
 #include "shader.hpp"
 #include "image.hpp"
 #include "buffer.hpp"
+#include "buffer_view.hpp"
 #include "camera.hpp"
 #include "device.hpp"
 #include "swap_chain.hpp"
@@ -53,6 +54,7 @@ class Application {
   std::map<std::string, Shader> m_shaders;
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
+  std::map<std::string, BufferView> m_buffer_views;
   std::mutex m_mutex_swapchain;
 
  private:
