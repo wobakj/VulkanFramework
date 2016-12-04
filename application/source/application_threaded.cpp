@@ -97,10 +97,11 @@ void ApplicationThreaded::createFrameResources() {
   // only numImages - 1 images can be acquired at a time
   for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
     m_frame_resources.emplace_back(m_device);
-    createCommandBuffers(m_frame_resources[i]);
+    auto& res = m_frame_resources.back();
+    createCommandBuffers(res);
     m_queue_record_frames.push(i);
-    m_frame_resources[i].buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
-    m_frame_resources[i].buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
+    res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+    res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
   }
 }
 
