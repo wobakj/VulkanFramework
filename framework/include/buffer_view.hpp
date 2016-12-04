@@ -27,7 +27,8 @@ class BufferView {
   vk::DeviceSize size() const;
   vk::DeviceSize offset() const;
   Buffer& buffer() const;
-   
+  void setBuffer(Buffer& b);
+  
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
 
  private:

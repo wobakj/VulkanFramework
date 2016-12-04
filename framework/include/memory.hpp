@@ -64,7 +64,7 @@ vk::DeviceSize Memory::bindResource(MemoryResource<T, U> const& image) {
 template<typename T, typename U>
 vk::DeviceSize Memory::bindResource(MemoryResource<T, U> const& resource, vk::DeviceSize offset) {
   if (offset + resource.size() > size()) {
-    throw std::out_of_range{"Image size " + std::to_string(resource.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
+    throw std::out_of_range{"Resource size " + std::to_string(resource.size()) + " with offset " + std::to_string(offset) + " too large for free memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }
   // fulfill allignment requirements of object
   auto alignment = resource.alignment();

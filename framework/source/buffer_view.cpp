@@ -64,6 +64,11 @@ void BufferView::bindTo(Buffer& buffer, vk::DeviceSize const& offset) {
   m_buffer = &buffer;
 }
 
+void BufferView::setBuffer(Buffer& buffer) {
+  m_desc_info.buffer = buffer.get();
+  m_buffer = &buffer;  
+}
+
 void BufferView::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
   m_buffer->setData(data, m_desc_info.range, m_desc_info.offset + offset);
 }

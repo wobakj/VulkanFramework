@@ -236,7 +236,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   else {
     m_model_lod.update(m_camera.position());
     for(auto const& idx_buffer : m_model_lod.activeBuffers()) {
-      res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer(idx_buffer)}, {0});
+      res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.bufferView(idx_buffer).buffer()}, {m_model_lod.bufferView(idx_buffer).offset()});
       res.command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);      
     }
   }

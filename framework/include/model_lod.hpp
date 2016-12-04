@@ -2,6 +2,7 @@
 #define MODEL_LOD_HPP
 
 #include "buffer.hpp"
+#include "buffer_view.hpp"
 #include "memory.hpp"
 #include "model_t.hpp"
 
@@ -31,7 +32,7 @@ class ModelLod {
   std::vector<std::size_t> const& cut() const;
   std::vector<std::size_t> const& activeBuffers() const;
 
-  vk::Buffer const& buffer(std::size_t i = 0) const;
+  BufferView const& bufferView(std::size_t i = 0) const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numVertices() const;
 
@@ -55,8 +56,10 @@ class ModelLod {
   Device const* m_device;
   vk::VertexInputBindingDescription m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
-  std::vector<Buffer> m_buffers;
-  std::vector<Buffer> m_buffers_stage;
+  Buffer m_buffer;
+  Buffer m_buffer_stage;
+  std::vector<BufferView> m_buffer_views;
+  std::vector<BufferView> m_buffer_views_stage;
   std::queue<std::size_t> m_queue_stage;
   Memory m_memory;
   Memory m_memory_stage;

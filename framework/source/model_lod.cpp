@@ -97,33 +97,41 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
 }
 
 void ModelLod::createStagingBuffers() {
+  m_buffer_stage = m_device->createBuffer(m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc);
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
-    m_buffers_stage.emplace_back(m_device->createBuffer(m_size_node, vk::BufferUsageFlagBits::eTransferSrc));
+    m_buffer_views_stage.emplace_back(BufferView{m_size_node});
     m_queue_stage.emplace(i);
   }
-  auto requirements_stage = m_buffers_stage.front().requirements();
+  auto requirements_stage = m_buffer_stage.requirements();
   // per-buffer offset
-  auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(requirements_stage.size) / float(requirements_stage.alignment)));
-  requirements_stage.size = requirements_stage.size + offset_stage * (m_num_uploads - 1);
-  m_memory_stage = Memory{*m_device, requirements_stage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_stage.alignment)));
+  requirements_stage.size = m_size_node + offset_stage * (m_num_uploads - 1);
+  m_buffer_stage = m_device->createBuffer(requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc);
+  m_memory_stage = Memory{*m_device, m_buffer_stage.requirements(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
+  // recreate buffer with correct size, should be calculated beforehand
+  m_buffer_stage.bindTo(m_memory_stage);
 
-  for(auto& buffer : m_buffers_stage) {
-    buffer.bindTo(m_memory_stage);
+  for(auto& buffer : m_buffer_views_stage) {
+    buffer.bindTo(m_buffer_stage);
   } 
 }
 
 void ModelLod::createDrawingBuffers() {
+  m_buffer = m_device->createBuffer(m_size_node * m_num_slots, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
   for(std::size_t i = 0; i < m_num_slots; ++i) {
-    m_buffers.emplace_back(m_device->createBuffer(m_size_node, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst));
+    m_buffer_views.emplace_back(BufferView{m_size_node});
   }
-  auto requirements_draw = m_buffers_stage.front().requirements();
+  auto requirements_draw = m_buffer.requirements();
   // per-buffer offset
-  auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(requirements_draw.size) / float(requirements_draw.alignment)));
-  requirements_draw.size = requirements_draw.size + offset_draw * (m_num_slots - 1);
-  m_memory = Memory{*m_device, requirements_draw, vk::MemoryPropertyFlagBits::eDeviceLocal};
+  auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_draw.alignment)));
+  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1);
+  m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
+  m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
+  // ugly, recreate buffer with size for correct allignment
+  m_buffer.bindTo(m_memory);
 
-  for(auto& buffer : m_buffers) {
-    buffer.bindTo(m_memory);
+  for(auto& buffer : m_buffer_views) {
+    buffer.bindTo(m_buffer);
   }
 }
 
@@ -205,8 +213,8 @@ void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
   // get next staging slot
   auto slot_stage = m_queue_stage.front();
   m_queue_stage.pop();
-  m_buffers_stage[slot_stage].setData(m_nodes[node].data(), m_size_node, 0);
-  m_device->copyBuffer(m_buffers_stage[slot_stage], m_buffers[idx_slot], m_size_node, 0, 0);
+  m_buffer_views_stage[slot_stage].setData(m_nodes[node].data(), m_size_node, 0);
+  m_device->copyBuffer(m_buffer_views_stage[slot_stage].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_buffer_views_stage[slot_stage].offset(), m_buffer_views[idx_slot].offset());
   // make staging slot avaible
   m_queue_stage.emplace(slot_stage);
 }
@@ -223,13 +231,18 @@ void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
   std::swap(m_attrib_info, dev.m_attrib_info);
   std::swap(m_memory, dev.m_memory);
   std::swap(m_memory_stage, dev.m_memory_stage);
-  std::swap(m_buffers, dev.m_buffers);
-  std::swap(m_buffers_stage, dev.m_buffers_stage);
-  for (auto& buffer : m_buffers_stage) {
-    buffer.setMemory(m_memory_stage);
+  std::swap(m_buffer, dev.m_buffer);
+  std::swap(m_buffer_stage, dev.m_buffer_stage);
+  std::swap(m_buffer_views, dev.m_buffer_views);
+  std::swap(m_buffer_views_stage, dev.m_buffer_views_stage);
+  // corret parent resource pointers
+  m_buffer_stage.setMemory(m_memory_stage);
+  m_buffer.setMemory(m_memory);
+  for (auto& buffer : m_buffer_views_stage) {
+    buffer.setBuffer(m_buffer_stage);
   }
-  for (auto& buffer : m_buffers) {
-    buffer.setMemory(m_memory);
+  for (auto& buffer : m_buffer_views) {
+    buffer.setBuffer(m_buffer);
   }
   std::swap(m_num_uploads, dev.m_num_uploads);
   std::swap(m_num_nodes, dev.m_num_nodes);
@@ -244,8 +257,8 @@ void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
   std::swap(m_queue_stage, dev.m_queue_stage);
  }
 
-vk::Buffer const& ModelLod::buffer(std::size_t i) const {
-  return m_buffers[i];
+BufferView const& ModelLod::bufferView(std::size_t i) const {
+  return m_buffer_views[i];
 }
 
 std::vector<std::size_t> const& ModelLod::cut() const {
