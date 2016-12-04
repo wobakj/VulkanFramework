@@ -1,8 +1,7 @@
 #ifndef IMAGE_HPP
 #define IMAGE_HPP
 
-// #include "wrapper.hpp"
-#include "resource.hpp"
+#include "memory_resource.hpp"
 #include "pixel_data.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -20,7 +19,7 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 
-using ResourceImage = Resource<vk::Image, vk::ImageCreateInfo>;
+using ResourceImage = MemoryResource<vk::Image, vk::ImageCreateInfo>;
 class Image : public ResourceImage {
  public:
   

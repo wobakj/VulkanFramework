@@ -3,7 +3,6 @@
 #include "device.hpp"
 #include "buffer.hpp"
 #include "image.hpp"
-#include "resource.hpp"
 
 #include <iostream>
 #include <cmath>

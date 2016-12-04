@@ -2,7 +2,7 @@
 #define BUFFER_HPP
 
 #include "wrapper.hpp"
-#include "resource.hpp"
+#include "memory_resource.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -10,7 +10,7 @@ class SwapChain;
 class Device;
 class Memory;
 
-using ResourceBuffer = Resource<vk::Buffer, vk::BufferCreateInfo>;
+using ResourceBuffer = MemoryResource<vk::Buffer, vk::BufferCreateInfo>;
 class Buffer : public ResourceBuffer {
  public:
   

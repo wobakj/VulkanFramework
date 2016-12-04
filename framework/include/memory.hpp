@@ -5,7 +5,7 @@
 #include "wrapper.hpp"
 
 template<typename T, typename U>
-class Resource;
+class MemoryResource;
 
 #include <vulkan/vulkan.hpp>
 
@@ -32,9 +32,9 @@ class Memory : public WrapperMemory {
 
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
   template<typename T,typename U>
-  vk::DeviceSize bindResource(Resource<T, U> const& resource);
+  vk::DeviceSize bindResource(MemoryResource<T, U> const& resource);
   template<typename T,typename U>
-  vk::DeviceSize bindResource(Resource<T, U> const& resource, vk::DeviceSize offset);
+  vk::DeviceSize bindResource(MemoryResource<T, U> const& resource, vk::DeviceSize offset);
   
   vk::DeviceSize size() const;
   vk::DeviceSize space() const;
@@ -53,16 +53,16 @@ class Memory : public WrapperMemory {
 };
 
 
-#include "resource.hpp"
+#include "memory_resource.hpp"
 #include <cmath>
 
 template<typename T, typename U>
-vk::DeviceSize Memory::bindResource(Resource<T, U> const& image) {
+vk::DeviceSize Memory::bindResource(MemoryResource<T, U> const& image) {
   return bindResource<T, U>(image, m_offset);
 }
 
 template<typename T, typename U>
-vk::DeviceSize Memory::bindResource(Resource<T, U> const& resource, vk::DeviceSize offset) {
+vk::DeviceSize Memory::bindResource(MemoryResource<T, U> const& resource, vk::DeviceSize offset) {
   if (offset + resource.size() > size()) {
     throw std::out_of_range{"Image size " + std::to_string(resource.size()) + " too large for memory " + std::to_string(space()) + " from " + std::to_string(size())};
   }

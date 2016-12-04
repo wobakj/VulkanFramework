@@ -1,5 +1,5 @@
-#ifndef RESOURCE_HPP
-#define RESOURCE_HPP
+#ifndef MEMORY_RESOURCE_HPP
+#define MEMORY_RESOURCE_HPP
 
 #include "wrapper.hpp"
 
@@ -9,11 +9,11 @@ class Device;
 class Memory;
 
 template<typename T, typename U>
-class Resource : public Wrapper<T, U> {
-  using WrapperResource = Wrapper<T, U>;
+class MemoryResource : public Wrapper<T, U> {
+  using WrapperMemoryResource = Wrapper<T, U>;
  public:
-  Resource()
-   :WrapperResource{}
+  MemoryResource()
+   :WrapperMemoryResource{}
    ,m_device{nullptr}
    ,m_memory{nullptr}
   {}
@@ -23,8 +23,8 @@ class Resource : public Wrapper<T, U> {
 
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
 
-  void swap(Resource& rhs) {
-    WrapperResource::swap(rhs);
+  void swap(MemoryResource& rhs) {
+    WrapperMemoryResource::swap(rhs);
     std::swap(m_memory, rhs.m_memory);
     std::swap(m_device, rhs.m_device);
     std::swap(m_offset, rhs.m_offset);
@@ -55,19 +55,19 @@ class Resource : public Wrapper<T, U> {
 #include "memory.hpp"
 
 template<typename T, typename U>
-void Resource<T, U>::bindTo(Memory& memory) {
+void MemoryResource<T, U>::bindTo(Memory& memory) {
   m_offset = memory.bindResource(*this);
   m_memory = &memory;
 }
 
 template<typename T, typename U>
-void Resource<T, U>::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+void MemoryResource<T, U>::bindTo(Memory& memory, vk::DeviceSize const& offset) {
   m_offset = memory.bindResource(*this, offset);
   m_memory = &memory;
 }
 
 template<typename T, typename U>
-void Resource<T, U>::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+void MemoryResource<T, U>::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
   m_memory->setData(data, size, m_offset + offset);
 }
 
