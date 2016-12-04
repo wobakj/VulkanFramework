@@ -32,7 +32,6 @@ class ApplicationThreaded : public Application {
   void updateDescriptors(FrameResource& resource);
   
   void createLights();
-  void updateLights();
   void loadModel();
   void createUniformBuffers();
   void createVertexBuffer();

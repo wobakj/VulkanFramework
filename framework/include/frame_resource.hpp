@@ -82,6 +82,7 @@ class FrameResource {
     std::swap(fences, rhs.fences);
     std::swap(descriptor_sets, rhs.descriptor_sets);
     std::swap(buffers, rhs.buffers);
+    std::swap(buffer_views, rhs.buffer_views);
   }
 
   uint32_t image;

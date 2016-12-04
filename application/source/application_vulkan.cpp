@@ -441,14 +441,12 @@ void ApplicationVulkan::createDescriptorPool() {
 }
 
 void ApplicationVulkan::createUniformBuffers() {
-  // m_buffers["light"] = Buffer{m_device, sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
 
-  // m_buffers.at("light").bindTo(m_device.memoryPool("uniforms"));
   m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
 
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));

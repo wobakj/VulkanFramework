@@ -97,11 +97,10 @@ void ApplicationThreaded::createFrameResources() {
   // only numImages - 1 images can be acquired at a time
   for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
     m_frame_resources.emplace_back(m_device);
-    auto& res = m_frame_resources.back();
-    createCommandBuffers(res);
+    createCommandBuffers(m_frame_resources[i]);
     m_queue_record_frames.push(i);
-    res.buffers["uniform"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
-    res.buffers.at("uniform").bindTo(m_device.memoryPool("uniforms"));
+    m_frame_resources[i].buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+    m_frame_resources[i].buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
   }
 }
 
@@ -207,7 +206,7 @@ void ApplicationThreaded::createCommandBuffers(FrameResource& res) {
 
 void ApplicationThreaded::updateDescriptors(FrameResource& res) {
   res.descriptor_sets["matrix"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 0);
-  res.buffers.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
+  res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
 void ApplicationThreaded::updateCommandBuffers(FrameResource& res) {
@@ -262,10 +261,10 @@ void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // always update, because last update could have been to other frame
   updateView();
-  res.command_buffers.at("draw").updateBuffer(res.buffers.at("uniform"), 0, sizeof(ubo_cam), &ubo_cam);
+  res.command_buffers.at("draw").updateBuffer(res.buffer_views.at("uniform").buffer(), res.buffer_views.at("uniform").offset(), sizeof(ubo_cam), &ubo_cam);
   // barrier to make new data visible to vertex shader
   vk::BufferMemoryBarrier barrier_buffer{};
-  barrier_buffer.buffer = res.buffers.at("uniform");
+  barrier_buffer.buffer = res.buffer_views.at("uniform").buffer();
   barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
   barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
   barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -471,16 +470,7 @@ void ApplicationThreaded::createLights() {
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
-  m_device.uploadBufferData(&buff_l, m_buffers.at("light"));
-}
-
-void ApplicationThreaded::updateLights() {
-  BufferLights temp = buff_l; 
-  for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
-    temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
-  }
-
-  m_device.uploadBufferData(&temp, m_buffers.at("light"));
+  m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationThreaded::createMemoryPools() {
@@ -551,14 +541,17 @@ void ApplicationThreaded::createDescriptorPool() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2);
-  m_buffers.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 void ApplicationThreaded::createUniformBuffers() {
-  m_buffers["light"] = Buffer{m_device, sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffers.at("light").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("light").size() * 16);
-  m_buffers.at("light").bindTo(m_device.memoryPool("uniforms"));
+  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
+  m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
+
+  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
+  m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////
