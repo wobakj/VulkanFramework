@@ -39,16 +39,22 @@ class ModelLod {
   void update(glm::fvec3 const& pod_view);
 
  private:
-  void setCut(std::vector<std::size_t> const& cut);
-  void nodeToSlot(std::size_t node, std::size_t buffer);
-  float nodeError(glm::fvec3 const& pos_view, std::size_t node);
-  bool nodeSplitable(std::size_t node);
-
+  void setFirstCut();
   void createStagingBuffers();
   void createDrawingBuffers();
-  void setFirstCut();
+  void nodeToSlotImmediate(std::size_t node, std::size_t buffer);
+  
+  void setCut(std::vector<std::size_t> const& cut);
+  void nodeToSlot(std::size_t node, std::size_t buffer);
+  void performUploads();
+  void performCopies();
+
+
+  bool nodeSplitable(std::size_t node);
+  float nodeError(glm::fvec3 const& pos_view, std::size_t node);
   float collapseError(uint64_t idx_node);
   bool inCore(std::size_t idx_node);
+  
   void printCut() const;
   void printSlots() const;
 
@@ -74,6 +80,7 @@ class ModelLod {
   std::set<std::size_t> m_slots_keep;
   std::vector<std::size_t> m_active_buffers;
   std::vector<std::size_t> m_active_buffers2;
+  std::vector<std::pair<std::size_t, std::size_t>> m_node_uploads;
 };
 
 #endif

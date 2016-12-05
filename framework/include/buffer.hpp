@@ -35,6 +35,10 @@ class Buffer : public ResourceBuffer {
   vk::DeviceSize bindView(BufferView const&, vk::DeviceSize offset);
   vk::DeviceSize space() const;
 
+  void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
+  void* map();
+  void unmap();
+
  private:
   void destroy() override;
 

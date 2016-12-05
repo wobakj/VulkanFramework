@@ -107,3 +107,15 @@ vk::DeviceSize Buffer::bindView(BufferView const& view, vk::DeviceSize offset) {
 vk::DeviceSize Buffer::space() const {
   return size() - m_offset_view;
 }
+
+void* Buffer::map() {
+  return map(size(), m_offset);
+}
+
+void* Buffer::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  return m_memory->map(size, m_offset + offset);
+}
+
+void Buffer::unmap() {
+  m_memory->unmap();
+}

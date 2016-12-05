@@ -30,7 +30,10 @@ class Memory : public WrapperMemory {
   Memory& operator=(Memory const&) = delete;
   Memory& operator=(Memory&& dev);
 
+  void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
+  void unmap();
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
+
   template<typename T,typename U>
   vk::DeviceSize bindResource(MemoryResource<T, U> const& resource);
   template<typename T,typename U>

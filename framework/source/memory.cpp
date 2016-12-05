@@ -55,11 +55,18 @@ Memory::~Memory() {
   cleanup();
 }
 
-void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  // assert(offset +)
-  void* buff_ptr = (*m_device)->mapMemory(get(), offset, size);
-  std::memcpy(buff_ptr, data, size_t(size));
+void* Memory::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  return (*m_device)->mapMemory(get(), offset, size);
+}
+
+void Memory::unmap() {
   (*m_device)->unmapMemory(get());
+}
+
+void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  void* ptr = map(size, offset);
+  std::memcpy(ptr, data, size_t(size));
+  unmap();
 }
 
 void Memory::bindResourceMemory(vk::Buffer const& buffer, vk::DeviceSize offset) {

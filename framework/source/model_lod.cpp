@@ -153,7 +153,7 @@ void ModelLod::setFirstCut() {
   std::size_t idx_slot = 0;
   for (auto const& idx_node : m_cut) {
     // upload to free slot
-    nodeToSlot(idx_node, idx_slot);
+    nodeToSlotImmediate(idx_node, idx_slot);
     m_active_buffers.push_back(idx_slot);
     // keep slot during next update
     m_slots_keep.emplace(idx_slot);
@@ -168,7 +168,7 @@ void ModelLod::setFirstCut() {
   for(; idx_slot < m_num_slots; ++ idx_slot) {
     uint64_t idx_node = first_node + i;
     // upload to free slot
-    nodeToSlot(idx_node, idx_slot);
+    nodeToSlotImmediate(idx_node, idx_slot);
 
     // update slot occupation
     m_slots[idx_slot] = idx_node;
@@ -190,7 +190,7 @@ void ModelLod::setFirstCut() {
   for(; idx_slot < m_num_slots; ++ idx_slot) {
     uint64_t idx_node = first_node + i;
     // upload to free slot
-    nodeToSlot(idx_node, idx_slot);
+    nodeToSlotImmediate(idx_node, idx_slot);
     // update slot occupation
     m_slots[idx_slot] = idx_node;
     ++i;
@@ -209,7 +209,7 @@ void ModelLod::setFirstCut() {
   printSlots();
 }
 
-void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
+void ModelLod::nodeToSlotImmediate(std::size_t node, std::size_t idx_slot) {
   // get next staging slot
   auto slot_stage = m_queue_stage.front();
   m_queue_stage.pop();
@@ -217,6 +217,34 @@ void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
   m_device->copyBuffer(m_buffer_views_stage[slot_stage].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_buffer_views_stage[slot_stage].offset(), m_buffer_views[idx_slot].offset());
   // make staging slot avaible
   m_queue_stage.emplace(slot_stage);
+}
+
+void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
+  m_node_uploads.emplace_back(node, idx_slot);
+}
+
+void ModelLod::performUploads() {
+  assert(m_node_uploads.size() <= m_num_uploads);
+  uint8_t* ptr = (uint8_t*)(m_buffer_stage.map(m_node_uploads.size() * m_size_node, 0));
+  for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
+    std::size_t idx_node = m_node_uploads[i].first;
+    std::memcpy(ptr + m_buffer_views_stage[i].offset(), m_nodes[idx_node].data(), m_size_node);
+  }
+  m_buffer_stage.unmap();
+}
+
+void ModelLod::performCopies() {
+  vk::CommandBuffer const& commandBuffer = m_device->beginSingleTimeCommands();
+  std::vector<vk::BufferCopy> copies_nodes{};
+  for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
+    std::size_t idx_slot = m_node_uploads[i].second;
+    copies_nodes.emplace_back(m_buffer_views_stage[i].offset(), m_buffer_views[idx_slot].offset(), m_size_node);
+  }
+  commandBuffer.copyBuffer(m_buffer_stage, m_buffer, copies_nodes);
+
+  m_device->endSingleTimeCommands();
+
+  m_node_uploads.clear();
 }
 
  ModelLod& ModelLod::operator=(ModelLod&& dev) {
@@ -255,6 +283,7 @@ void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
   std::swap(m_slots_keep, dev.m_slots_keep);
   std::swap(m_slots, dev.m_slots);
   std::swap(m_queue_stage, dev.m_queue_stage);
+  std::swap(m_node_uploads, dev.m_node_uploads);
  }
 
 BufferView const& ModelLod::bufferView(std::size_t i) const {
@@ -552,6 +581,11 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   assert(m_slots_keep.size() <= m_num_nodes);
   assert(nodes_incore.size() <= m_num_nodes);
   assert(m_active_buffers.size() <= m_num_nodes);
+
+  if (!m_node_uploads.empty()) {
+    performUploads();
+    performCopies();
+  }
 
   printSlots();
 }
