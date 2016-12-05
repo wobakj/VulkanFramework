@@ -400,12 +400,24 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   while (!queue_collapse.empty()) {
     // m_active_nodes
     auto idx_node = queue_collapse.top().node;
-    cut_new.push_back(idx_node);
-    queue_collapse.pop();
     // if not already in a slot, upload necessary
     if (!inCore(idx_node)) {
-      ++num_uploads;
+      // upload budget sufficient
+      if (num_uploads < m_num_uploads) {
+        cut_new.push_back(idx_node);
+        ++num_uploads;
+      }
+      // if upload budget full, keep children
+      else {
+        for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+          auto idx_child = m_bvh.get_child_id(idx_node, i);
+          // child should be in last cut
+          assert(inCore(idx_child));
+          cut_new.push_back(idx_child);
+        }
+      }
     }
+    queue_collapse.pop();
     check_sanity();
     // std::cout << "collapsing to " << idx_node << std::endl;
   }
