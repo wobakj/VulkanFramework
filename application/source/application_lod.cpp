@@ -41,6 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
+const std::size_t NUM_NODES = 64;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -102,6 +103,9 @@ void ApplicationLod::createFrameResources() {
     m_queue_record_frames.push(i);
     res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
     res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
+    // lod draw commands
+    res.buffer_views["draw_commands"] = BufferView{sizeof(vk::DrawIndirectCommand) * NUM_NODES};
+    res.buffer_views.at("draw_commands").bindTo(m_buffers.at("draw_commands"));
   }
 }
 
@@ -147,9 +151,6 @@ void ApplicationLod::render() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();
-    }
-    else {
-      updateCommandBuffers(resource_record);
     }
   }
   recordDrawBuffer(resource_record);
@@ -234,9 +235,9 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
     res.command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
   }
   else {
-    for(auto const& idx_buffer : m_model_lod.activeBuffers()) {
-      res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.bufferView(idx_buffer).buffer()}, {m_model_lod.bufferView(idx_buffer).offset()});
-      res.command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);      
+      res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
+    for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
+      res.command_buffers.at("gbuffer").drawIndirect(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset() + i * sizeof(vk::DrawIndirectCommand), 1, 0);      
     }
   }
 
@@ -283,22 +284,42 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   );
 
   if (!m_sphere) {
+    // upload node data
     m_model_lod.update(m_camera.position());
     m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
     // barrier to make new data visible to vertex shader
-    vk::BufferMemoryBarrier barrier_buffer{};
-    barrier_buffer.buffer = m_model_lod.buffer();
-    barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-    barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
-    barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    vk::BufferMemoryBarrier barrier_nodes{};
+    barrier_nodes.buffer = m_model_lod.buffer();
+    barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    barrier_nodes.dstAccessMask = vk::AccessFlagBits::eUniformRead;
+    barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     res.command_buffers.at("draw").pipelineBarrier(
       vk::PipelineStageFlagBits::eTransfer,
       vk::PipelineStageFlagBits::eVertexShader,
       vk::DependencyFlags{},
       {},
-      {barrier_buffer},
+      {barrier_nodes},
+      {}
+    );
+
+    // upload draw instructions
+    res.command_buffers.at("draw").updateBuffer(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset(), m_model_lod.drawCommands().size() * sizeof(vk::DrawIndirectCommand), m_model_lod.drawCommands().data());
+    // barrier to make new data visible to vertex shader
+    vk::BufferMemoryBarrier barrier_cmds{};
+    barrier_cmds.buffer = res.buffer_views.at("draw_commands").buffer();
+    barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
+    barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    res.command_buffers.at("draw").pipelineBarrier(
+      vk::PipelineStageFlagBits::eTransfer,
+      vk::PipelineStageFlagBits::eDrawIndirect,
+      vk::DependencyFlags{},
+      {},
+      {barrier_cmds},
       {}
     );
   }
@@ -476,7 +497,7 @@ void ApplicationLod::createVertexBuffer() {
 }
 void ApplicationLod::loadModel() {
   auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", 64, 2};
+  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", NUM_NODES, 2};
   m_model_dirty = true;
 }
 
@@ -565,9 +586,11 @@ void ApplicationLod::createDescriptorPool() {
 
 void ApplicationLod::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["draw_commands"] = Buffer{m_device, sizeof(vk::DrawIndirectCommand) * NUM_NODES * 2, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
+  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size() * 2);
   m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
+  m_buffers.at("draw_commands").bindTo(m_device.memoryPool("uniforms"));
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));

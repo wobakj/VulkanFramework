@@ -31,6 +31,7 @@ class ModelLod {
 
   std::vector<std::size_t> const& cut() const;
   std::vector<std::size_t> const& activeBuffers() const;
+  std::size_t numNodes() const;
 
   BufferView const& bufferView(std::size_t i = 0) const;
   vk::Buffer const& buffer() const;
@@ -39,6 +40,7 @@ class ModelLod {
 
   void update(glm::fvec3 const& pod_view);
   void performCopiesCommand(vk::CommandBuffer& command_buffer);
+  std::vector<vk::DrawIndirectCommand> const& drawCommands() const;
 
  private:
   void setFirstCut();
@@ -50,6 +52,7 @@ class ModelLod {
   void nodeToSlot(std::size_t node, std::size_t buffer);
   void performUploads();
   void performCopies();
+  void updateDrawCommands();
 
   bool nodeSplitable(std::size_t node);
   float nodeError(glm::fvec3 const& pos_view, std::size_t node);
@@ -82,6 +85,7 @@ class ModelLod {
   std::vector<std::size_t> m_active_buffers;
   std::vector<std::size_t> m_active_buffers2;
   std::vector<std::pair<std::size_t, std::size_t>> m_node_uploads;
+  std::vector<vk::DrawIndirectCommand> m_commands_draw;
 };
 
 #endif

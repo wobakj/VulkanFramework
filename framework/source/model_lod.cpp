@@ -70,6 +70,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_num_slots{m_num_nodes + num_uploads}
  ,m_bvh{bvh}
  ,m_size_node{sizeof(serialized_triangle) * m_bvh.get_primitives_per_node()}
+ ,m_commands_draw(m_num_nodes, vk::DrawIndirectCommand{m_bvh.get_primitives_per_node(), 1, 0, 0})
 {
   // create staging memory and buffers
   createStagingBuffers();
@@ -183,6 +184,17 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer& command_buffer) {
 
   m_node_uploads.clear();
 }
+void ModelLod::updateDrawCommands() {
+  for(std::size_t i = 0; i < m_num_nodes; ++i) {
+    if (i < m_active_buffers.size()) {
+      m_commands_draw[i].firstVertex = uint32_t(m_buffer_views[m_active_buffers[i]].offset()) / m_model.vertex_bytes;
+      m_commands_draw[i].vertexCount = numVertices();
+    }
+    else {
+      m_commands_draw[i].vertexCount = 0;
+    }
+  }
+}
 
  ModelLod& ModelLod::operator=(ModelLod&& dev) {
   swap(dev);
@@ -221,6 +233,7 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer& command_buffer) {
   std::swap(m_slots, dev.m_slots);
   std::swap(m_queue_stage, dev.m_queue_stage);
   std::swap(m_node_uploads, dev.m_node_uploads);
+  std::swap(m_commands_draw, dev.m_commands_draw);
  }
 
 BufferView const& ModelLod::bufferView(std::size_t i) const {
@@ -231,12 +244,20 @@ vk::Buffer const& ModelLod::buffer() const {
   return m_buffer;
 }
 
+std::size_t ModelLod::numNodes() const {
+  return m_num_nodes;
+}
+
 std::vector<std::size_t> const& ModelLod::cut() const {
   return m_cut;
 }
 
 std::vector<std::size_t> const& ModelLod::activeBuffers() const {
   return m_active_buffers;
+}
+
+std::vector<vk::DrawIndirectCommand> const& ModelLod::drawCommands() const {
+  return m_commands_draw;
 }
 
 vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {
@@ -307,7 +328,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     }
   };
 
-  const float max_threshold = 0.5f;
+  const float max_threshold = 0.25f;
   const float min_threshold = 0.05f;
 
   for (auto const& node : m_cut) {
@@ -375,9 +396,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   auto check_sanity = [this, &num_uploads, &cut_new]() {
     for(std::size_t i = 0; i < cut_new.size(); ++i) {
       for(std::size_t j = i + 1; j < cut_new.size(); ++j) {
-        if (cut_new[i] == cut_new[j]) {
-          assert(0);
-        }
+        assert(cut_new[i] != cut_new[j]);
       }
     }
     assert(num_uploads <= m_num_uploads);
@@ -540,6 +559,7 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   if (!m_node_uploads.empty()) {
     performUploads();
   }
+  updateDrawCommands();
 
   printSlots();
 }
