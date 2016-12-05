@@ -67,11 +67,10 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_attrib_info{}
  ,m_num_nodes{num_nodes}
  ,m_num_uploads{num_uploads}
+ ,m_num_slots{m_num_nodes + num_uploads}
  ,m_bvh{bvh}
  ,m_size_node{sizeof(serialized_triangle) * m_bvh.get_primitives_per_node()}
 {
-  // for simplifiction, use one staging buffer per buffer
-  m_num_slots = m_num_nodes + num_uploads;
   // create staging memory and buffers
   createStagingBuffers();
   // create drawing memory and buffers
@@ -135,80 +134,6 @@ void ModelLod::createDrawingBuffers() {
   }
 }
 
-void ModelLod::setFirstCut() {
-  uint32_t level = 0;
-  while(m_num_nodes >= m_bvh.get_length_of_depth(level)) {
-    ++level;
-  }
-  level -= 1;
-  std::cout << "initially drawing level " << level << std::endl;
-
-  for(std::size_t i = 0; i < m_bvh.get_length_of_depth(level); ++i) {
-    m_cut.push_back(m_bvh.get_first_node_id_of_depth(level) + i);
-  }
-
-// set up slot management conainers
-  m_slots = std::vector<std::size_t>(m_num_slots, 0);
-  // upload nodes which are not yet on GPU
-  std::size_t idx_slot = 0;
-  for (auto const& idx_node : m_cut) {
-    // upload to free slot
-    nodeToSlotImmediate(idx_node, idx_slot);
-    m_active_buffers.push_back(idx_slot);
-    // keep slot during next update
-    m_slots_keep.emplace(idx_slot);
-    // update slot occupation
-    m_slots[idx_slot] = idx_node;
-    ++idx_slot;
-  }
-  // fill remaining free slots with parent level
-  uint32_t curr_level = level - 1;
-  uint32_t i = 0;
-  uint64_t first_node = m_bvh.get_first_node_id_of_depth(curr_level);
-  for(; idx_slot < m_num_slots; ++ idx_slot) {
-    uint64_t idx_node = first_node + i;
-    // upload to free slot
-    nodeToSlotImmediate(idx_node, idx_slot);
-
-    // update slot occupation
-    m_slots[idx_slot] = idx_node;
-    ++i;
-    // go one curr_level down
-    if (i >= m_bvh.get_length_of_depth(curr_level)) {
-      if (curr_level == 0) {
-        break;
-      }
-      --curr_level;
-      first_node = m_bvh.get_first_node_id_of_depth(curr_level);
-      i = 0;
-    }
-  }
-  // upload slots woth next level
-  curr_level = level + 1;
-  i = 0;
-  first_node = m_bvh.get_first_node_id_of_depth(curr_level);
-  for(; idx_slot < m_num_slots; ++ idx_slot) {
-    uint64_t idx_node = first_node + i;
-    // upload to free slot
-    nodeToSlotImmediate(idx_node, idx_slot);
-    // update slot occupation
-    m_slots[idx_slot] = idx_node;
-    ++i;
-    // go one curr_level down
-    if (i >= m_bvh.get_length_of_depth(curr_level)) {
-      ++curr_level;
-      if (curr_level > m_bvh.get_depth()) {
-        throw std::runtime_error{"slots not filled"};
-      }
-      first_node = m_bvh.get_first_node_id_of_depth(curr_level);
-      i = 0;
-    }
-  }
-
-  printCut();
-  printSlots();
-}
-
 void ModelLod::nodeToSlotImmediate(std::size_t node, std::size_t idx_slot) {
   // get next staging slot
   auto slot_stage = m_queue_stage.front();
@@ -224,7 +149,6 @@ void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
 }
 
 void ModelLod::performUploads() {
-  assert(m_node_uploads.size() <= m_num_uploads);
   uint8_t* ptr = (uint8_t*)(m_buffer_stage.map(m_node_uploads.size() * m_size_node, 0));
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_node = m_node_uploads[i].first;
@@ -243,6 +167,19 @@ void ModelLod::performCopies() {
   commandBuffer.copyBuffer(m_buffer_stage, m_buffer, copies_nodes);
 
   m_device->endSingleTimeCommands();
+
+  m_node_uploads.clear();
+}
+
+void ModelLod::performCopiesCommand(vk::CommandBuffer& command_buffer) {
+  if (m_node_uploads.empty()) return;
+
+  std::vector<vk::BufferCopy> copies_nodes{};
+  for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
+    std::size_t idx_slot = m_node_uploads[i].second;
+    copies_nodes.emplace_back(m_buffer_views_stage[i].offset(), m_buffer_views[idx_slot].offset(), m_size_node);
+  }
+  command_buffer.copyBuffer(m_buffer_stage, m_buffer, copies_nodes);
 
   m_node_uploads.clear();
 }
@@ -288,6 +225,10 @@ void ModelLod::performCopies() {
 
 BufferView const& ModelLod::bufferView(std::size_t i) const {
   return m_buffer_views[i];
+}
+
+vk::Buffer const& ModelLod::buffer() const {
+  return m_buffer;
 }
 
 std::vector<std::size_t> const& ModelLod::cut() const {
@@ -581,10 +522,11 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   assert(m_slots_keep.size() <= m_num_nodes);
   assert(nodes_incore.size() <= m_num_nodes);
   assert(m_active_buffers.size() <= m_num_nodes);
+  assert(num_uploads <= m_num_uploads);
+  assert(m_node_uploads.size() <= m_num_uploads);
 
   if (!m_node_uploads.empty()) {
     performUploads();
-    performCopies();
   }
 
   printSlots();
@@ -604,4 +546,78 @@ void ModelLod::printSlots() const {
     std::cout << node << ", ";
   }
   std::cout << ")" << std::endl;
+}
+
+void ModelLod::setFirstCut() {
+  uint32_t level = 0;
+  while(m_num_nodes >= m_bvh.get_length_of_depth(level)) {
+    ++level;
+  }
+  level -= 1;
+  std::cout << "initially drawing level " << level << std::endl;
+
+  for(std::size_t i = 0; i < m_bvh.get_length_of_depth(level); ++i) {
+    m_cut.push_back(m_bvh.get_first_node_id_of_depth(level) + i);
+  }
+
+// set up slot management conainers
+  m_slots = std::vector<std::size_t>(m_num_slots, 0);
+  // upload nodes which are not yet on GPU
+  std::size_t idx_slot = 0;
+  for (auto const& idx_node : m_cut) {
+    // upload to free slot
+    nodeToSlotImmediate(idx_node, idx_slot);
+    m_active_buffers.push_back(idx_slot);
+    // keep slot during next update
+    m_slots_keep.emplace(idx_slot);
+    // update slot occupation
+    m_slots[idx_slot] = idx_node;
+    ++idx_slot;
+  }
+  // fill remaining free slots with parent level
+  uint32_t curr_level = level - 1;
+  uint32_t i = 0;
+  uint64_t first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+  for(; idx_slot < m_num_slots; ++ idx_slot) {
+    uint64_t idx_node = first_node + i;
+    // upload to free slot
+    nodeToSlotImmediate(idx_node, idx_slot);
+
+    // update slot occupation
+    m_slots[idx_slot] = idx_node;
+    ++i;
+    // go one curr_level down
+    if (i >= m_bvh.get_length_of_depth(curr_level)) {
+      if (curr_level == 0) {
+        break;
+      }
+      --curr_level;
+      first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+      i = 0;
+    }
+  }
+  // upload slots woth next level
+  curr_level = level + 1;
+  i = 0;
+  first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+  for(; idx_slot < m_num_slots; ++ idx_slot) {
+    uint64_t idx_node = first_node + i;
+    // upload to free slot
+    nodeToSlotImmediate(idx_node, idx_slot);
+    // update slot occupation
+    m_slots[idx_slot] = idx_node;
+    ++i;
+    // go one curr_level down
+    if (i >= m_bvh.get_length_of_depth(curr_level)) {
+      ++curr_level;
+      if (curr_level > m_bvh.get_depth()) {
+        throw std::runtime_error{"slots not filled"};
+      }
+      first_node = m_bvh.get_first_node_id_of_depth(curr_level);
+      i = 0;
+    }
+  }
+
+  printCut();
+  printSlots();
 }

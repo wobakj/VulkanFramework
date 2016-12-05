@@ -33,10 +33,12 @@ class ModelLod {
   std::vector<std::size_t> const& activeBuffers() const;
 
   BufferView const& bufferView(std::size_t i = 0) const;
+  vk::Buffer const& buffer() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numVertices() const;
 
   void update(glm::fvec3 const& pod_view);
+  void performCopiesCommand(vk::CommandBuffer& command_buffer);
 
  private:
   void setFirstCut();
@@ -48,7 +50,6 @@ class ModelLod {
   void nodeToSlot(std::size_t node, std::size_t buffer);
   void performUploads();
   void performCopies();
-
 
   bool nodeSplitable(std::size_t node);
   float nodeError(glm::fvec3 const& pos_view, std::size_t node);
@@ -70,8 +71,8 @@ class ModelLod {
   Memory m_memory;
   Memory m_memory_stage;
   std::size_t m_num_nodes; 
-  std::size_t m_num_slots; 
   std::size_t m_num_uploads;
+  std::size_t m_num_slots; 
   vklod::bvh m_bvh;
   vk::DeviceSize m_size_node;
   std::vector<std::vector<float>> m_nodes;

@@ -234,7 +234,6 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
     res.command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
   }
   else {
-    m_model_lod.update(m_camera.position());
     for(auto const& idx_buffer : m_model_lod.activeBuffers()) {
       res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.bufferView(idx_buffer).buffer()}, {m_model_lod.bufferView(idx_buffer).offset()});
       res.command_buffers.at("gbuffer").draw(m_model_lod.numVertices(), 1, 0, 0);      
@@ -282,6 +281,27 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
     {barrier_buffer},
     {}
   );
+
+  if (!m_sphere) {
+    m_model_lod.update(m_camera.position());
+    m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
+    // barrier to make new data visible to vertex shader
+    vk::BufferMemoryBarrier barrier_buffer{};
+    barrier_buffer.buffer = m_model_lod.buffer();
+    barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+    barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
+    barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    res.command_buffers.at("draw").pipelineBarrier(
+      vk::PipelineStageFlagBits::eTransfer,
+      vk::PipelineStageFlagBits::eVertexShader,
+      vk::DependencyFlags{},
+      {},
+      {barrier_buffer},
+      {}
+    );
+  }
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
