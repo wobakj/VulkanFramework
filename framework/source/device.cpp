@@ -190,18 +190,13 @@ Image Device::createImage(vk::Extent3D const& extent, vk::Format const& format, 
 }
 
 void Device::uploadImageData(void const* data_ptr, Image& image) {
-  Image image_stage{*this, image.info().extent, image.format(), vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eTransferSrc};
   auto prev_layout = image.layout();
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(image.size());
-    image_stage.bindTo(memoryPool("stage"), 0);
-    // data size is dependent on target image size, not input data size!
-    image_stage.setData(data_ptr, image.size());
-    image_stage.transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-
+    m_buffer_stage->setData(data_ptr, image.size(), 0);
     image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
-    copyImage(image_stage, image, image.info().extent.width, image.info().extent.height);
+    copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height);
   }
 
   image.transitionToLayout(prev_layout);
@@ -272,6 +267,43 @@ void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, u
   vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
   commandBuffer.copyImage(
     srcImage, vk::ImageLayout::eTransferSrcOptimal,
+    dstImage, vk::ImageLayout::eTransferDstOptimal,
+    1, &region
+  );
+  endSingleTimeCommands();
+}
+
+
+void Device::copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height) const {
+  vk::ImageSubresourceLayers subResource{};
+  if (is_depth(dstImage.format())) {
+    subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
+
+    if (has_stencil(dstImage.format())) {
+      subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  } 
+  else {
+    subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
+  subResource.baseArrayLayer = 0;
+  subResource.mipLevel = 0;
+  subResource.layerCount = dstImage.info().arrayLayers;
+
+
+  vk::BufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = width;
+  region.bufferImageHeight = height;
+  region.imageSubresource = subResource;
+  region.imageOffset = vk::Offset3D{0, 0, 0};
+  region.imageExtent.width = width;
+  region.imageExtent.height = height;
+  region.imageExtent.depth = 1;
+
+  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
+  commandBuffer.copyBufferToImage(
+    srcBuffer,
     dstImage, vk::ImageLayout::eTransferDstOptimal,
     1, &region
   );

@@ -135,18 +135,22 @@ void ModelLod::createDrawingBuffers() {
   }
 }
 
-void ModelLod::nodeToSlotImmediate(std::size_t node, std::size_t idx_slot) {
+void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   // get next staging slot
   auto slot_stage = m_queue_stage.front();
   m_queue_stage.pop();
-  m_buffer_views_stage[slot_stage].setData(m_nodes[node].data(), m_size_node, 0);
+  m_buffer_views_stage[slot_stage].setData(m_nodes[idx_node].data(), m_size_node, 0);
   m_device->copyBuffer(m_buffer_views_stage[slot_stage].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_buffer_views_stage[slot_stage].offset(), m_buffer_views[idx_slot].offset());
   // make staging slot avaible
   m_queue_stage.emplace(slot_stage);
+  // update slot occupation
+  m_slots[idx_slot] = idx_node;
 }
 
-void ModelLod::nodeToSlot(std::size_t node, std::size_t idx_slot) {
-  m_node_uploads.emplace_back(node, idx_slot);
+void ModelLod::nodeToSlot(std::size_t idx_node, std::size_t idx_slot) {
+  m_node_uploads.emplace_back(idx_node, idx_slot);
+  // update slot occupation
+  m_slots[idx_slot] = idx_node;
 }
 
 void ModelLod::performUploads() {
@@ -336,57 +340,49 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     auto parent = m_bvh.get_parent_id(node);
     bool all_siblings = true;
     for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-      auto curr_sibling = m_bvh.get_child_id(parent, i);
-      if (ignore.find(curr_sibling) != ignore.end()) {
+      auto idx_sibling = m_bvh.get_child_id(parent, i);
+      if (ignore.find(idx_sibling) != ignore.end()) {
         assert(0);
       }
-      if (std::find(m_cut.begin(), m_cut.end(), curr_sibling) == m_cut.end()) {
+      if (std::find(m_cut.begin(), m_cut.end(), idx_sibling) == m_cut.end()) {
         all_siblings = false;
         break;
       }
     }
     // all siblings in cut
     float error_node = nodeError(pos_view, node) * collapseError(node);
-    if (all_siblings) {
-      // todo: check frustum intersection case
-      // error too large
-      if (error_node > max_threshold && nodeSplitable(node)) {
-        check_duplicate(node);
-        queue_split.emplace(error_node, node);
-      }
-      // error too small
-      else if (error_node < min_threshold) {
-        // never collapse root
-        if (node == 0)  {
-          check_duplicate(node);
-          queue_keep.emplace(error_node, node);
-          // std::cout << "keep " << node << " for root" << std::endl;
-        }
-        else {
-          check_duplicate(parent);
-          queue_collapse.emplace(nodeError(pos_view, parent) * collapseError(parent), parent);
-          for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-            ignore.emplace(m_bvh.get_child_id(parent, i));
-          }
-        }
-      }
-      else {
+    
+    float min_error = error_node;
+    for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+      auto idx_sibling = m_bvh.get_child_id(parent, i);
+      min_error = std::min(min_error, nodeError(pos_view, idx_sibling) * collapseError(idx_sibling)); 
+    }
+    // todo: check frustum intersection case
+    // error too large
+    if (error_node > max_threshold && nodeSplitable(node)) {
+      check_duplicate(node);
+      queue_split.emplace(error_node, node);
+    }
+    // error too small
+    else if (min_error < min_threshold && all_siblings) {
+      // never collapse root
+      if (node == 0)  {
         check_duplicate(node);
         queue_keep.emplace(error_node, node);
-        // std::cout << "keep " << node << " for missing siblings" << std::endl;
+        // std::cout << "keep " << node << " for root" << std::endl;
+      }
+      else {
+        check_duplicate(parent);
+        queue_collapse.emplace(nodeError(pos_view, parent) * collapseError(parent), parent);
+        for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+          ignore.emplace(m_bvh.get_child_id(parent, i));
+        }
       }
     }
-    // not all siblings in cut
     else {
-      if (error_node > max_threshold && nodeSplitable(node)) {
-        check_duplicate(node);
-        queue_split.emplace(error_node, node);
-      }
-      else {
-        check_duplicate(node);
-        queue_keep.emplace(error_node, node);
-        // std::cout << "keep " << node << " for small error" << std::endl;
-      }
+      check_duplicate(node);
+      queue_keep.emplace(error_node, node);
+      // std::cout << "keep " << node << " for missing siblings" << std::endl;
     }
   }
 
@@ -406,10 +402,8 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   while (!queue_keep.empty()) {
     // keep only if sibling was not collapsed to parent
     auto idx_node = queue_keep.top().node;
-    if (std::find(cut_new.begin(), cut_new.end(), m_bvh.get_parent_id(idx_node)) == cut_new.end()) {
-      cut_new.push_back(idx_node);
-      check_sanity();
-    }
+    assert(std::find(cut_new.begin(), cut_new.end(), m_bvh.get_parent_id(idx_node)) == cut_new.end());
+    cut_new.push_back(idx_node);
     queue_keep.pop();
     check_sanity();
     // std::cout << "keeping " << idx_node << std::endl;
@@ -436,7 +430,11 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
         }
       }
     }
+    else {
+      cut_new.push_back(idx_node);
+    }
     queue_collapse.pop();
+    assert(std::find(cut_new.begin(), cut_new.end(), m_bvh.get_parent_id(idx_node)) == cut_new.end());
     check_sanity();
     // std::cout << "collapsing to " << idx_node << std::endl;
   }
@@ -446,19 +444,21 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     // split only if enough memory for remaining nodes
     if (m_num_nodes - cut_new.size() >= m_bvh.get_fan_factor() + queue_split.size() - 1) {
       // collect children which need to be uploaded
-      std::queue<std::size_t> children_out_core{};
+      std::size_t num_out_core{};
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         auto idx_child = m_bvh.get_child_id(queue_split.top().node, i);
         if (!inCore(idx_child)) {
-          children_out_core.emplace(idx_child);
+          ++num_out_core;
         }
       } 
       // check if split uploads are too many for this frame
-      if (children_out_core.size() <= m_num_uploads - num_uploads) {
-        while(!children_out_core.empty()) {
-          cut_new.push_back(children_out_core.front());
-          children_out_core.pop();
-          ++num_uploads;
+      if (num_out_core <= m_num_uploads - num_uploads) {
+        for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+          auto idx_child = m_bvh.get_child_id(queue_split.top().node, i);
+          cut_new.push_back(idx_child);
+          if (!inCore(idx_child)) {
+            ++num_uploads;
+          }
           check_sanity();
         }
       }
@@ -476,6 +476,7 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
       // std::cout << "dont split " << queue_split.top().node << std::endl;
 
     }
+    assert(std::find(cut_new.begin(), cut_new.end(), m_bvh.get_parent_id(queue_split.top().node)) == cut_new.end());
     queue_split.pop();
   }
 
@@ -509,8 +510,6 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
         m_active_buffers.push_back(idx_slot);
         // keep slot during next update
         slots_keep_new.emplace(idx_slot);
-        // update slot occupation
-        m_slots[idx_slot] = idx_node;
         break;
       }
     }
@@ -540,8 +539,6 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
       m_active_buffers.push_back(idx_slot);
       // keep slot during next update
       slots_keep_new.emplace(idx_slot);
-      // update slot occupation
-      m_slots[idx_slot] = idx_node;
       ++num_uploads;
     }
   }
@@ -651,5 +648,5 @@ void ModelLod::setFirstCut() {
   }
 
   printCut();
-  printSlots();
+  // printSlots();
 }
