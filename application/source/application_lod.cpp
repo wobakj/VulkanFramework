@@ -41,7 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 8;
+const std::size_t NUM_NODES = 2;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -55,7 +55,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_semaphore_record{m_swap_chain.numImages() - 1}
 {
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -69,7 +69,6 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
 
   resize();
   render();
-
 
   if (!m_thread_render.joinable()) {
     m_thread_render = std::thread(&ApplicationLod::drawLoop, this);
@@ -205,9 +204,9 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
-  for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
-    res.command_buffers.at("gbuffer").drawIndirect(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset() + i * sizeof(vk::DrawIndirectCommand), 1, 0);      
-  }
+  // for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
+    res.command_buffers.at("gbuffer").drawIndirect(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset(), m_model_lod.numNodes(), sizeof(vk::DrawIndirectCommand));      
+  // }
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -218,10 +217,11 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model_light.buffer()}, {0});
-  res.command_buffers.at("lighting").bindIndexBuffer(m_model_light.buffer(), m_model_light.indexOffset(), vk::IndexType::eUint32);
+  // res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model_light.buffer()}, {0});
+  // res.command_buffers.at("lighting").bindIndexBuffer(m_model_light.buffer(), m_model_light.indexOffset(), vk::IndexType::eUint32);
 
-  res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  // res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  res.command_buffers.at("lighting").draw(4, 1, 0, 0);
 
   res.command_buffers.at("lighting").end();
 }
@@ -280,7 +280,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").updateBuffer(
     res.buffer_views.at("draw_commands").buffer(),
     res.buffer_views.at("draw_commands").offset(),
-    m_model_lod.drawCommands().size() * sizeof(vk::DrawIndirectCommand),
+    m_model_lod.numNodes() * sizeof(vk::DrawIndirectCommand),
     m_model_lod.drawCommands().data()
   );
   // barrier to make new data visible to vertex shader
@@ -355,15 +355,28 @@ void ApplicationLod::createGraphicsPipeline() {
   viewportState.pScissors = &scissor;
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
-  rasterizer.lineWidth = 1.0f;
+  rasterizer.lineWidth = 0.5f;
   rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+  // rasterizer.polygonMode = vk::PolygonMode::eLine;
 
   vk::PipelineMultisampleStateCreateInfo multisampling{};
+
+  
+  vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
+  colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  colorBlendAttachment2.blendEnable = VK_TRUE;
+  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
+  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
+
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment.blendEnable = VK_FALSE;
-  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment2, colorBlendAttachment, colorBlendAttachment};
 
   vk::PipelineColorBlendStateCreateInfo colorBlending{};
   colorBlending.attachmentCount = uint32_t(states.size());
@@ -384,7 +397,7 @@ void ApplicationLod::createGraphicsPipeline() {
   // dynamicState.pDynamicStates = dynamicStates;
   auto pipelineInfo = m_shaders.at("simple").startPipelineInfo();
 
-  auto vert_info = m_model_light.inputInfo();
+  auto vert_info = m_model_lod.inputInfo();
   pipelineInfo.pVertexInputState = &vert_info;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
   pipelineInfo.pViewportState = &viewportState;  
@@ -400,29 +413,35 @@ void ApplicationLod::createGraphicsPipeline() {
 
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
-  pipelineInfo2.pVertexInputState = &vert_info;
-  
-  pipelineInfo2.pInputAssemblyState = &inputAssembly;
+  vk::PipelineVertexInputStateCreateInfo vert_info2{};
+  pipelineInfo2.pVertexInputState = &vert_info2;
+  // pipelineInfo2.pVertexInputState = &vert_info;
+    vk::PipelineInputAssemblyStateCreateInfo inputAssembly2{};
+  inputAssembly2.topology = vk::PrimitiveTopology::eTriangleStrip;
+
+  pipelineInfo2.pInputAssemblyState = &inputAssembly2;
+  // pipelineInfo2.pInputAssemblyState = &inputAssembly;
 
   // cull frontfaces 
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
   rasterizer2.lineWidth = 1.0f;
-  rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
+  rasterizer2.cullMode = vk::CullModeFlagBits::eNone;
+  // rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
   pipelineInfo2.pRasterizationState = &rasterizer2;
 
   pipelineInfo2.pViewportState = &viewportState;
   pipelineInfo2.pMultisampleState = &multisampling;
   pipelineInfo2.pDepthStencilState = nullptr; // Optional
 
-  vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
-  colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment2.blendEnable = VK_TRUE;
-  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
+  // vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
+  // colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  // colorBlendAttachment2.blendEnable = VK_TRUE;
+  // colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  // colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  // colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
+  // colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  // colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  // colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
 
   vk::PipelineColorBlendStateCreateInfo colorBlending2{};
   colorBlending2.attachmentCount = 1;
@@ -432,7 +451,8 @@ void ApplicationLod::createGraphicsPipeline() {
   pipelineInfo2.pDynamicState = nullptr; // Optional
   // shade fragment only if light sphere reaches behind it
   vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  depthStencil2.depthTestEnable = VK_TRUE;
+  depthStencil2.depthTestEnable = VK_FALSE;
+  // depthStencil2.depthTestEnable = VK_TRUE;
   depthStencil2.depthWriteEnable = VK_FALSE;
   depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
   pipelineInfo2.pDepthStencilState = &depthStencil2;
@@ -457,8 +477,8 @@ void ApplicationLod::createGraphicsPipeline() {
 }
 
 void ApplicationLod::createVertexBuffer() {
-  auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", NUM_NODES, 2};
+  auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.bvh");
+  m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.lod", NUM_NODES, 2};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_light = Model{m_device, tri};
@@ -549,7 +569,7 @@ void ApplicationLod::createDescriptorPool() {
 
 void ApplicationLod::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffers["draw_commands"] = Buffer{m_device, sizeof(vk::DrawIndirectCommand) * NUM_NODES * 2, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["draw_commands"] = Buffer{m_device, sizeof(vk::DrawIndirectCommand) * NUM_NODES * 2, vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size() * 2);
   m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));

@@ -58,7 +58,6 @@ class ModelLod {
   float nodeError(glm::fvec3 const& pos_view, std::size_t node);
   float collapseError(uint64_t idx_node);
   bool inCore(std::size_t idx_node);
-  bool slotActive(std::size_t idx_slot);
   
   void printCut() const;
   void printSlots() const;

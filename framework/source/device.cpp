@@ -51,6 +51,10 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   }
   
   vk::PhysicalDeviceFeatures deviceFeatures{};
+  deviceFeatures.fillModeNonSolid = true;
+  deviceFeatures.wideLines = true;
+  deviceFeatures.independentBlend = true;
+  deviceFeatures.multiDrawIndirect = true;
   m_info.pQueueCreateInfos = queueCreateInfos.data();
   m_info.queueCreateInfoCount = uint32_t(queueCreateInfos.size());
   m_info.pEnabledFeatures = &deviceFeatures;

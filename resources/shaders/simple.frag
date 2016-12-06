@@ -19,7 +19,8 @@ layout(location = 1) out vec4 out_Position;
 layout(location = 2) out vec4 out_Normal;
 
 void main() {
-  out_Color = texture(texSampler, frag_Texcoord);
+  out_Color = vec4(texture(texSampler, frag_Texcoord).rgb, 0.5);
+  out_Color = vec4(0.5);
   out_Position = vec4(frag_Position, 1.0);
   out_Normal = vec4(frag_Normal, 0.0);
 }
