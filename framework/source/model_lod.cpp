@@ -97,7 +97,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   m_model = model_t{m_nodes.front(), model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
   m_bind_info = model_to_bind(m_model);
   m_attrib_info = model_to_attr(m_model);
-
+  std::cout << numVertices() << std::endl;
   setFirstCut();
 }
 
@@ -195,6 +195,7 @@ void ModelLod::updateDrawCommands() {
   std::cout << "drawing slots (";
   for(std::size_t i = 0; i < m_num_nodes; ++i) {
     if (i < m_active_slots.size()) {
+      assert(m_buffer_views[0].offset() == 0);
       assert(float(uint32_t(m_buffer_views[m_active_slots[i]].offset() / m_model.vertex_bytes)) == float(m_buffer_views[m_active_slots[i]].offset()) / float(m_model.vertex_bytes));
       assert(m_model.vertex_bytes == sizeof(serialized_triangle) / 3);
       assert(m_buffer_views[i].size() == sizeof(serialized_triangle) * m_bvh.get_primitives_per_node());

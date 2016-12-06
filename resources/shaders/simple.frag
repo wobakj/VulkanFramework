@@ -17,10 +17,16 @@ layout(set = 0, binding = 0) buffer MatrixBuffer {
 layout(location = 0) out vec4 out_Color;
 layout(location = 1) out vec4 out_Position;
 layout(location = 2) out vec4 out_Normal;
+layout(location = 3) flat in int frag_VertexIndex;
 
 void main() {
   out_Color = vec4(texture(texSampler, frag_Texcoord).rgb, 0.5);
-  out_Color = vec4(0.5);
+  if (frag_VertexIndex >= 126900) {
+  	out_Color = vec4(0.5, 0.0, 0.0, 0.5);
+  }
+  else {
+  	out_Color = vec4(0.0, 0.5, 0.0, 0.5);
+  }
   out_Position = vec4(frag_Position, 1.0);
   out_Normal = vec4(frag_Normal, 0.0);
 }

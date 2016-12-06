@@ -19,10 +19,12 @@ out gl_PerVertex {
 layout(location = 0) out vec3 frag_Position;
 layout(location = 1) out vec3 frag_Normal;
 layout(location = 2) out vec2 frag_Texcoord;
+layout(location = 3) flat out int frag_VertexIndex;
 
 void main() {
   gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * vec4(in_Position, 1.0);
   frag_Position = (ViewMatrix * ModelMatrix * vec4(in_Position, 1.0)).xyz;
   frag_Normal =  (NormalMatrix * vec4(in_Normal, 0.0)).xyz;
   frag_Texcoord = in_TexCoord;
+  frag_VertexIndex = gl_VertexIndex;
 }
