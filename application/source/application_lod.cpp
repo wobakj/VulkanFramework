@@ -41,7 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 64;
+const std::size_t NUM_NODES = 8;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -50,8 +50,6 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_sphere{true}
- ,m_model_dirty{false}
  ,m_should_draw{true}
  ,m_semaphore_draw{0}
  ,m_semaphore_record{m_swap_chain.numImages() - 1}
@@ -109,23 +107,6 @@ void ApplicationLod::createFrameResources() {
   }
 }
 
-void ApplicationLod::updateModel() {
-  m_sphere = false;
-  emptyDrawQueue();
-  for (auto& res : m_frame_resources) {
-    updateCommandBuffers(res);
-  }
-  m_model_dirty = false;
-  #ifdef THREADING
-  if(m_thread_load.joinable()) {
-    m_thread_load.join();
-  }
-  else {
-    throw std::runtime_error{"could not join thread"};
-  }
-  #endif
-}
-
 void ApplicationLod::render() {
   m_semaphore_record.wait();
   static uint64_t frame = 0;
@@ -148,13 +129,8 @@ void ApplicationLod::render() {
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
-  if(m_model_dirty.is_lock_free()) {
-    if(m_model_dirty) {
-      updateModel();
-    }
-  }
-  recordDrawBuffer(resource_record);
 
+  recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
@@ -227,18 +203,10 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
   res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
-  // choose between sphere and house
-  if (m_sphere) {
-    res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model.buffer()}, {0});
-    res.command_buffers.at("gbuffer").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
 
-    res.command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
-  }
-  else {
-      res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
-    for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
-      res.command_buffers.at("gbuffer").drawIndirect(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset() + i * sizeof(vk::DrawIndirectCommand), 1, 0);      
-    }
+  res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
+  for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
+    res.command_buffers.at("gbuffer").drawIndirect(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset() + i * sizeof(vk::DrawIndirectCommand), 1, 0);      
   }
 
   res.command_buffers.at("gbuffer").end();
@@ -250,10 +218,10 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
-  res.command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model_light.buffer()}, {0});
+  res.command_buffers.at("lighting").bindIndexBuffer(m_model_light.buffer(), m_model_light.indexOffset(), vk::IndexType::eUint32);
 
-  res.command_buffers.at("lighting").drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
 
   res.command_buffers.at("lighting").end();
 }
@@ -265,7 +233,12 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // always update, because last update could have been to other frame
   updateView();
-  res.command_buffers.at("draw").updateBuffer(res.buffer_views.at("uniform").buffer(), res.buffer_views.at("uniform").offset(), sizeof(ubo_cam), &ubo_cam);
+  res.command_buffers.at("draw").updateBuffer(
+    res.buffer_views.at("uniform").buffer(),
+    res.buffer_views.at("uniform").offset(),
+    sizeof(ubo_cam),
+    &ubo_cam
+  );
   // barrier to make new data visible to vertex shader
   vk::BufferMemoryBarrier barrier_buffer{};
   barrier_buffer.buffer = res.buffer_views.at("uniform").buffer();
@@ -283,46 +256,49 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
     {}
   );
 
-  if (!m_sphere) {
-    // upload node data
-    m_model_lod.update(m_camera.position());
-    m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
-    // barrier to make new data visible to vertex shader
-    vk::BufferMemoryBarrier barrier_nodes{};
-    barrier_nodes.buffer = m_model_lod.buffer();
-    barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-    barrier_nodes.dstAccessMask = vk::AccessFlagBits::eUniformRead;
-    barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  // upload node data
+  m_model_lod.update(m_camera.position());
+  m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_nodes{};
+  barrier_nodes.buffer = m_model_lod.buffer();
+  barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_nodes.dstAccessMask = vk::AccessFlagBits::eUniformRead;
+  barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-    res.command_buffers.at("draw").pipelineBarrier(
-      vk::PipelineStageFlagBits::eTransfer,
-      vk::PipelineStageFlagBits::eVertexShader,
-      vk::DependencyFlags{},
-      {},
-      {barrier_nodes},
-      {}
-    );
+  res.command_buffers.at("draw").pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eVertexShader,
+    vk::DependencyFlags{},
+    {},
+    {barrier_nodes},
+    {}
+  );
 
-    // upload draw instructions
-    res.command_buffers.at("draw").updateBuffer(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset(), m_model_lod.drawCommands().size() * sizeof(vk::DrawIndirectCommand), m_model_lod.drawCommands().data());
-    // barrier to make new data visible to vertex shader
-    vk::BufferMemoryBarrier barrier_cmds{};
-    barrier_cmds.buffer = res.buffer_views.at("draw_commands").buffer();
-    barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-    barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
-    barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  // upload draw instructions
+  res.command_buffers.at("draw").updateBuffer(
+    res.buffer_views.at("draw_commands").buffer(),
+    res.buffer_views.at("draw_commands").offset(),
+    m_model_lod.drawCommands().size() * sizeof(vk::DrawIndirectCommand),
+    m_model_lod.drawCommands().data()
+  );
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_cmds{};
+  barrier_cmds.buffer = res.buffer_views.at("draw_commands").buffer();
+  barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
+  barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-    res.command_buffers.at("draw").pipelineBarrier(
-      vk::PipelineStageFlagBits::eTransfer,
-      vk::PipelineStageFlagBits::eDrawIndirect,
-      vk::DependencyFlags{},
-      {},
-      {barrier_cmds},
-      {}
-    );
-  }
+  res.command_buffers.at("draw").pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eDrawIndirect,
+    vk::DependencyFlags{},
+    {},
+    {barrier_cmds},
+    {}
+  );
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -408,7 +384,7 @@ void ApplicationLod::createGraphicsPipeline() {
   // dynamicState.pDynamicStates = dynamicStates;
   auto pipelineInfo = m_shaders.at("simple").startPipelineInfo();
 
-  auto vert_info = m_model.inputInfo();
+  auto vert_info = m_model_light.inputInfo();
   pipelineInfo.pVertexInputState = &vert_info;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
   pipelineInfo.pViewportState = &viewportState;  
@@ -481,24 +457,11 @@ void ApplicationLod::createGraphicsPipeline() {
 }
 
 void ApplicationLod::createVertexBuffer() {
-  std::vector<float> vertex_data{
-    0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
-    0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
-    -0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0
-  };
-  std::vector<std::uint32_t> indices {
-    0, 1, 2
-  };
-  // model_t tri = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
-
-  model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
-
-  m_model = Model{m_device, tri};
-}
-void ApplicationLod::loadModel() {
   auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
   m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", NUM_NODES, 2};
-  m_model_dirty = true;
+
+  model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
+  m_model_light = Model{m_device, tri};
 }
 
 void ApplicationLod::createLights() {
@@ -659,18 +622,6 @@ void ApplicationLod::recreatePipeline() {
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void ApplicationLod::keyCallback(int key, int scancode, int action, int mods) {
-  if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-    if (m_sphere) {
-    #ifdef THREADING
-      // prevent thread creation form being triggered mutliple times
-      if (!m_thread_load.joinable()) {
-        m_thread_load = std::thread(&ApplicationLod::loadModel, this);
-      }
-    #else
-      loadModel();
-    #endif
-    }
-  }
 }
 
 // exe entry point

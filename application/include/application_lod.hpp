@@ -62,7 +62,7 @@ class ApplicationLod : public Application {
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkPipeline> m_pipeline_2;
   FrameBuffer m_framebuffer;
-  Model m_model;
+  Model m_model_light;
   ModelLod m_model_lod;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
@@ -71,11 +71,7 @@ class ApplicationLod : public Application {
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
 
-  bool m_sphere;
-
-  std::thread m_thread_load;
   std::thread m_thread_render;
-  std::atomic<bool> m_model_dirty;
   std::atomic<bool> m_should_draw;
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_record_queue;
