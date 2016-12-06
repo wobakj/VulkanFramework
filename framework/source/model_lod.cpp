@@ -100,7 +100,6 @@ void ModelLod::createStagingBuffers() {
   m_buffer_stage = m_device->createBuffer(m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc);
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
     m_buffer_views_stage.emplace_back(BufferView{m_size_node});
-    m_queue_stage.emplace(i);
   }
   auto requirements_stage = m_buffer_stage.requirements();
   // per-buffer offset
@@ -137,12 +136,8 @@ void ModelLod::createDrawingBuffers() {
 
 void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   // get next staging slot
-  auto slot_stage = m_queue_stage.front();
-  m_queue_stage.pop();
-  m_buffer_views_stage[slot_stage].setData(m_nodes[idx_node].data(), m_size_node, 0);
-  m_device->copyBuffer(m_buffer_views_stage[slot_stage].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_buffer_views_stage[slot_stage].offset(), m_buffer_views[idx_slot].offset());
-  // make staging slot avaible
-  m_queue_stage.emplace(slot_stage);
+  m_buffer_views_stage[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
+  m_device->copyBuffer(m_buffer_views_stage[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_buffer_views_stage[0].offset(), m_buffer_views[idx_slot].offset());
   // update slot occupation
   m_slots[idx_slot] = idx_node;
 }
@@ -160,6 +155,12 @@ void ModelLod::performUploads() {
     std::memcpy(ptr + m_buffer_views_stage[i].offset(), m_nodes[idx_node].data(), m_size_node);
   }
   m_buffer_stage.unmap();
+
+  std::cout << "uploads ";
+  for (auto const& upload : m_node_uploads) {
+    std::cout << "(" << upload.first << " to " << upload.second << "), ";
+  }
+  std::cout << std::endl;
 }
 
 void ModelLod::performCopies() {
@@ -190,8 +191,8 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer& command_buffer) {
 }
 void ModelLod::updateDrawCommands() {
   for(std::size_t i = 0; i < m_num_nodes; ++i) {
-    if (i < m_active_buffers.size()) {
-      m_commands_draw[i].firstVertex = uint32_t(m_buffer_views[m_active_buffers[i]].offset()) / m_model.vertex_bytes;
+    if (i < m_active_slots.size()) {
+      m_commands_draw[i].firstVertex = uint32_t(m_buffer_views[m_active_slots[i]].offset()) / m_model.vertex_bytes;
       m_commands_draw[i].vertexCount = numVertices();
     }
     else {
@@ -232,10 +233,8 @@ void ModelLod::updateDrawCommands() {
   std::swap(m_bvh, dev.m_bvh);
   std::swap(m_size_node, dev.m_size_node);
   std::swap(m_cut, dev.m_cut);
-  std::swap(m_active_buffers, dev.m_active_buffers);
-  std::swap(m_slots_keep, dev.m_slots_keep);
+  std::swap(m_active_slots, dev.m_active_slots);
   std::swap(m_slots, dev.m_slots);
-  std::swap(m_queue_stage, dev.m_queue_stage);
   std::swap(m_node_uploads, dev.m_node_uploads);
   std::swap(m_commands_draw, dev.m_commands_draw);
  }
@@ -257,7 +256,7 @@ std::vector<std::size_t> const& ModelLod::cut() const {
 }
 
 std::vector<std::size_t> const& ModelLod::activeBuffers() const {
-  return m_active_buffers;
+  return m_active_slots;
 }
 
 std::vector<vk::DrawIndirectCommand> const& ModelLod::drawCommands() const {
@@ -335,53 +334,51 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
   const float max_threshold = 0.25f;
   const float min_threshold = 0.05f;
 
-  for (auto const& node : m_cut) {
-    if (ignore.find(node) != ignore.end()) continue;
-    auto parent = m_bvh.get_parent_id(node);
-    bool all_siblings = true;
-    for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-      auto idx_sibling = m_bvh.get_child_id(parent, i);
-      if (ignore.find(idx_sibling) != ignore.end()) {
-        assert(0);
-      }
-      if (std::find(m_cut.begin(), m_cut.end(), idx_sibling) == m_cut.end()) {
-        all_siblings = false;
-        break;
-      }
-    }
-    // all siblings in cut
-    float error_node = nodeError(pos_view, node) * collapseError(node);
-    
+  for (auto const& idx_node : m_cut) {
+    if (ignore.find(idx_node) != ignore.end()) continue;
+    float error_node = nodeError(pos_view, idx_node) * collapseError(idx_node);
     float min_error = error_node;
-    for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-      auto idx_sibling = m_bvh.get_child_id(parent, i);
-      min_error = std::min(min_error, nodeError(pos_view, idx_sibling) * collapseError(idx_sibling)); 
-    }
-    // todo: check frustum intersection case
-    // error too large
-    if (error_node > max_threshold && nodeSplitable(node)) {
-      check_duplicate(node);
-      queue_split.emplace(error_node, node);
-    }
-    // error too small
-    else if (min_error < min_threshold && all_siblings) {
-      // never collapse root
-      if (node == 0)  {
-        check_duplicate(node);
-        queue_keep.emplace(error_node, node);
-        // std::cout << "keep " << node << " for root" << std::endl;
+    // if node is root, is has no siblings
+    bool all_siblings = false;
+    auto parent = m_bvh.get_parent_id(idx_node);
+    if (idx_node > 0) {
+      // assume all siblings are in cut
+      all_siblings = true;
+      for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+        auto idx_sibling = m_bvh.get_child_id(parent, i);
+        // make sure no sibling is ignored
+        assert(ignore.find(idx_sibling) == ignore.end());
+        // check if all siblings lie in cut
+        if (std::find(m_cut.begin(), m_cut.end(), idx_sibling) == m_cut.end()) {
+          all_siblings = false;
+          break;
+        }
       }
-      else {
-        check_duplicate(parent);
-        queue_collapse.emplace(nodeError(pos_view, parent) * collapseError(parent), parent);
+      if (all_siblings) {
+        // calculate minimal error of all siblings to collapse be order independent
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-          ignore.emplace(m_bvh.get_child_id(parent, i));
+          auto idx_sibling = m_bvh.get_child_id(parent, i);
+          min_error = std::min(min_error, nodeError(pos_view, idx_sibling) * collapseError(idx_sibling)); 
         }
       }
     }
+    // todo: check frustum intersection case
+    // error too large
+    if (error_node > max_threshold && nodeSplitable(idx_node)) {
+      check_duplicate(idx_node);
+      queue_split.emplace(error_node, idx_node);
+    }
+    // error too small
+    else if (all_siblings && min_error < min_threshold) {
+      check_duplicate(parent);
+      queue_collapse.emplace(nodeError(pos_view, parent) * collapseError(parent), parent);
+      for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+        ignore.emplace(m_bvh.get_child_id(parent, i));
+      }
+    }
     else {
-      check_duplicate(node);
-      queue_keep.emplace(error_node, node);
+      check_duplicate(idx_node);
+      queue_keep.emplace(error_node, idx_node);
       // std::cout << "keep " << node << " for missing siblings" << std::endl;
     }
   }
@@ -497,19 +494,20 @@ bool ModelLod::inCore(std::size_t idx_node) {
   return std::find(m_slots.begin(), m_slots.end(), idx_node) != m_slots.end();
 }
 
+bool ModelLod::slotActive(std::size_t idx_slot) {
+  return std::find(m_active_slots.begin(), m_active_slots.end(), idx_slot) != m_active_slots.end();
+}
+
 void ModelLod::setCut(std::vector<std::size_t> const& cut) {
-  m_active_buffers.clear();
-  std::set<std::size_t> slots_keep_new{};
+  std::vector<std::size_t> slots_active_new{};
   // collect nodes that were already in previous cut
   std::set<std::size_t> nodes_incore{};
   for (auto const& idx_node : cut) {
     for (std::size_t idx_slot = 0; idx_slot < m_slots.size(); ++idx_slot) {
       if (m_slots[idx_slot] == idx_node) {
-        // slot is now active for this cut
         nodes_incore.emplace(idx_node);
-        m_active_buffers.push_back(idx_slot);
-        // keep slot during next update
-        slots_keep_new.emplace(idx_slot);
+        // slot is now active for this cut
+        slots_active_new.emplace_back(idx_slot);
         break;
       }
     }
@@ -517,10 +515,10 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   // collect free nodes
   std::queue<std::size_t> slots_free{};
   for (std::size_t idx_slot = 0; idx_slot < m_num_slots; ++idx_slot) {
-    // node is free if it doesnt need to be kept
-    if (m_slots_keep.find(idx_slot) == m_slots_keep.end()
+    // node is free if it doesnt need to be kept for previous cut
+    if (!slotActive(idx_slot)
     // and is not active for this cut
-     && slots_keep_new.find(idx_slot) == slots_keep_new.end()) {
+     && std::find(slots_active_new.begin(), slots_active_new.end(), idx_slot) == slots_active_new.end()) {
       slots_free.emplace(idx_slot);
     }
   }
@@ -536,20 +534,18 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
       slots_free.pop();
       // upload to free slot
       nodeToSlot(idx_node, idx_slot);
-      m_active_buffers.push_back(idx_slot);
       // keep slot during next update
-      slots_keep_new.emplace(idx_slot);
+      slots_active_new.emplace_back(idx_slot);
       ++num_uploads;
     }
   }
   // 
   // store new cut
   m_cut = cut;
-  // update slots to keep
-  m_slots_keep = slots_keep_new;
-  assert(m_slots_keep.size() <= m_num_nodes);
+  m_active_slots = slots_active_new;
+
   assert(nodes_incore.size() <= m_num_nodes);
-  assert(m_active_buffers.size() <= m_num_nodes);
+  assert(m_active_slots.size() <= m_num_nodes);
   assert(num_uploads <= m_num_uploads);
   assert(m_node_uploads.size() <= m_num_uploads);
 
@@ -596,24 +592,18 @@ void ModelLod::setFirstCut() {
   for (auto const& idx_node : m_cut) {
     // upload to free slot
     nodeToSlotImmediate(idx_node, idx_slot);
-    m_active_buffers.push_back(idx_slot);
     // keep slot during next update
-    m_slots_keep.emplace(idx_slot);
-    // update slot occupation
-    m_slots[idx_slot] = idx_node;
+    m_active_slots.push_back(idx_slot);
     ++idx_slot;
   }
   // fill remaining free slots with parent level
   uint32_t curr_level = level - 1;
   uint32_t i = 0;
   uint64_t first_node = m_bvh.get_first_node_id_of_depth(curr_level);
-  for(; idx_slot < m_num_slots; ++ idx_slot) {
+  for(; idx_slot < m_num_slots; ++idx_slot) {
     uint64_t idx_node = first_node + i;
     // upload to free slot
     nodeToSlotImmediate(idx_node, idx_slot);
-
-    // update slot occupation
-    m_slots[idx_slot] = idx_node;
     ++i;
     // go one curr_level down
     if (i >= m_bvh.get_length_of_depth(curr_level)) {
@@ -625,7 +615,7 @@ void ModelLod::setFirstCut() {
       i = 0;
     }
   }
-  // upload slots woth next level
+  // fill slots with next level
   curr_level = level + 1;
   i = 0;
   first_node = m_bvh.get_first_node_id_of_depth(curr_level);
@@ -633,15 +623,13 @@ void ModelLod::setFirstCut() {
     uint64_t idx_node = first_node + i;
     // upload to free slot
     nodeToSlotImmediate(idx_node, idx_slot);
-    // update slot occupation
-    m_slots[idx_slot] = idx_node;
     ++i;
     // go one curr_level down
     if (i >= m_bvh.get_length_of_depth(curr_level)) {
-      ++curr_level;
-      if (curr_level > m_bvh.get_depth()) {
+      if (curr_level >= m_bvh.get_depth()) {
         throw std::runtime_error{"slots not filled"};
       }
+      ++curr_level;
       first_node = m_bvh.get_first_node_id_of_depth(curr_level);
       i = 0;
     }

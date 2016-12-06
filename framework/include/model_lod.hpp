@@ -58,6 +58,7 @@ class ModelLod {
   float nodeError(glm::fvec3 const& pos_view, std::size_t node);
   float collapseError(uint64_t idx_node);
   bool inCore(std::size_t idx_node);
+  bool slotActive(std::size_t idx_slot);
   
   void printCut() const;
   void printSlots() const;
@@ -70,7 +71,6 @@ class ModelLod {
   Buffer m_buffer_stage;
   std::vector<BufferView> m_buffer_views;
   std::vector<BufferView> m_buffer_views_stage;
-  std::queue<std::size_t> m_queue_stage;
   Memory m_memory;
   Memory m_memory_stage;
   std::size_t m_num_nodes; 
@@ -81,9 +81,7 @@ class ModelLod {
   std::vector<std::vector<float>> m_nodes;
   std::vector<std::size_t> m_cut;
   std::vector<std::size_t> m_slots;
-  std::set<std::size_t> m_slots_keep;
-  std::vector<std::size_t> m_active_buffers;
-  std::vector<std::size_t> m_active_buffers2;
+  std::vector<std::size_t> m_active_slots;
   std::vector<std::pair<std::size_t, std::size_t>> m_node_uploads;
   std::vector<vk::DrawIndirectCommand> m_commands_draw;
 };
