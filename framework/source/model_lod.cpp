@@ -11,16 +11,10 @@ bool contains(T const& container, U const& element) {
   return std::find(container.begin(), container.end(), element) != container.end();
 }
 
-struct serialized_triangle {
+struct serialized_vertex {
   float v0_x_, v0_y_, v0_z_;   //vertex 0
   float n0_x_, n0_y_, n0_z_;   //normal 0
   float c0_x_, c0_y_;          //texcoord 0
-  float v1_x_, v1_y_, v1_z_;
-  float n1_x_, n1_y_, n1_z_;
-  float c1_x_, c1_y_;
-  float v2_x_, v2_y_, v2_z_;
-  float n2_x_, n2_y_, n2_z_;
-  float c2_x_, c2_y_;
 };
 
 static vk::VertexInputBindingDescription model_to_bind(model_t const& m) {
@@ -74,7 +68,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_num_uploads{num_uploads}
  ,m_num_slots{m_num_nodes + num_uploads}
  ,m_bvh{bvh}
- ,m_size_node{sizeof(serialized_triangle) * m_bvh.get_primitives_per_node()}
+ ,m_size_node{sizeof(serialized_vertex) * m_bvh.get_primitives_per_node()}
  ,m_commands_draw(m_num_nodes, vk::DrawIndirectCommand{0, 1, 0, 0})
 {
   // create staging memory and buffers
@@ -88,8 +82,8 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes" << std::endl;
 
   // read data from file
-  m_nodes = std::vector<std::vector<float>>(bvh.get_num_nodes(), std::vector<float>(m_size_node / 4, 0.0));
-  for(std::size_t i = 0; i < bvh.get_num_nodes() && i < LAST_NODE; ++i) {
+  m_nodes = std::vector<std::vector<float>>(std::min(bvh.get_num_nodes(), uint32_t(LAST_NODE)), std::vector<float>(m_size_node * sizeof(uint8_t) / sizeof(float), 0.0));
+  for(std::size_t i = 0; i < std::min(bvh.get_num_nodes(), uint32_t(LAST_NODE)) && i < LAST_NODE; ++i) {
     size_t offset_in_bytes = i * m_size_node;
     lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, m_size_node);
   }
@@ -150,36 +144,31 @@ void ModelLod::nodeToSlot(std::size_t idx_node, std::size_t idx_slot) {
 }
 
 void ModelLod::performUploads() {
-  uint8_t* ptr = (uint8_t*)(m_buffer_stage.map(m_node_uploads.size() * m_size_node, 0));
+  // uint8_t* ptr = (uint8_t*)(m_buffer_stage.map(m_buffer_stage.size(), 0));
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_node = m_node_uploads[i].first;
-    std::memcpy(ptr + m_buffer_views_stage[i].offset(), m_nodes[idx_node].data(), m_size_node);
+    // std::memcpy(ptr + m_buffer_views_stage[i].offset(), m_nodes[idx_node].data(), m_size_node);
+    m_buffer_views_stage[i].setData(m_nodes[idx_node].data(), m_size_node, 0);
   }
-  m_buffer_stage.unmap();
+  // m_buffer_stage.unmap();
 
   std::cout << "uploads ";
   for (auto const& upload : m_node_uploads) {
     std::cout << "(" << upload.first << " to " << upload.second << "), ";
   }
   std::cout << std::endl;
-  assert(0);
+  // assert(0);
 }
 
 void ModelLod::performCopies() {
   vk::CommandBuffer const& commandBuffer = m_device->beginSingleTimeCommands();
-  std::vector<vk::BufferCopy> copies_nodes{};
-  for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
-    std::size_t idx_slot = m_node_uploads[i].second;
-    copies_nodes.emplace_back(m_buffer_views_stage[i].offset(), m_buffer_views[idx_slot].offset(), m_size_node);
-  }
-  commandBuffer.copyBuffer(m_buffer_stage, m_buffer, copies_nodes);
-
+  performCopiesCommand(commandBuffer);
   m_device->endSingleTimeCommands();
 
   m_node_uploads.clear();
 }
 
-void ModelLod::performCopiesCommand(vk::CommandBuffer& command_buffer) {
+void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
   if (m_node_uploads.empty()) return;
 
   std::vector<vk::BufferCopy> copies_nodes{};
@@ -192,18 +181,22 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer& command_buffer) {
   m_node_uploads.clear();
 }
 void ModelLod::updateDrawCommands() {
-  std::cout << "drawing slots (";
+  // std::cout << "drawing slots (";
   for(std::size_t i = 0; i < m_num_nodes; ++i) {
     if (i < m_active_slots.size()) {
       assert(m_buffer_views[0].offset() == 0);
       assert(float(uint32_t(m_buffer_views[m_active_slots[i]].offset() / m_model.vertex_bytes)) == float(m_buffer_views[m_active_slots[i]].offset()) / float(m_model.vertex_bytes));
-      assert(m_model.vertex_bytes == sizeof(serialized_triangle) / 3);
-      assert(m_buffer_views[i].size() == sizeof(serialized_triangle) * m_bvh.get_primitives_per_node());
+      assert(m_model.vertex_bytes == sizeof(serialized_vertex));
+      assert(m_model.vertex_bytes * numVertices() == m_buffer_views[i].size());
+      assert(m_model.vertex_bytes * numVertices() == m_buffer_views_stage.front().size());
+      // assert(m_buffer_views[i].size() == sizeof(serialized_vertex) * m_bvh.get_primitives_per_node());
       assert(m_model.vertex_num == numVertices());
-      assert(m_model.vertex_num * m_model.vertex_bytes == m_buffer_views[i].size());
-      assert(m_model.vertex_num * m_model.vertex_bytes  == m_size_node);
+      assert(m_model.vertex_num * m_model.vertex_bytes == m_size_node);
+      assert(m_size_node == m_buffer_views[i].size());
+      assert(m_size_node == m_buffer_views_stage.front().size());
+      assert(m_buffer.alignment() == m_buffer_stage.alignment());
       m_commands_draw[i].firstVertex = uint32_t(m_buffer_views[m_active_slots[i]].offset()) / m_model.vertex_bytes;
-      std::cout << "(" << m_active_slots[i] << ", " << m_commands_draw[i].firstVertex << "), ";
+      // std::cout << "(" << m_active_slots[i] << ", " << m_commands_draw[i].firstVertex << "), ";
       m_commands_draw[i].vertexCount = numVertices();
       m_commands_draw[i].instanceCount = 1;
     }
@@ -213,7 +206,7 @@ void ModelLod::updateDrawCommands() {
       m_commands_draw[i].instanceCount = 0;
     }
   }
-  std::cout << ")" << std::endl;
+  // std::cout << ")" << std::endl;
 }
 
  ModelLod& ModelLod::operator=(ModelLod&& dev) {
@@ -288,7 +281,7 @@ vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {
 }
 
 std::uint32_t ModelLod::numVertices() const {
-  return m_bvh.get_primitives_per_node() * 3;
+  return m_model.vertex_num;
 }
 
 float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
@@ -571,12 +564,13 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
 
   if (!m_node_uploads.empty()) {
     performUploads();
+    // performCopies();
   }
   // if (change) {
     updateDrawCommands();
   // }
 
-  printSlots();
+  // printSlots();
 }
 
 void ModelLod::printCut() const {
@@ -584,7 +578,8 @@ void ModelLod::printCut() const {
   for (auto const& node : m_cut) {
     std::cout << node << ", ";
   }
-  std::cout << "), active slots are (";
+  std::cout << ")" << std::endl;
+  std::cout << "active slots are (";
   for (auto const& slots : m_active_slots) {
     std::cout << slots << ", ";
   }
@@ -622,6 +617,7 @@ void ModelLod::setFirstCut() {
     m_active_slots.push_back(idx_slot);
     ++idx_slot;
   }
+// fill remaining slots
   uint32_t curr_level = level - 1;
   uint32_t idx_local = 0;
   uint64_t first_node = 0;

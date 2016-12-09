@@ -41,7 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 2;
+const std::size_t NUM_NODES = 32;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -259,17 +259,19 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   // upload node data
   m_model_lod.update(m_camera.position());
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
+  // m_model_lod.performCopies();
+
   // barrier to make new data visible to vertex shader
   vk::BufferMemoryBarrier barrier_nodes{};
   barrier_nodes.buffer = m_model_lod.buffer();
   barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_nodes.dstAccessMask = vk::AccessFlagBits::eUniformRead;
+  barrier_nodes.dstAccessMask = vk::AccessFlagBits::eVertexAttributeRead;
   barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
   res.command_buffers.at("draw").pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eVertexShader,
+    vk::PipelineStageFlagBits::eAllCommands,
+    vk::PipelineStageFlagBits::eAllCommands,
     vk::DependencyFlags{},
     {},
     {barrier_nodes},
@@ -356,12 +358,12 @@ void ApplicationLod::createGraphicsPipeline() {
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 0.5f;
-  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+  rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+  // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
   // rasterizer.polygonMode = vk::PolygonMode::eLine;
 
   vk::PipelineMultisampleStateCreateInfo multisampling{};
 
-  
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment2.blendEnable = VK_TRUE;
@@ -371,7 +373,6 @@ void ApplicationLod::createGraphicsPipeline() {
   colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
   colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
   colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
-
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
@@ -433,15 +434,6 @@ void ApplicationLod::createGraphicsPipeline() {
   pipelineInfo2.pMultisampleState = &multisampling;
   pipelineInfo2.pDepthStencilState = nullptr; // Optional
 
-  // vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
-  // colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  // colorBlendAttachment2.blendEnable = VK_TRUE;
-  // colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  // colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-  // colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-  // colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  // colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  // colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
 
   vk::PipelineColorBlendStateCreateInfo colorBlending2{};
   colorBlending2.attachmentCount = 1;
@@ -477,8 +469,8 @@ void ApplicationLod::createGraphicsPipeline() {
 }
 
 void ApplicationLod::createVertexBuffer() {
-  auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.lod", NUM_NODES, 2};
+  auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.bvh");
+  m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.lod", NUM_NODES, 16};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_light = Model{m_device, tri};

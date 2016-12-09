@@ -39,8 +39,9 @@ class ModelLod {
   std::uint32_t numVertices() const;
 
   void update(glm::fvec3 const& pod_view);
-  void performCopiesCommand(vk::CommandBuffer& command_buffer);
+  void performCopiesCommand(vk::CommandBuffer const& command_buffer);
   std::vector<vk::DrawIndirectCommand> const& drawCommands() const;
+  void performCopies();
 
  private:
   void setFirstCut();
@@ -51,7 +52,6 @@ class ModelLod {
   void setCut(std::vector<std::size_t> const& cut);
   void nodeToSlot(std::size_t node, std::size_t buffer);
   void performUploads();
-  void performCopies();
   void updateDrawCommands();
 
   bool nodeSplitable(std::size_t node);
