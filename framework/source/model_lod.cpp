@@ -120,7 +120,8 @@ void ModelLod::createDrawingBuffers() {
   auto requirements_draw = m_buffer.requirements();
   // per-buffer offset
   auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_draw.alignment)));
-  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1);
+  vk::DeviceSize size_drawbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(vk::DrawIndirectCommand) * m_num_slots) / float(requirements_draw.alignment)));
+  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff;
   m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
   m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   // ugly, recreate buffer with size for correct allignment
@@ -130,6 +131,9 @@ void ModelLod::createDrawingBuffers() {
     m_buffer_views.emplace_back(BufferView{m_size_node});
     m_buffer_views.back().bindTo(m_buffer);
   }
+
+  m_view_draw_commands = BufferView{sizeof(vk::DrawIndirectCommand) * m_num_slots};
+  m_view_draw_commands.bindTo(m_buffer);
 }
 
 void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
@@ -202,35 +206,31 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
 
 }
 
-// void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
-//   if (m_node_uploads.empty()) return;
-//   m_db_draw_commands.swap();
-//   // upload draw instructions
-//   command_buffer.updateBuffer(
-//     res.buffer_views.at("draw_commands").buffer(),
-//     res.buffer_views.at("draw_commands").offset(),
-//     m_model_lod.numNodes() * sizeof(vk::DrawIndirectCommand),
-//     m_model_lod.drawCommands().data()
-//   );
-//   // barrier to make new data visible to vertex shader
-//   vk::BufferMemoryBarrier barrier_cmds{};
-//   barrier_cmds.buffer = res.buffer_views.at("draw_commands").buffer();
-//   barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-//   barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
-//   barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-//   barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
+  // upload draw instructions
+  command_buffer.updateBuffer(
+    m_view_draw_commands.buffer(),
+    m_view_draw_commands.offset(),
+    numNodes() * sizeof(vk::DrawIndirectCommand),
+    drawCommands().data()
+  );
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_cmds{};
+  barrier_cmds.buffer = m_view_draw_commands.buffer();
+  barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
+  barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-//   command_buffer.pipelineBarrier(
-//     vk::PipelineStageFlagBits::eTransfer,
-//     vk::PipelineStageFlagBits::eDrawIndirect,
-//     vk::DependencyFlags{},
-//     {},
-//     {barrier_cmds},
-//     {}
-//   );
-
-//   m_node_uploads.clear();
-// }
+  command_buffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eDrawIndirect,
+    vk::DependencyFlags{},
+    {},
+    {barrier_cmds},
+    {}
+  );
+}
 
 void ModelLod::updateDrawCommands() {
   // std::cout << "drawing slots (";
@@ -298,6 +298,9 @@ void ModelLod::updateDrawCommands() {
   std::swap(m_node_uploads, dev.m_node_uploads);
   std::swap(m_commands_draw, dev.m_commands_draw);
 
+  std::swap(m_view_draw_commands, dev.m_view_draw_commands);
+  m_view_draw_commands.setBuffer(m_buffer);
+
   std::swap(m_db_views_stage, dev.m_db_views_stage);
   for (auto& buffer : m_db_views_stage.back()) {
     buffer.setBuffer(m_buffer_stage);
@@ -309,6 +312,10 @@ void ModelLod::updateDrawCommands() {
 
 BufferView const& ModelLod::bufferView(std::size_t i) const {
   return m_buffer_views[i];
+}
+
+BufferView const& ModelLod::viewDrawCommands() const {
+  return m_view_draw_commands;
 }
 
 vk::Buffer const& ModelLod::buffer() const {

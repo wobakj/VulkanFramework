@@ -202,7 +202,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
   // for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
-    res.command_buffers.at("gbuffer").drawIndirect(m_buffer_views.at("draw_commands").buffer(), m_buffer_views.at("draw_commands").offset(), m_model_lod.numNodes(), sizeof(vk::DrawIndirectCommand));      
+    res.command_buffers.at("gbuffer").drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
   // }
 
   res.command_buffers.at("gbuffer").end();
@@ -256,30 +256,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   // upload node data
   m_model_lod.update(m_camera.position());
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
-
-  // upload draw instructions
-  res.command_buffers.at("draw").updateBuffer(
-    m_buffer_views.at("draw_commands").buffer(),
-    m_buffer_views.at("draw_commands").offset(),
-    m_model_lod.numNodes() * sizeof(vk::DrawIndirectCommand),
-    m_model_lod.drawCommands().data()
-  );
-  // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier_cmds{};
-  barrier_cmds.buffer = m_buffer_views.at("draw_commands").buffer();
-  barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
-  barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  res.command_buffers.at("draw").pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eDrawIndirect,
-    vk::DependencyFlags{},
-    {},
-    {barrier_cmds},
-    {}
-  );
+  m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
