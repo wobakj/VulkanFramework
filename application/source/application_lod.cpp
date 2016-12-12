@@ -259,24 +259,6 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   // upload node data
   m_model_lod.update(m_camera.position());
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
-  // m_model_lod.performCopies();
-
-  // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier_nodes{};
-  barrier_nodes.buffer = m_model_lod.buffer();
-  barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_nodes.dstAccessMask = vk::AccessFlagBits::eVertexAttributeRead;
-  barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  res.command_buffers.at("draw").pipelineBarrier(
-    vk::PipelineStageFlagBits::eAllCommands,
-    vk::PipelineStageFlagBits::eAllCommands,
-    vk::DependencyFlags{},
-    {},
-    {barrier_nodes},
-    {}
-  );
 
   // upload draw instructions
   res.command_buffers.at("draw").updateBuffer(

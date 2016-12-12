@@ -100,15 +100,18 @@ void ModelLod::createStagingBuffers() {
   auto requirements_stage = m_buffer_stage.requirements();
   // per-buffer offset
   auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_stage.alignment)));
-  requirements_stage.size = m_size_node + offset_stage * (m_num_uploads - 1);
+  requirements_stage.size = m_size_node + offset_stage * ((m_num_uploads - 1) * 2 + 1);
   m_buffer_stage = m_device->createBuffer(requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc);
   m_memory_stage = Memory{*m_device, m_buffer_stage.requirements(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   // recreate buffer with correct size, should be calculated beforehand
   m_buffer_stage.bindTo(m_memory_stage);
 
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
-    m_buffer_views_stage.emplace_back(BufferView{m_size_node});
-    m_buffer_views_stage.back().bindTo(m_buffer_stage);
+    m_db_views_stage.front().emplace_back(BufferView{m_size_node});
+    m_db_views_stage.front().back().bindTo(m_buffer_stage);
+
+    m_db_views_stage.back().emplace_back(BufferView{m_size_node});
+    m_db_views_stage.back().back().bindTo(m_buffer_stage);
   } 
 }
 
@@ -131,8 +134,8 @@ void ModelLod::createDrawingBuffers() {
 
 void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   // get next staging slot
-  m_buffer_views_stage[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
-  m_device->copyBuffer(m_buffer_views_stage[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_buffer_views_stage[0].offset(), m_buffer_views[idx_slot].offset());
+  m_db_views_stage.back()[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
+  m_device->copyBuffer(m_db_views_stage.back()[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_db_views_stage.back()[0].offset(), m_buffer_views[idx_slot].offset());
   // update slot occupation
   m_slots[idx_slot] = idx_node;
 }
@@ -144,20 +147,18 @@ void ModelLod::nodeToSlot(std::size_t idx_node, std::size_t idx_slot) {
 }
 
 void ModelLod::performUploads() {
-  // uint8_t* ptr = (uint8_t*)(m_buffer_stage.map(m_buffer_stage.size(), 0));
+  uint8_t* ptr = (uint8_t*)(m_buffer_stage.map(m_buffer_stage.size(), 0));
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_node = m_node_uploads[i].first;
-    // std::memcpy(ptr + m_buffer_views_stage[i].offset(), m_nodes[idx_node].data(), m_size_node);
-    m_buffer_views_stage[i].setData(m_nodes[idx_node].data(), m_size_node, 0);
+    std::memcpy(ptr + m_db_views_stage.back()[i].offset(), m_nodes[idx_node].data(), m_size_node);
   }
-  // m_buffer_stage.unmap();
+  m_buffer_stage.unmap();
 
   std::cout << "uploads ";
   for (auto const& upload : m_node_uploads) {
     std::cout << "(" << upload.first << " to " << upload.second << "), ";
   }
   std::cout << std::endl;
-  // assert(0);
 }
 
 void ModelLod::performCopies() {
@@ -174,11 +175,30 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
   std::vector<vk::BufferCopy> copies_nodes{};
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_slot = m_node_uploads[i].second;
-    copies_nodes.emplace_back(m_buffer_views_stage[i].offset(), m_buffer_views[idx_slot].offset(), m_size_node);
+    copies_nodes.emplace_back(m_db_views_stage.back()[i].offset(), m_buffer_views[idx_slot].offset(), m_size_node);
   }
   command_buffer.copyBuffer(m_buffer_stage, m_buffer, copies_nodes);
 
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_nodes{};
+  barrier_nodes.buffer = buffer();
+  barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_nodes.dstAccessMask = vk::AccessFlagBits::eVertexAttributeRead;
+  barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  command_buffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eVertexInput,
+    vk::DependencyFlags{},
+    {},
+    {barrier_nodes},
+    {}
+  );
+
   m_node_uploads.clear();
+
+  m_db_views_stage.swap();
 }
 void ModelLod::updateDrawCommands() {
   // std::cout << "drawing slots (";
@@ -188,12 +208,12 @@ void ModelLod::updateDrawCommands() {
       assert(float(uint32_t(m_buffer_views[m_active_slots[i]].offset() / m_model.vertex_bytes)) == float(m_buffer_views[m_active_slots[i]].offset()) / float(m_model.vertex_bytes));
       assert(m_model.vertex_bytes == sizeof(serialized_vertex));
       assert(m_model.vertex_bytes * numVertices() == m_buffer_views[i].size());
-      assert(m_model.vertex_bytes * numVertices() == m_buffer_views_stage.front().size());
+      // assert(m_model.vertex_bytes * numVertices() == m_buffer_views_stage.front().size());
       // assert(m_buffer_views[i].size() == sizeof(serialized_vertex) * m_bvh.get_primitives_per_node());
       assert(m_model.vertex_num == numVertices());
       assert(m_model.vertex_num * m_model.vertex_bytes == m_size_node);
       assert(m_size_node == m_buffer_views[i].size());
-      assert(m_size_node == m_buffer_views_stage.front().size());
+      // assert(m_size_node == m_buffer_views_stage.front().size());
       assert(m_buffer.alignment() == m_buffer_stage.alignment());
       m_commands_draw[i].firstVertex = uint32_t(m_buffer_views[m_active_slots[i]].offset()) / m_model.vertex_bytes;
       // std::cout << "(" << m_active_slots[i] << ", " << m_commands_draw[i].firstVertex << "), ";
@@ -245,6 +265,14 @@ void ModelLod::updateDrawCommands() {
   std::swap(m_slots, dev.m_slots);
   std::swap(m_node_uploads, dev.m_node_uploads);
   std::swap(m_commands_draw, dev.m_commands_draw);
+
+  std::swap(m_db_views_stage, dev.m_db_views_stage);
+  for (auto& buffer : m_db_views_stage.back()) {
+    buffer.setBuffer(m_buffer_stage);
+  }
+  for (auto& buffer : m_db_views_stage.back()) {
+    buffer.setBuffer(m_buffer_stage);
+  }
  }
 
 BufferView const& ModelLod::bufferView(std::size_t i) const {

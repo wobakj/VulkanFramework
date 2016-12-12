@@ -5,6 +5,7 @@
 #include "buffer_view.hpp"
 #include "memory.hpp"
 #include "model_t.hpp"
+#include "double_buffer.hpp"
 
 #include "bvh.h"
 #include "lod_stream.h"
@@ -13,6 +14,7 @@
 
 #include <set>
 #include <queue>
+#include <atomic>
 
 class Device;
 
@@ -83,6 +85,7 @@ class ModelLod {
   std::vector<std::size_t> m_active_slots;
   std::vector<std::pair<std::size_t, std::size_t>> m_node_uploads;
   std::vector<vk::DrawIndirectCommand> m_commands_draw;
+  DoubleBuffer<std::vector<BufferView>> m_db_views_stage;
 };
 
 #endif

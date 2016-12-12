@@ -7,14 +7,14 @@
 template<typename T>
 struct DoubleBuffer{
   DoubleBuffer()
-   :m_front{nullptr}
-   ,m_back{nullptr}
+   :m_front{}
+   ,m_back{}
    ,dirty{false}
   {}
   
   DoubleBuffer(T& f, T& b)
-   :m_front{&f}
-   ,m_back{&b}
+   :m_front{f}
+   ,m_back{b}
    ,dirty{false}
   {}
 
@@ -26,15 +26,15 @@ struct DoubleBuffer{
   }    
 
   T& front() {
-    return *m_front;
+    return m_front;
   }
 
   T& back() {
-    return *m_back;
+    return m_back;
   }
   // allow swapping of references
-  T* m_front;
-  T* m_back;
+  T m_front;
+  T m_back;
   bool dirty;
 
   void swap(){
