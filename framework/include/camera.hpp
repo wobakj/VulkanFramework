@@ -7,6 +7,7 @@
 
 // use floats and med precision operations
 #include <glm/gtc/type_precision.hpp>
+#include "frustum.hpp"
 
 class Camera {
  public:
@@ -19,6 +20,7 @@ class Camera {
   glm::fmat4 const& projectionMatrix() const;
   glm::fvec3 position() const;
   glm::fvec2 const& fov() const;
+  Frustum const& frustum() const;
   bool changed() const;
 
  private:
@@ -52,6 +54,7 @@ class Camera {
   mutable bool m_changed;
   static const float translation_speed;
   static const float rotation_speed;
+  Frustum m_frustum;
 };
 
 #endif

@@ -1,6 +1,7 @@
 #include "model_lod.hpp"
 
 #include "device.hpp"
+#include "camera.hpp"
 
 #include <iostream>
 #include <queue>
@@ -43,7 +44,7 @@ static std::vector<vk::VertexInputAttributeDescription> model_to_attr(model_t co
   return attributeDescriptions;  
 }
 
-const std::size_t LAST_NODE = 128;
+const std::size_t LAST_NODE = 1022;
 
 ModelLod::ModelLod()
  :m_model{}
@@ -80,10 +81,11 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   lod_stream.open(path);
 
   std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes" << std::endl;
+  std::cout << "node size " << m_size_node / 1024 << " kB" << std::endl;
 
   // read data from file
-  m_nodes = std::vector<std::vector<float>>(std::min(bvh.get_num_nodes(), uint32_t(LAST_NODE)), std::vector<float>(m_size_node * sizeof(uint8_t) / sizeof(float), 0.0));
-  for(std::size_t i = 0; i < std::min(bvh.get_num_nodes(), uint32_t(LAST_NODE)) && i < LAST_NODE; ++i) {
+  m_nodes = std::vector<std::vector<float>>(bvh.get_num_nodes(), std::vector<float>(m_size_node * sizeof(uint8_t) / sizeof(float), 0.0));
+  for(std::size_t i = 0; i < bvh.get_num_nodes(); ++i) {
     size_t offset_in_bytes = i * m_size_node;
     lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, m_size_node);
   }
@@ -158,11 +160,11 @@ void ModelLod::performUploads() {
   }
   m_buffer_stage.unmap();
 
-  std::cout << "uploads ";
-  for (auto const& upload : m_node_uploads) {
-    std::cout << "(" << upload.first << " to " << upload.second << "), ";
-  }
-  std::cout << std::endl;
+  // std::cout << "uploads ";
+  // for (auto const& upload : m_node_uploads) {
+  //   std::cout << "(" << upload.first << " to " << upload.second << "), ";
+  // }
+  // std::cout << std::endl;
 }
 
 void ModelLod::performCopies() {
@@ -202,8 +204,8 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     {}
   );
 
+  std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
   m_node_uploads.clear();
-
 }
 
 void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
@@ -360,7 +362,7 @@ float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
 }
 
 bool ModelLod::nodeSplitable(std::size_t idx_node) {
-  return m_bvh.get_depth_of_node(idx_node) < m_bvh.get_depth() - 1 && m_bvh.get_child_id(idx_node, m_bvh.get_fan_factor()) < LAST_NODE;
+  return m_bvh.get_depth_of_node(idx_node) < m_bvh.get_depth() - 1;
 }
 
 struct pri_node {
@@ -379,7 +381,7 @@ struct pri_node {
   }
 };
 
-void ModelLod::update(glm::fvec3 const& pos_view) {
+void ModelLod::update(Camera const& cam) {
   // collapse to node with lowest error first
   std::priority_queue<pri_node, std::vector<pri_node>, std::less<pri_node>> queue_collapse{};
   // split node with highest error first
@@ -406,21 +408,21 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     }
   };
 
-  const float max_threshold = 0.25f;
-  const float min_threshold = 0.05f;
+  const float max_threshold = 0.05f;
+  const float min_threshold = 0.01f;
 
   for (auto const& idx_node : m_cut) {
     if (ignore.find(idx_node) != ignore.end()) continue;
-    float error_node = nodeError(pos_view, idx_node) * collapseError(idx_node);
+    float error_node = nodeError(cam.position(), idx_node) * collapseError(idx_node);
     float min_error = error_node;
     // if node is root, is has no siblings
     bool all_siblings = false;
-    auto parent = m_bvh.get_parent_id(idx_node);
+    auto idx_parent = m_bvh.get_parent_id(idx_node);
     if (idx_node > 0) {
       // assume all siblings are in cut
       all_siblings = true;
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-        auto idx_sibling = m_bvh.get_child_id(parent, i);
+        auto idx_sibling = m_bvh.get_child_id(idx_parent, i);
         // make sure no sibling is ignored
         assert(ignore.find(idx_sibling) == ignore.end());
         // check if all siblings lie in cut
@@ -432,24 +434,23 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
       if (all_siblings) {
         // calculate minimal error of all siblings to collapse be order independent
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-          auto idx_sibling = m_bvh.get_child_id(parent, i);
-          min_error = std::min(min_error, nodeError(pos_view, idx_sibling) * collapseError(idx_sibling)); 
+          auto idx_sibling = m_bvh.get_child_id(idx_parent, i);
+          min_error = std::min(min_error, nodeError(cam.position(), idx_sibling) * collapseError(idx_sibling)); 
         }
       }
     }
-    // todo: check frustum intersection case
+    // error too small or frustum
+    if (all_siblings && (min_error < min_threshold || !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
+      check_duplicate(idx_parent);
+      queue_collapse.emplace(nodeError(cam.position(), idx_parent) * collapseError(idx_parent), idx_parent);
+      for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+        ignore.emplace(m_bvh.get_child_id(idx_parent, i));
+      }
+    }
     // error too large
-    if (error_node > max_threshold && nodeSplitable(idx_node)) {
+    else if (error_node > max_threshold && nodeSplitable(idx_node)) {
       check_duplicate(idx_node);
       queue_split.emplace(error_node, idx_node);
-    }
-    // error too small
-    else if (all_siblings && min_error < min_threshold) {
-      check_duplicate(parent);
-      queue_collapse.emplace(nodeError(pos_view, parent) * collapseError(parent), parent);
-      for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-        ignore.emplace(m_bvh.get_child_id(parent, i));
-      }
     }
     else {
       check_duplicate(idx_node);
@@ -461,13 +462,15 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
 // create new cut
   std::vector<std::size_t> cut_new;
   std::size_t num_uploads = 0;
-  auto check_sanity = [this, &num_uploads, &cut_new]() {
+  std::size_t num_new_nodes = 0;
+  auto check_sanity = [this, &num_uploads, &cut_new, &num_new_nodes]() {
     for(std::size_t i = 0; i < cut_new.size(); ++i) {
       for(std::size_t j = i + 1; j < cut_new.size(); ++j) {
         assert(cut_new[i] != cut_new[j]);
       }
     }
     assert(num_uploads <= m_num_uploads);
+    assert(num_new_nodes <= m_num_uploads);
     assert(cut_new.size() <= m_num_nodes);
   };
   // add keep nodes
@@ -486,24 +489,35 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     // m_active_nodes
     auto idx_node = queue_collapse.top().node;
     // if not already in a slot, upload necessary
+    bool keep_children = false;
     if (!inCore(idx_node)) {
       // upload budget sufficient
-      if (num_uploads < m_num_uploads) {
+      if (num_uploads < m_num_uploads && num_new_nodes < m_num_uploads) {
         cut_new.push_back(idx_node);
         ++num_uploads;
+        ++num_new_nodes;
       }
       // if upload budget full, keep children
       else {
-        for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-          auto idx_child = m_bvh.get_child_id(idx_node, i);
-          // child should be in last cut
-          assert(inCore(idx_child));
-          cut_new.push_back(idx_child);
-        }
+        keep_children = true;
       }
     }
     else {
-      cut_new.push_back(idx_node);
+      if (num_new_nodes < m_num_uploads) {
+        cut_new.push_back(idx_node);
+        ++num_new_nodes;
+      }
+      else {
+        keep_children = true;
+      }
+    }
+    if (keep_children) {
+      for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+        auto idx_child = m_bvh.get_child_id(idx_node, i);
+        // child should be in last cut
+        assert(inCore(idx_child));
+        cut_new.push_back(idx_child);
+      }
     }
     queue_collapse.pop();
     assert(!contains(cut_new, m_bvh.get_parent_id(idx_node)));
@@ -524,13 +538,14 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
         }
       } 
       // check if split uploads are too many for this frame
-      if (num_out_core <= m_num_uploads - num_uploads) {
+      if (num_out_core <= m_num_uploads - num_uploads && m_bvh.get_fan_factor() < m_num_uploads - num_new_nodes) {
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
           auto idx_child = m_bvh.get_child_id(queue_split.top().node, i);
           cut_new.push_back(idx_child);
           if (!inCore(idx_child)) {
             ++num_uploads;
           }
+          ++num_new_nodes;
           check_sanity();
         }
       }
@@ -552,17 +567,20 @@ void ModelLod::update(glm::fvec3 const& pos_view) {
     queue_split.pop();
   }
 
-  printCut();
+  // printCut();
   setCut(cut_new);
 }
 
 float ModelLod::collapseError(uint64_t idx_node) {
   float child_extent = 0.0f;
-  for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-    child_extent += m_bvh.get_avg_primitive_extent(m_bvh.get_child_id(idx_node, i));
+  if (nodeSplitable(idx_node)) {
+    for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
+      child_extent += m_bvh.get_avg_primitive_extent(m_bvh.get_child_id(idx_node, i));
+    }
+    child_extent /= float(m_bvh.get_fan_factor());
+    return m_bvh.get_avg_primitive_extent(idx_node) / child_extent; 
   }
-  child_extent /= float(m_bvh.get_fan_factor());
-  return m_bvh.get_avg_primitive_extent(idx_node) / child_extent; 
+  else return 1.0f;
 }
 
 bool ModelLod::inCore(std::size_t idx_node) {
@@ -646,11 +664,11 @@ void ModelLod::printCut() const {
     std::cout << node << ", ";
   }
   std::cout << ")" << std::endl;
-  std::cout << "active slots are (";
-  for (auto const& slots : m_active_slots) {
-    std::cout << slots << ", ";
-  }
-  std::cout << ")" << std::endl;
+  // std::cout << "active slots are (";
+  // for (auto const& slots : m_active_slots) {
+  //   std::cout << slots << ", ";
+  // }
+  // std::cout << ")" << std::endl;
 }
 
 void ModelLod::printSlots() const {

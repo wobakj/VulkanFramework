@@ -41,7 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 32;
+const std::size_t NUM_NODES = 512;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -254,7 +254,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   );
 
   // upload node data
-  m_model_lod.update(m_camera.position());
+  m_model_lod.update(m_camera);
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
 
@@ -316,7 +316,7 @@ void ApplicationLod::createGraphicsPipeline() {
   rasterizer.lineWidth = 0.5f;
   rasterizer.cullMode = vk::CullModeFlagBits::eNone;
   // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-  // rasterizer.polygonMode = vk::PolygonMode::eLine;
+  rasterizer.polygonMode = vk::PolygonMode::eLine;
 
   vk::PipelineMultisampleStateCreateInfo multisampling{};
 
@@ -425,8 +425,10 @@ void ApplicationLod::createGraphicsPipeline() {
 }
 
 void ApplicationLod::createVertexBuffer() {
-  auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.lod", NUM_NODES, 16};
+  auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.bvh");
+  m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.lod", NUM_NODES, 100};
+  // auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.bvh");
+  // m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.lod", NUM_NODES, 16};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_light = Model{m_device, tri};
@@ -517,16 +519,12 @@ void ApplicationLod::createDescriptorPool() {
 
 void ApplicationLod::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffers["draw_commands"] = Buffer{m_device, sizeof(vk::DrawIndirectCommand) * NUM_NODES * 2, vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size() * 2);
   m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
-  m_buffers.at("draw_commands").bindTo(m_device.memoryPool("uniforms"));
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views["draw_commands"] = BufferView{sizeof(vk::DrawIndirectCommand) * NUM_NODES};
-  m_buffer_views.at("draw_commands").bindTo(m_buffers.at("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////

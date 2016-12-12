@@ -48,6 +48,8 @@ void Camera::update(float delta_time) {
   view_matrix_ = glm::inverse(transformation_);
   // reset applied movement 
   movement_ = glm::fvec3{0.0f};
+
+  m_frustum.update(projection_matrix_ * view_matrix_);
 }
 
 void Camera::setAspect(std::size_t width, std::size_t height) {
@@ -77,6 +79,10 @@ glm::fvec3 Camera::position() const {
 
 glm::fvec2 const& Camera::fov() const {
   return fov_;
+}
+
+Frustum const& Camera::frustum() const {
+  return m_frustum;
 }
 
 bool Camera::changed() const {

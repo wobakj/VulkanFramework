@@ -17,6 +17,7 @@
 #include <atomic>
 
 class Device;
+class Camera;
 
 class ModelLod {
  public:  
@@ -40,7 +41,7 @@ class ModelLod {
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numVertices() const;
 
-  void update(glm::fvec3 const& pod_view);
+  void update(Camera const& cam);
   void performCopiesCommand(vk::CommandBuffer const& command_buffer);
   void updateDrawCommands(vk::CommandBuffer const& command_buffer);
   std::vector<vk::DrawIndirectCommand> const& drawCommands() const;
