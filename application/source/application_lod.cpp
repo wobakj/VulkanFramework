@@ -100,9 +100,6 @@ void ApplicationLod::createFrameResources() {
     m_queue_record_frames.push(i);
     res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
     res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-    // lod draw commands
-    res.buffer_views["draw_commands"] = BufferView{sizeof(vk::DrawIndirectCommand) * NUM_NODES};
-    res.buffer_views.at("draw_commands").bindTo(m_buffers.at("draw_commands"));
   }
 }
 
@@ -205,7 +202,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
   // for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
-    res.command_buffers.at("gbuffer").drawIndirect(res.buffer_views.at("draw_commands").buffer(), res.buffer_views.at("draw_commands").offset(), m_model_lod.numNodes(), sizeof(vk::DrawIndirectCommand));      
+    res.command_buffers.at("gbuffer").drawIndirect(m_buffer_views.at("draw_commands").buffer(), m_buffer_views.at("draw_commands").offset(), m_model_lod.numNodes(), sizeof(vk::DrawIndirectCommand));      
   // }
 
   res.command_buffers.at("gbuffer").end();
@@ -262,14 +259,14 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
 
   // upload draw instructions
   res.command_buffers.at("draw").updateBuffer(
-    res.buffer_views.at("draw_commands").buffer(),
-    res.buffer_views.at("draw_commands").offset(),
+    m_buffer_views.at("draw_commands").buffer(),
+    m_buffer_views.at("draw_commands").offset(),
     m_model_lod.numNodes() * sizeof(vk::DrawIndirectCommand),
     m_model_lod.drawCommands().data()
   );
   // barrier to make new data visible to vertex shader
   vk::BufferMemoryBarrier barrier_cmds{};
-  barrier_cmds.buffer = res.buffer_views.at("draw_commands").buffer();
+  barrier_cmds.buffer = m_buffer_views.at("draw_commands").buffer();
   barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
   barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
   barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -551,6 +548,8 @@ void ApplicationLod::createUniformBuffers() {
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
+  m_buffer_views["draw_commands"] = BufferView{sizeof(vk::DrawIndirectCommand) * NUM_NODES};
+  m_buffer_views.at("draw_commands").bindTo(m_buffers.at("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////

@@ -42,6 +42,7 @@ class ModelLod {
 
   void update(glm::fvec3 const& pod_view);
   void performCopiesCommand(vk::CommandBuffer const& command_buffer);
+  void updateDrawCommands(vk::CommandBuffer const& command_buffer);
   std::vector<vk::DrawIndirectCommand> const& drawCommands() const;
   void performCopies();
 

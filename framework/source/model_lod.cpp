@@ -171,11 +171,13 @@ void ModelLod::performCopies() {
 
 void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
   if (m_node_uploads.empty()) return;
+  // memory transfer to staging is finished
+  m_db_views_stage.swap();
 
   std::vector<vk::BufferCopy> copies_nodes{};
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_slot = m_node_uploads[i].second;
-    copies_nodes.emplace_back(m_db_views_stage.back()[i].offset(), m_buffer_views[idx_slot].offset(), m_size_node);
+    copies_nodes.emplace_back(m_db_views_stage.front()[i].offset(), m_buffer_views[idx_slot].offset(), m_size_node);
   }
   command_buffer.copyBuffer(m_buffer_stage, m_buffer, copies_nodes);
 
@@ -198,8 +200,38 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
 
   m_node_uploads.clear();
 
-  m_db_views_stage.swap();
 }
+
+// void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
+//   if (m_node_uploads.empty()) return;
+//   m_db_draw_commands.swap();
+//   // upload draw instructions
+//   command_buffer.updateBuffer(
+//     res.buffer_views.at("draw_commands").buffer(),
+//     res.buffer_views.at("draw_commands").offset(),
+//     m_model_lod.numNodes() * sizeof(vk::DrawIndirectCommand),
+//     m_model_lod.drawCommands().data()
+//   );
+//   // barrier to make new data visible to vertex shader
+//   vk::BufferMemoryBarrier barrier_cmds{};
+//   barrier_cmds.buffer = res.buffer_views.at("draw_commands").buffer();
+//   barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+//   barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
+//   barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+//   barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+//   command_buffer.pipelineBarrier(
+//     vk::PipelineStageFlagBits::eTransfer,
+//     vk::PipelineStageFlagBits::eDrawIndirect,
+//     vk::DependencyFlags{},
+//     {},
+//     {barrier_cmds},
+//     {}
+//   );
+
+//   m_node_uploads.clear();
+// }
+
 void ModelLod::updateDrawCommands() {
   // std::cout << "drawing slots (";
   for(std::size_t i = 0; i < m_num_nodes; ++i) {
