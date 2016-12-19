@@ -41,7 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 512;
+const std::size_t NUM_NODES = 16;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -533,9 +533,6 @@ void ApplicationLod::updateView() {
   ubo_cam.view = m_camera.viewMatrix();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
   ubo_cam.proj = m_camera.projectionMatrix();
-  ubo_cam.proj[1][1] *= -1;
-
-  // m_device.uploadBufferData(&ubo_cam, m_buffers.at("uniform"));
 }
 
 void ApplicationLod::emptyDrawQueue() {
