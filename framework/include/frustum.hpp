@@ -56,13 +56,13 @@ class Frustum
 		// calculate corner points
 		auto inverted = glm::inverse(matrix);
 		points[0] = glm::fvec3{inverted * glm::fvec4{1.0f, 1.0f, 0.0f, 1.0f}};
-		points[4] = glm::fvec3{inverted * glm::fvec4{1.0f, 1.0f, 1.0f, 1.0f}};
-		points[1] = glm::fvec3{inverted * glm::fvec4{-1.0f, 1.0f, 0.0f, 1.0f}};
-		points[2] = glm::fvec3{inverted * glm::fvec4{-1.0f, 1.0f, 1.0f, 1.0f}};
-		points[6] = glm::fvec3{inverted * glm::fvec4{1.0f, -1.0f, 0.0f, 1.0f}};
-		points[7] = glm::fvec3{inverted * glm::fvec4{1.0f, -1.0f, 1.0f, 1.0f}};
-		points[3] = glm::fvec3{inverted * glm::fvec4{-1.0f, -1.0f, 0.0f, 1.0f}};
-		points[5] = glm::fvec3{inverted * glm::fvec4{-1.0f, -1.0f, 1.0f, 1.0f}};
+		points[1] = glm::fvec3{inverted * glm::fvec4{1.0f, 1.0f, 1.0f, 1.0f}};
+		points[2] = glm::fvec3{inverted * glm::fvec4{-1.0f, 1.0f, 0.0f, 1.0f}};
+		points[3] = glm::fvec3{inverted * glm::fvec4{-1.0f, 1.0f, 1.0f, 1.0f}};
+		points[4] = glm::fvec3{inverted * glm::fvec4{1.0f, -1.0f, 0.0f, 1.0f}};
+		points[5] = glm::fvec3{inverted * glm::fvec4{1.0f, -1.0f, 1.0f, 1.0f}};
+		points[6] = glm::fvec3{inverted * glm::fvec4{-1.0f, -1.0f, 0.0f, 1.0f}};
+		points[7] = glm::fvec3{inverted * glm::fvec4{-1.0f, -1.0f, 1.0f, 1.0f}};
 	}
 	
 	bool checkSphere(glm::vec3 pos, float radius) const	{
@@ -76,16 +76,16 @@ class Frustum
 // from http://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
 	bool intersects(vklod::bounding_box_t const& box) const {
 	  // check box outside/inside of frustum
-    for (int i=0; i<6; ++i) {
+    for (int i = 0; i < 6; ++i) {
       int out = 0;
-      out += ((glm::dot( planes[i], glm::fvec4(box.min()[0], box.min()[1], box.min()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
-      out += ((glm::dot( planes[i], glm::fvec4(box.max()[0], box.min()[1], box.min()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
-      out += ((glm::dot( planes[i], glm::fvec4(box.min()[0], box.max()[1], box.min()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
-      out += ((glm::dot( planes[i], glm::fvec4(box.max()[0], box.max()[1], box.min()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
-      out += ((glm::dot( planes[i], glm::fvec4(box.min()[0], box.min()[1], box.max()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
-      out += ((glm::dot( planes[i], glm::fvec4(box.max()[0], box.min()[1], box.max()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
-      out += ((glm::dot( planes[i], glm::fvec4(box.min()[0], box.max()[1], box.max()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
-      out += ((glm::dot( planes[i], glm::fvec4(box.max()[0], box.max()[1], box.max()[2], 1.0f) ) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.min()[0], box.min()[1], box.min()[2], 1.0f)) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.max()[0], box.min()[1], box.min()[2], 1.0f)) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.min()[0], box.max()[1], box.min()[2], 1.0f)) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.max()[0], box.max()[1], box.min()[2], 1.0f)) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.min()[0], box.min()[1], box.max()[2], 1.0f)) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.max()[0], box.min()[1], box.max()[2], 1.0f)) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.min()[0], box.max()[1], box.max()[2], 1.0f)) < 0.0 ) ? 1 : 0);
+      out += ((glm::dot(planes[i], glm::fvec4(box.max()[0], box.max()[1], box.max()[2], 1.0f)) < 0.0 ) ? 1 : 0);
       if (out == 8) return false;
     }
 

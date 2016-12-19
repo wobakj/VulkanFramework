@@ -214,7 +214,7 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     {}
   );
 
-  std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
+  // std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
   m_node_uploads.clear();
 }
 
@@ -376,6 +376,10 @@ bool ModelLod::nodeSplitable(std::size_t idx_node) {
   return m_bvh.get_depth_of_node(idx_node) < m_bvh.get_depth() - 1;
 }
 
+bool ModelLod::nodeCollapsible(std::size_t idx_node) {
+  return idx_node > 0;
+}
+
 struct pri_node {
   pri_node(float err, std::size_t n)
    :error{err}
@@ -443,23 +447,27 @@ void ModelLod::update(Camera const& cam) {
         }
       }
       if (all_siblings) {
-        // calculate minimal error of all siblings to collapse be order independent
+        // calculate minimal error of all siblings to collapse order independent
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
           auto idx_sibling = m_bvh.get_child_id(idx_parent, i);
           min_error = std::min(min_error, nodeError(cam.position(), idx_sibling) * collapseError(idx_sibling)); 
         }
       }
     }
-    // error too small or frustum
-    if (all_siblings && (min_error < min_threshold || !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
+  // actual cut update
+    // error too small or parent ourside frustum
+    if (nodeCollapsible(idx_node) && all_siblings && (min_error < min_threshold || !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
+      if (!cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent))) {
+        std::cout << idx_parent << " outside frustum, collapse" << std::endl;
+      }
       check_duplicate(idx_parent);
       queue_collapse.emplace(nodeError(cam.position(), idx_parent) * collapseError(idx_parent), idx_parent);
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         ignore.emplace(m_bvh.get_child_id(idx_parent, i));
       }
     }
-    // error too large
-    else if (error_node > max_threshold && nodeSplitable(idx_node)) {
+    // error too large and within frustum
+    else if (error_node > max_threshold && nodeSplitable(idx_node) && cam.frustum().intersects(m_bvh.get_bounding_box(idx_node))) {
       check_duplicate(idx_node);
       queue_split.emplace(error_node, idx_node);
     }
@@ -468,8 +476,10 @@ void ModelLod::update(Camera const& cam) {
       queue_keep.emplace(error_node, idx_node);
       // std::cout << "keep " << node << " for missing siblings" << std::endl;
     }
+    if (nodeCollapsible(idx_node) && !all_siblings && !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent))) {
+      std::cout << idx_parent << " outside frustum" << std::endl;
+    }
   }
-
 // create new cut
   std::vector<std::size_t> cut_new;
   std::size_t num_uploads = 0;
@@ -578,7 +588,7 @@ void ModelLod::update(Camera const& cam) {
     queue_split.pop();
   }
 
-  // printCut();
+  printCut();
   setCut(cut_new);
 }
 

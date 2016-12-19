@@ -61,6 +61,7 @@ class ModelLod {
   void updateDrawCommands();
 
   bool nodeSplitable(std::size_t node);
+  bool nodeCollapsible(std::size_t node);
   float nodeError(glm::fvec3 const& pos_view, std::size_t node);
   float collapseError(uint64_t idx_node);
   bool inCore(std::size_t idx_node);
