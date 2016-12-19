@@ -51,6 +51,7 @@ ModelLod::ModelLod()
  ,m_device{nullptr}
  ,m_bind_info{}
  ,m_attrib_info{}
+ ,m_ptr_mem_stage{nullptr}
 {}
 
 ModelLod::ModelLod(ModelLod && dev)
@@ -71,6 +72,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_bvh{bvh}
  ,m_size_node{sizeof(serialized_vertex) * m_bvh.get_primitives_per_node()}
  ,m_commands_draw(m_num_nodes, vk::DrawIndirectCommand{0, 1, 0, 0})
+ ,m_ptr_mem_stage{nullptr}
 {
   // create staging memory and buffers
   createStagingBuffers();
@@ -97,6 +99,13 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   setFirstCut();
 }
 
+ModelLod::~ModelLod() {
+  // only unmap if buffer was mapped
+  if (m_ptr_mem_stage) {
+    m_buffer_stage.unmap();
+  }
+}
+
 void ModelLod::createStagingBuffers() {
   m_buffer_stage = m_device->createBuffer(m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc);
   auto requirements_stage = m_buffer_stage.requirements();
@@ -115,6 +124,8 @@ void ModelLod::createStagingBuffers() {
     m_db_views_stage.back().emplace_back(BufferView{m_size_node});
     m_db_views_stage.back().back().bindTo(m_buffer_stage);
   } 
+  // map staging memory once
+  m_ptr_mem_stage = (uint8_t*)(m_buffer_stage.map());
 }
 
 void ModelLod::createDrawingBuffers() {
@@ -140,7 +151,8 @@ void ModelLod::createDrawingBuffers() {
 
 void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   // get next staging slot
-  m_db_views_stage.back()[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
+  // m_db_views_stage.back()[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
+  std::memcpy(m_ptr_mem_stage + m_db_views_stage.back()[0].offset(), m_nodes[idx_node].data(), m_size_node);
   m_device->copyBuffer(m_db_views_stage.back()[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_db_views_stage.back()[0].offset(), m_buffer_views[idx_slot].offset());
   // update slot occupation
   m_slots[idx_slot] = idx_node;
@@ -153,12 +165,10 @@ void ModelLod::nodeToSlot(std::size_t idx_node, std::size_t idx_slot) {
 }
 
 void ModelLod::performUploads() {
-  uint8_t* ptr = (uint8_t*)(m_buffer_stage.map(m_buffer_stage.size(), 0));
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_node = m_node_uploads[i].first;
-    std::memcpy(ptr + m_db_views_stage.back()[i].offset(), m_nodes[idx_node].data(), m_size_node);
+    std::memcpy(m_ptr_mem_stage + m_db_views_stage.back()[i].offset(), m_nodes[idx_node].data(), m_size_node);
   }
-  m_buffer_stage.unmap();
 
   // std::cout << "uploads ";
   // for (auto const& upload : m_node_uploads) {
@@ -299,6 +309,7 @@ void ModelLod::updateDrawCommands() {
   std::swap(m_slots, dev.m_slots);
   std::swap(m_node_uploads, dev.m_node_uploads);
   std::swap(m_commands_draw, dev.m_commands_draw);
+  std::swap(m_ptr_mem_stage, dev.m_ptr_mem_stage);
 
   std::swap(m_view_draw_commands, dev.m_view_draw_commands);
   m_view_draw_commands.setBuffer(m_buffer);

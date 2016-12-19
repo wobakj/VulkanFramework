@@ -26,6 +26,7 @@ class ModelLod {
   // ModelLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads);
   ModelLod(ModelLod && dev);
   ModelLod(ModelLod const&) = delete;
+  ~ModelLod();
 
   ModelLod& operator=(ModelLod const&) = delete;
   ModelLod& operator=(ModelLod&& dev);
@@ -90,6 +91,7 @@ class ModelLod {
   std::vector<std::pair<std::size_t, std::size_t>> m_node_uploads;
   std::vector<vk::DrawIndirectCommand> m_commands_draw;
   DoubleBuffer<std::vector<BufferView>> m_db_views_stage;
+  uint8_t* m_ptr_mem_stage;
 };
 
 #endif
