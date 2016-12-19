@@ -96,6 +96,8 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
   std::cout << "node size " << m_size_node / 1024 << " kB" << std::endl;
 
+  assert(m_num_slots <= m_bvh.get_num_nodes());
+
   setFirstCut();
 }
 
@@ -738,7 +740,7 @@ void ModelLod::printSlots() const {
 
 void ModelLod::setFirstCut() {
   uint32_t level = 0;
-  while(m_num_nodes >= m_bvh.get_length_of_depth(level)) {
+  while(m_num_nodes >= m_bvh.get_length_of_depth(level) && level < m_bvh.get_depth()) {
     ++level;
   }
   level -= 1;
