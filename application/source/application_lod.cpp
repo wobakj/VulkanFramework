@@ -41,7 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 16;
+const std::size_t NUM_NODES = 512;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -54,7 +54,8 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_semaphore_draw{0}
  ,m_semaphore_record{m_swap_chain.numImages() - 1}
 {
-  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
+  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/lod_frag.spv"}});
+  // m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}});
 
   createVertexBuffer();
@@ -507,6 +508,7 @@ void ApplicationLod::createDescriptorPool() {
   m_descriptor_sets["textures"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 1);
 
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("textures"), 1);
 
   m_descriptorPool_2 = m_shaders.at("quad").createPool(1);
   m_descriptor_sets["lighting"] = m_shaders.at("quad").allocateSet(m_descriptorPool_2.get(), 1);

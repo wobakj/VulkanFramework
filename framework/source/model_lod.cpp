@@ -82,9 +82,6 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   lamure::ren::lod_stream lod_stream;
   lod_stream.open(path);
 
-  std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes" << std::endl;
-  std::cout << "node size " << m_size_node / 1024 << " kB" << std::endl;
-
   // read data from file
   m_nodes = std::vector<std::vector<float>>(bvh.get_num_nodes(), std::vector<float>(m_size_node * sizeof(uint8_t) / sizeof(float), 0.0));
   for(std::size_t i = 0; i < bvh.get_num_nodes(); ++i) {
@@ -95,7 +92,10 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   m_model = model_t{m_nodes.front(), model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
   m_bind_info = model_to_bind(m_model);
   m_attrib_info = model_to_attr(m_model);
-  std::cout << numVertices() << std::endl;
+
+  std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
+  std::cout << "node size " << m_size_node / 1024 << " kB" << std::endl;
+
   setFirstCut();
 }
 
@@ -133,11 +133,15 @@ void ModelLod::createDrawingBuffers() {
   auto requirements_draw = m_buffer.requirements();
   // per-buffer offset
   auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_draw.alignment)));
+  // size of the drawindirect commands
   vk::DeviceSize size_drawbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(vk::DrawIndirectCommand) * m_num_slots) / float(requirements_draw.alignment)));
-  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff;
-  m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
+  // size of the level buffer
+  vk::DeviceSize size_levelbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(float) * (m_num_slots)) / float(requirements_draw.alignment)));
+  // total buffer size
+  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff * 2;
+  m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer);
   m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
-  // ugly, recreate buffer with size for correct allignment
+  // ugly, recreate buffer with size for correct alignment
   m_buffer.bindTo(m_memory);
 
   for(std::size_t i = 0; i < m_num_slots; ++i) {
@@ -147,6 +151,8 @@ void ModelLod::createDrawingBuffers() {
 
   m_view_draw_commands = BufferView{sizeof(vk::DrawIndirectCommand) * m_num_slots};
   m_view_draw_commands.bindTo(m_buffer);
+  m_view_levels = BufferView{sizeof(float) * (m_num_slots)};
+  m_view_levels.bindTo(m_buffer);
 }
 
 void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
@@ -214,7 +220,7 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     {}
   );
 
-  // std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
+  std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
   m_node_uploads.clear();
 }
 
@@ -240,6 +246,36 @@ void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
     vk::DependencyFlags{},
     {},
     {barrier_cmds},
+    {}
+  );
+
+  std::vector<float> levels(m_num_slots, 0.0f);
+  float depth = float(m_bvh.get_depth());
+  for (std::size_t i = 0; i < m_num_slots; ++i) {
+    levels[i] = float(m_bvh.get_depth_of_node(m_slots[i])) / depth;
+  }
+  // upload mode levels
+  command_buffer.updateBuffer(
+    m_view_levels.buffer(),
+    m_view_levels.offset(),
+    m_view_levels.size(),
+    levels.data()
+  );
+
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_levels{};
+  barrier_levels.buffer = m_view_levels.buffer();
+  barrier_levels.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_levels.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  barrier_levels.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_levels.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  command_buffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eFragmentShader,
+    vk::DependencyFlags{},
+    {},
+    {barrier_levels},
     {}
   );
 }
@@ -310,6 +346,9 @@ void ModelLod::updateDrawCommands() {
   std::swap(m_node_uploads, dev.m_node_uploads);
   std::swap(m_commands_draw, dev.m_commands_draw);
   std::swap(m_ptr_mem_stage, dev.m_ptr_mem_stage);
+  
+  std::swap(m_view_levels, dev.m_view_levels);
+  m_view_levels.setBuffer(m_buffer);
 
   std::swap(m_view_draw_commands, dev.m_view_draw_commands);
   m_view_draw_commands.setBuffer(m_buffer);
@@ -329,6 +368,10 @@ BufferView const& ModelLod::bufferView(std::size_t i) const {
 
 BufferView const& ModelLod::viewDrawCommands() const {
   return m_view_draw_commands;
+}
+
+BufferView const& ModelLod::viewNodeLevels() const {
+  return m_view_levels;
 }
 
 vk::Buffer const& ModelLod::buffer() const {
@@ -457,9 +500,6 @@ void ModelLod::update(Camera const& cam) {
   // actual cut update
     // error too small or parent ourside frustum
     if (nodeCollapsible(idx_node) && all_siblings && (min_error < min_threshold || !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
-      if (!cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent))) {
-        std::cout << idx_parent << " outside frustum, collapse" << std::endl;
-      }
       check_duplicate(idx_parent);
       queue_collapse.emplace(nodeError(cam.position(), idx_parent) * collapseError(idx_parent), idx_parent);
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
@@ -474,10 +514,6 @@ void ModelLod::update(Camera const& cam) {
     else {
       check_duplicate(idx_node);
       queue_keep.emplace(error_node, idx_node);
-      // std::cout << "keep " << node << " for missing siblings" << std::endl;
-    }
-    if (nodeCollapsible(idx_node) && !all_siblings && !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent))) {
-      std::cout << idx_parent << " outside frustum" << std::endl;
     }
   }
 // create new cut
@@ -588,7 +624,7 @@ void ModelLod::update(Camera const& cam) {
     queue_split.pop();
   }
 
-  printCut();
+  // printCut();
   setCut(cut_new);
 }
 

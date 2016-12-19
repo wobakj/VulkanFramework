@@ -47,6 +47,7 @@ class ModelLod {
   void updateDrawCommands(vk::CommandBuffer const& command_buffer);
   std::vector<vk::DrawIndirectCommand> const& drawCommands() const;
   BufferView const& viewDrawCommands() const;
+  BufferView const& viewNodeLevels() const;
   void performCopies();
 
  private:
@@ -78,6 +79,7 @@ class ModelLod {
   std::vector<BufferView> m_buffer_views;
   std::vector<BufferView> m_buffer_views_stage;
   BufferView m_view_draw_commands;
+  BufferView m_view_levels;
   Memory m_memory;
   Memory m_memory_stage;
   std::size_t m_num_nodes; 
