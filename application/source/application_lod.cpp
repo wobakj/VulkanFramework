@@ -41,7 +41,7 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 512;
+const std::size_t NUM_NODES = 64;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
@@ -108,16 +108,15 @@ void ApplicationLod::render() {
   m_semaphore_record.wait();
   static uint64_t frame = 0;
   ++frame;
+  uint32_t frame_record = 0;
   // only calculate new frame if previous one was rendered
-  if (!m_mutex_record_queue.try_lock()) return;
-  if (m_queue_record_frames.empty()) {
-    m_mutex_record_queue.unlock();
-    return;
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    assert(!m_queue_record_frames.empty());
+    // get next frame to record
+    frame_record = m_queue_record_frames.front();
+    m_queue_record_frames.pop();
   }
-  // get next frame to record
-  uint32_t frame_record = m_queue_record_frames.front();
-  m_queue_record_frames.pop();
-  m_mutex_record_queue.unlock();
   auto& resource_record = m_frame_resources.at(frame_record);
 
   // wait for last acquisition until acquiring again
@@ -144,9 +143,7 @@ void ApplicationLod::draw() {
   uint32_t frame_draw = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    if (m_queue_draw_frames.empty()) {
-      return;
-    }
+    assert(!m_queue_draw_frames.empty());
     // get frame to draw
     frame_draw = m_queue_draw_frames.front();
     m_queue_draw_frames.pop();
@@ -160,8 +157,8 @@ void ApplicationLod::draw() {
     resource_draw.fenceDraw().reset();
     submitDraw(resource_draw);
     // wait until swap chain is avaible
-      // present image and wait for result
-      present(resource_draw);
+    // present image and wait for result
+    present(resource_draw);
     // make frame avaible for rerecording
     {
       std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
@@ -426,10 +423,10 @@ void ApplicationLod::createGraphicsPipeline() {
 }
 
 void ApplicationLod::createVertexBuffer() {
-  auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.lod", NUM_NODES, 100};
-  // auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.bvh");
-  // m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_manuscript_4305k.lod", NUM_NODES, 16};
+  // auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.bvh");
+  // m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.lod", NUM_NODES, 100};
+  auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
+  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", NUM_NODES, 16};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_light = Model{m_device, tri};
