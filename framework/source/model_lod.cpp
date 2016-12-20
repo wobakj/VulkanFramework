@@ -44,8 +44,6 @@ static std::vector<vk::VertexInputAttributeDescription> model_to_attr(model_t co
   return attributeDescriptions;  
 }
 
-const std::size_t LAST_NODE = 1022;
-
 ModelLod::ModelLod()
  :m_model{}
  ,m_device{nullptr}
@@ -128,6 +126,8 @@ void ModelLod::createStagingBuffers() {
   } 
   // map staging memory once
   m_ptr_mem_stage = (uint8_t*)(m_buffer_stage.map());
+
+  std::cout << "LOD staging buffer size is " << requirements_stage.size / 1024 / 1024 << " MB" << std::endl;
 }
 
 void ModelLod::createDrawingBuffers() {
@@ -138,9 +138,9 @@ void ModelLod::createDrawingBuffers() {
   // size of the drawindirect commands
   vk::DeviceSize size_drawbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(vk::DrawIndirectCommand) * m_num_slots) / float(requirements_draw.alignment)));
   // size of the level buffer
-  vk::DeviceSize size_levelbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(float) * (m_num_slots)) / float(requirements_draw.alignment)));
+  vk::DeviceSize size_levelbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(float) * (m_num_slots + 1)) / float(requirements_draw.alignment)));
   // total buffer size
-  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff * 2;
+  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff;
   m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer);
   m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   // ugly, recreate buffer with size for correct alignment
@@ -153,8 +153,10 @@ void ModelLod::createDrawingBuffers() {
 
   m_view_draw_commands = BufferView{sizeof(vk::DrawIndirectCommand) * m_num_slots};
   m_view_draw_commands.bindTo(m_buffer);
-  m_view_levels = BufferView{sizeof(float) * (m_num_slots)};
+  m_view_levels = BufferView{sizeof(float) * (m_num_slots + 1)};
   m_view_levels.bindTo(m_buffer);
+
+  std::cout << "LOD drawing buffer size is " << requirements_draw.size / 1024 / 1024 << " MB" << std::endl;
 }
 
 void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
@@ -222,6 +224,38 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     {}
   );
 
+  std::vector<float> levels(m_num_slots + 1, 0.0f);
+  float depth = float(m_bvh.get_depth());
+  for (std::size_t i = 0; i < m_num_slots; ++i) {
+    levels[i + 1] = float(m_bvh.get_depth_of_node(m_slots[i])) / depth;
+  }
+  // store number of vertices per node in first entry
+  std::memcpy(levels.data(), &m_model.vertex_num, sizeof(std::uint32_t));
+  // upload mode levels
+  command_buffer.updateBuffer(
+    m_view_levels.buffer(),
+    m_view_levels.offset(),
+    m_view_levels.size(),
+    levels.data()
+  );
+
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_levels{};
+  barrier_levels.buffer = m_view_levels.buffer();
+  barrier_levels.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_levels.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  barrier_levels.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_levels.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  command_buffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eFragmentShader,
+    vk::DependencyFlags{},
+    {},
+    {barrier_levels},
+    {}
+  );
+  
   std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
   m_node_uploads.clear();
 }
@@ -248,36 +282,6 @@ void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
     vk::DependencyFlags{},
     {},
     {barrier_cmds},
-    {}
-  );
-
-  std::vector<float> levels(m_num_slots, 0.0f);
-  float depth = float(m_bvh.get_depth());
-  for (std::size_t i = 0; i < m_num_slots; ++i) {
-    levels[i] = float(m_bvh.get_depth_of_node(m_slots[i])) / depth;
-  }
-  // upload mode levels
-  command_buffer.updateBuffer(
-    m_view_levels.buffer(),
-    m_view_levels.offset(),
-    m_view_levels.size(),
-    levels.data()
-  );
-
-  // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier_levels{};
-  barrier_levels.buffer = m_view_levels.buffer();
-  barrier_levels.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_levels.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  barrier_levels.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_levels.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  command_buffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eFragmentShader,
-    vk::DependencyFlags{},
-    {},
-    {barrier_levels},
     {}
   );
 }
