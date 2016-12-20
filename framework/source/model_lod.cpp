@@ -140,7 +140,7 @@ void ModelLod::createDrawingBuffers() {
   // size of the level buffer
   vk::DeviceSize size_levelbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(float) * (m_num_slots + 1)) / float(requirements_draw.alignment)));
   // total buffer size
-  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff;
+  requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff * 2;
   m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer);
   m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   // ugly, recreate buffer with size for correct alignment
@@ -255,7 +255,7 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     {barrier_levels},
     {}
   );
-  
+
   std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
   m_node_uploads.clear();
 }
@@ -415,10 +415,14 @@ std::uint32_t ModelLod::numVertices() const {
 
 float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
   auto centroid = m_bvh.get_centroid(node);
-  float dist = glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
   auto const& bbox = m_bvh.get_bounding_box(node);
+  // (glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
+  glm::fvec3 min_dist = glm::fvec3{glm::max(glm::max(bbox.min()[0] - pos_view.x, 0.0), pos_view.x - bbox.max()[0]),
+                                   glm::max(glm::max(bbox.min()[1] - pos_view.y, 0.0), pos_view.y - bbox.max()[1]),
+                                   glm::max(glm::max(bbox.min()[2] - pos_view.z, 0.0), pos_view.z - bbox.max()[2])};
   glm::fvec3 bbox_dims = glm::fvec3{glm::abs(bbox.max()[0] - bbox.min()[0]), glm::abs(bbox.max()[1] - bbox.min()[1]), glm::abs(bbox.max()[2] - bbox.min()[2])};
-  return glm::length(bbox_dims) / (dist * dist); 
+  return glm::length(min_dist); 
+  // return glm::length(bbox_dims) / glm::length(min_dist); 
 }
 
 bool ModelLod::nodeSplitable(std::size_t idx_node) {
@@ -473,11 +477,11 @@ void ModelLod::update(Camera const& cam) {
   };
 
   const float max_threshold = 0.05f;
-  const float min_threshold = 0.01f;
+  const float min_threshold = 0.02f;
 
   for (auto const& idx_node : m_cut) {
     if (ignore.find(idx_node) != ignore.end()) continue;
-    float error_node = nodeError(cam.position(), idx_node) * collapseError(idx_node);
+    float error_node = nodeError(cam.position(), idx_node);
     float min_error = error_node;
     // if node is root, is has no siblings
     bool all_siblings = false;
@@ -499,7 +503,7 @@ void ModelLod::update(Camera const& cam) {
         // calculate minimal error of all siblings to collapse order independent
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
           auto idx_sibling = m_bvh.get_child_id(idx_parent, i);
-          min_error = std::min(min_error, nodeError(cam.position(), idx_sibling) * collapseError(idx_sibling)); 
+          min_error = std::min(min_error, nodeError(cam.position(), idx_sibling)); 
         }
       }
     }
@@ -513,7 +517,7 @@ void ModelLod::update(Camera const& cam) {
       }
     }
     // error too large and within frustum
-    else if (error_node > max_threshold && nodeSplitable(idx_node) && cam.frustum().intersects(m_bvh.get_bounding_box(idx_node))) {
+    else if (error_node > max_threshold && nodeSplitable(idx_node) && cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent))) {
       check_duplicate(idx_node);
       queue_split.emplace(error_node, idx_node);
     }

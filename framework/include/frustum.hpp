@@ -55,14 +55,30 @@ class Frustum
 		}
 		// calculate corner points
 		auto inverted = glm::inverse(matrix);
-		points[0] = glm::fvec3{inverted * glm::fvec4{1.0f, 1.0f, 0.0f, 1.0f}};
-		points[1] = glm::fvec3{inverted * glm::fvec4{1.0f, 1.0f, 1.0f, 1.0f}};
-		points[2] = glm::fvec3{inverted * glm::fvec4{-1.0f, 1.0f, 0.0f, 1.0f}};
-		points[3] = glm::fvec3{inverted * glm::fvec4{-1.0f, 1.0f, 1.0f, 1.0f}};
-		points[4] = glm::fvec3{inverted * glm::fvec4{1.0f, -1.0f, 0.0f, 1.0f}};
-		points[5] = glm::fvec3{inverted * glm::fvec4{1.0f, -1.0f, 1.0f, 1.0f}};
-		points[6] = glm::fvec3{inverted * glm::fvec4{-1.0f, -1.0f, 0.0f, 1.0f}};
-		points[7] = glm::fvec3{inverted * glm::fvec4{-1.0f, -1.0f, 1.0f, 1.0f}};
+		auto point = inverted * glm::fvec4{1.0f, 1.0f, 0.0f, 1.0f};
+		points[0] = glm::fvec3{point} / point.w;
+		
+		point = inverted * glm::fvec4{1.0f, 1.0f, 1.0f, 1.0f};
+		points[1] = glm::fvec3{point} / point.w;
+		
+		point = inverted * glm::fvec4{-1.0f, 1.0f, 0.0f, 1.0f};
+		points[2] = glm::fvec3{point} / point.w;
+		
+		point = inverted * glm::fvec4{-1.0f, 1.0f, 1.0f, 1.0f};
+		points[3] = glm::fvec3{point} / point.w;
+		
+		point = inverted * glm::fvec4{1.0f, -1.0f, 0.0f, 1.0f};
+		points[4] = glm::fvec3{point} / point.w;
+		
+		point = inverted * glm::fvec4{1.0f, -1.0f, 1.0f, 1.0f};
+		points[5] = glm::fvec3{point} / point.w;
+		
+		point = inverted * glm::fvec4{-1.0f, -1.0f, 0.0f, 1.0f};
+		points[6] = glm::fvec3{point} / point.w;
+		
+		point = inverted * glm::fvec4{-1.0f, -1.0f, 1.0f, 1.0f};
+		points[7] = glm::fvec3{point} / point.w;
+		
 	}
 	
 	bool checkSphere(glm::vec3 pos, float radius) const	{

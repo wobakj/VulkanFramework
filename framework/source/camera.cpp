@@ -64,6 +64,7 @@ void Camera::setAspect(std::size_t width, std::size_t height) {
   // save current fov
   fov_ = glm::fvec2{2.0f * glm::atan(glm::tan(fov_y * 0.5f) * aspect), fov_y};
   // vulkan clip space correction
+  // https://matthewwellings.com/blog/the-new-vulkan-coordinate-system/
   const glm::fmat4 clip_matrix{1.0f,  0.0f, 0.0f, 0.0f,
                        0.0f, -1.0f, 0.0f, 0.0f,
                        0.0f,  0.0f, 0.5f, 0.0f,
