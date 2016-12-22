@@ -106,19 +106,19 @@ class Frustum
     }
 
     // check frustum outside/inside box
-    int out;
-    out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].x > box.max()[0]) ? 1 : 0); 
-    if (out == 8) return false;
-    out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].x < box.min()[0]) ? 1 : 0); 
-    if (out == 8) return false;
-    out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].y > box.max()[1]) ? 1 : 0); 
-    if (out == 8) return false;
-    out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].y < box.min()[1]) ? 1 : 0); 
-    if (out == 8) return false;
-    out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].z > box.max()[2]) ? 1 : 0); 
-    if (out == 8) return false;
-    out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].z < box.min()[2]) ? 1 : 0); 
-    if (out == 8) return false;
+    // int out;
+    // out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].x > box.max()[0]) ? 1 : 0); 
+    // if (out == 8) return false;
+    // out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].x < box.min()[0]) ? 1 : 0); 
+    // if (out == 8) return false;
+    // out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].y > box.max()[1]) ? 1 : 0); 
+    // if (out == 8) return false;
+    // out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].y < box.min()[1]) ? 1 : 0); 
+    // if (out == 8) return false;
+    // out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].z > box.max()[2]) ? 1 : 0); 
+    // if (out == 8) return false;
+    // out = 0; for (int i = 0; i < 8; ++i) out += ((points[i].z < box.min()[2]) ? 1 : 0); 
+    // if (out == 8) return false;
 
     return true;
 	}

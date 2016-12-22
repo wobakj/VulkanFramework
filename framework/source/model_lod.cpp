@@ -230,7 +230,8 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     levels[i + 1] = float(m_bvh.get_depth_of_node(m_slots[i])) / depth;
   }
   // store number of vertices per node in first entry
-  std::memcpy(levels.data(), &m_model.vertex_num, sizeof(std::uint32_t));
+  uint32_t verts_per_node = m_buffer_views[1].offset() / m_model.vertex_bytes;
+  std::memcpy(levels.data(), &verts_per_node, sizeof(std::uint32_t));
   // upload mode levels
   command_buffer.updateBuffer(
     m_view_levels.buffer(),
@@ -421,7 +422,10 @@ float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
                                    glm::max(glm::max(bbox.min()[1] - pos_view.y, 0.0), pos_view.y - bbox.max()[1]),
                                    glm::max(glm::max(bbox.min()[2] - pos_view.z, 0.0), pos_view.z - bbox.max()[2])};
   glm::fvec3 bbox_dims = glm::fvec3{glm::abs(bbox.max()[0] - bbox.min()[0]), glm::abs(bbox.max()[1] - bbox.min()[1]), glm::abs(bbox.max()[2] - bbox.min()[2])};
-  return glm::length(min_dist); 
+  float level_rel = float(m_bvh.get_depth_of_node(node)) / float(m_bvh.get_depth());
+  // return 1.0f / glm::length(min_dist); 
+  return  (1.0f - level_rel) / glm::length(min_dist); 
+  // return  (1.0f - level_rel) / glm::distance(glm::fvec3{centroid[0], centroid[1], centroid[2]}, pos_view); 
   // return glm::length(bbox_dims) / glm::length(min_dist); 
 }
 
@@ -511,13 +515,15 @@ void ModelLod::update(Camera const& cam) {
     // error too small or parent ourside frustum
     if (nodeCollapsible(idx_node) && all_siblings && (min_error < min_threshold || !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
       check_duplicate(idx_parent);
-      queue_collapse.emplace(nodeError(cam.position(), idx_parent) * collapseError(idx_parent), idx_parent);
+      queue_collapse.emplace(nodeError(cam.position(), idx_parent), idx_parent);
+      // queue_collapse.emplace(nodeError(cam.position(), idx_parent) * collapseError(idx_parent), idx_parent);
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         ignore.emplace(m_bvh.get_child_id(idx_parent, i));
       }
     }
     // error too large and within frustum
-    else if (error_node > max_threshold && nodeSplitable(idx_node) && cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent))) {
+    // 
+    else if (error_node > max_threshold && nodeSplitable(idx_node) && (!nodeCollapsible(idx_node) || cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
       check_duplicate(idx_node);
       queue_split.emplace(error_node, idx_node);
     }
