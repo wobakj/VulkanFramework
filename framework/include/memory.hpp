@@ -2,7 +2,6 @@
 #define MEMORY_HPP
 
 #include "wrapper.hpp"
-#include "wrapper.hpp"
 
 template<typename T, typename U>
 class MemoryResource;

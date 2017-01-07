@@ -101,6 +101,7 @@ void ApplicationLod::createFrameResources() {
     m_queue_record_frames.push(i);
     res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
     res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
+    res.query_pools["timers"] = QueryPool{m_device, vk::QueryType::eTimestamp, 3};
   }
 }
 
@@ -127,6 +128,11 @@ void ApplicationLod::render() {
   resource_record.fenceDraw().wait();
 
   recordDrawBuffer(resource_record);
+  // read out timer values
+  if (frame > m_frame_resources.size() - 1) {
+    auto values = resource_record.query_pools.at("timers").getValues<uint64_t>(false);
+    std::cout << "upload time " << values[1] - values[0] << ", drawing time " << values[2] - values[1] << std::endl;
+  }
   // add newly recorded frame for drawing
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
@@ -192,6 +198,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   inheritanceInfo.framebuffer = m_framebuffer;
   inheritanceInfo.subpass = 0;
 
+
   // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
@@ -202,8 +209,8 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   // for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
     res.command_buffers.at("gbuffer").drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
   // }
-
   res.command_buffers.at("gbuffer").end();
+
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting").reset({});
@@ -253,8 +260,12 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
 
   // upload node data
   m_model_lod.update(m_camera);
+
+  res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTransfer);
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eTopOfPipe);
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -265,6 +276,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").executeCommands({res.command_buffers.at("lighting")});
 
   res.command_buffers.at("draw").endRenderPass();
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eBottomOfPipe);
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 

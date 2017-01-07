@@ -6,6 +6,7 @@
 #include "fence.hpp"
 #include "buffer.hpp"
 #include "buffer_view.hpp"
+#include "query_pool.hpp"
 
 #include <vector>
 
@@ -83,6 +84,7 @@ class FrameResource {
     std::swap(descriptor_sets, rhs.descriptor_sets);
     std::swap(buffers, rhs.buffers);
     std::swap(buffer_views, rhs.buffer_views);
+    std::swap(query_pools, rhs.query_pools);
   }
 
   uint32_t image;
@@ -92,6 +94,7 @@ class FrameResource {
   std::map<std::string, vk::DescriptorSet> descriptor_sets;
   std::map<std::string, Buffer> buffers;
   std::map<std::string, BufferView> buffer_views;
+  std::map<std::string, QueryPool> query_pools;
 
  private:
   Device const* m_device;
