@@ -11,10 +11,26 @@ class Semaphore {
    :m_count(count) 
   {}
 
-  inline void signal() {
+  inline void signal(uint32_t count = 1) {
     { 
       std::unique_lock<std::mutex> lock(m_mutex);
-      m_count++;
+      m_count += count;
+    }
+    m_condition_lock.notify_one();
+  }
+
+  inline void set(uint32_t count) {
+    { 
+      std::unique_lock<std::mutex> lock(m_mutex);
+      m_count = count;
+    }
+    m_condition_lock.notify_one();
+  }
+
+  inline void unsignal() {
+    { 
+      std::unique_lock<std::mutex> lock(m_mutex);
+      m_count = 0;
     }
     m_condition_lock.notify_one();
   }

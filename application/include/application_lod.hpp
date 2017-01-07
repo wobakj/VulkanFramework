@@ -81,6 +81,10 @@ class ApplicationLod : public Application {
   std::queue<uint32_t> m_queue_record_frames;
   Semaphore m_semaphore_draw;
   Semaphore m_semaphore_record;
+
+  bool m_setting_wire;
+  bool m_setting_transparent;
+  bool m_setting_shaded;
 };
 
 #endif

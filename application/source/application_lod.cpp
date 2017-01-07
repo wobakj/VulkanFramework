@@ -53,9 +53,12 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_should_draw{true}
  ,m_semaphore_draw{0}
  ,m_semaphore_record{m_swap_chain.numImages() - 1}
+ ,m_setting_wire{false}
+ ,m_setting_transparent{false}
+ ,m_setting_shaded{true}
 {
-  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/lod_frag.spv"}});
-  // m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
+  m_shaders.emplace("lod", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/lod_frag.spv"}});
+  m_shaders.emplace("blinn", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}});
 
   createVertexBuffer();
@@ -149,7 +152,10 @@ void ApplicationLod::draw() {
   uint32_t frame_draw = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    assert(!m_queue_draw_frames.empty());
+    // queue will be empty after pipelines are rebuilt
+    if (m_queue_draw_frames.empty()) {
+      return;
+    }
     // get frame to draw
     frame_draw = m_queue_draw_frames.front();
     m_queue_draw_frames.pop();
@@ -186,7 +192,7 @@ void ApplicationLod::createCommandBuffers(FrameResource& res) {
 }
 
 void ApplicationLod::updateDescriptors(FrameResource& res) {
-  res.descriptor_sets["matrix"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 0);
+  res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
@@ -204,7 +210,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
 
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lod").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
@@ -219,12 +225,16 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  if (m_setting_shaded) {
+    res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model_light.buffer()}, {0});
+    res.command_buffers.at("lighting").bindIndexBuffer(m_model_light.buffer(), m_model_light.indexOffset(), vk::IndexType::eUint32);
 
-  // res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model_light.buffer()}, {0});
-  // res.command_buffers.at("lighting").bindIndexBuffer(m_model_light.buffer(), m_model_light.indexOffset(), vk::IndexType::eUint32);
-
-  // res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
-  res.command_buffers.at("lighting").draw(4, 1, 0, 0);
+    res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  }
+  else {
+    res.command_buffers.at("lighting").draw(4, 1, 0, 0);
+  }
+    
   res.command_buffers.at("lighting").end();
 }
 
@@ -327,19 +337,23 @@ void ApplicationLod::createGraphicsPipeline() {
   rasterizer.lineWidth = 0.5f;
   rasterizer.cullMode = vk::CullModeFlagBits::eNone;
   // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-  rasterizer.polygonMode = vk::PolygonMode::eLine;
+  if (m_setting_wire) {
+    rasterizer.polygonMode = vk::PolygonMode::eLine;
+  }
 
   vk::PipelineMultisampleStateCreateInfo multisampling{};
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment2.blendEnable = VK_TRUE;
-  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
+  if (m_setting_transparent) {
+    colorBlendAttachment2.blendEnable = VK_TRUE;
+    colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+    colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+    colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
+    colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+    colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+    colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
+  }
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
@@ -351,7 +365,7 @@ void ApplicationLod::createGraphicsPipeline() {
   colorBlending.pAttachments = states.data();
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
-  // depthStencil.depthTestEnable = VK_TRUE;
+  depthStencil.depthTestEnable = VK_TRUE;
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
   // VkDynamicState dynamicStates[] = {
@@ -363,7 +377,10 @@ void ApplicationLod::createGraphicsPipeline() {
   // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
-  auto pipelineInfo = m_shaders.at("simple").startPipelineInfo();
+  auto pipelineInfo = m_shaders.at("lod").startPipelineInfo();
+  if (m_setting_shaded) {
+    pipelineInfo = m_shaders.at("blinn").startPipelineInfo();
+  }
 
   auto vert_info = m_model_lod.inputInfo();
   pipelineInfo.pVertexInputState = &vert_info;
@@ -514,8 +531,8 @@ void ApplicationLod::createTextureSampler() {
 
 void ApplicationLod::createDescriptorPool() {
   // descriptor sets can be allocated for each frame resource
-  m_descriptorPool = m_shaders.at("simple").createPool(m_swap_chain.numImages() - 1);
-  m_descriptor_sets["textures"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 1);
+  m_descriptorPool = m_shaders.at("lod").createPool(m_swap_chain.numImages() - 1);
+  m_descriptor_sets["textures"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 1);
 
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
   m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("textures"), 1);
@@ -556,7 +573,7 @@ void ApplicationLod::emptyDrawQueue() {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
     while(!m_queue_draw_frames.empty()) {
-      m_queue_record_frames.push(m_queue_record_frames.front());
+      m_queue_record_frames.push(m_queue_draw_frames.front());
       m_queue_draw_frames.pop();
     }
   }
@@ -567,6 +584,8 @@ void ApplicationLod::resize() {
   { 
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     emptyDrawQueue();
+    m_semaphore_draw.unsignal();
+    m_semaphore_record.set(m_frame_resources.size());
     m_device->waitIdle();
     createDepthResource();
     createRenderPass();
@@ -587,18 +606,34 @@ void ApplicationLod::recreatePipeline() {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     // wait until draw resources are avaible before recallocation
     emptyDrawQueue();
+    m_semaphore_draw.unsignal();
+    m_semaphore_record.set(m_frame_resources.size());
+
     createGraphicsPipeline();
     createDescriptorPool();
     for (auto& res : m_frame_resources) {
       updateDescriptors(res);
       updateCommandBuffers(res);
     }
+    m_device->waitIdle();
   }
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void ApplicationLod::keyCallback(int key, int scancode, int action, int mods) {
+  if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
+    m_setting_shaded = !m_setting_shaded;
+    recreatePipeline();
+  }
+  else if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
+    m_setting_wire = !m_setting_wire;
+    recreatePipeline();
+  }
+  else if (key == GLFW_KEY_3 && action == GLFW_PRESS) {
+    m_setting_transparent = !m_setting_transparent;
+    recreatePipeline();
+  }
 }
 
 // exe entry point
