@@ -178,8 +178,7 @@ void ApplicationThreaded::draw() {
   // draw only when new frame is avaible
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_swapchain};
-    // wait until drawing with these resources is finished before issuing next draw
-    resource_draw.fenceDraw().wait();
+
     resource_draw.fenceDraw().reset();
     submitDraw(resource_draw);
     // wait until swap chain is avaible
@@ -574,7 +573,7 @@ void ApplicationThreaded::emptyDrawQueue() {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
     while(!m_queue_draw_frames.empty()) {
-      m_queue_record_frames.push(m_queue_record_frames.front());
+      m_queue_record_frames.push(m_queue_draw_frames.front());
       m_queue_draw_frames.pop();
     }
   }
@@ -600,11 +599,17 @@ void ApplicationThreaded::resize() {
 }
 
 void ApplicationThreaded::recreatePipeline() {
+  bool frames_drawn = false;
+  while(!frames_drawn) {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
+  }
   // prevent drawing during resource recreation
   { 
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     // wait until draw resources are avaible before recallocation
     emptyDrawQueue();
+    m_device->waitIdle();
     createGraphicsPipeline();
     createDescriptorPool();
     for (auto& res : m_frame_resources) {

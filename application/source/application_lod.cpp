@@ -621,6 +621,11 @@ void ApplicationLod::resize() {
 }
 
 void ApplicationLod::recreatePipeline() {
+  bool frames_drawn = false;
+  while(!frames_drawn) {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
+  }
   // prevent drawing during resource recreation
   { 
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
