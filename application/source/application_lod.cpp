@@ -58,8 +58,9 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_shaded{true}
 {
   m_shaders.emplace("lod", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/lod_frag.spv"}});
-  m_shaders.emplace("blinn", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/quad_frag.spv"}});
+  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
+  m_shaders.emplace("quad_blinn", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/deferred_blinn_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/deferred_passthrough_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -334,31 +335,40 @@ void ApplicationLod::createGraphicsPipeline() {
   viewportState.pScissors = &scissor;
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
-  rasterizer.lineWidth = 0.5f;
-  rasterizer.cullMode = vk::CullModeFlagBits::eNone;
-  // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
   if (m_setting_wire) {
+    rasterizer.lineWidth = 0.5f;
+    rasterizer.cullMode = vk::CullModeFlagBits::eNone;
     rasterizer.polygonMode = vk::PolygonMode::eLine;
+  }
+  else {
+    rasterizer.lineWidth = 1.0f;
+    if (!m_setting_transparent) {
+      rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+    }
   }
 
   vk::PipelineMultisampleStateCreateInfo multisampling{};
-
+  // rgba additive blending
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  if (m_setting_transparent) {
-    colorBlendAttachment2.blendEnable = VK_TRUE;
-    colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-    colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-    colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-    colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-    colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-    colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
-  }
+  colorBlendAttachment2.blendEnable = VK_TRUE;
+  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
+  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment.blendEnable = VK_FALSE;
-  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment2, colorBlendAttachment, colorBlendAttachment};
+  std::vector<vk::PipelineColorBlendAttachmentState> states{};
+  if (m_setting_transparent) {
+    states = {colorBlendAttachment2, colorBlendAttachment, colorBlendAttachment};
+  }
+  else {
+    states = {colorBlendAttachment2, colorBlendAttachment, colorBlendAttachment};
+  }
 
   vk::PipelineColorBlendStateCreateInfo colorBlending{};
   colorBlending.attachmentCount = uint32_t(states.size());
@@ -379,7 +389,7 @@ void ApplicationLod::createGraphicsPipeline() {
   // dynamicState.pDynamicStates = dynamicStates;
   auto pipelineInfo = m_shaders.at("lod").startPipelineInfo();
   if (m_setting_shaded) {
-    pipelineInfo = m_shaders.at("blinn").startPipelineInfo();
+    pipelineInfo = m_shaders.at("simple").startPipelineInfo();
   }
 
   auto vert_info = m_model_lod.inputInfo();
@@ -397,21 +407,29 @@ void ApplicationLod::createGraphicsPipeline() {
   pipelineInfo.subpass = 0;
 
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
-  
+  vk::PipelineInputAssemblyStateCreateInfo inputAssembly2{};
   vk::PipelineVertexInputStateCreateInfo vert_info2{};
-  pipelineInfo2.pVertexInputState = &vert_info2;
-  // pipelineInfo2.pVertexInputState = &vert_info;
-    vk::PipelineInputAssemblyStateCreateInfo inputAssembly2{};
-  inputAssembly2.topology = vk::PrimitiveTopology::eTriangleStrip;
-
-  pipelineInfo2.pInputAssemblyState = &inputAssembly2;
-  // pipelineInfo2.pInputAssemblyState = &inputAssembly;
+  if (m_setting_shaded) {
+    pipelineInfo2 = m_shaders.at("quad_blinn").startPipelineInfo();
+    pipelineInfo2.pInputAssemblyState = &inputAssembly;
+    pipelineInfo2.pVertexInputState = &vert_info;
+  }  
+  else {
+    inputAssembly2.topology = vk::PrimitiveTopology::eTriangleStrip;
+    pipelineInfo2.pInputAssemblyState = &inputAssembly2;
+    pipelineInfo2.pVertexInputState = &vert_info2;
+  }
 
   // cull frontfaces 
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
   rasterizer2.lineWidth = 1.0f;
-  rasterizer2.cullMode = vk::CullModeFlagBits::eNone;
-  // rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
+  if (m_setting_shaded) {
+    rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
+  }
+  else {
+    rasterizer2.cullMode = vk::CullModeFlagBits::eNone;
+  }
+
   pipelineInfo2.pRasterizationState = &rasterizer2;
 
   pipelineInfo2.pViewportState = &viewportState;
@@ -427,8 +445,10 @@ void ApplicationLod::createGraphicsPipeline() {
   pipelineInfo2.pDynamicState = nullptr; // Optional
   // shade fragment only if light sphere reaches behind it
   vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  depthStencil2.depthTestEnable = VK_FALSE;
-  // depthStencil2.depthTestEnable = VK_TRUE;
+  // depthStencil2.depthTestEnable = VK_FALSE;
+  if (m_setting_shaded) {
+    depthStencil2.depthTestEnable = VK_TRUE;
+  }
   depthStencil2.depthWriteEnable = VK_FALSE;
   depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
   pipelineInfo2.pDepthStencilState = &depthStencil2;
@@ -585,7 +605,7 @@ void ApplicationLod::resize() {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     emptyDrawQueue();
     m_semaphore_draw.unsignal();
-    m_semaphore_record.set(m_frame_resources.size());
+    m_semaphore_record.set(uint32_t(m_frame_resources.size()));
     m_device->waitIdle();
     createDepthResource();
     createRenderPass();
@@ -607,7 +627,7 @@ void ApplicationLod::recreatePipeline() {
     // wait until draw resources are avaible before recallocation
     emptyDrawQueue();
     m_semaphore_draw.unsignal();
-    m_semaphore_record.set(m_frame_resources.size());
+    m_semaphore_record.set(uint32_t(m_frame_resources.size()));
 
     createGraphicsPipeline();
     createDescriptorPool();

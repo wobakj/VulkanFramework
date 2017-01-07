@@ -56,7 +56,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_semaphore_record{m_swap_chain.numImages() - 1}
 {
   m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/quad_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/deferred_blinn_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -561,7 +561,6 @@ void ApplicationThreaded::updateView() {
   ubo_cam.view = m_camera.viewMatrix();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
   ubo_cam.proj = m_camera.projectionMatrix();
-  ubo_cam.proj[1][1] *= -1;
 
   // m_device.uploadBufferData(&ubo_cam, m_buffers.at("uniform"));
 }

@@ -73,6 +73,6 @@ void main() {
   out_Color += vec4(color * 0.005 * diffuseColor 
                   + color * diffuseColor * diffSpec.x
                     + color * ks * diffSpec.y, 1.0 - dist / radius);
-
-  out_Color = vec4(diffuseColor, 1.0);
+  // out_Color = vec4(diffuseColor, 1.0);
+  
 }
