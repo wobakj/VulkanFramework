@@ -585,63 +585,48 @@ void ApplicationLod::updateView() {
 }
 
 void ApplicationLod::emptyDrawQueue() {
+  // render remaining recorded frames
+  bool all_frames_drawn = false;
+  while(!all_frames_drawn) {
+    // wait until next frame is drawn
+    m_semaphore_record.wait(); 
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    // check if all frames are ready for recording
+    all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
+  }
   // wait until draw resources are avaible before recallocation
   for (auto const& res : m_frame_resources) {
     res.waitFences();
   }
-  // move all draw frames to rerecording
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    while(!m_queue_draw_frames.empty()) {
-      m_queue_record_frames.push(m_queue_draw_frames.front());
-      m_queue_draw_frames.pop();
-    }
-  }
+  // give record queue enough signals to process all frames
+  m_semaphore_record.set(uint32_t(m_frame_resources.size()));
 }
 
 void ApplicationLod::resize() {
-  // prevent drawing during resource recreation
-  { 
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    emptyDrawQueue();
-    m_semaphore_draw.unsignal();
-    m_semaphore_record.set(uint32_t(m_frame_resources.size()));
-    m_device->waitIdle();
-    createDepthResource();
-    createRenderPass();
-    createFramebuffers();
+  emptyDrawQueue();
+  m_device->waitIdle();
+  createDepthResource();
+  createRenderPass();
+  createFramebuffers();
 
-    createGraphicsPipeline();
-    createDescriptorPool();
-    for (auto& res : m_frame_resources) {
-      updateDescriptors(res);
-      updateCommandBuffers(res);
-    }
+  createGraphicsPipeline();
+  createDescriptorPool();
+  for (auto& res : m_frame_resources) {
+    updateDescriptors(res);
+    updateCommandBuffers(res);
   }
 }
 
 void ApplicationLod::recreatePipeline() {
-  bool frames_drawn = false;
-  while(!frames_drawn) {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
-  }
-  // prevent drawing during resource recreation
-  { 
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    // wait until draw resources are avaible before recallocation
-    emptyDrawQueue();
-    m_semaphore_draw.unsignal();
-    m_semaphore_record.set(uint32_t(m_frame_resources.size()));
+  emptyDrawQueue();
 
-    createGraphicsPipeline();
-    createDescriptorPool();
-    for (auto& res : m_frame_resources) {
-      updateDescriptors(res);
-      updateCommandBuffers(res);
-    }
-    m_device->waitIdle();
+  createGraphicsPipeline();
+  createDescriptorPool();
+  for (auto& res : m_frame_resources) {
+    updateDescriptors(res);
+    updateCommandBuffers(res);
   }
+  m_device->waitIdle();
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
