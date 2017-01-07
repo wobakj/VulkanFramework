@@ -30,7 +30,8 @@ class QueryPool : public WrapperQueryPool {
   void timestamp(vk::CommandBuffer const& command_buffer, uint32_t index, vk::PipelineStageFlagBits const& stage);
 // results
   std::vector<bool> getAvaiabilities(uint32_t index, uint32_t num) const;
-  
+  // in ms
+  std::vector<double> getTimes(bool wait = true) const;
   template<typename T>
   std::vector<T> getValues(bool wait = true) const;
 
@@ -46,6 +47,7 @@ class QueryPool : public WrapperQueryPool {
   void destroy() override;
 
   Device const* m_device;
+  float m_tick_duration;
 };
 
 #include "device.hpp"

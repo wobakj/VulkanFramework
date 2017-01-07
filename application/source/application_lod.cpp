@@ -127,12 +127,12 @@ void ApplicationLod::render() {
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
 
-  recordDrawBuffer(resource_record);
-  // read out timer values
-  if (frame > m_frame_resources.size() - 1) {
-    auto values = resource_record.query_pools.at("timers").getValues<uint64_t>(false);
+  if (frame > m_frame_resources.size()) {
+    auto values = resource_record.query_pools.at("timers").getTimes();
     std::cout << "upload time " << values[1] - values[0] << ", drawing time " << values[2] - values[1] << std::endl;
   }
+  recordDrawBuffer(resource_record);
+  // read out timer values
   // add newly recorded frame for drawing
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
@@ -203,12 +203,13 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+
   res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
-  // for(std::size_t i = 0; i < m_model_lod.numNodes(); ++i) {
-    res.command_buffers.at("gbuffer").drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
-  // }
+
+  res.command_buffers.at("gbuffer").drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
+
   res.command_buffers.at("gbuffer").end();
 
   //deferred shading pass 
@@ -224,7 +225,6 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
   // res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
   res.command_buffers.at("lighting").draw(4, 1, 0, 0);
-
   res.command_buffers.at("lighting").end();
 }
 
@@ -265,7 +265,8 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTransfer);
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eTopOfPipe);
+
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -350,7 +351,7 @@ void ApplicationLod::createGraphicsPipeline() {
   colorBlending.pAttachments = states.data();
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
-  depthStencil.depthTestEnable = VK_TRUE;
+  // depthStencil.depthTestEnable = VK_TRUE;
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
   // VkDynamicState dynamicStates[] = {
