@@ -31,6 +31,9 @@ class Application {
 
   void blockSwapChain();
   void unblockSwapChain();
+  // render remaining recorded frames before pipeline rebuild
+  // required for multithreaded rendering
+  virtual void emptyDrawQueue();
 
  protected:
   virtual void render() = 0;

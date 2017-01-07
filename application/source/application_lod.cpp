@@ -153,10 +153,7 @@ void ApplicationLod::draw() {
   uint32_t frame_draw = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    // queue will be empty after pipelines are rebuilt
-    if (m_queue_draw_frames.empty()) {
-      return;
-    }
+    assert(!m_queue_draw_frames.empty());
     // get frame to draw
     frame_draw = m_queue_draw_frames.front();
     m_queue_draw_frames.pop();
@@ -603,8 +600,7 @@ void ApplicationLod::emptyDrawQueue() {
 }
 
 void ApplicationLod::resize() {
-  emptyDrawQueue();
-  m_device->waitIdle();
+  // draw queue is emptied in launcher::resize
   createDepthResource();
   createRenderPass();
   createFramebuffers();
@@ -626,7 +622,6 @@ void ApplicationLod::recreatePipeline() {
     updateDescriptors(res);
     updateCommandBuffers(res);
   }
-  m_device->waitIdle();
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

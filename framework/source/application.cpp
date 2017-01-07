@@ -35,6 +35,10 @@ void Application::update() {
 	render();
 }
 
+void Application::emptyDrawQueue() {
+
+}
+
 void Application::blockSwapChain() {
   m_mutex_swapchain.lock();
 }

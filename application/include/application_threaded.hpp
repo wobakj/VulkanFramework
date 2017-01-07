@@ -23,6 +23,7 @@ class ApplicationThreaded : public Application {
  public:
   ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
   ~ApplicationThreaded();
+  void emptyDrawQueue() override;
 
  private:
   void render() override;
@@ -53,7 +54,6 @@ class ApplicationThreaded : public Application {
   void drawLoop();
   void draw();
   void createFrameResources();
-  void emptyDrawQueue();
   void updateModel();
 
   // path to the resource folders

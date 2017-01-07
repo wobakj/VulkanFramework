@@ -28,5 +28,5 @@ layout(set = 1, binding = 3) buffer LightBuffer {
 
 void main() {
   vec3 diffuseColor = subpassLoad(color).rgb;
-  out_Color = vec4(1.0);
+  out_Color = vec4(diffuseColor, 1.0);
 }

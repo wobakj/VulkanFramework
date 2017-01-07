@@ -24,6 +24,7 @@ class ApplicationLod : public Application {
  public:
   ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
   ~ApplicationLod();
+  void emptyDrawQueue() override;
 
  private:
   void render() override;
@@ -54,7 +55,6 @@ class ApplicationLod : public Application {
   void drawLoop();
   void draw();
   void createFrameResources();
-  void emptyDrawQueue();
   void updateModel();
 
   // path to the resource folders
