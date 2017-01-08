@@ -75,7 +75,7 @@ add_executable(vulkan_test application/source/application_vulkan.cpp)
 target_link_libraries(vulkan_test framework)
 install(TARGETS vulkan_test DESTINATION .)
 
-add_executable(vulkan_threaded application/source/application_threaded.cpp)
+add_executable(vulkan_threaded application/source/application_threaded_simple.cpp)
 target_link_libraries(vulkan_threaded framework)
 install(TARGETS vulkan_threaded DESTINATION .)
 

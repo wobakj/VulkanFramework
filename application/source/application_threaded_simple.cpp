@@ -1,4 +1,4 @@
-#include "application_threaded.hpp"
+#include "application_threaded_simple.hpp"
 
 #include "launcher.hpp"
 #include "image.hpp"
@@ -42,8 +42,8 @@ struct BufferLights {
 BufferLights buff_l;
 
 
-ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
- :Application{resource_path, device, chain, window}
+ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
+ :ApplicationThreaded{resource_path, device, chain, window}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -51,10 +51,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_sphere{true}
  ,m_model_dirty{false}
- ,m_should_draw{true}
- ,m_semaphore_draw{0}
- ,m_semaphore_record{m_swap_chain.numImages() - 1}
-{
+{  
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
@@ -64,35 +61,18 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   createTextureImage();
   createTextureSampler();
   createFramebufferAttachments();
-  createRenderPass();
+  createRenderPasses();
 
   createFrameResources();
 
   resize();
-  render();
-
-
-  if (!m_thread_render.joinable()) {
-    m_thread_render = std::thread(&ApplicationThreaded::drawLoop, this);
-  }
 }
 
-ApplicationThreaded::~ApplicationThreaded() {
-  // shut down render thread
-  m_should_draw = false;
-  if(m_thread_render.joinable()) {
-    m_thread_render.join();
-  }
-  else {
-    throw std::runtime_error{"could not join thread"};
-  }
-  // wait until fences are done
-  for (auto const& res : m_frame_resources) {
-    res.waitFences();
-  }
+ApplicationThreadedSimple::~ApplicationThreadedSimple() {
+  shut_down();
 }
 
-void ApplicationThreaded::createFrameResources() {
+void ApplicationThreadedSimple::createFrameResources() {
   // create resources for one less image than swap chain
   // only numImages - 1 images can be acquired at a time
   for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
@@ -105,7 +85,7 @@ void ApplicationThreaded::createFrameResources() {
   }
 }
 
-void ApplicationThreaded::updateModel() {
+void ApplicationThreadedSimple::updateModel() {
   m_sphere = false;
   emptyDrawQueue();
   for (auto& res : m_frame_resources) {
@@ -122,7 +102,7 @@ void ApplicationThreaded::updateModel() {
   #endif
 }
 
-void ApplicationThreaded::render() {
+void ApplicationThreadedSimple::render() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();
@@ -160,48 +140,17 @@ void ApplicationThreaded::render() {
   // std::this_thread::sleep_for(std::chrono::milliseconds{10}); 
 }
 
-void ApplicationThreaded::draw() {
-  m_semaphore_draw.wait();
-  static std::uint64_t frame = 0;
-  ++frame;
-  uint32_t frame_draw = 0;
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    assert(!m_queue_draw_frames.empty());
-    // get frame to draw
-    frame_draw = m_queue_draw_frames.front();
-    m_queue_draw_frames.pop();
-  }
-  auto& resource_draw = m_frame_resources.at(frame_draw);
-  resource_draw.fenceDraw().reset();
-  submitDraw(resource_draw);
-  // present image and wait for result
-  present(resource_draw);
-  // make frame avaible for rerecording
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    m_queue_record_frames.push(frame_draw);
-    m_semaphore_record.signal();
-  }
-}
-
-void ApplicationThreaded::drawLoop() {
-  while (m_should_draw) {
-    draw();
-  }
-}
-
-void ApplicationThreaded::createCommandBuffers(FrameResource& res) {
+void ApplicationThreadedSimple::createCommandBuffers(FrameResource& res) {
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
 }
 
-void ApplicationThreaded::updateDescriptors(FrameResource& res) {
+void ApplicationThreadedSimple::updateDescriptors(FrameResource& res) {
   res.descriptor_sets["matrix"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
-void ApplicationThreaded::updateCommandBuffers(FrameResource& res) {
+void ApplicationThreadedSimple::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").reset({});
 
@@ -246,7 +195,7 @@ void ApplicationThreaded::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").end();
 }
 
-void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
+void ApplicationThreadedSimple::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw").reset({});
 
@@ -293,11 +242,11 @@ void ApplicationThreaded::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").end();
 }
 
-void ApplicationThreaded::createFramebuffers() {
+void ApplicationThreadedSimple::createFramebuffers() {
   m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
 }
 
-void ApplicationThreaded::createRenderPass() {
+void ApplicationThreadedSimple::createRenderPasses() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -305,7 +254,7 @@ void ApplicationThreaded::createRenderPass() {
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
-void ApplicationThreaded::createGraphicsPipeline() {
+void ApplicationThreadedSimple::createPipelines() {
   
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -427,7 +376,7 @@ void ApplicationThreaded::createGraphicsPipeline() {
   m_pipeline_2 = pipelines[1];
 }
 
-void ApplicationThreaded::createVertexBuffer() {
+void ApplicationThreadedSimple::createVertexBuffer() {
   std::vector<float> vertex_data{
     0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
     0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
@@ -442,7 +391,7 @@ void ApplicationThreaded::createVertexBuffer() {
 
   m_model = Model{m_device, tri};
 }
-void ApplicationThreaded::loadModel() {
+void ApplicationThreadedSimple::loadModel() {
   try {
     model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
     m_model_2 = Model{m_device, tri};
@@ -453,7 +402,7 @@ void ApplicationThreaded::loadModel() {
   }
 }
 
-void ApplicationThreaded::createLights() {
+void ApplicationThreadedSimple::createLights() {
   std::srand(5);
   for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     light_t light;
@@ -465,7 +414,7 @@ void ApplicationThreaded::createLights() {
   m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
-void ApplicationThreaded::createMemoryPools() {
+void ApplicationThreadedSimple::createMemoryPools() {
   m_device->waitIdle();
 
   // allocate pool for 5 32x4 fb attachments
@@ -478,7 +427,7 @@ void ApplicationThreaded::createMemoryPools() {
   m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
 }
 
-void ApplicationThreaded::createFramebufferAttachments() {
+void ApplicationThreadedSimple::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -504,7 +453,7 @@ void ApplicationThreaded::createFramebufferAttachments() {
   createMemoryPools();
 }
 
-void ApplicationThreaded::createTextureImage() {
+void ApplicationThreadedSimple::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   m_images["texture"] = m_device.createImage(pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
@@ -516,11 +465,11 @@ void ApplicationThreaded::createTextureImage() {
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
-void ApplicationThreaded::createTextureSampler() {
+void ApplicationThreadedSimple::createTextureSampler() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
 }
 
-void ApplicationThreaded::createDescriptorPool() {
+void ApplicationThreadedSimple::createDescriptorPools() {
   // descriptor sets can be allocated for each frame resource
   m_descriptorPool = m_shaders.at("simple").createPool(m_swap_chain.numImages() - 1);
   m_descriptor_sets["textures"] = m_shaders.at("simple").allocateSet(m_descriptorPool.get(), 1);
@@ -536,7 +485,7 @@ void ApplicationThreaded::createDescriptorPool() {
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
-void ApplicationThreaded::createUniformBuffers() {
+void ApplicationThreadedSimple::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
@@ -547,7 +496,7 @@ void ApplicationThreaded::createUniformBuffers() {
 }
 
 ///////////////////////////// update functions ////////////////////////////////
-void ApplicationThreaded::updateView() {
+void ApplicationThreadedSimple::updateView() {
   ubo_cam.model = glm::mat4();
   ubo_cam.view = m_camera.viewMatrix();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
@@ -556,62 +505,15 @@ void ApplicationThreaded::updateView() {
   // m_device.uploadBufferData(&ubo_cam, m_buffers.at("uniform"));
 }
 
-void ApplicationThreaded::emptyDrawQueue() {
-  // render remaining recorded frames
-  bool all_frames_drawn = false;
-  while(!all_frames_drawn) {
-    // check if all frames are ready for recording
-    {
-      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-      all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
-    }  
-    // if draw frames remain, wait until next was drawn
-    if (!all_frames_drawn) {
-      m_semaphore_record.wait(); 
-    }
-  }
-  // wait until draw resources are avaible before recallocation
-  for (auto const& res : m_frame_resources) {
-    res.waitFences();
-  }
-  // give record queue enough signals to process all frames
-  m_semaphore_record.set(uint32_t(m_frame_resources.size()));
-}
-
-void ApplicationThreaded::resize() {
-  // draw queue is emptied in launcher::resize
-  createFramebufferAttachments();
-  createRenderPass();
-  createFramebuffers();
-
-  createGraphicsPipeline();
-  createDescriptorPool();
-  for (auto& res : m_frame_resources) {
-    updateDescriptors(res);
-    updateCommandBuffers(res);
-  }
-}
-
-void ApplicationThreaded::recreatePipeline() {
-  emptyDrawQueue();
-
-  createGraphicsPipeline();
-  createDescriptorPool();
-  for (auto& res : m_frame_resources) {
-    updateDescriptors(res);
-    updateCommandBuffers(res);
-  }
-}
-
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
-void ApplicationThreaded::keyCallback(int key, int scancode, int action, int mods) {
+void ApplicationThreadedSimple::keyCallback(int key, int scancode, int action, int mods) {
   if (key == GLFW_KEY_L && action == GLFW_PRESS) {
     if (m_sphere) {
     #ifdef THREADING
       // prevent thread creation form being triggered mutliple times
       if (!m_thread_load.joinable()) {
-        m_thread_load = std::thread(&ApplicationThreaded::loadModel, this);
+        m_thread_load = std::thread(&ApplicationThreadedSimple::loadModel, this);
       }
     #else
       loadModel();
@@ -622,5 +524,5 @@ void ApplicationThreaded::keyCallback(int key, int scancode, int action, int mod
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  Launcher::run<ApplicationThreaded>(argc, argv);
+  Launcher::run<ApplicationThreadedSimple>(argc, argv);
 }

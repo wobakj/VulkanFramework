@@ -1,9 +1,10 @@
-#ifndef APPLICATION_THREADED_HPP
-#define APPLICATION_THREADED_HPP
+#ifndef APPLICATION_THREADED_SIMPLE_HPP
+#define APPLICATION_THREADED_SIMPLE_HPP
 
 #include <vulkan/vulkan.hpp>
 
 #include "application.hpp"
+#include "application_threaded.hpp"
 #include "deleter.hpp"
 #include "model.hpp"
 #include "buffer.hpp"
@@ -19,18 +20,17 @@
 #include <queue>
 #include <thread>
 
-class ApplicationThreaded : public Application {
+class ApplicationThreadedSimple : public ApplicationThreaded {
  public:
-  ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
-  ~ApplicationThreaded();
-  void emptyDrawQueue() override;
+  ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
+  ~ApplicationThreadedSimple();
 
  private:
   void render() override;
   void recordDrawBuffer(FrameResource& res) override;
-  void createCommandBuffers(FrameResource& res);
-  void updateCommandBuffers(FrameResource& res);
-  void updateDescriptors(FrameResource& resource);
+  void createCommandBuffers(FrameResource& res) override;
+  void updateCommandBuffers(FrameResource& res) override;
+  void updateDescriptors(FrameResource& resource) override;
   
   void createLights();
   void loadModel();
@@ -39,21 +39,17 @@ class ApplicationThreaded : public Application {
   void createTextureImage();
   void createTextureSampler();
 
-  void resize() override;
-  void recreatePipeline() override;
   void updateView() override;
 
-  void createFramebuffers();
-  void createRenderPass();
-  void createMemoryPools();
-  void createGraphicsPipeline();
-  void createDescriptorPool();
-  void createFramebufferAttachments();
+  void createFramebuffers() override;
+  void createFramebufferAttachments() override;
+  void createRenderPasses() override;
+  void createMemoryPools() override;
+  void createPipelines() override;
+  void createDescriptorPools() override;
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
-  void drawLoop();
-  void draw();
-  void createFrameResources();
+  void createFrameResources() override;
   void updateModel();
 
   // path to the resource folders
@@ -71,19 +67,8 @@ class ApplicationThreaded : public Application {
   Deleter<VkSampler> m_textureSampler;
 
   bool m_sphere;
-
   std::thread m_thread_load;
-  std::thread m_thread_render;
   std::atomic<bool> m_model_dirty;
-  std::atomic<bool> m_should_draw;
-  std::mutex m_mutex_draw_queue;
-  std::mutex m_mutex_record_queue;
-
-  std::vector<FrameResource> m_frame_resources;
-  std::queue<uint32_t> m_queue_draw_frames;
-  std::queue<uint32_t> m_queue_record_frames;
-  Semaphore m_semaphore_draw;
-  Semaphore m_semaphore_record;
 };
 
 #endif
