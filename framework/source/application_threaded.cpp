@@ -1,27 +1,10 @@
 #include "application_threaded.hpp"
 
-#include "launcher.hpp"
-#include "image.hpp"
-#include "buffer.hpp"
-#include "shader.hpp"
-#include "texture_loader.hpp"
-#include "model_loader.hpp"
-
-// c++ warpper
-#include <vulkan/vulkan.hpp>
-
-#include <glm/gtc/type_precision.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
-
-#include <iostream>
-#include <chrono>
-
 ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
  :Application{resource_path, device, chain, window}
- ,m_should_draw{true}
  ,m_semaphore_draw{0}
  ,m_semaphore_record{m_swap_chain.numImages() - 1}
+ ,m_should_draw{true}
 {
   if (!m_thread_render.joinable()) {
     m_thread_render = std::thread(&ApplicationThreaded::drawLoop, this);
@@ -41,20 +24,16 @@ void ApplicationThreaded::shut_down() {
   for (auto const& res : m_frame_resources) {
     res.waitFences();
   }
-
 }
-// void ApplicationThreadedSimple::createFrameResources() {
-//   // create resources for one less image than swap chain
-//   // only numImages - 1 images can be acquired at a time
-//   for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
-//     m_frame_resources.emplace_back(m_device);
-//     auto& res = m_frame_resources.back();
-//     createCommandBuffers(res);
-//     m_queue_record_frames.push(i);
-//     res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
-//     res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-//   }
-// }
+
+void ApplicationThreaded::createFrameResources() {
+  // create resources for one less image than swap chain
+  // only numImages - 1 images can be acquired at a time
+  for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
+    m_frame_resources.emplace_back(std::move(createFrameResource()));
+    m_queue_record_frames.push(i);
+  }
+}
 
 void ApplicationThreaded::render() {
   // if(m_model_dirty.is_lock_free()) {
@@ -79,7 +58,6 @@ void ApplicationThreaded::render() {
 
   // wait for last acquisition until acquiring again
   resource_record.fenceAcquire().wait();
-  resource_record.fenceAcquire().reset();
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
@@ -107,7 +85,6 @@ void ApplicationThreaded::draw() {
     m_queue_draw_frames.pop();
   }
   auto& resource_draw = m_frame_resources.at(frame_draw);
-  resource_draw.fenceDraw().reset();
   submitDraw(resource_draw);
   // present image and wait for result
   present(resource_draw);

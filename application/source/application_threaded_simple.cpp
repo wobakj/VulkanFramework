@@ -18,9 +18,6 @@
 #include <chrono>
 
 #define THREADING
-// helper functions
-std::string resourcePath(int argc, char* argv[]);
-void glfw_error(int error, const char* description);
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -60,9 +57,6 @@ ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource
   createLights();  
   createTextureImage();
   createTextureSampler();
-  createFramebufferAttachments();
-  createRenderPasses();
-
   createFrameResources();
 
   resize();
@@ -72,17 +66,12 @@ ApplicationThreadedSimple::~ApplicationThreadedSimple() {
   shut_down();
 }
 
-void ApplicationThreadedSimple::createFrameResources() {
-  // create resources for one less image than swap chain
-  // only numImages - 1 images can be acquired at a time
-  for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
-    m_frame_resources.emplace_back(m_device);
-    auto& res = m_frame_resources.back();
-    createCommandBuffers(res);
-    m_queue_record_frames.push(i);
-    res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
-    res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-  }
+FrameResource ApplicationThreadedSimple::createFrameResource() {
+  FrameResource res{m_device};
+  createCommandBuffers(res);
+  res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+  res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
+  return res;
 }
 
 void ApplicationThreadedSimple::updateModel() {
@@ -125,7 +114,6 @@ void ApplicationThreadedSimple::render() {
 
   // wait for last acquisition until acquiring again
   resource_record.fenceAcquire().wait();
-  resource_record.fenceAcquire().reset();
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();

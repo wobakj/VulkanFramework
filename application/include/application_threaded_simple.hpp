@@ -3,7 +3,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "application.hpp"
 #include "application_threaded.hpp"
 #include "deleter.hpp"
 #include "model.hpp"
@@ -12,13 +11,9 @@
 #include "memory.hpp"
 #include "frame_buffer.hpp"
 #include "fence.hpp"
-#include "frame_resource.hpp"
-#include "semaphore.hpp"
 
 #include <vector>
 #include <atomic>
-#include <queue>
-#include <thread>
 
 class ApplicationThreadedSimple : public ApplicationThreaded {
  public:
@@ -49,7 +44,7 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   void createDescriptorPools() override;
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
-  void createFrameResources() override;
+  FrameResource createFrameResource() override;
   void updateModel();
 
   // path to the resource folders

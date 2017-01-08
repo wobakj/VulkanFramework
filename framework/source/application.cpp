@@ -40,6 +40,7 @@ void Application::emptyDrawQueue() {
 }
 
 void Application::acquireImage(FrameResource& res) {
+  res.fenceAcquire().reset();
   auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
   if (result == vk::Result::eErrorOutOfDateKHR) {
       // handle swapchain recreation
@@ -79,6 +80,6 @@ void Application::submitDraw(FrameResource& res) {
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  // m_device->resetFences(res.fenceDraw());
+  res.fenceDraw().reset();
   m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
 }

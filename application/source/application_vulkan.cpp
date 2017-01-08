@@ -81,7 +81,6 @@ void ApplicationVulkan::updateModel() {
 
 void ApplicationVulkan::render() {
   m_frame_resource.fenceAcquire().wait();
-  m_frame_resource.fenceAcquire().reset();
   acquireImage(m_frame_resource);
 
   // make sure no command buffer is in use
@@ -97,7 +96,6 @@ void ApplicationVulkan::render() {
     updateView();
   }
   recordDrawBuffer(m_frame_resource);
-  m_frame_resource.fenceDraw().reset();
   submitDraw(m_frame_resource);
 
   present(m_frame_resource);
