@@ -63,7 +63,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   createLights();  
   createTextureImage();
   createTextureSampler();
-  createDepthResource();
+  createFramebufferAttachments();
   createRenderPass();
 
   createFrameResources();
@@ -478,7 +478,7 @@ void ApplicationThreaded::createMemoryPools() {
   m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
 }
 
-void ApplicationThreaded::createDepthResource() {
+void ApplicationThreaded::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -580,7 +580,7 @@ void ApplicationThreaded::emptyDrawQueue() {
 
 void ApplicationThreaded::resize() {
   // draw queue is emptied in launcher::resize
-  createDepthResource();
+  createFramebufferAttachments();
   createRenderPass();
   createFramebuffers();
 

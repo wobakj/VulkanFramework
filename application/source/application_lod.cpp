@@ -67,7 +67,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   createLights();  
   createTextureImage();
   createTextureSampler();
-  createDepthResource();
+  createFramebufferAttachments();
   createRenderPass();
 
   createFrameResources();
@@ -499,7 +499,7 @@ void ApplicationLod::createMemoryPools() {
   m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
 }
 
-void ApplicationLod::createDepthResource() {
+void ApplicationLod::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -600,7 +600,7 @@ void ApplicationLod::emptyDrawQueue() {
 
 void ApplicationLod::resize() {
   // draw queue is emptied in launcher::resize
-  createDepthResource();
+  createFramebufferAttachments();
   createRenderPass();
   createFramebuffers();
 

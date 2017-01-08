@@ -54,7 +54,7 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createUniformBuffers();
   createTextureImage();
   createTextureSampler();
-  createDepthResource();
+  createFramebufferAttachments();
   createRenderPass();
   createCommandBuffers(m_frame_resource);
 
@@ -370,7 +370,7 @@ void ApplicationVulkan::createMemoryPools() {
   m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
 }
 
-void ApplicationVulkan::createDepthResource() {
+void ApplicationVulkan::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -469,7 +469,7 @@ void ApplicationVulkan::updateView() {
 
 void ApplicationVulkan::resize() {
   m_frame_resource.fenceDraw().wait();
-  createDepthResource();
+  createFramebufferAttachments();
   createRenderPass();
   createFramebuffers();
 

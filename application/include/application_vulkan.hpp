@@ -41,7 +41,7 @@ class ApplicationVulkan : public Application {
   void createMemoryPools();
   void createGraphicsPipeline();
   void createDescriptorPool();
-  void createDepthResource();
+  void createFramebufferAttachments();
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
   void updateModel();
