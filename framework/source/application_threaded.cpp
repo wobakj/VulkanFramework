@@ -11,7 +11,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   }
 }
 
-void ApplicationThreaded::shut_down() {
+void ApplicationThreaded::shutDown() {
   // shut down render thread
   m_should_draw = false;
   if(m_thread_render.joinable()) {

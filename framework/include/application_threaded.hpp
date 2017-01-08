@@ -20,8 +20,9 @@ class ApplicationThreaded : public Application {
  protected:
   void createFrameResources();
   virtual FrameResource createFrameResource() = 0;
-  void shut_down();
+  void shutDown();
   void resize() override;
+  void recreatePipeline() override;
   
   virtual void createCommandBuffers(FrameResource& res) = 0;
   virtual void updateCommandBuffers(FrameResource& res) = 0;
@@ -46,7 +47,6 @@ class ApplicationThreaded : public Application {
 
  private:
   virtual void render() override;
-  void recreatePipeline() override;
   virtual void drawLoop();
   virtual void draw();
 

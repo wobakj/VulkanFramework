@@ -17,11 +17,6 @@
 #include <iostream>
 #include <chrono>
 
-#define THREADING
-// helper functions
-std::string resourcePath(int argc, char* argv[]);
-void glfw_error(int error, const char* description);
-
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
@@ -44,15 +39,12 @@ BufferLights buff_l;
 const std::size_t NUM_NODES = 64;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
- :Application{resource_path, device, chain, window}
+ :ApplicationThreaded{resource_path, device, chain, window}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_should_draw{true}
- ,m_semaphore_draw{0}
- ,m_semaphore_record{m_swap_chain.numImages() - 1}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
@@ -62,51 +54,27 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_shaders.emplace("quad_blinn", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_passthrough_frag.spv"}});
 
-  createVertexBuffer();
+  createVertexBuffer("./resources/models/xyzrgb_manuscript_4305k");
   createUniformBuffers();
   createLights();  
   createTextureImage();
   createTextureSampler();
-  createFramebufferAttachments();
-  createRenderPass();
-
   createFrameResources();
 
   resize();
-  render();
-
-  if (!m_thread_render.joinable()) {
-    m_thread_render = std::thread(&ApplicationLod::drawLoop, this);
-  }
 }
 
 ApplicationLod::~ApplicationLod() {
-  // shut down render thread
-  m_should_draw = false;
-  if(m_thread_render.joinable()) {
-    m_thread_render.join();
-  }
-  else {
-    throw std::runtime_error{"could not join thread"};
-  }
-  // wait until fences are done
-  for (auto const& res : m_frame_resources) {
-    res.waitFences();
-  }
+  shutDown();
 }
 
-void ApplicationLod::createFrameResources() {
-  // create resources for one less image than swap chain
-  // only numImages - 1 images can be acquired at a time
-  for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
-    m_frame_resources.emplace_back(m_device);
-    auto& res = m_frame_resources.back();
-    createCommandBuffers(res);
-    m_queue_record_frames.push(i);
-    res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
-    res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-    res.query_pools["timers"] = QueryPool{m_device, vk::QueryType::eTimestamp, 3};
-  }
+FrameResource ApplicationLod::createFrameResource() {
+  FrameResource res{m_device};
+  createCommandBuffers(res);
+  res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+  res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
+  res.query_pools["timers"] = QueryPool{m_device, vk::QueryType::eTimestamp, 3};
+  return res;
 }
 
 void ApplicationLod::render() {
@@ -142,40 +110,6 @@ void ApplicationLod::render() {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     m_queue_draw_frames.push(frame_record);
     m_semaphore_draw.signal();
-  }
-  // std::this_thread::sleep_for(std::chrono::milliseconds{10}); 
-}
-
-void ApplicationLod::draw() {
-  m_semaphore_draw.wait();
-  static std::uint64_t frame = 0;
-  ++frame;
-  uint32_t frame_draw = 0;
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    assert(!m_queue_draw_frames.empty());
-    // get frame to draw
-    frame_draw = m_queue_draw_frames.front();
-    m_queue_draw_frames.pop();
-  }
-  auto& resource_draw = m_frame_resources.at(frame_draw);
-  // wait until drawing with these resources is finished before issuing next draw
-  resource_draw.fenceDraw().reset();
-  submitDraw(resource_draw);
-  // wait until swap chain is avaible
-  // present image and wait for result
-  present(resource_draw);
-  // make frame avaible for rerecording
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    m_queue_record_frames.push(frame_draw);
-    m_semaphore_record.signal();
-  }
-}
-
-void ApplicationLod::drawLoop() {
-  while (m_should_draw) {
-    draw();
   }
 }
 
@@ -298,7 +232,7 @@ void ApplicationLod::createFramebuffers() {
   m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
 }
 
-void ApplicationLod::createRenderPass() {
+void ApplicationLod::createRenderPasses() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -306,7 +240,7 @@ void ApplicationLod::createRenderPass() {
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
-void ApplicationLod::createGraphicsPipeline() {
+void ApplicationLod::createPipelines() {
   
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -464,11 +398,11 @@ void ApplicationLod::createGraphicsPipeline() {
   m_pipeline_2 = pipelines[1];
 }
 
-void ApplicationLod::createVertexBuffer() {
+void ApplicationLod::createVertexBuffer(std::string const& lod_path) {
   // auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.bvh");
   // m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.lod", NUM_NODES, 100};
-  auto bvh = model_loader::bvh(m_resource_path + "models/xyzrgb_manuscript_4305k.bvh");
-  m_model_lod = ModelLod{m_device, bvh, m_resource_path + "models/xyzrgb_manuscript_4305k.lod", NUM_NODES, 16};
+  auto bvh = model_loader::bvh(lod_path + ".bvh");
+  m_model_lod = ModelLod{m_device, bvh, lod_path + ".lod", NUM_NODES, 16};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_light = Model{m_device, tri};
@@ -541,7 +475,7 @@ void ApplicationLod::createTextureSampler() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
 }
 
-void ApplicationLod::createDescriptorPool() {
+void ApplicationLod::createDescriptorPools() {
   // descriptor sets can be allocated for each frame resource
   m_descriptorPool = m_shaders.at("lod").createPool(m_swap_chain.numImages() - 1);
   m_descriptor_sets["textures"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 1);
@@ -574,53 +508,6 @@ void ApplicationLod::updateView() {
   ubo_cam.view = m_camera.viewMatrix();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
   ubo_cam.proj = m_camera.projectionMatrix();
-}
-
-void ApplicationLod::emptyDrawQueue() {
-  // render remaining recorded frames
-  bool all_frames_drawn = false;
-  while(!all_frames_drawn) {
-    // check if all frames are ready for recording
-    {
-      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-      all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
-    }
-    // if draw frames remain, wait until next was drawn
-    if (!all_frames_drawn) {
-      m_semaphore_record.wait(); 
-    }
-  }
-  // wait until draw resources are avaible before recallocation
-  for (auto const& res : m_frame_resources) {
-    res.waitFences();
-  }
-  // give record queue enough signals to process all frames
-  m_semaphore_record.set(uint32_t(m_frame_resources.size()));
-}
-
-void ApplicationLod::resize() {
-  // draw queue is emptied in launcher::resize
-  createFramebufferAttachments();
-  createRenderPass();
-  createFramebuffers();
-
-  createGraphicsPipeline();
-  createDescriptorPool();
-  for (auto& res : m_frame_resources) {
-    updateDescriptors(res);
-    updateCommandBuffers(res);
-  }
-}
-
-void ApplicationLod::recreatePipeline() {
-  emptyDrawQueue();
-
-  createGraphicsPipeline();
-  createDescriptorPool();
-  for (auto& res : m_frame_resources) {
-    updateDescriptors(res);
-    updateCommandBuffers(res);
-  }
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

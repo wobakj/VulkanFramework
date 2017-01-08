@@ -63,7 +63,7 @@ ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource
 }
 
 ApplicationThreadedSimple::~ApplicationThreadedSimple() {
-  shut_down();
+  shutDown();
 }
 
 FrameResource ApplicationThreadedSimple::createFrameResource() {
