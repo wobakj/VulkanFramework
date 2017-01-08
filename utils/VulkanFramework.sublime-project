@@ -14,7 +14,7 @@
         "name": "VulkanFramework",
         "file_regex": "^(..[^:]*):(.*)$",
         "working_dir": "${project_path}/../build",
-        "cmd":  ["make", "-j4"]
+        "cmd":  ["make", "install", "-j4"]
       }
     ]
 }

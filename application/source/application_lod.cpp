@@ -57,10 +57,10 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
 {
-  m_shaders.emplace("lod", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/lod_frag.spv"}});
-  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad_blinn", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/deferred_blinn_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/quad_vert.spv", "../resources/shaders/deferred_passthrough_frag.spv"}});
+  m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/lod_frag.spv"}});
+  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
+  m_shaders.emplace("quad_blinn", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_passthrough_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();

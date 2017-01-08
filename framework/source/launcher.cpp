@@ -32,17 +32,9 @@ Launcher::Launcher(int argc, char* argv[])
 
 std::string resourcePath(int argc, char* argv[]) {
   std::string resource_path{};
-  //first argument is resource path
-  if (argc > 1) {
-    resource_path = argv[1];
-  }
-  // no resource path specified, use default
-  else {
-    std::string exe_path{argv[0]};
-    resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
-    resource_path += "/../../resources/";
-  }
-
+  std::string exe_path{argv[0]};
+  resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
+  resource_path += "/resources/";
   return resource_path;
 }
 
@@ -69,10 +61,6 @@ void Launcher::initialize() {
   for (const auto& extension : extensions) {
     std::cout << "\t" << extension.extensionName << std::endl;
   }
-
-  // ugly workaround to use the local validation layers within this process
-  std::string define{std::string{"VK_LAYER_PATH="} + VULKAN_LAYER_DIR}; 
-  putenv(&define[0]);
 
   m_instance.create();
   createSurface();

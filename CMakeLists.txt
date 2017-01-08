@@ -13,6 +13,9 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install" CACHE STRING "Install path prefix, prepended onto install directories." FORCE)
 endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
+# installation
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 #before adding libraries, define the output paths
 # MSVC & Xcode automatically create the build-type folders
 if(MSVC OR CMAKE_GENERATOR STREQUAL Xcode)
@@ -30,18 +33,8 @@ include(FindDependency)
 include(AddSubLibrary)
 
 # vulkan SDK
-set(VULKAN_INCLUDE_SEARCH_DIR "external/VulkanSDK-1.0.30.0/x86_64/include")
-set(VULKAN_LIBRARY_SEARCH_DIR "external/VulkanSDK-1.0.30.0/x86_64/lib")
-find_dependency(VULKAN vulkan/vulkan.h vulkan)
-# get sdk location
-string(LENGTH ${VULKAN_INCLUDE_DIRS} DIR_LENGTH)
-math(EXPR DIR_LENGTH "${DIR_LENGTH} - 8")
-string(SUBSTRING ${VULKAN_INCLUDE_DIRS} 0 ${DIR_LENGTH} VULKAN_DIR)
-# quotes are important to expand as string literal
-set(VULKAN_LAYER_DIR "\"${VULKAN_DIR}/etc/explicit_layer.d\"")
-# set paths for glfw
-set(VULKAN_LIBRARY VULKAN_LIBRARIES)
-set(VULKAN_INCLUDE_DIR VULKAN_INCLUDE_DIRS)
+find_package(Vulkan REQUIRED)
+include_directories(${VULKAN_INCLUDE_DIR})
 
 # include glm, as system header to suppress warnings
 include_directories(SYSTEM external/glm-0.9.6.3)
@@ -73,21 +66,22 @@ add_subdirectory(external/glfw-3.2.1)
 file(GLOB FRAMEWORK_SOURCES framework/source/*.cpp)
 add_library(framework STATIC ${FRAMEWORK_SOURCES} ${TINYOBJLOADER_SOURCES})
 target_include_directories(framework PUBLIC framework/include)
-target_link_libraries(framework glfw ${GLFW_LIBRARIES} vulkan spirv-cross-core bvh)
-# set location of validation layers
-target_compile_definitions(framework PUBLIC "VULKAN_LAYER_DIR=${VULKAN_LAYER_DIR}")
+target_link_libraries(framework glfw ${GLFW_LIBRARIES} ${VULKAN_LIBRARY} spirv-cross-core bvh)
 
 include_directories(application/include)
 
 # output executables
 add_executable(vulkan_test application/source/application_vulkan.cpp)
 target_link_libraries(vulkan_test framework)
+install(TARGETS vulkan_test DESTINATION .)
 
 add_executable(vulkan_threaded application/source/application_threaded.cpp)
 target_link_libraries(vulkan_threaded framework)
+install(TARGETS vulkan_threaded DESTINATION .)
 
 add_executable(vulkan_lod application/source/application_lod.cpp)
 target_link_libraries(vulkan_lod framework)
+install(TARGETS vulkan_lod DESTINATION .)
 
 # set build type dependent flags
 if(UNIX)
@@ -136,7 +130,7 @@ foreach(_SHADER ${SHADERS})
   list(APPEND SHADER_OUTPUTS ${_SHADER_OUT})
   add_custom_command(
     OUTPUT ${_SHADER_OUT}
-    COMMAND "${VULKAN_DIR}/bin/glslangValidator" -V ${_SHADER} -o ${_SHADER_OUT}
+    COMMAND "$ENV{VULKAN_SDK}/bin/glslangValidator" -V ${_SHADER} -o ${_SHADER_OUT}
     DEPENDS ${_SHADER}
     COMMENT "compiling ${_NAME}.${_EXT} to ${_NAME_OUT}" 
   )
@@ -144,10 +138,6 @@ endforeach()
 # add target depending on shaders to compile when building
 add_custom_target(shaders ALL DEPENDS ${SHADER_OUTPUTS})
 
-# installation
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-# installation rules, copy over binaries to bin
-install(TARGETS vulkan_test DESTINATION bin)
-
+# installation rules, copy compiled shaders
 install(DIRECTORY ${PROJECT_BINARY_DIR}/resources
   DESTINATION ${CMAKE_INSTALL_PREFIX})

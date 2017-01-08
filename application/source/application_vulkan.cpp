@@ -46,8 +46,8 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_frame_resource{device}
 {
 
-  m_shaders.emplace("simple", Shader{m_device, {"../resources/shaders/simple_vert.spv", "../resources/shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {"../resources/shaders/lighting_vert.spv", "../resources/shaders/deferred_blinn_frag.spv"}});
+  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
   createVertexBuffer();
   createLights();  
@@ -460,7 +460,6 @@ void ApplicationVulkan::updateView() {
   ubo.view = m_camera.viewMatrix();
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
-  ubo.proj[1][1] *= -1;
 
   m_device.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 
