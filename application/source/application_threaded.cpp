@@ -123,19 +123,24 @@ void ApplicationThreaded::updateModel() {
 }
 
 void ApplicationThreaded::render() {
+  if(m_model_dirty.is_lock_free()) {
+    if(m_model_dirty) {
+      updateModel();
+    }
+  }
   m_semaphore_record.wait();
   static uint64_t frame = 0;
   ++frame;
-  // only calculate new frame if previous one was rendered
-  if (!m_mutex_record_queue.try_lock()) return;
-  if (m_queue_record_frames.empty()) {
-    m_mutex_record_queue.unlock();
-    return;
-  }
   // get next frame to record
-  uint32_t frame_record = m_queue_record_frames.front();
-  m_queue_record_frames.pop();
-  m_mutex_record_queue.unlock();
+  uint32_t frame_record = 0;
+  // only calculate new frame if previous one was rendered
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    assert(!m_queue_record_frames.empty());
+    // get next frame to record
+    frame_record = m_queue_record_frames.front();
+    m_queue_record_frames.pop();
+  }
   auto& resource_record = m_frame_resources.at(frame_record);
 
   // wait for last acquisition until acquiring again
@@ -144,11 +149,6 @@ void ApplicationThreaded::render() {
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
-  if(m_model_dirty.is_lock_free()) {
-    if(m_model_dirty) {
-      updateModel();
-    }
-  }
   recordDrawBuffer(resource_record);
 
   // add newly recorded frame for drawing
@@ -167,29 +167,21 @@ void ApplicationThreaded::draw() {
   uint32_t frame_draw = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    if (m_queue_draw_frames.empty()) {
-      return;
-    }
+    assert(!m_queue_draw_frames.empty());
     // get frame to draw
     frame_draw = m_queue_draw_frames.front();
     m_queue_draw_frames.pop();
   }
   auto& resource_draw = m_frame_resources.at(frame_draw);
-  // draw only when new frame is avaible
+  resource_draw.fenceDraw().reset();
+  submitDraw(resource_draw);
+  // present image and wait for result
+  present(resource_draw);
+  // make frame avaible for rerecording
   {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_swapchain};
-
-    resource_draw.fenceDraw().reset();
-    submitDraw(resource_draw);
-    // wait until swap chain is avaible
-      // present image and wait for result
-      present(resource_draw);
-    // make frame avaible for rerecording
-    {
-      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-      m_queue_record_frames.push(frame_draw);
-      m_semaphore_record.signal();
-    }
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    m_queue_record_frames.push(frame_draw);
+    m_semaphore_record.signal();
   }
 }
 
@@ -568,11 +560,15 @@ void ApplicationThreaded::emptyDrawQueue() {
   // render remaining recorded frames
   bool all_frames_drawn = false;
   while(!all_frames_drawn) {
-    // wait until next frame is drawn
-    m_semaphore_record.wait(); 
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
     // check if all frames are ready for recording
-    all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
+    {
+      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+      all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
+    }  
+    // if draw frames remain, wait until next was drawn
+    if (!all_frames_drawn) {
+      m_semaphore_record.wait(); 
+    }
   }
   // wait until draw resources are avaible before recallocation
   for (auto const& res : m_frame_resources) {

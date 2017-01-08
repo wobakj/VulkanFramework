@@ -29,8 +29,6 @@ class Application {
   virtual void update();
   void resize(std::size_t with, std::size_t height);
 
-  void blockSwapChain();
-  void unblockSwapChain();
   // render remaining recorded frames before pipeline rebuild
   // required for multithreaded rendering
   virtual void emptyDrawQueue();
@@ -58,7 +56,6 @@ class Application {
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
   std::map<std::string, BufferView> m_buffer_views;
-  std::mutex m_mutex_swapchain;
 
  private:
 };

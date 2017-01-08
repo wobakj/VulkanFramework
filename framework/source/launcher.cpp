@@ -128,18 +128,13 @@ void Launcher::createSurface() {
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view
 void Launcher::resize(GLFWwindow* m_window, int width, int height) {
-  // m_window_width = width;
-  // m_window_height = height;
-
   if (width > 0 && height > 0) {
     m_device->waitIdle();
-    // explicitly block swap chain from drawing thread
+    // draw remaining recorded frames
     m_application->emptyDrawQueue();
-    m_application->blockSwapChain();
+    // rebuild resources
     m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
-
     m_application->resize(width, height);
-    m_application->unblockSwapChain();
   }
 }
 ///////////////////////////// misc functions ////////////////////////////////

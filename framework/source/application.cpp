@@ -39,13 +39,6 @@ void Application::emptyDrawQueue() {
 
 }
 
-void Application::blockSwapChain() {
-  m_mutex_swapchain.lock();
-}
-void Application::unblockSwapChain() {
-  m_mutex_swapchain.unlock();
-}
-
 void Application::acquireImage(FrameResource& res) {
   auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
   if (result == vk::Result::eErrorOutOfDateKHR) {

@@ -159,22 +159,17 @@ void ApplicationLod::draw() {
     m_queue_draw_frames.pop();
   }
   auto& resource_draw = m_frame_resources.at(frame_draw);
-  // draw only when new frame is avaible
+  // wait until drawing with these resources is finished before issuing next draw
+  resource_draw.fenceDraw().reset();
+  submitDraw(resource_draw);
+  // wait until swap chain is avaible
+  // present image and wait for result
+  present(resource_draw);
+  // make frame avaible for rerecording
   {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_swapchain};
-    // wait until drawing with these resources is finished before issuing next draw
-    resource_draw.fenceDraw().wait();
-    resource_draw.fenceDraw().reset();
-    submitDraw(resource_draw);
-    // wait until swap chain is avaible
-    // present image and wait for result
-    present(resource_draw);
-    // make frame avaible for rerecording
-    {
-      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-      m_queue_record_frames.push(frame_draw);
-      m_semaphore_record.signal();
-    }
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    m_queue_record_frames.push(frame_draw);
+    m_semaphore_record.signal();
   }
 }
 
@@ -585,11 +580,15 @@ void ApplicationLod::emptyDrawQueue() {
   // render remaining recorded frames
   bool all_frames_drawn = false;
   while(!all_frames_drawn) {
-    // wait until next frame is drawn
-    m_semaphore_record.wait(); 
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
     // check if all frames are ready for recording
-    all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
+    {
+      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+      all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
+    }
+    // if draw frames remain, wait until next was drawn
+    if (!all_frames_drawn) {
+      m_semaphore_record.wait(); 
+    }
   }
   // wait until draw resources are avaible before recallocation
   for (auto const& res : m_frame_resources) {
