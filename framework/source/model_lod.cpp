@@ -124,6 +124,7 @@ void ModelLod::createStagingBuffers() {
     m_db_views_stage.back().emplace_back(BufferView{m_size_node});
     m_db_views_stage.back().back().bindTo(m_buffer_stage);
   } 
+  std::cout << "cretaing staging buffers" << std::endl;
   // map staging memory once
   m_ptr_mem_stage = (uint8_t*)(m_buffer_stage.map());
 
@@ -326,21 +327,14 @@ void ModelLod::updateDrawCommands() {
   std::swap(m_device, dev.m_device);
   std::swap(m_bind_info, dev.m_bind_info);
   std::swap(m_attrib_info, dev.m_attrib_info);
+  std::swap(m_ptr_mem_stage, dev.m_ptr_mem_stage);
+
   std::swap(m_memory, dev.m_memory);
   std::swap(m_memory_stage, dev.m_memory_stage);
   std::swap(m_buffer, dev.m_buffer);
   std::swap(m_buffer_stage, dev.m_buffer_stage);
   std::swap(m_buffer_views, dev.m_buffer_views);
   std::swap(m_buffer_views_stage, dev.m_buffer_views_stage);
-  // corret parent resource pointers
-  m_buffer_stage.setMemory(m_memory_stage);
-  m_buffer.setMemory(m_memory);
-  for (auto& buffer : m_buffer_views_stage) {
-    buffer.setBuffer(m_buffer_stage);
-  }
-  for (auto& buffer : m_buffer_views) {
-    buffer.setBuffer(m_buffer);
-  }
   std::swap(m_num_uploads, dev.m_num_uploads);
   std::swap(m_num_nodes, dev.m_num_nodes);
   std::swap(m_num_slots, dev.m_num_slots);
@@ -352,7 +346,6 @@ void ModelLod::updateDrawCommands() {
   std::swap(m_slots, dev.m_slots);
   std::swap(m_node_uploads, dev.m_node_uploads);
   std::swap(m_commands_draw, dev.m_commands_draw);
-  std::swap(m_ptr_mem_stage, dev.m_ptr_mem_stage);
   
   std::swap(m_view_levels, dev.m_view_levels);
   m_view_levels.setBuffer(m_buffer);
@@ -361,13 +354,30 @@ void ModelLod::updateDrawCommands() {
   m_view_draw_commands.setBuffer(m_buffer);
 
   std::swap(m_db_views_stage, dev.m_db_views_stage);
+
+  updateResourcePointers();
+  dev.updateResourcePointers();
+}
+
+void ModelLod::updateResourcePointers() {
+  // correct parent resource pointers
+  m_buffer.setMemory(m_memory);
+  m_buffer_stage.setMemory(m_memory_stage);
+  
+  for (auto& buffer : m_buffer_views_stage) {
+    buffer.setBuffer(m_buffer_stage);
+  }
+  for (auto& buffer : m_buffer_views) {
+    buffer.setBuffer(m_buffer);
+  }
+  
   for (auto& buffer : m_db_views_stage.back()) {
     buffer.setBuffer(m_buffer_stage);
   }
   for (auto& buffer : m_db_views_stage.back()) {
     buffer.setBuffer(m_buffer_stage);
   }
- }
+}
 
 BufferView const& ModelLod::bufferView(std::size_t i) const {
   return m_buffer_views[i];

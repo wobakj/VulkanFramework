@@ -70,10 +70,12 @@ void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSiz
 }
 
 void Memory::bindResourceMemory(vk::Buffer const& buffer, vk::DeviceSize offset) {
+  assert(get());
   (*m_device)->bindBufferMemory(buffer, get(), offset);
 }
 
 void Memory::bindResourceMemory(vk::Image const& image, vk::DeviceSize offset) {
+  assert(get());
   (*m_device)->bindImageMemory(image, get(), offset);
 }
 

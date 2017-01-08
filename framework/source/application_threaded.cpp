@@ -23,6 +23,11 @@ void ApplicationThreaded::shutDown() {
   // wait until fences are done
   for (auto const& res : m_frame_resources) {
     res.waitFences();
+    // reset command buffers because the draw indirect buffer counts as reference to memory
+    // must be destroyed before memory is free
+    for(auto const& command_buffer : res.command_buffers) {
+      command_buffer.second.reset({});    
+    }
   }
 }
 

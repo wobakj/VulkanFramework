@@ -69,6 +69,10 @@ class ModelLod {
   
   void printCut() const;
   void printSlots() const;
+  void updateResourcePointers();
+
+  Memory m_memory;
+  Memory m_memory_stage;
 
   model_t m_model;
   Device const* m_device;
@@ -80,8 +84,6 @@ class ModelLod {
   std::vector<BufferView> m_buffer_views_stage;
   BufferView m_view_draw_commands;
   BufferView m_view_levels;
-  Memory m_memory;
-  Memory m_memory_stage;
   std::size_t m_num_nodes; 
   std::size_t m_num_uploads;
   std::size_t m_num_slots; 
