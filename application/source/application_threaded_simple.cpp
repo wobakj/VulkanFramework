@@ -91,41 +91,12 @@ void ApplicationThreadedSimple::updateModel() {
   #endif
 }
 
-void ApplicationThreadedSimple::render() {
+void ApplicationThreadedSimple::update() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();
     }
   }
-  m_semaphore_record.wait();
-  static uint64_t frame = 0;
-  ++frame;
-  // get next frame to record
-  uint32_t frame_record = 0;
-  // only calculate new frame if previous one was rendered
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    assert(!m_queue_record_frames.empty());
-    // get next frame to record
-    frame_record = m_queue_record_frames.front();
-    m_queue_record_frames.pop();
-  }
-  auto& resource_record = m_frame_resources.at(frame_record);
-
-  // wait for last acquisition until acquiring again
-  resource_record.fenceAcquire().wait();
-  acquireImage(resource_record);
-  // wait for drawing finish until rerecording
-  resource_record.fenceDraw().wait();
-  recordDrawBuffer(resource_record);
-
-  // add newly recorded frame for drawing
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    m_queue_draw_frames.push(frame_record);
-    m_semaphore_draw.signal();
-  }
-  // std::this_thread::sleep_for(std::chrono::milliseconds{10}); 
 }
 
 void ApplicationThreadedSimple::createCommandBuffers(FrameResource& res) {

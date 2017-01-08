@@ -23,7 +23,7 @@ void Application::resize(std::size_t width, std::size_t height) {
   resize();
 }
 
-void Application::update() {
+void Application::frame() {
   static double time_last = glfwGetTime();
 	// calculate delta time
 	double time_current = glfwGetTime();
@@ -31,12 +31,10 @@ void Application::update() {
 	time_last = time_current;
 	// update buffers
 	m_camera.update(time_delta);
+  // do logic
+  update();
 	// do actual rendering
 	render();
-}
-
-void Application::emptyDrawQueue() {
-
 }
 
 void Application::acquireImage(FrameResource& res) {

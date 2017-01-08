@@ -36,11 +36,6 @@ void ApplicationThreaded::createFrameResources() {
 }
 
 void ApplicationThreaded::render() {
-  // if(m_model_dirty.is_lock_free()) {
-  //   if(m_model_dirty) {
-  //     updateModel();
-  //   }
-  // }
   m_semaphore_record.wait();
   static uint64_t frame = 0;
   ++frame;

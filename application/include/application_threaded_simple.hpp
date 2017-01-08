@@ -21,7 +21,7 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   ~ApplicationThreadedSimple();
 
  private:
-  void render() override;
+  void update() override;
   void recordDrawBuffer(FrameResource& res) override;
   void createCommandBuffers(FrameResource& res) override;
   void updateCommandBuffers(FrameResource& res) override;

@@ -99,7 +99,7 @@ void Launcher::mainLoop() {
     // query input
     glfwPollEvents();
     // draw geometry
-    m_application->update();
+    m_application->frame();
     // display fps
     show_fps();
   }

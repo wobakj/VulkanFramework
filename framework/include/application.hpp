@@ -26,14 +26,15 @@ class Application {
   // 
   void updateShaderPrograms();
   // draw all objects
-  virtual void update();
+  void frame();
   void resize(std::size_t with, std::size_t height);
 
   // render remaining recorded frames before pipeline rebuild
   // required for multithreaded rendering
-  virtual void emptyDrawQueue();
+  virtual void emptyDrawQueue() {};
 
  protected:
+  virtual void update() {};
   virtual void render() = 0;
   virtual void updateView() = 0;
   virtual void recreatePipeline() = 0;
