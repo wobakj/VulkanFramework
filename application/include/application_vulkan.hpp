@@ -17,7 +17,7 @@
 
 class ApplicationVulkan : public Application {
  public:
-  ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
+  ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
   ~ApplicationVulkan();
  private:
   void render() override;

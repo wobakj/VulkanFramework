@@ -22,7 +22,7 @@
 
 class ApplicationLod : public ApplicationThreaded {
  public:
-  ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
+  ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
   ~ApplicationLod();
 
  private:

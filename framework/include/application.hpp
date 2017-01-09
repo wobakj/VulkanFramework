@@ -17,7 +17,7 @@ class FrameResource;
 class Application {
  public:
   // allocate and initialize objects
-  Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
+  Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
   // free resources
   virtual ~Application(){};
 

@@ -36,6 +36,9 @@ include(AddSubLibrary)
 find_package(Vulkan REQUIRED)
 include_directories(${VULKAN_INCLUDE_DIR})
 
+# include cmdline
+include_directories(SYSTEM external/cmdline-e4cd007)
+
 # include glm, as system header to suppress warnings
 include_directories(SYSTEM external/glm-0.9.6.3)
 

@@ -1,7 +1,7 @@
 #include "application_threaded.hpp"
 
-ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
- :Application{resource_path, device, chain, window}
+ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
+ :Application{resource_path, device, chain, window, args}
  ,m_semaphore_draw{0}
  ,m_semaphore_record{m_swap_chain.numImages() - 1}
  ,m_should_draw{true}

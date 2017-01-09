@@ -14,7 +14,7 @@
 
 class ApplicationThreaded : public Application {
  public:
-  ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*);
+  ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
   void emptyDrawQueue() override;
 
  protected:

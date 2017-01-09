@@ -11,17 +11,17 @@
 #include <iostream>
 
 // helper functions
-std::string resourcePath(int argc, char* argv[]);
+std::string resourcePath(std::vector<std::string> const& args);
 void glfw_error(int error, const char* description);
 
-Launcher::Launcher(int argc, char* argv[]) 
+Launcher::Launcher(std::vector<std::string> const& args) 
  :m_camera_fov{glm::radians(60.0f)}
  ,m_window_width{640u}
  ,m_window_height{480u}
  ,m_window{nullptr}
  ,m_last_second_time{0.0}
  ,m_frames_per_second{0u}
- ,m_resource_path{resourcePath(argc, argv)}
+ ,m_resource_path{resourcePath(args)}
  ,m_application{}
  ,m_instance{}
  ,m_device{}
@@ -30,9 +30,9 @@ Launcher::Launcher(int argc, char* argv[])
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
 {}
 
-std::string resourcePath(int argc, char* argv[]) {
+std::string resourcePath(std::vector<std::string> const& args) {
   std::string resource_path{};
-  std::string exe_path{argv[0]};
+  std::string exe_path{args[0]};
   resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
   resource_path += "/resources/";
   return resource_path;

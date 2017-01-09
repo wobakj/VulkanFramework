@@ -6,6 +6,7 @@
 #include "shader.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
+#include "cmdline.h"
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>
@@ -38,8 +39,8 @@ BufferLights buff_l;
 
 const std::size_t NUM_NODES = 64;
 
-ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window) 
- :ApplicationThreaded{resource_path, device, chain, window}
+ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
+ :ApplicationThreaded{resource_path, device, chain, window, args}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -49,12 +50,27 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
 {
+  cmdline::parser cmd_parse{};
+  // cmd_parse.add<string>("type", 't', "protocol type", false, "http", cmdline::oneof<string>("http", "https", "ssh", "ftp"));
+
+  cmd_parse.parse_check(args);
+  if (cmd_parse.rest().size() != 1) {
+    if (cmd_parse.rest().size() < 1) {
+      std::cerr << "No filename specified" << std::endl;
+    }
+    else {
+      std::cerr << cmd_parse.usage();
+    }
+    exit(0);
+  }
+
   m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/lod_frag.spv"}});
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("quad_blinn", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_passthrough_frag.spv"}});
 
-  createVertexBuffer("./resources/models/xyzrgb_manuscript_4305k");
+  createVertexBuffer(cmd_parse.rest()[0]);
+  // createVertexBuffer("./resources/models/xyzrgb_manuscript_4305k");
   createUniformBuffers();
   createLights();  
   createTextureImage();

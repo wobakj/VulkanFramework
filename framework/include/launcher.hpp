@@ -15,19 +15,23 @@ class Launcher {
  public:
   template<typename T>
   static void run(int argc, char* argv[]) {
-    Launcher launcher{argc, argv};
-    launcher.run<T>();
+    std::vector<std::string> args{};
+    for (int i = 0; i < argc; ++i) {
+      args.emplace_back(argv[i]);
+    }
+    Launcher launcher{args};
+    launcher.runApp<T>(args);
   }
 
  private:
 
-  Launcher(int argc, char* argv[]);
+  Launcher(std::vector<std::string> const& args);
   // run application
   template<typename T>
-  void run(){
+  void runApp(std::vector<std::string> const& args){
     initialize();
 
-    m_application = new T{m_resource_path, m_device, m_swap_chain, m_window};
+    m_application = new T{m_resource_path, m_device, m_swap_chain, m_window, args};
 
     mainLoop();
   }
