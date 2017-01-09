@@ -70,7 +70,6 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_passthrough_frag.spv"}});
 
   createVertexBuffer(cmd_parse.rest()[0]);
-  // createVertexBuffer("./resources/models/xyzrgb_manuscript_4305k");
   createUniformBuffers();
   createLights();  
   createTextureImage();
@@ -415,10 +414,7 @@ void ApplicationLod::createPipelines() {
 }
 
 void ApplicationLod::createVertexBuffer(std::string const& lod_path) {
-  // auto bvh = model_loader::bvh("/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.bvh");
-  // m_model_lod = ModelLod{m_device, bvh, "/opt/3d_models/lamure/mlod/xyzrgb_dragon_7219k.lod", NUM_NODES, 100};
-  auto bvh = model_loader::bvh(lod_path + ".bvh");
-  m_model_lod = ModelLod{m_device, bvh, lod_path + ".lod", NUM_NODES, 16};
+  m_model_lod = ModelLod{m_device, lod_path, NUM_NODES, 16};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_light = Model{m_device, tri};

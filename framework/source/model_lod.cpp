@@ -2,6 +2,7 @@
 
 #include "device.hpp"
 #include "camera.hpp"
+#include "model_loader.hpp"
 
 #include <iostream>
 #include <queue>
@@ -58,8 +59,7 @@ ModelLod::ModelLod(ModelLod && dev)
   swap(dev);
 }
 
-ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& path, std::size_t num_nodes, std::size_t num_uploads)
-// ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads)
+ModelLod::ModelLod(Device& device, std::string const& path, std::size_t num_nodes, std::size_t num_uploads)
  :m_model{}
  ,m_device{&device}
  ,m_bind_info{}
@@ -67,7 +67,7 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
  ,m_num_nodes{num_nodes}
  ,m_num_uploads{num_uploads}
  ,m_num_slots{m_num_nodes + num_uploads}
- ,m_bvh{bvh}
+ ,m_bvh{model_loader::bvh(path + ".bvh")}
  ,m_size_node{sizeof(serialized_vertex) * m_bvh.get_primitives_per_node()}
  ,m_commands_draw(m_num_nodes, vk::DrawIndirectCommand{0, 1, 0, 0})
  ,m_ptr_mem_stage{nullptr}
@@ -78,11 +78,11 @@ ModelLod::ModelLod(Device& device, vklod::bvh const& bvh, std::string const& pat
   createDrawingBuffers();
 
   lamure::ren::lod_stream lod_stream;
-  lod_stream.open(path);
+  lod_stream.open(path + ".lod");
 
   // read data from file
-  m_nodes = std::vector<std::vector<float>>(bvh.get_num_nodes(), std::vector<float>(m_size_node * sizeof(uint8_t) / sizeof(float), 0.0));
-  for(std::size_t i = 0; i < bvh.get_num_nodes(); ++i) {
+  m_nodes = std::vector<std::vector<float>>(m_bvh.get_num_nodes(), std::vector<float>(m_size_node * sizeof(uint8_t) / sizeof(float), 0.0));
+  for(std::size_t i = 0; i < m_bvh.get_num_nodes(); ++i) {
     size_t offset_in_bytes = i * m_size_node;
     lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, m_size_node);
   }
