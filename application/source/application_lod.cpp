@@ -67,10 +67,8 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
 
   createVertexBuffer(cmd_parse.rest()[0], cmd_parse.get<int>("cut"), cmd_parse.get<int>("upload"));
 
-  m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/lod_frag.spv"}});
-  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad_blinn", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_passthrough_frag.spv"}});
+  m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/forward_lod_frag.spv"}});
+  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/forward_blinn_frag.spv"}});
 
   createUniformBuffers();
   createLights();  
@@ -147,38 +145,17 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   inheritanceInfo.framebuffer = m_framebuffer;
   inheritanceInfo.subpass = 0;
 
-
-  // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
 
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lod").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lod").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
   res.command_buffers.at("gbuffer").drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
 
   res.command_buffers.at("gbuffer").end();
-
-  //deferred shading pass 
-  inheritanceInfo.subpass = 1;
-  res.command_buffers.at("lighting").reset({});
-  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
-
-  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
-  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
-  if (m_setting_shaded) {
-    res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model_light.buffer()}, {0});
-    res.command_buffers.at("lighting").bindIndexBuffer(m_model_light.buffer(), m_model_light.indexOffset(), vk::IndexType::eUint32);
-
-    res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
-  }
-  else {
-    res.command_buffers.at("lighting").draw(4, 1, 0, 0);
-  }
-    
-  res.command_buffers.at("lighting").end();
 }
 
 void ApplicationLod::recordDrawBuffer(FrameResource& res) {
@@ -224,10 +201,6 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
   res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
-  
-  res.command_buffers.at("draw").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
-  // execute lighting buffer
-  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("lighting")});
 
   res.command_buffers.at("draw").endRenderPass();
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eBottomOfPipe);
@@ -235,25 +208,22 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
-  blit.srcSubresource = img_to_resource_layer(m_images.at("color_2").info());
+  blit.srcSubresource = img_to_resource_layer(m_images.at("color").info());
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  res.command_buffers.at("draw").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw").blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
   res.command_buffers.at("draw").end();
 }
 
 void ApplicationLod::createFramebuffers() {
-  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
+  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("depth")}, m_render_pass};
 }
 
 void ApplicationLod::createRenderPasses() {
-  //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
-  sub_pass_t pass_1({0, 1, 2},{},3);
-  // second pass receives attachments 0,1,2 and inputs and writes to 4
-  sub_pass_t pass_2({4},{0,1,2}, 3);
-  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
+  sub_pass_t pass_1({0},{},1);
+  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("depth").info()}, {pass_1}};
 }
 
 void ApplicationLod::createPipelines() {
@@ -306,10 +276,10 @@ void ApplicationLod::createPipelines() {
   colorBlendAttachment.blendEnable = VK_FALSE;
   std::vector<vk::PipelineColorBlendAttachmentState> states{};
   if (m_setting_transparent) {
-    states = {colorBlendAttachment2, colorBlendAttachment, colorBlendAttachment};
+    states = {colorBlendAttachment2};
   }
   else {
-    states = {colorBlendAttachment2, colorBlendAttachment, colorBlendAttachment};
+    states = {colorBlendAttachment};
   }
 
   vk::PipelineColorBlendStateCreateInfo colorBlending{};
@@ -317,7 +287,9 @@ void ApplicationLod::createPipelines() {
   colorBlending.pAttachments = states.data();
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
-  depthStencil.depthTestEnable = VK_TRUE;
+  if (!m_setting_transparent) {
+    depthStencil.depthTestEnable = VK_TRUE;
+  }
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
   // VkDynamicState dynamicStates[] = {
@@ -348,70 +320,15 @@ void ApplicationLod::createPipelines() {
   pipelineInfo.renderPass = m_render_pass;
   pipelineInfo.subpass = 0;
 
-  auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly2{};
-  vk::PipelineVertexInputStateCreateInfo vert_info2{};
-  if (m_setting_shaded) {
-    pipelineInfo2 = m_shaders.at("quad_blinn").startPipelineInfo();
-    pipelineInfo2.pInputAssemblyState = &inputAssembly;
-    pipelineInfo2.pVertexInputState = &vert_info;
-  }  
-  else {
-    inputAssembly2.topology = vk::PrimitiveTopology::eTriangleStrip;
-    pipelineInfo2.pInputAssemblyState = &inputAssembly2;
-    pipelineInfo2.pVertexInputState = &vert_info2;
-  }
-
-  // cull frontfaces 
-  vk::PipelineRasterizationStateCreateInfo rasterizer2{};
-  rasterizer2.lineWidth = 1.0f;
-  if (m_setting_shaded) {
-    rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
-  }
-  else {
-    rasterizer2.cullMode = vk::CullModeFlagBits::eNone;
-  }
-
-  pipelineInfo2.pRasterizationState = &rasterizer2;
-
-  pipelineInfo2.pViewportState = &viewportState;
-  pipelineInfo2.pMultisampleState = &multisampling;
-  pipelineInfo2.pDepthStencilState = nullptr; // Optional
-
-
-  vk::PipelineColorBlendStateCreateInfo colorBlending2{};
-  colorBlending2.attachmentCount = 1;
-  colorBlending2.pAttachments = &colorBlendAttachment2;
-  pipelineInfo2.pColorBlendState = &colorBlending2;
-  
-  pipelineInfo2.pDynamicState = nullptr; // Optional
-  // shade fragment only if light sphere reaches behind it
-  vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  // depthStencil2.depthTestEnable = VK_FALSE;
-  if (m_setting_shaded) {
-    depthStencil2.depthTestEnable = VK_TRUE;
-  }
-  depthStencil2.depthWriteEnable = VK_FALSE;
-  depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
-  pipelineInfo2.pDepthStencilState = &depthStencil2;
-  
-  pipelineInfo2.renderPass = m_render_pass;
-  pipelineInfo2.subpass = 1;
-
   pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  pipelineInfo2.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
   if (m_pipeline && m_pipeline_2) {
     pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
-    pipelineInfo2.flags |= vk::PipelineCreateFlagBits::eDerivative;
     // insert previously created pipeline here to derive this one from
     pipelineInfo.basePipelineHandle = m_pipeline.get();
     pipelineInfo.basePipelineIndex = -1; // Optional
-    pipelineInfo2.basePipelineHandle = m_pipeline_2.get();
-    pipelineInfo2.basePipelineIndex = -1; // Optional
   }
-  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo, pipelineInfo2});
+  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo});
   m_pipeline = pipelines[0];
-  m_pipeline_2 = pipelines[1];
 }
 
 void ApplicationLod::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {
@@ -437,13 +354,10 @@ void ApplicationLod::createMemoryPools() {
   m_device->waitIdle();
 
   // allocate pool for 5 32x4 fb attachments
-  m_device.reallocateMemoryPool("framebuffer", m_images.at("pos").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("pos").size() * 5);
+  m_device.reallocateMemoryPool("framebuffer", m_images.at("color").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("color").size() * 5);
   
   m_images.at("depth").bindTo(m_device.memoryPool("framebuffer"));
   m_images.at("color").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("pos").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("normal").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
 }
 
 void ApplicationLod::createFramebufferAttachments() {
@@ -457,17 +371,8 @@ void ApplicationLod::createFramebufferAttachments() {
   m_images["depth"] = m_device.createImage(extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment);
   m_images.at("depth").transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-  m_images["color"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_images.at("color").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
-
-  m_images["pos"] = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_images.at("pos").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
-
-  m_images["normal"] = m_device.createImage(extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment);
-  m_images.at("normal").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
-
-  m_images["color_2"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc);
-  m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
+  m_images["color"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc);
+  m_images.at("color").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
 
   createMemoryPools();
 }
@@ -491,17 +396,12 @@ void ApplicationLod::createTextureSampler() {
 void ApplicationLod::createDescriptorPools() {
   // descriptor sets can be allocated for each frame resource
   m_descriptorPool = m_shaders.at("lod").createPool(m_swap_chain.numImages() - 1);
-  m_descriptor_sets["textures"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 1);
+  // global descriptor sets
+  m_descriptorPool_2 = m_shaders.at("simple").createPool(1);
+  m_descriptor_sets["lighting"] = m_shaders.at("simple").allocateSet(m_descriptorPool_2.get(), 1);
 
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
-  m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("textures"), 1);
-
-  m_descriptorPool_2 = m_shaders.at("quad").createPool(1);
-  m_descriptor_sets["lighting"] = m_shaders.at("quad").allocateSet(m_descriptorPool_2.get(), 1);
-
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2);
+  m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1);
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_textureSampler.get());
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
