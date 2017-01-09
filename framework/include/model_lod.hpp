@@ -22,7 +22,7 @@ class Camera;
 class ModelLod {
  public:  
   ModelLod();
-  ModelLod(Device& device, std::string const& path, std::size_t num_nodes, std::size_t num_uploads);
+  ModelLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget);
   // ModelLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads);
   ModelLod(ModelLod && dev);
   ModelLod(ModelLod const&) = delete;

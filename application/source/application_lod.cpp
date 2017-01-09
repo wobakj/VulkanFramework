@@ -51,7 +51,8 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_shaded{true}
 {
   cmdline::parser cmd_parse{};
-  // cmd_parse.add<string>("type", 't', "protocol type", false, "http", cmdline::oneof<string>("http", "https", "ssh", "ftp"));
+  cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
+  cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
 
   cmd_parse.parse_check(args);
   if (cmd_parse.rest().size() != 1) {
@@ -64,12 +65,13 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
     exit(0);
   }
 
+  createVertexBuffer(cmd_parse.rest()[0], cmd_parse.get<int>("cut"), cmd_parse.get<int>("upload"));
+
   m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/lod_frag.spv"}});
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("quad_blinn", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_passthrough_frag.spv"}});
 
-  createVertexBuffer(cmd_parse.rest()[0]);
   createUniformBuffers();
   createLights();  
   createTextureImage();
@@ -109,7 +111,6 @@ void ApplicationLod::render() {
 
   // wait for last acquisition until acquiring again
   resource_record.fenceAcquire().wait();
-  resource_record.fenceAcquire().reset();
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
@@ -413,8 +414,8 @@ void ApplicationLod::createPipelines() {
   m_pipeline_2 = pipelines[1];
 }
 
-void ApplicationLod::createVertexBuffer(std::string const& lod_path) {
-  m_model_lod = ModelLod{m_device, lod_path, NUM_NODES, 16};
+void ApplicationLod::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {
+  m_model_lod = ModelLod{m_device, lod_path, cut_budget, upload_budget};
 
   model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model_light = Model{m_device, tri};

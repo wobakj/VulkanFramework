@@ -59,24 +59,19 @@ ModelLod::ModelLod(ModelLod && dev)
   swap(dev);
 }
 
-ModelLod::ModelLod(Device& device, std::string const& path, std::size_t num_nodes, std::size_t num_uploads)
+ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget)
  :m_model{}
  ,m_device{&device}
  ,m_bind_info{}
  ,m_attrib_info{}
- ,m_num_nodes{num_nodes}
- ,m_num_uploads{num_uploads}
- ,m_num_slots{m_num_nodes + num_uploads}
+ ,m_num_nodes{0}
+ ,m_num_uploads{0}
+ ,m_num_slots{0}
  ,m_bvh{model_loader::bvh(path + ".bvh")}
  ,m_size_node{sizeof(serialized_vertex) * m_bvh.get_primitives_per_node()}
- ,m_commands_draw(m_num_nodes, vk::DrawIndirectCommand{0, 1, 0, 0})
+ ,m_commands_draw{}
  ,m_ptr_mem_stage{nullptr}
 {
-  // create staging memory and buffers
-  createStagingBuffers();
-  // create drawing memory and buffers
-  createDrawingBuffers();
-
   lamure::ren::lod_stream lod_stream;
   lod_stream.open(path + ".lod");
 
@@ -91,10 +86,31 @@ ModelLod::ModelLod(Device& device, std::string const& path, std::size_t num_node
   m_bind_info = model_to_bind(m_model);
   m_attrib_info = model_to_attr(m_model);
 
-  std::cout << "bvh has " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
-  std::cout << "node size " << m_size_node / 1024 << " kB" << std::endl;
+  std::cout << "Bvh has depth " << m_bvh.get_depth() << ", with " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
+// set node buffer sizes
+  std::size_t leaf_length = m_bvh.get_length_of_depth(m_bvh.get_depth());
+  if (cut_budget > 0) {
+    m_num_nodes =  std::max(std::size_t(1), cut_budget * 1024 * 1024 / m_size_node);
+  }
+  else {
+    m_num_nodes = std::max(std::size_t{1}, leaf_length / 2);
+  }
 
+  if (upload_budget > 0) {
+    m_num_uploads =  std::max(std::size_t(1), upload_budget * 1024 * 1024 / m_size_node);
+  }
+  else {
+    m_num_uploads = std::max(std::size_t{1}, leaf_length / 16);
+  }
+  m_num_slots = m_num_nodes + m_num_uploads;
+
+  std::cout << "LOD node size is " << m_size_node / 1024 / 1024 << " MB" << std::endl;
   assert(m_num_slots <= m_bvh.get_num_nodes());
+  // create staging memory and buffers
+  createStagingBuffers();
+  // create drawing memory and buffers
+  createDrawingBuffers();
+  m_commands_draw.resize(m_num_nodes, vk::DrawIndirectCommand{0, 1, 0, 0});
 
   setFirstCut();
 }
@@ -112,6 +128,7 @@ void ModelLod::createStagingBuffers() {
   // per-buffer offset
   auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_stage.alignment)));
   requirements_stage.size = m_size_node + offset_stage * ((m_num_uploads - 1) * 2 + 1);
+  std::cout << "LOD staging buffer size is " << requirements_stage.size / 1024 / 1024 << " MB for " << m_num_uploads << " nodes" << std::endl;
   m_buffer_stage = m_device->createBuffer(requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc);
   m_memory_stage = Memory{*m_device, m_buffer_stage.requirements(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   // recreate buffer with correct size, should be calculated beforehand
@@ -124,11 +141,8 @@ void ModelLod::createStagingBuffers() {
     m_db_views_stage.back().emplace_back(BufferView{m_size_node});
     m_db_views_stage.back().back().bindTo(m_buffer_stage);
   } 
-  std::cout << "cretaing staging buffers" << std::endl;
   // map staging memory once
   m_ptr_mem_stage = (uint8_t*)(m_buffer_stage.map());
-
-  std::cout << "LOD staging buffer size is " << requirements_stage.size / 1024 / 1024 << " MB" << std::endl;
 }
 
 void ModelLod::createDrawingBuffers() {
@@ -142,6 +156,7 @@ void ModelLod::createDrawingBuffers() {
   vk::DeviceSize size_levelbuff = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(sizeof(float) * (m_num_slots + 1)) / float(requirements_draw.alignment)));
   // total buffer size
   requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff * 2;
+  std::cout << "LOD drawing buffer size is " << requirements_draw.size / 1024 / 1024 << " MB for " << m_num_nodes << " nodes" << std::endl;
   m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer);
   m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   // ugly, recreate buffer with size for correct alignment
@@ -156,8 +171,6 @@ void ModelLod::createDrawingBuffers() {
   m_view_draw_commands.bindTo(m_buffer);
   m_view_levels = BufferView{sizeof(float) * (m_num_slots + 1)};
   m_view_levels.bindTo(m_buffer);
-
-  std::cout << "LOD drawing buffer size is " << requirements_draw.size / 1024 / 1024 << " MB" << std::endl;
 }
 
 void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
@@ -231,7 +244,7 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     levels[i + 1] = float(m_bvh.get_depth_of_node(m_slots[i])) / depth;
   }
   // store number of vertices per node in first entry
-  uint32_t verts_per_node = m_buffer_views[1].offset() / m_model.vertex_bytes;
+  uint32_t verts_per_node = uint32_t(m_buffer_views[1].offset() / m_model.vertex_bytes);
   std::memcpy(levels.data(), &verts_per_node, sizeof(std::uint32_t));
   // upload mode levels
   command_buffer.updateBuffer(
@@ -303,7 +316,7 @@ void ModelLod::updateDrawCommands() {
       assert(m_size_node == m_buffer_views[i].size());
       // assert(m_size_node == m_buffer_views_stage.front().size());
       assert(m_buffer.alignment() == m_buffer_stage.alignment());
-      m_commands_draw[i].firstVertex = uint32_t(m_buffer_views[m_active_slots[i]].offset()) / m_model.vertex_bytes;
+      m_commands_draw[i].firstVertex = uint32_t(m_buffer_views.at(m_active_slots.at(i)).offset()) / m_model.vertex_bytes;
       // std::cout << "(" << m_active_slots[i] << ", " << m_commands_draw[i].firstVertex << "), ";
       m_commands_draw[i].vertexCount = numVertices();
       m_commands_draw[i].instanceCount = 1;
@@ -425,13 +438,13 @@ std::uint32_t ModelLod::numVertices() const {
 }
 
 float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
-  auto centroid = m_bvh.get_centroid(node);
+  // auto centroid = m_bvh.get_centroid(node);
   auto const& bbox = m_bvh.get_bounding_box(node);
   // (glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
   glm::fvec3 min_dist = glm::fvec3{glm::max(glm::max(bbox.min()[0] - pos_view.x, 0.0), pos_view.x - bbox.max()[0]),
                                    glm::max(glm::max(bbox.min()[1] - pos_view.y, 0.0), pos_view.y - bbox.max()[1]),
                                    glm::max(glm::max(bbox.min()[2] - pos_view.z, 0.0), pos_view.z - bbox.max()[2])};
-  glm::fvec3 bbox_dims = glm::fvec3{glm::abs(bbox.max()[0] - bbox.min()[0]), glm::abs(bbox.max()[1] - bbox.min()[1]), glm::abs(bbox.max()[2] - bbox.min()[2])};
+  // glm::fvec3 bbox_dims = glm::fvec3{glm::abs(bbox.max()[0] - bbox.min()[0]), glm::abs(bbox.max()[1] - bbox.min()[1]), glm::abs(bbox.max()[2] - bbox.min()[2])};
   float level_rel = float(m_bvh.get_depth_of_node(node)) / float(m_bvh.get_depth());
   // return 1.0f / glm::length(min_dist); 
   return  (1.0f - level_rel) / glm::length(min_dist); 
@@ -715,13 +728,6 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   }
 
   // store new cut
-  auto change = false;
-  for (auto const& idx_node : m_cut) {
-    if (!contains(cut, idx_node)) {
-      change = true;
-      break;
-    }
-  }
   m_cut = cut;
   m_active_slots = slots_active_new;
 
@@ -734,10 +740,8 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
     performUploads();
     // performCopies();
   }
-  // if (change) {
-    updateDrawCommands();
-  // }
 
+  updateDrawCommands();
   // printSlots();
 }
 

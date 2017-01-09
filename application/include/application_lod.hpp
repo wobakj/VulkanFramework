@@ -36,7 +36,8 @@ class ApplicationLod : public ApplicationThreaded {
   void createLights();
   void loadModel();
   void createUniformBuffers();
-  void createVertexBuffer(std::string const& lod_path);
+  void createVertexBuffer(std::string const& lod_path, std::size_t cur_budged, std::size_t upload_budget);
+
   void createTextureImage();
   void createTextureSampler();
 
