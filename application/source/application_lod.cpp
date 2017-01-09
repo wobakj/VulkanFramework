@@ -23,6 +23,8 @@ struct UniformBufferObject {
     glm::mat4 view;
     glm::mat4 proj;
     glm::mat4 normal;
+    glm::fvec4 levels;
+    glm::fvec4 shade;
 } ubo_cam;
 
 struct light_t {
@@ -37,8 +39,6 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const std::size_t NUM_NODES = 64;
-
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
  :ApplicationThreaded{resource_path, device, chain, window, args}
  ,m_pipeline{m_device, vkDestroyPipeline}
@@ -49,6 +49,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
+ ,m_setting_levels{false}
 {
   cmdline::parser cmd_parse{};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
@@ -68,7 +69,6 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   createVertexBuffer(cmd_parse.rest()[0], cmd_parse.get<int>("cut"), cmd_parse.get<int>("upload"));
 
   m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/forward_lod_frag.spv"}});
-  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/forward_blinn_frag.spv"}});
 
   createUniformBuffers();
   createLights();  
@@ -129,7 +129,6 @@ void ApplicationLod::render() {
 
 void ApplicationLod::createCommandBuffers(FrameResource& res) {
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
 }
 
 void ApplicationLod::updateDescriptors(FrameResource& res) {
@@ -302,9 +301,9 @@ void ApplicationLod::createPipelines() {
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
   auto pipelineInfo = m_shaders.at("lod").startPipelineInfo();
-  if (m_setting_shaded) {
-    pipelineInfo = m_shaders.at("simple").startPipelineInfo();
-  }
+  // if (m_setting_levels) {
+  //   pipelineInfo = m_shaders.at("simple").startPipelineInfo();
+  // }
 
   auto vert_info = m_model_lod.inputInfo();
   pipelineInfo.pVertexInputState = &vert_info;
@@ -397,8 +396,8 @@ void ApplicationLod::createDescriptorPools() {
   // descriptor sets can be allocated for each frame resource
   m_descriptorPool = m_shaders.at("lod").createPool(m_swap_chain.numImages() - 1);
   // global descriptor sets
-  m_descriptorPool_2 = m_shaders.at("simple").createPool(1);
-  m_descriptor_sets["lighting"] = m_shaders.at("simple").allocateSet(m_descriptorPool_2.get(), 1);
+  m_descriptorPool_2 = m_shaders.at("lod").createPool(1);
+  m_descriptor_sets["lighting"] = m_shaders.at("lod").allocateSet(m_descriptorPool_2.get(), 1);
 
   m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1);
   m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_textureSampler.get());
@@ -421,13 +420,15 @@ void ApplicationLod::updateView() {
   ubo_cam.view = m_camera.viewMatrix();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
   ubo_cam.proj = m_camera.projectionMatrix();
+  ubo_cam.levels = m_setting_levels ? glm::fvec4{1.0f} : glm::fvec4{0.0};
+  ubo_cam.shade = m_setting_shaded ? glm::fvec4{1.0f} : glm::fvec4{0.0};
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void ApplicationLod::keyCallback(int key, int scancode, int action, int mods) {
   if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
-    m_setting_shaded = !m_setting_shaded;
+    m_setting_levels = !m_setting_levels;
     recreatePipeline();
   }
   else if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
@@ -436,6 +437,10 @@ void ApplicationLod::keyCallback(int key, int scancode, int action, int mods) {
   }
   else if (key == GLFW_KEY_3 && action == GLFW_PRESS) {
     m_setting_transparent = !m_setting_transparent;
+    recreatePipeline();
+  }
+  else if (key == GLFW_KEY_4 && action == GLFW_PRESS) {
+    m_setting_shaded = !m_setting_shaded;
     recreatePipeline();
   }
 }

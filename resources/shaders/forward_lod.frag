@@ -15,6 +15,8 @@ layout(set = 0, binding = 0) buffer MatrixBuffer {
     mat4 view;
     mat4 proj;
     mat4 normal;
+    vec4 levels;
+    vec4 shade;
 } ubo;
 
 // const vec3 LightPosition = vec3(1.5, 1.0, 1.0); //diffuse color
@@ -41,6 +43,21 @@ layout(set = 1, binding = 3) buffer LightBuffer {
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
+
+vec3 diffuseColor() {
+  if (ubo.levels.r > 0.0) {
+    float val = levels[frag_VertexIndex / verts_per_node];
+    if (val < 0.5) {
+      return vec3(1.0, val * 2.0, 0.0);
+    }
+    else {
+      return vec3(1.0 - (val - 0.5) * 2.0, 1.0, 0.0);
+    }
+  }
+  else {
+    return texture(texSampler, frag_Texcoord).rgb;
+  }
+}
 
 // phong diff and spec coefficient calculation in viewspace
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos) {
@@ -71,13 +88,10 @@ vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const 
 }
 
 void main() {
-  vec3 diffuseColor;
-  float val = levels[frag_VertexIndex / verts_per_node];
-  if (val < 0.5) {
-    diffuseColor = vec3(1.0, val * 2.0, 0.0);
-  }
-  else {
-    diffuseColor = vec3(1.0 - (val - 0.5) * 2.0, 1.0, 0.0);
+  vec3 diffuseColor = diffuseColor();
+  if (ubo.shade.r < 1.0) {
+    out_Color = vec4(diffuseColor, 0.4);
+    return;
   }
 
   for (uint i  = 0; i < light_buff.lights.length(); ++i) {

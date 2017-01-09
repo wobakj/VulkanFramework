@@ -70,6 +70,7 @@ class ApplicationLod : public ApplicationThreaded {
   bool m_setting_wire;
   bool m_setting_transparent;
   bool m_setting_shaded;
+  bool m_setting_levels;
 };
 
 #endif
