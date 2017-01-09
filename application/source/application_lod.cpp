@@ -50,6 +50,10 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
  ,m_setting_levels{false}
+ ,avg_update{0.0}
+ ,avg_copy{0.0}
+ ,num_updates{0.0}
+ ,num_copys{0.0}
 {
   cmdline::parser cmd_parse{};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
@@ -81,6 +85,9 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
 
 ApplicationLod::~ApplicationLod() {
   shutDown();
+  double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
+  std::cout << "Average LOD update time: " << avg_update << " milliseconds per node, " << avg_update / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
+  std::cout << "Average LOD copy time: " << avg_copy << " milliseconds per node, " << avg_copy / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
 }
 
 FrameResource ApplicationLod::createFrameResource() {
@@ -114,8 +121,12 @@ void ApplicationLod::render() {
   resource_record.fenceDraw().wait();
 
   if (frame > m_frame_resources.size()) {
-    auto values = resource_record.query_pools.at("timers").getTimes();
-    std::cout << "upload time " << values[1] - values[0] << ", drawing time " << values[2] - values[1] << std::endl;
+    if (resource_record.num_uploads > 0) {
+      auto values = resource_record.query_pools.at("timers").getTimes();
+      std::cout << "upload time " << values[1] - values[0] << ", drawing time " << values[2] - values[1] << std::endl;
+      avg_copy = (avg_copy * num_copys + (values[1] - values[0]) / resource_record.num_uploads) / (num_copys + 1.0);
+      num_copys += 1.0;
+    }
   }
   recordDrawBuffer(resource_record);
   // read out timer values
@@ -187,13 +198,25 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
     {}
   );
 
-  // upload node data
-  m_model_lod.update(m_camera);
 
   res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTransfer);
+
+  std::size_t curr_uploads = 0;
+  auto start = std::chrono::steady_clock::now();
+  // upload node data
+  m_model_lod.update(m_camera);
+  curr_uploads = m_model_lod.numUploads();
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
+  if (curr_uploads > 0) {
+    auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start);
+    double time_norm = double(time.count()) / 1000.0 / 1000.0 / double(curr_uploads);
+    avg_update = (avg_update * num_updates + time_norm) / (num_updates + 1.0);
+    num_updates += 1.0;
+  }
+  // store upload num for later when reading out timers
+  res.num_uploads = double(curr_uploads);
 
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
 

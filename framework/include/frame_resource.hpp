@@ -85,6 +85,7 @@ class FrameResource {
     std::swap(buffers, rhs.buffers);
     std::swap(buffer_views, rhs.buffer_views);
     std::swap(query_pools, rhs.query_pools);
+    std::swap(num_uploads, rhs.num_uploads);
   }
 
   uint32_t image;
@@ -95,6 +96,7 @@ class FrameResource {
   std::map<std::string, Buffer> buffers;
   std::map<std::string, BufferView> buffer_views;
   std::map<std::string, QueryPool> query_pools;
+  double num_uploads;
 
  private:
   Device const* m_device;

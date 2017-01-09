@@ -19,6 +19,12 @@
 class Device;
 class Camera;
 
+struct serialized_vertex {
+  float v0_x_, v0_y_, v0_z_;   //vertex 0
+  float n0_x_, n0_y_, n0_z_;   //normal 0
+  float c0_x_, c0_y_;          //texcoord 0
+};
+
 class ModelLod {
  public:  
   ModelLod();
@@ -41,6 +47,8 @@ class ModelLod {
   vk::Buffer const& buffer() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numVertices() const;
+  std::size_t numUploads() const;
+  std::size_t sizeNode() const;
 
   void update(Camera const& cam);
   void performCopiesCommand(vk::CommandBuffer const& command_buffer);

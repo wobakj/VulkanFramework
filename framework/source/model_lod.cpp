@@ -13,12 +13,6 @@ bool contains(T const& container, U const& element) {
   return std::find(container.begin(), container.end(), element) != container.end();
 }
 
-struct serialized_vertex {
-  float v0_x_, v0_y_, v0_z_;   //vertex 0
-  float n0_x_, n0_y_, n0_z_;   //normal 0
-  float c0_x_, c0_y_;          //texcoord 0
-};
-
 static vk::VertexInputBindingDescription model_to_bind(model_t const& m) {
   vk::VertexInputBindingDescription bindingDescription{};
   bindingDescription.binding = 0;
@@ -188,11 +182,22 @@ void ModelLod::nodeToSlot(std::size_t idx_node, std::size_t idx_slot) {
   m_slots[idx_slot] = idx_node;
 }
 
+std::size_t ModelLod::numUploads() const {
+  return m_node_uploads.size();
+}
+
+std::size_t ModelLod::sizeNode() const {
+  return m_size_node;
+}
+
 void ModelLod::performUploads() {
+  // auto start = std::chrono::steady_clock::now();
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_node = m_node_uploads[i].first;
     std::memcpy(m_ptr_mem_stage + m_db_views_stage.back()[i].offset(), m_nodes[idx_node].data(), m_size_node);
   }
+  // auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start);
+  // std::cout << "LOD node copy time: " << time.count() / 1000.0f / 1000.0f << " milliseconds" << std::endl;
 
   // std::cout << "uploads ";
   // for (auto const& upload : m_node_uploads) {

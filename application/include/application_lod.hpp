@@ -71,6 +71,11 @@ class ApplicationLod : public ApplicationThreaded {
   bool m_setting_transparent;
   bool m_setting_shaded;
   bool m_setting_levels;
+
+  double avg_update;
+  double avg_copy;
+  double num_updates;
+  double num_copys;
 };
 
 #endif
