@@ -16,7 +16,6 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include <iostream>
-#include <chrono>
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -85,6 +84,8 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_averages["copy"] = Averager<double>{};
   m_averages["draw"] = Averager<double>{};
   m_averages["update"] = Averager<double>{};
+
+  m_timers["update"] = Timer{};
 }
 
 ApplicationLod::~ApplicationLod() {
@@ -206,16 +207,14 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTransfer);
 
   std::size_t curr_uploads = 0;
-  auto start = std::chrono::steady_clock::now();
+  m_timers.at("update").start();
   // upload node data
   m_model_lod.update(m_camera);
   curr_uploads = m_model_lod.numUploads();
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
   if (curr_uploads > 0) {
-    auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start);
-    double time_norm = double(time.count()) / 1000.0 / 1000.0 / double(curr_uploads);
-    m_averages.at("update").add(time_norm);
+    m_averages.at("update").add(m_timers.at("update").durationEnd() / double(curr_uploads));
   }
   // store upload num for later when reading out timers
   res.num_uploads = double(curr_uploads);

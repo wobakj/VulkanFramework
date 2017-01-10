@@ -14,7 +14,9 @@
 #include "fence.hpp"
 #include "frame_resource.hpp"
 #include "semaphore.hpp"
+
 #include "averager.hpp"
+#include "timer.hpp"
 
 #include <vector>
 #include <atomic>
@@ -79,6 +81,7 @@ class ApplicationLod : public ApplicationThreaded {
   double num_copys;
 
   std::map<std::string, Averager<double>> m_averages; 
+  std::map<std::string, Timer> m_timers; 
 };
 
 #endif
