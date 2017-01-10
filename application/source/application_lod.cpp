@@ -29,7 +29,7 @@ struct UniformBufferObject {
 
 struct light_t {
   glm::fvec3 position;
-  float pad;
+  float pad = 0.0f;
   glm::fvec3 color;
   float radius;
 };
@@ -81,13 +81,17 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   createFrameResources();
 
   resize();
+
+  m_averages["copy"] = Averager<double>{};
+  m_averages["draw"] = Averager<double>{};
+  m_averages["update"] = Averager<double>{};
 }
 
 ApplicationLod::~ApplicationLod() {
   shutDown();
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
-  std::cout << "Average LOD update time: " << avg_update << " milliseconds per node, " << avg_update / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-  std::cout << "Average LOD copy time: " << avg_copy << " milliseconds per node, " << avg_copy / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
+  std::cout << "Average LOD update time: " << m_averages.at("update").get() << " milliseconds per node, " << m_averages.at("update").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
+  std::cout << "Average LOD copy time: " << m_averages.at("copy").get() << " milliseconds per node, " << m_averages.at("copy").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
 }
 
 FrameResource ApplicationLod::createFrameResource() {
@@ -123,9 +127,8 @@ void ApplicationLod::render() {
   if (frame > m_frame_resources.size()) {
     if (resource_record.num_uploads > 0) {
       auto values = resource_record.query_pools.at("timers").getTimes();
-      std::cout << "upload time " << values[1] - values[0] << ", drawing time " << values[2] - values[1] << std::endl;
-      avg_copy = (avg_copy * num_copys + (values[1] - values[0]) / resource_record.num_uploads) / (num_copys + 1.0);
-      num_copys += 1.0;
+      m_averages.at("copy").add((values[1] - values[0]) / resource_record.num_uploads);
+      m_averages.at("draw").add((values[2] - values[1]));
     }
   }
   recordDrawBuffer(resource_record);
@@ -212,8 +215,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   if (curr_uploads > 0) {
     auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now()-start);
     double time_norm = double(time.count()) / 1000.0 / 1000.0 / double(curr_uploads);
-    avg_update = (avg_update * num_updates + time_norm) / (num_updates + 1.0);
-    num_updates += 1.0;
+    m_averages.at("update").add(time_norm);
   }
   // store upload num for later when reading out timers
   res.num_uploads = double(curr_uploads);
@@ -225,7 +227,6 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
 
   res.command_buffers.at("draw").endRenderPass();
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eBottomOfPipe);
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -236,6 +237,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   res.command_buffers.at("draw").blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eBottomOfPipe);
   res.command_buffers.at("draw").end();
 }
 

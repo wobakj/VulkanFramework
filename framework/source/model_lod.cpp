@@ -276,7 +276,7 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
     {}
   );
 
-  std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
+  // std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
   m_node_uploads.clear();
 }
 
@@ -837,7 +837,7 @@ void ModelLod::setFirstCut() {
     }
   }
 
-  printCut();
+  // printCut();
   updateDrawCommands();
 
   // printSlots();

@@ -42,7 +42,7 @@ Memory::Memory(Device const& device, uint32_t type_index, vk::DeviceSize const& 
 Memory::Memory(Device const& device, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties)
  :Memory{device, findMemoryType(device.physical(), requirements.memoryTypeBits, properties), requirements.size}
 {
-  std::cout << "use memory type " << m_info.memoryTypeIndex << " for " << requirements.memoryTypeBits << " and " << to_string(properties) << std::endl;
+  // std::cout << "use memory type " << m_info.memoryTypeIndex << " for " << requirements.memoryTypeBits << " and " << to_string(properties) << std::endl;
 }
 
 Memory::Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties) 
