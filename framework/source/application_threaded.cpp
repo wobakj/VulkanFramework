@@ -2,10 +2,13 @@
 
 ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args, uint32_t num_frames) 
  :Application{resource_path, device, chain, window, args}
+ ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_record{num_frames}
  ,m_should_draw{true}
-{
+{}
+
+void ApplicationThreaded::startRenderThread() {
   if (!m_thread_render.joinable()) {
     m_thread_render = std::thread(&ApplicationThreaded::drawLoop, this);
   }
@@ -34,9 +37,9 @@ void ApplicationThreaded::shutDown() {
 void ApplicationThreaded::createFrameResources() {
   // create resources for one less image than swap chain
   // only numImages - 1 images can be acquired at a time
-  for (uint32_t i = 0; i < m_swap_chain.numImages() - 1; ++i) {
-    m_frame_resources.emplace_back(std::move(createFrameResource()));
-    m_queue_record_frames.push(i);
+  for (auto& res : m_frame_resources) {
+    res = std::move(createFrameResource());
+    m_queue_record_frames.push(m_queue_record_frames.size());
   }
 }
 

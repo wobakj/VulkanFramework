@@ -23,6 +23,7 @@ class ApplicationThreaded : public Application {
   void shutDown();
   void resize() override;
   void recreatePipeline() override;
+  void startRenderThread();
   
   virtual void createCommandBuffers(FrameResource& res) = 0;
   virtual void updateCommandBuffers(FrameResource& res) = 0;

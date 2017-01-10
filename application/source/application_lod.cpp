@@ -39,7 +39,7 @@ struct BufferLights {
 BufferLights buff_l;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreaded{resource_path, device, chain, window, args, 2}
+ :ApplicationThreaded{resource_path, device, chain, window, args, 3}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -87,11 +87,17 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_averages["update"] = Averager<double>{};
   m_averages["sema_record"] = Averager<double>{};
   m_averages["sema_draw"] = Averager<double>{};
+  m_averages["cpu_record"] = Averager<double>{};
+  m_averages["cpu_draw"] = Averager<double>{};
 
   m_timers["update"] = Timer{};
   m_timers["sema_record"] = Timer{};
   m_timers["sema_draw"] = Timer{};
+  m_timers["cpu_record"] = Timer{};
+  m_timers["cpu_draw"] = Timer{};
   m_timers["fence_draw"] = Timer{};
+
+  startRenderThread();
 }
 
 ApplicationLod::~ApplicationLod() {
@@ -103,6 +109,9 @@ ApplicationLod::~ApplicationLod() {
   
   std::cout << "Average record semaphore time: " << m_averages.at("sema_record").get() << " milliseconds " << std::endl;
   std::cout << "Average draw semaphore time: " << m_averages.at("sema_draw").get() << " milliseconds " << std::endl;
+
+  std::cout << "Average CPU record time: " << m_averages.at("cpu_record").get() << " milliseconds " << std::endl;
+  std::cout << "Average CPU draw time: " << m_averages.at("cpu_draw").get() << " milliseconds " << std::endl;
 }
 
 FrameResource ApplicationLod::createFrameResource() {
@@ -118,6 +127,7 @@ void ApplicationLod::render() {
   m_timers.at("sema_record").start();
   m_semaphore_record.wait();
   m_averages.at("sema_record").add(m_timers.at("sema_record").durationEnd());
+  m_timers.at("cpu_record").start();
 
   static uint64_t frame = 0;
   ++frame;
@@ -134,6 +144,8 @@ void ApplicationLod::render() {
 
   // wait for last acquisition until acquiring again
   resource_record.fenceAcquire().wait();
+  m_device.getQueue("present").waitIdle();
+
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
@@ -153,16 +165,14 @@ void ApplicationLod::render() {
     m_queue_draw_frames.push(frame_record);
     m_semaphore_draw.signal();
   }
+  m_averages.at("cpu_record").add(m_timers.at("cpu_record").durationEnd());
 }
 
 void ApplicationLod::draw() {
-  if (m_averages.find("sema_draw") != m_averages.end()) {
     m_timers.at("sema_draw").start();
-  }
     m_semaphore_draw.wait();
-  if (m_averages.find("sema_draw") != m_averages.end()) {
     m_averages.at("sema_draw").add(m_timers.at("sema_draw").durationEnd());
-  }
+    m_timers.at("cpu_draw").start();
 
   static std::uint64_t frame = 0;
   ++frame;
@@ -184,6 +194,7 @@ void ApplicationLod::draw() {
     m_queue_record_frames.push(frame_draw);
     m_semaphore_record.signal();
   }
+  m_averages.at("cpu_draw").add(m_timers.at("cpu_draw").durationEnd());
 }
 
 void ApplicationLod::createCommandBuffers(FrameResource& res) {
