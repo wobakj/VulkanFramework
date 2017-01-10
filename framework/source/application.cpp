@@ -39,12 +39,16 @@ void Application::frame() {
 
 void Application::acquireImage(FrameResource& res) {
   res.fenceAcquire().reset();
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, std::numeric_limits<uint64_t>::max(), res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, 1000, res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
   if (result == vk::Result::eErrorOutOfDateKHR) {
       // handle swapchain recreation
       // recreateSwapChain();
       throw std::runtime_error("swapchain out if date!");
-  } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+  } 
+  else if (result == vk::Result::eTimeout) {
+      throw std::runtime_error("image requiest time out!");
+  }
+  else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
       throw std::runtime_error("failed to acquire swap chain image!");
   }
 }

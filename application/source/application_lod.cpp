@@ -39,7 +39,7 @@ struct BufferLights {
 BufferLights buff_l;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreaded{resource_path, device, chain, window, args, 3}
+ :ApplicationThreaded{resource_path, device, chain, window, args, 2}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -144,7 +144,6 @@ void ApplicationLod::render() {
 
   // wait for last acquisition until acquiring again
   resource_record.fenceAcquire().wait();
-  m_device.getQueue("present").waitIdle();
 
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
@@ -188,6 +187,8 @@ void ApplicationLod::draw() {
   submitDraw(resource_draw);
   // present image and wait for result
   present(resource_draw);
+  m_device.getQueue("present").waitIdle();
+
   // make frame avaible for rerecording
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};

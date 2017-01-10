@@ -79,7 +79,8 @@ void ApplicationVulkan::updateModel() {
   #endif
 }
 
-void ApplicationVulkan::render() {
+void ApplicationVulkan::render() { 
+  // m_device.getQueue("present").waitIdle();  
   m_frame_resource.fenceAcquire().wait();
   acquireImage(m_frame_resource);
 

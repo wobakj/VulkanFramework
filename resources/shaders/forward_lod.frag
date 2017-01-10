@@ -101,12 +101,12 @@ void main() {
     float radius = light_buff.lights[i].radius;
       
     if (dist < radius) {
-      vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, light_buff.lights[i].position.xyz);
+      vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
       vec3 color = light_buff.lights[i].color.rgb;
-
+      float opacity = 1.0 - dist / radius;
       out_Color += vec4(color * 0.005 * diffuseColor 
                       + color * diffuseColor * diffSpec.x
-                      + color * ks * diffSpec.y, 1.0 - dist / radius);
+                      + color * ks * diffSpec.y, 1.0)  * opacity;
     }
   }
   out_Color.rgb /= out_Color.w;
