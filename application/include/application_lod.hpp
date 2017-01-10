@@ -56,6 +56,8 @@ class ApplicationLod : public ApplicationThreaded {
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
   void updateModel();
+  void submitCopy(FrameResource& res);
+  void submitDraw(FrameResource& res) override;
 
   // path to the resource folders
   RenderPass m_render_pass;

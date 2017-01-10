@@ -42,7 +42,7 @@ class Application {
   
   void acquireImage(FrameResource& res);
   void present(FrameResource& res);
-  void submitDraw(FrameResource& res);
+  virtual void submitDraw(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
 
   std::string m_resource_path; 

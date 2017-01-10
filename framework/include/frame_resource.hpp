@@ -14,6 +14,7 @@ class FrameResource {
  public:
   FrameResource()
    :m_device{nullptr}
+   ,present{false}
   {}
 
   FrameResource(Device& dev)
@@ -100,6 +101,8 @@ class FrameResource {
 
  private:
   Device const* m_device;
+ public:
+  bool present;
 };
 
 #endif

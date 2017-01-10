@@ -89,6 +89,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_averages["sema_draw"] = Averager<double>{};
   m_averages["cpu_record"] = Averager<double>{};
   m_averages["cpu_draw"] = Averager<double>{};
+  m_averages["gpu_draw"] = Averager<double>{};
 
   m_timers["update"] = Timer{};
   m_timers["sema_record"] = Timer{};
@@ -96,6 +97,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_timers["cpu_record"] = Timer{};
   m_timers["cpu_draw"] = Timer{};
   m_timers["fence_draw"] = Timer{};
+  m_timers["gpu_draw"] = Timer{};
 
   startRenderThread();
 }
@@ -112,6 +114,7 @@ ApplicationLod::~ApplicationLod() {
 
   std::cout << "Average CPU record time: " << m_averages.at("cpu_record").get() << " milliseconds " << std::endl;
   std::cout << "Average CPU draw time: " << m_averages.at("cpu_draw").get() << " milliseconds " << std::endl;
+  std::cout << "Average GPU draw time: " << m_averages.at("gpu_draw").get() << " milliseconds " << std::endl;
 }
 
 FrameResource ApplicationLod::createFrameResource() {
@@ -120,6 +123,11 @@ FrameResource ApplicationLod::createFrameResource() {
   res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
   res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
   res.query_pools["timers"] = QueryPool{m_device, vk::QueryType::eTimestamp, 3};
+  // separate transfer
+  res.command_buffers.emplace("transfer", m_device.createCommandBuffer("graphics"));
+  res.semaphores.emplace("transfer", m_device->createSemaphore({}));
+  res.fences.emplace("transfer", Fence{m_device, vk::FenceCreateFlagBits::eSignaled});
+
   return res;
 }
 
@@ -141,22 +149,31 @@ void ApplicationLod::render() {
     m_queue_record_frames.pop();
   }
   auto& resource_record = m_frame_resources.at(frame_record);
+  // present image and wait for result
+  if (resource_record.present) {
+    present(resource_record);
+    m_device.getQueue("present").waitIdle();
+  }
 
   // wait for last acquisition until acquiring again
   resource_record.fenceAcquire().wait();
 
-  acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
+  acquireImage(resource_record);
 
   if (frame > m_frame_resources.size()) {
     if (resource_record.num_uploads > 0) {
       auto values = resource_record.query_pools.at("timers").getTimes();
       m_averages.at("copy").add((values[1] - values[0]) / resource_record.num_uploads);
       m_averages.at("draw").add((values[2] - values[1]));
+      m_averages.at("gpu_draw").add((values[2] - values[1]));
     }
   }
+  
+  resource_record.fences.at("transfer").wait();
   recordDrawBuffer(resource_record);
+  submitCopy(resource_record);
   // read out timer values
   // add newly recorded frame for drawing
   {
@@ -185,10 +202,7 @@ void ApplicationLod::draw() {
   }
   auto& resource_draw = m_frame_resources.at(frame_draw);
   submitDraw(resource_draw);
-  // present image and wait for result
-  present(resource_draw);
-  m_device.getQueue("present").waitIdle();
-
+  resource_draw.present = true;
   // make frame avaible for rerecording
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
@@ -197,6 +211,46 @@ void ApplicationLod::draw() {
   }
   m_averages.at("cpu_draw").add(m_timers.at("cpu_draw").durationEnd());
 }
+
+void ApplicationLod::submitCopy(FrameResource& res) {
+  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
+
+  // submitInfos[0].setWaitSemaphoreCount(0);
+  // submitInfos[0].setPWaitSemaphores();
+  // submitInfos[0].setPWaitDstStageMask();
+
+  submitInfos[0].setCommandBufferCount(1);
+  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("transfer"));
+
+  vk::Semaphore signalSemaphores[]{res.semaphores.at("transfer")};
+  submitInfos[0].signalSemaphoreCount = 1;
+  submitInfos[0].pSignalSemaphores = signalSemaphores;
+
+  res.fences.at("transfer").reset();
+  m_device.getQueue("transfer").submit(submitInfos, res.fences.at("transfer"));
+  // m_device.getQueue("transfer").submit(submitInfos, res.fenceDraw());
+}
+
+void ApplicationLod::submitDraw(FrameResource& res) {
+  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
+
+  vk::Semaphore waitSemaphores[]{res.semaphoreAcquire(), res.semaphores.at("transfer")};
+  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eDrawIndirect};
+  submitInfos[0].setWaitSemaphoreCount(2);
+  submitInfos[0].setPWaitSemaphores(waitSemaphores);
+  submitInfos[0].setPWaitDstStageMask(waitStages);
+
+  submitInfos[0].setCommandBufferCount(1);
+  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw"));
+
+  vk::Semaphore signalSemaphores[]{res.semaphoreDraw()};
+  submitInfos[0].signalSemaphoreCount = 1;
+  submitInfos[0].pSignalSemaphores = signalSemaphores;
+
+  res.fenceDraw().reset();
+  m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
+}
+
 
 void ApplicationLod::createCommandBuffers(FrameResource& res) {
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
@@ -260,22 +314,11 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
 
 
   res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTransfer);
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
+  // res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTransfer);
 
-  std::size_t curr_uploads = 0;
-  m_timers.at("update").start();
-  // upload node data
-  m_model_lod.update(m_camera);
-  curr_uploads = m_model_lod.numUploads();
-  m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
-  m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
-  if (curr_uploads > 0) {
-    m_averages.at("update").add(m_timers.at("update").durationEnd() / double(curr_uploads));
-  }
-  // store upload num for later when reading out timers
-  res.num_uploads = double(curr_uploads);
 
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eDrawIndirect);
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -292,8 +335,26 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   res.command_buffers.at("draw").blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eBottomOfPipe);
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eColorAttachmentOutput);
   res.command_buffers.at("draw").end();
+
+  res.command_buffers.at("transfer").reset({});
+
+  res.command_buffers.at("transfer").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+  std::size_t curr_uploads = 0;
+  // store upload num for later when reading out timers
+  res.num_uploads = double(curr_uploads);
+  m_timers.at("update").start();
+  // upload node data
+  m_model_lod.update(m_camera);
+  curr_uploads = m_model_lod.numUploads();
+  m_model_lod.performCopiesCommand(res.command_buffers.at("transfer"));
+  m_model_lod.updateDrawCommands(res.command_buffers.at("transfer"));
+  if (curr_uploads > 0) {
+    m_averages.at("update").add(m_timers.at("update").durationEnd() / double(curr_uploads));
+  }
+  res.command_buffers.at("transfer").end();
 }
 
 void ApplicationLod::createFramebuffers() {
