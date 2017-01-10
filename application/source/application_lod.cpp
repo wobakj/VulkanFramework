@@ -39,7 +39,7 @@ struct BufferLights {
 BufferLights buff_l;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreaded{resource_path, device, chain, window, args}
+ :ApplicationThreaded{resource_path, device, chain, window, args, 2}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -54,6 +54,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,num_updates{0.0}
  ,num_copys{0.0}
 {
+  std::cout << "old frame num " << m_swap_chain.numImages() - 1 << std::endl;
   cmdline::parser cmd_parse{};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
@@ -84,8 +85,13 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_averages["copy"] = Averager<double>{};
   m_averages["draw"] = Averager<double>{};
   m_averages["update"] = Averager<double>{};
+  m_averages["sema_record"] = Averager<double>{};
+  m_averages["sema_draw"] = Averager<double>{};
 
   m_timers["update"] = Timer{};
+  m_timers["sema_record"] = Timer{};
+  m_timers["sema_draw"] = Timer{};
+  m_timers["fence_draw"] = Timer{};
 }
 
 ApplicationLod::~ApplicationLod() {
@@ -93,6 +99,10 @@ ApplicationLod::~ApplicationLod() {
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
   std::cout << "Average LOD update time: " << m_averages.at("update").get() << " milliseconds per node, " << m_averages.at("update").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   std::cout << "Average LOD copy time: " << m_averages.at("copy").get() << " milliseconds per node, " << m_averages.at("copy").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
+  std::cout << "Average draw time: " << m_averages.at("draw").get() << " milliseconds " << std::endl;
+  
+  std::cout << "Average record semaphore time: " << m_averages.at("sema_record").get() << " milliseconds " << std::endl;
+  std::cout << "Average draw semaphore time: " << m_averages.at("sema_draw").get() << " milliseconds " << std::endl;
 }
 
 FrameResource ApplicationLod::createFrameResource() {
@@ -105,7 +115,10 @@ FrameResource ApplicationLod::createFrameResource() {
 }
 
 void ApplicationLod::render() {
+  m_timers.at("sema_record").start();
   m_semaphore_record.wait();
+  m_averages.at("sema_record").add(m_timers.at("sema_record").durationEnd());
+
   static uint64_t frame = 0;
   ++frame;
   uint32_t frame_record = 0;
@@ -139,6 +152,37 @@ void ApplicationLod::render() {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     m_queue_draw_frames.push(frame_record);
     m_semaphore_draw.signal();
+  }
+}
+
+void ApplicationLod::draw() {
+  if (m_averages.find("sema_draw") != m_averages.end()) {
+    m_timers.at("sema_draw").start();
+  }
+    m_semaphore_draw.wait();
+  if (m_averages.find("sema_draw") != m_averages.end()) {
+    m_averages.at("sema_draw").add(m_timers.at("sema_draw").durationEnd());
+  }
+
+  static std::uint64_t frame = 0;
+  ++frame;
+  uint32_t frame_draw = 0;
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+    assert(!m_queue_draw_frames.empty());
+    // get frame to draw
+    frame_draw = m_queue_draw_frames.front();
+    m_queue_draw_frames.pop();
+  }
+  auto& resource_draw = m_frame_resources.at(frame_draw);
+  submitDraw(resource_draw);
+  // present image and wait for result
+  present(resource_draw);
+  // make frame avaible for rerecording
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
+    m_queue_record_frames.push(frame_draw);
+    m_semaphore_record.signal();
   }
 }
 

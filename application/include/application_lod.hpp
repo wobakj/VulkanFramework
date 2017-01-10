@@ -30,6 +30,7 @@ class ApplicationLod : public ApplicationThreaded {
 
  private:
   void render() override;
+  void draw() override;
   void recordDrawBuffer(FrameResource& res) override;
   void createCommandBuffers(FrameResource& res) override;
   void updateCommandBuffers(FrameResource& res) override;

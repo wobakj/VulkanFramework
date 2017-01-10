@@ -14,7 +14,7 @@
 
 class ApplicationThreaded : public Application {
  public:
-  ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
+  ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args, uint32_t num_frames);
   void emptyDrawQueue() override;
 
  protected:
@@ -43,7 +43,6 @@ class ApplicationThreaded : public Application {
   std::queue<uint32_t> m_queue_record_frames;
   Semaphore m_semaphore_draw;
   Semaphore m_semaphore_record;
-
 
  private:
   virtual void render() override;

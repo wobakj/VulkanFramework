@@ -16,7 +16,12 @@ class Semaphore {
       std::unique_lock<std::mutex> lock(m_mutex);
       m_count += count;
     }
-    m_condition_lock.notify_one();
+    if (count > 1) {
+      m_condition_lock.notify_one();
+    }
+    else {
+      m_condition_lock.notify_all();
+    }
   }
 
   inline void set(uint32_t count) {
@@ -24,7 +29,7 @@ class Semaphore {
       std::unique_lock<std::mutex> lock(m_mutex);
       m_count = count;
     }
-    m_condition_lock.notify_one();
+    m_condition_lock.notify_all();
   }
 
   inline void unsignal() {

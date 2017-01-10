@@ -1,9 +1,9 @@
 #include "application_threaded.hpp"
 
-ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
+ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args, uint32_t num_frames) 
  :Application{resource_path, device, chain, window, args}
  ,m_semaphore_draw{0}
- ,m_semaphore_record{m_swap_chain.numImages() - 1}
+ ,m_semaphore_record{num_frames}
  ,m_should_draw{true}
 {
   if (!m_thread_render.joinable()) {
