@@ -63,6 +63,7 @@ void Application::present(FrameResource& res) {
   presentInfo.pImageIndices = &res.image;
 
   m_device.getQueue("present").presentKHR(presentInfo);
+  m_device.getQueue("present").waitIdle();
 }
 
 void Application::submitDraw(FrameResource& res) {

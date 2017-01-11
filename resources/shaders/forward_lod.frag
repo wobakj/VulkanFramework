@@ -1,4 +1,3 @@
-
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
@@ -19,12 +18,12 @@ layout(set = 0, binding = 0) buffer MatrixBuffer {
     vec4 shade;
 } ubo;
 
-// const vec3 LightPosition = vec3(1.5, 1.0, 1.0); //diffuse color
-// const vec3 LightDiffuse = vec3(1.0, 0.9, 0.7); //diffuse color
-// const vec3 LightAmbient = vec3(0.25);        //ambient color
-// const vec3 LightSpecular = vec3(1.0);       //specular color
-layout(set = 1, binding = 2) uniform sampler2D texSampler;
+const vec3 LightPosition = vec3(1.5, 1.0, 1.0); //diffuse color
+const vec3 LightDiffuse = vec3(0.95, 0.9, 0.7); //diffuse color
+const vec3 LightAmbient = vec3(0.25);        //ambient color
+const vec3 LightSpecular = vec3(0.9);       //specular color
 
+layout(set = 1, binding = 2) uniform sampler2D texSampler;
 
 layout(set = 1, binding = 1) buffer LevelBuffer {
   uint verts_per_node;
@@ -43,6 +42,8 @@ layout(set = 1, binding = 3) buffer LightBuffer {
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
+
+#define SIMPLE
 
 vec3 diffuseColor() {
   if (ubo.levels.r > 0.0) {
@@ -94,21 +95,29 @@ void main() {
     return;
   }
 
-  for (uint i  = 0; i < light_buff.lights.length(); ++i) {
-    vec3 pos_light = (ubo.view * vec4(light_buff.lights[i].position, 1.0)).xyz;
+  #ifdef SIMPLE
+      vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, LightPosition);
 
-    float dist = distance(frag_Position, pos_light);
-    float radius = light_buff.lights[i].radius;
-      
-    if (dist < radius) {
-      vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
-      vec3 color = light_buff.lights[i].color.rgb;
-      float opacity = 1.0 - dist / radius;
-      out_Color += vec4(color * 0.005 * diffuseColor 
-                      + color * diffuseColor * diffSpec.x
-                      + color * ks * diffSpec.y, 1.0)  * opacity;
+      out_Color += vec4(LightDiffuse * 0.005 * diffuseColor 
+                      + LightDiffuse * diffuseColor * diffSpec.x
+                      + LightSpecular * ks * diffSpec.y, 1.0);
+  #else 
+    for (uint i  = 0; i < light_buff.lights.length(); ++i) {
+      vec3 pos_light = (ubo.view * vec4(light_buff.lights[i].position, 1.0)).xyz;
+
+      float dist = distance(frag_Position, pos_light);
+      float radius = light_buff.lights[i].radius;
+        
+      if (dist < radius) {
+        vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
+        vec3 color = light_buff.lights[i].color.rgb;
+
+        out_Color += vec4(color * 0.005 * diffuseColor 
+                        + color * diffuseColor * diffSpec.x
+                        + color * ks * diffSpec.y, 1.0 - dist / radius);
+      }
     }
-  }
-  out_Color.rgb /= out_Color.w;
+    out_Color.rgb /= out_Color.w;
+  #endif
   out_Color.w = 0.5;
 }
