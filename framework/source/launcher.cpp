@@ -117,9 +117,9 @@ void Launcher::createSurface() {
 // update viewport and field of view
 void Launcher::resize(GLFWwindow* m_window, int width, int height) {
   if (width > 0 && height > 0) {
-    m_device->waitIdle();
     // draw remaining recorded frames
     m_application->emptyDrawQueue();
+    // m_device->waitIdle();
     // rebuild resources
     m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
     m_application->resize(width, height);

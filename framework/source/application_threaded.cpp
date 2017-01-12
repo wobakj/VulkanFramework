@@ -122,14 +122,25 @@ void ApplicationThreaded::drawLoop() {
 
 void ApplicationThreaded::emptyDrawQueue() {
   // render remaining recorded frames
-  bool all_frames_drawn = false;
-  while(!all_frames_drawn) {
-    present();
+  size_t num_record_frames = 0;
+  while(num_record_frames < m_frame_resources.size()) {
     // check if all frames are ready for recording
-    all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
-    // if draw frames remain, wait until next was drawn
-    if (!all_frames_drawn) {
+    num_record_frames = m_queue_record_frames.size();
+    if (num_record_frames == m_frame_resources.size()) {
+      break;
+    }
+    // check if frames can be presented
+    int64_t num_present = 0;
+    {
+      std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
+      num_present = m_queue_present_frames.size();
+    }
+    // present if possible
+    while (num_present > 0) {
       m_semaphore_present.wait(); 
+      present();
+      // m_device.getQueue("present").waitIdle();
+      --num_present;
     }
   }
   // wait until draw resources are avaible before recallocation
@@ -138,6 +149,7 @@ void ApplicationThreaded::emptyDrawQueue() {
   }
   // give record queue enough signals to process all frames
   m_semaphore_present.set(uint32_t(m_frame_resources.size()));
+  std::cout << "done with drawqueue" << std::endl;
 }
 
 void ApplicationThreaded::resize() {
