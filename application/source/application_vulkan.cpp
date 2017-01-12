@@ -24,7 +24,7 @@ struct UniformBufferObject {
 
 struct light_t {
   glm::fvec3 position;
-  float pad;
+  float pad = 0.0f;
   glm::fvec3 color;
   float radius;
 };
@@ -50,8 +50,8 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
   createVertexBuffer();
-  createLights();  
   createUniformBuffers();
+  createLights();  
   createTextureImage();
   createTextureSampler();
   createFramebufferAttachments();
@@ -97,6 +97,7 @@ void ApplicationVulkan::render() {
     updateView();
   }
   recordDrawBuffer(m_frame_resource);
+  
   submitDraw(m_frame_resource);
 
   present(m_frame_resource);
@@ -328,14 +329,9 @@ void ApplicationVulkan::createVertexBuffer() {
   m_model = Model{m_device, tri};
 }
 void ApplicationVulkan::loadModel() {
-  try {
-    model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
-    m_model_2 = Model{m_device, tri};
-    m_model_dirty = true;
-  }
-  catch (std::exception& e) {
-    assert(0);
-  }
+  model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
+  m_model_2 = Model{m_device, tri};
+  m_model_dirty = true;
 }
 
 void ApplicationVulkan::createLights() {
@@ -347,15 +343,7 @@ void ApplicationVulkan::createLights() {
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
-}
-
-void ApplicationVulkan::updateLights() {
-  BufferLights temp = buff_l; 
-  for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
-    temp.lights[i].position = glm::fvec3{m_camera.viewMatrix() * glm::fvec4(temp.lights[i].position, 1.0f)};
-  }
-
-  m_device.uploadBufferData(&temp, m_buffer_views.at("light"));
+  m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationVulkan::createMemoryPools() {
@@ -461,8 +449,6 @@ void ApplicationVulkan::updateView() {
   ubo.proj = m_camera.projectionMatrix();
 
   m_device.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
-
-  updateLights();
 }
 
 void ApplicationVulkan::resize() {

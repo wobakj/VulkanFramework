@@ -54,6 +54,10 @@ void Application::acquireImage(FrameResource& res) {
 }
 
 void Application::present(FrameResource& res) {
+  present(res, m_device.getQueue("graphics"));
+}
+
+void Application::present(FrameResource& res, vk::Queue const& queue) {
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = &res.semaphoreDraw();
@@ -62,8 +66,8 @@ void Application::present(FrameResource& res) {
   presentInfo.pSwapchains = &m_swap_chain.get();
   presentInfo.pImageIndices = &res.image;
 
-  m_device.getQueue("present").presentKHR(presentInfo);
-  m_device.getQueue("present").waitIdle();
+  queue.presentKHR(presentInfo);
+  // m_device.getQueue("present").waitIdle();
 }
 
 void Application::submitDraw(FrameResource& res) {

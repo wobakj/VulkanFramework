@@ -24,7 +24,6 @@ class ApplicationVulkan : public Application {
   void recordDrawBuffer(FrameResource& res) override;
   
   void createLights();
-  void updateLights();
   void loadModel();
   void createUniformBuffers();
   void createCommandBuffers(FrameResource& res);

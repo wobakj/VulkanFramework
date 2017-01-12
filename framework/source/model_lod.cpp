@@ -87,7 +87,7 @@ ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budg
     m_num_nodes =  std::max(std::size_t(1), cut_budget * 1024 * 1024 / m_size_node);
   }
   else {
-    m_num_nodes = std::max(std::size_t{1}, leaf_length / 2);
+    m_num_nodes = std::max(std::size_t{1}, leaf_length / 3);
   }
 
   if (upload_budget > 0) {

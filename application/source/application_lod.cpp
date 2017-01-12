@@ -270,6 +270,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
   inheritanceInfo.subpass = 0;
 
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  // res.query_pools.at("timers").timestamp(res.command_buffers.at("gbuffer"), 1, vk::PipelineStageFlagBits::eTopOfPipe);
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
 
