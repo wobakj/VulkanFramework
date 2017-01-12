@@ -133,7 +133,7 @@ FrameResource ApplicationLod::createFrameResource() {
 
 void ApplicationLod::render() {
   m_timers.at("sema_record").start();
-  m_semaphore_record.wait();
+  m_semaphore_present.wait();
   m_averages.at("sema_record").add(m_timers.at("sema_record").durationEnd());
   m_timers.at("cpu_record").start();
 
@@ -142,16 +142,16 @@ void ApplicationLod::render() {
   uint32_t frame_record = 0;
   // only calculate new frame if previous one was rendered
   {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    assert(!m_queue_record_frames.empty());
+    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
+    assert(!m_queue_present_frames.empty());
     // get next frame to record
-    frame_record = m_queue_record_frames.front();
-    m_queue_record_frames.pop();
+    frame_record = m_queue_present_frames.front();
+    m_queue_present_frames.pop();
   }
   auto& resource_record = m_frame_resources.at(frame_record);
   // present image and wait for result
   if (resource_record.present) {
-    present(resource_record);
+    presentFrame(resource_record);
     m_device.getQueue("present").waitIdle();
   }
 
@@ -205,9 +205,9 @@ void ApplicationLod::draw() {
   resource_draw.present = true;
   // make frame avaible for rerecording
   {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    m_queue_record_frames.push(frame_draw);
-    m_semaphore_record.signal();
+    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
+    m_queue_present_frames.push(frame_draw);
+    m_semaphore_present.signal();
   }
   m_averages.at("cpu_draw").add(m_timers.at("cpu_draw").durationEnd());
 }

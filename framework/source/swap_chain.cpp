@@ -196,7 +196,7 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
     m_views_swap[i] = createImageView(*m_device, m_images_swap[i], image_info);
   }
 }
-
+// TODO images need to be transferred to present every frame  after they are acquired
 void SwapChain::transitionToLayout(vk::ImageLayout const& newLayout) {
   for(auto const& image : m_images_swap) {
     auto info = imgInfo();

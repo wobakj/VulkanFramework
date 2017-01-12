@@ -100,7 +100,7 @@ void ApplicationVulkan::render() {
   
   submitDraw(m_frame_resource);
 
-  present(m_frame_resource);
+  presentFrame(m_frame_resource);
 }
 
 void ApplicationVulkan::createCommandBuffers(FrameResource& res) {

@@ -53,11 +53,11 @@ void Application::acquireImage(FrameResource& res) {
   }
 }
 
-void Application::present(FrameResource& res) {
-  present(res, m_device.getQueue("graphics"));
+void Application::presentFrame(FrameResource& res) {
+  presentFrame(res, m_device.getQueue("graphics"));
 }
 
-void Application::present(FrameResource& res, vk::Queue const& queue) {
+void Application::presentFrame(FrameResource& res, vk::Queue const& queue) {
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = &res.semaphoreDraw();

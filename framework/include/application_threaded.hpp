@@ -37,19 +37,20 @@ class ApplicationThreaded : public Application {
   virtual void createDescriptorPools() = 0;
 
   std::mutex m_mutex_draw_queue;
-  std::mutex m_mutex_record_queue;
+  std::mutex m_mutex_present_queue;
 
   std::vector<FrameResource> m_frame_resources;
   std::queue<uint32_t> m_queue_draw_frames;
   std::queue<uint32_t> m_queue_record_frames;
+  std::queue<uint32_t> m_queue_present_frames;
   Semaphore m_semaphore_draw;
-  Semaphore m_semaphore_record;
+  Semaphore m_semaphore_present;
 
  private:
   virtual void render() override;
   virtual void drawLoop();
   virtual void draw();
-
+  virtual void present();
   std::thread m_thread_render;
   std::atomic<bool> m_should_draw;
 };

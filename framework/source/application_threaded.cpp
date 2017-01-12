@@ -4,7 +4,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  :Application{resource_path, device, chain, window, args}
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
- ,m_semaphore_record{num_frames}
+ ,m_semaphore_present{num_frames}
  ,m_should_draw{true}
 {}
 
@@ -43,20 +43,38 @@ void ApplicationThreaded::createFrameResources() {
   }
 }
 
+void ApplicationThreaded::present() {
+  // get frame to present
+  uint32_t frame_present = 0;
+  bool can_present = false;
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
+    if (!m_queue_present_frames.empty()) {
+      // get next frame to present
+      frame_present = m_queue_present_frames.front();
+      m_queue_present_frames.pop();
+      can_present = true;
+    }   
+  }
+
+  if (can_present) {
+    presentFrame(m_frame_resources.at(frame_present), m_device.getQueue("present"));
+    m_queue_record_frames.push(frame_present);
+  }  
+}
+
 void ApplicationThreaded::render() {
-  m_semaphore_record.wait();
+  // only calculate new frame if previous one was rendered
+  m_semaphore_present.wait();
+  present();
+
   static uint64_t frame = 0;
   ++frame;
   // get next frame to record
   uint32_t frame_record = 0;
-  // only calculate new frame if previous one was rendered
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    assert(!m_queue_record_frames.empty());
-    // get next frame to record
-    frame_record = m_queue_record_frames.front();
-    m_queue_record_frames.pop();
-  }
+  frame_record = m_queue_record_frames.front();
+  m_queue_record_frames.pop();
+
   auto& resource_record = m_frame_resources.at(frame_record);
 
   // wait for last acquisition until acquiring again
@@ -72,7 +90,6 @@ void ApplicationThreaded::render() {
     m_queue_draw_frames.push(frame_record);
     m_semaphore_draw.signal();
   }
-  // std::this_thread::sleep_for(std::chrono::milliseconds{10}); 
 }
 
 void ApplicationThreaded::draw() {
@@ -89,13 +106,11 @@ void ApplicationThreaded::draw() {
   }
   auto& resource_draw = m_frame_resources.at(frame_draw);
   submitDraw(resource_draw);
-  // present image and wait for result
-  present(resource_draw);
   // make frame avaible for rerecording
   {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-    m_queue_record_frames.push(frame_draw);
-    m_semaphore_record.signal();
+    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
+    m_queue_present_frames.push(frame_draw);
+    m_semaphore_present.signal();
   }
 }
 
@@ -109,14 +124,12 @@ void ApplicationThreaded::emptyDrawQueue() {
   // render remaining recorded frames
   bool all_frames_drawn = false;
   while(!all_frames_drawn) {
+    present();
     // check if all frames are ready for recording
-    {
-      std::lock_guard<std::mutex> queue_lock{m_mutex_record_queue};
-      all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
-    }  
+    all_frames_drawn = m_queue_record_frames.size() == m_frame_resources.size();
     // if draw frames remain, wait until next was drawn
     if (!all_frames_drawn) {
-      m_semaphore_record.wait(); 
+      m_semaphore_present.wait(); 
     }
   }
   // wait until draw resources are avaible before recallocation
@@ -124,7 +137,7 @@ void ApplicationThreaded::emptyDrawQueue() {
     res.waitFences();
   }
   // give record queue enough signals to process all frames
-  m_semaphore_record.set(uint32_t(m_frame_resources.size()));
+  m_semaphore_present.set(uint32_t(m_frame_resources.size()));
 }
 
 void ApplicationThreaded::resize() {

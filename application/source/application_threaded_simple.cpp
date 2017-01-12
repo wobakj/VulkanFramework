@@ -40,7 +40,7 @@ BufferLights buff_l;
 
 
 ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreaded{resource_path, device, chain, window, args, m_swap_chain.numImages() - 1}
+ :ApplicationThreaded{resource_path, device, chain, window, args, chain.numImages() - 1}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -60,6 +60,8 @@ ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource
   createFrameResources();
 
   resize();
+
+  startRenderThread();
 }
 
 ApplicationThreadedSimple::~ApplicationThreadedSimple() {

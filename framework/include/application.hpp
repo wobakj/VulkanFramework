@@ -41,9 +41,9 @@ class Application {
   virtual void resize() = 0;
   
   void acquireImage(FrameResource& res);
-  virtual void present(FrameResource& res);
-  virtual void present(FrameResource& res, vk::Queue const&);
-  void submitDraw(FrameResource& res);
+  virtual void presentFrame(FrameResource& res);
+  virtual void presentFrame(FrameResource& res, vk::Queue const&);
+  virtual void submitDraw(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
 
   std::string m_resource_path; 
