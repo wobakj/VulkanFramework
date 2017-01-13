@@ -39,7 +39,7 @@ void ApplicationThreaded::createFrameResources() {
   // only numImages - 1 images can be acquired at a time
   for (auto& res : m_frame_resources) {
     res = std::move(createFrameResource());
-    m_queue_record_frames.push(m_queue_record_frames.size());
+    m_queue_record_frames.push(uint32_t(m_queue_record_frames.size()));
   }
 }
 

@@ -104,6 +104,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
 
 ApplicationLod::~ApplicationLod() {
   shutDown();
+
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
   std::cout << "Average LOD update time: " << m_averages.at("update").get() << " milliseconds per node, " << m_averages.at("update").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   std::cout << "Average LOD copy time: " << m_averages.at("copy").get() << " milliseconds per node, " << m_averages.at("copy").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
@@ -136,31 +137,17 @@ void ApplicationLod::render() {
   m_semaphore_present.wait();
   m_averages.at("sema_record").add(m_timers.at("sema_record").durationEnd());
   m_timers.at("cpu_record").start();
+  
+  present();
 
   static uint64_t frame = 0;
   ++frame;
+  // get next frame to record
   uint32_t frame_record = 0;
-  // only calculate new frame if previous one was rendered
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
-    assert(!m_queue_present_frames.empty());
-    // get next frame to record
-    frame_record = m_queue_present_frames.front();
-    m_queue_present_frames.pop();
-  }
+  frame_record = m_queue_record_frames.front();
+  m_queue_record_frames.pop();
+
   auto& resource_record = m_frame_resources.at(frame_record);
-  // present image and wait for result
-  if (resource_record.present) {
-    presentFrame(resource_record);
-    m_device.getQueue("present").waitIdle();
-  }
-
-  // wait for last acquisition until acquiring again
-  resource_record.fenceAcquire().wait();
-
-  // wait for drawing finish until rerecording
-  resource_record.fenceDraw().wait();
-  acquireImage(resource_record);
 
   if (frame > m_frame_resources.size()) {
     if (resource_record.num_uploads > 0) {
@@ -170,9 +157,14 @@ void ApplicationLod::render() {
       m_averages.at("gpu_draw").add((values[2] - values[1]));
     }
   }
-  
-  resource_record.fences.at("transfer").wait();
+  // wait for last acquisition until acquiring again
+  resource_record.fenceAcquire().wait();
+  acquireImage(resource_record);
+  // wait for drawing finish until rerecording
+  resource_record.fenceDraw().wait();
   recordDrawBuffer(resource_record);
+  // wait for transfer
+  resource_record.fences.at("transfer").wait();
   submitCopy(resource_record);
   // read out timer values
   // add newly recorded frame for drawing
@@ -185,10 +177,12 @@ void ApplicationLod::render() {
 }
 
 void ApplicationLod::draw() {
-    m_timers.at("sema_draw").start();
-    m_semaphore_draw.wait();
-    m_averages.at("sema_draw").add(m_timers.at("sema_draw").durationEnd());
-    m_timers.at("cpu_draw").start();
+  m_timers.at("sema_draw").start();
+  m_semaphore_draw.wait();
+  m_averages.at("sema_draw").add(m_timers.at("sema_draw").durationEnd());
+  m_timers.at("cpu_draw").start();
+  // allow closing of application
+  if (!m_should_draw) return;
 
   static std::uint64_t frame = 0;
   ++frame;
@@ -215,10 +209,6 @@ void ApplicationLod::draw() {
 void ApplicationLod::submitCopy(FrameResource& res) {
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
-  // submitInfos[0].setWaitSemaphoreCount(0);
-  // submitInfos[0].setPWaitSemaphores();
-  // submitInfos[0].setPWaitDstStageMask();
-
   submitInfos[0].setCommandBufferCount(1);
   submitInfos[0].setPCommandBuffers(&res.command_buffers.at("transfer"));
 
@@ -228,7 +218,6 @@ void ApplicationLod::submitCopy(FrameResource& res) {
 
   res.fences.at("transfer").reset();
   m_device.getQueue("transfer").submit(submitInfos, res.fences.at("transfer"));
-  // m_device.getQueue("transfer").submit(submitInfos, res.fenceDraw());
 }
 
 void ApplicationLod::submitDraw(FrameResource& res) {
@@ -250,7 +239,6 @@ void ApplicationLod::submitDraw(FrameResource& res) {
   res.fenceDraw().reset();
   m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
 }
-
 
 void ApplicationLod::createCommandBuffers(FrameResource& res) {
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
