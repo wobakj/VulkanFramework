@@ -184,7 +184,7 @@ void Device::adjustStagingPool(vk::DeviceSize const& size) {
   if (m_pools_memory.find("stage") == m_pools_memory.end() || memoryPool("stage").size() < size) {
     // create new staging buffer
     m_buffer_stage = std::unique_ptr<Buffer>{new Buffer{*this, size, vk::BufferUsageFlagBits::eTransferSrc}};
-    reallocateMemoryPool("stage", m_buffer_stage->memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, size);
+    reallocateMemoryPool("stage", m_buffer_stage->memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffer_stage->size());
     m_buffer_stage->bindTo(memoryPool("stage"), 0);
   }
 }

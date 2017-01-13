@@ -111,6 +111,9 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
       for(auto const& pair_desc : modules[i].sets[idx_set]) {
         auto descriptor = pair_desc.second;
         for(std::size_t j = i + 1; j < modules.size(); ++j) {
+          if (idx_set >= modules[j].sets.size()) {
+            continue;
+          }
           auto iter = modules[j].sets[idx_set].find(pair_desc.first);
           // descriptor with same name exists in set
           if (iter != modules[j].sets[idx_set].end()) {
