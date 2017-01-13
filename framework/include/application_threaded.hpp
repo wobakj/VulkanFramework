@@ -27,14 +27,14 @@ class ApplicationThreaded : public Application {
   
   virtual void createCommandBuffers(FrameResource& res) = 0;
   virtual void updateCommandBuffers(FrameResource& res) = 0;
-  virtual void updateDescriptors(FrameResource& resource) = 0;
+  virtual void updateDescriptors(FrameResource& resource) {};
 
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;
   virtual void createRenderPasses() = 0;
   virtual void createMemoryPools() = 0;
   virtual void createPipelines() = 0;
-  virtual void createDescriptorPools() = 0;
+  virtual void createDescriptorPools() {};
 
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_present_queue;
@@ -46,13 +46,13 @@ class ApplicationThreaded : public Application {
   Semaphore m_semaphore_draw;
   Semaphore m_semaphore_present;
 
+  virtual void present();
+  virtual void draw();
+  std::atomic<bool> m_should_draw;
  private:
   virtual void render() override;
   virtual void drawLoop();
-  virtual void draw();
-  virtual void present();
   std::thread m_thread_render;
-  std::atomic<bool> m_should_draw;
 };
 
 #endif

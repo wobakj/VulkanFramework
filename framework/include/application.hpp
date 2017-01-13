@@ -36,7 +36,7 @@ class Application {
  protected:
   virtual void update() {};
   virtual void render() = 0;
-  virtual void updateView() = 0;
+  virtual void updateView() {};
   virtual void recreatePipeline() = 0;
   virtual void resize() = 0;
   

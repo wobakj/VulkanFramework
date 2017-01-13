@@ -32,6 +32,14 @@ class Semaphore {
     m_condition_lock.notify_all();
   }
 
+  inline void shutDown() {
+    { 
+      std::unique_lock<std::mutex> lock(m_mutex);
+      m_count = UINT32_MAX;
+    }
+    m_condition_lock.notify_all();
+  }
+
   inline void unsignal() {
     { 
       std::unique_lock<std::mutex> lock(m_mutex);

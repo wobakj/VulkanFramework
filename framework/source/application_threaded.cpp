@@ -15,17 +15,17 @@ void ApplicationThreaded::startRenderThread() {
 }
 
 void ApplicationThreaded::shutDown() {
+  emptyDrawQueue();
   // shut down render thread
   m_should_draw = false;
   if(m_thread_render.joinable()) {
+    m_semaphore_draw.shutDown();
     m_thread_render.join();
   }
   else {
     throw std::runtime_error{"could not join thread"};
   }
-  // wait until fences are done
   for (auto const& res : m_frame_resources) {
-    res.waitFences();
     // reset command buffers because the draw indirect buffer counts as reference to memory
     // must be destroyed before memory is free
     for(auto const& command_buffer : res.command_buffers) {
@@ -94,6 +94,9 @@ void ApplicationThreaded::render() {
 
 void ApplicationThreaded::draw() {
   m_semaphore_draw.wait();
+  // allow closing of application
+  if (!m_should_draw) return;
+
   static std::uint64_t frame = 0;
   ++frame;
   uint32_t frame_draw = 0;
@@ -139,10 +142,11 @@ void ApplicationThreaded::emptyDrawQueue() {
     while (num_present > 0) {
       m_semaphore_present.wait(); 
       present();
-      // m_device.getQueue("present").waitIdle();
       --num_present;
     }
   }
+  // MUST wait after every present or everything freezes
+  m_device.getQueue("present").waitIdle();
   // wait until draw resources are avaible before recallocation
   for (auto const& res : m_frame_resources) {
     res.waitFences();

@@ -66,8 +66,9 @@ void Application::presentFrame(FrameResource& res, vk::Queue const& queue) {
   presentInfo.pSwapchains = &m_swap_chain.get();
   presentInfo.pImageIndices = &res.image;
 
+  // do wait before present to prevent cpu stalling
+  m_device.getQueue("present").waitIdle();
   queue.presentKHR(presentInfo);
-  // m_device.getQueue("present").waitIdle();
 }
 
 void Application::submitDraw(FrameResource& res) {
