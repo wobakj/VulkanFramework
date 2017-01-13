@@ -82,6 +82,10 @@ add_executable(vulkan_threaded application/source/application_threaded_simple.cp
 target_link_libraries(vulkan_threaded framework)
 install(TARGETS vulkan_threaded DESTINATION .)
 
+add_executable(vulkan_threaded_min application/source/application_threaded_min.cpp)
+target_link_libraries(vulkan_threaded_min framework)
+install(TARGETS vulkan_threaded_min DESTINATION .)
+
 add_executable(vulkan_lod application/source/application_lod.cpp)
 target_link_libraries(vulkan_lod framework)
 install(TARGETS vulkan_lod DESTINATION .)
