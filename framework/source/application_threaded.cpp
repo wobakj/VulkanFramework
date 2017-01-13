@@ -153,7 +153,6 @@ void ApplicationThreaded::emptyDrawQueue() {
   }
   // give record queue enough signals to process all frames
   m_semaphore_present.set(uint32_t(m_frame_resources.size()));
-  std::cout << "done with drawqueue" << std::endl;
 }
 
 void ApplicationThreaded::resize() {

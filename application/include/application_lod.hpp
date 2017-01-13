@@ -31,6 +31,7 @@ class ApplicationLod : public ApplicationThreaded {
  private:
   void render() override;
   void draw() override;
+  void recordTransferBuffer(FrameResource& res);
   void recordDrawBuffer(FrameResource& res) override;
   void createCommandBuffers(FrameResource& res) override;
   void updateCommandBuffers(FrameResource& res) override;
@@ -56,7 +57,7 @@ class ApplicationLod : public ApplicationThreaded {
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
   void updateModel();
-  void submitCopy(FrameResource& res);
+  void submitTransfer(FrameResource& res);
   void submitDraw(FrameResource& res) override;
 
   // path to the resource folders
