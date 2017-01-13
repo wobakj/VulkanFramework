@@ -35,6 +35,11 @@ class ApplicationThreaded : public Application {
   virtual void createMemoryPools() = 0;
   virtual void createPipelines() = 0;
   virtual void createDescriptorPools() {};
+  void pushForDraw(uint32_t frame);
+  void pushForPresent(uint32_t frame);
+  uint32_t pullForRecord();
+  uint32_t pullForDraw();
+  int64_t pullForPresent();
 
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_present_queue;

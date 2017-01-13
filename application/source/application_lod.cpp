@@ -143,10 +143,8 @@ void ApplicationLod::render() {
   static uint64_t frame = 0;
   ++frame;
   // get next frame to record
-  uint32_t frame_record = 0;
-  frame_record = m_queue_record_frames.front();
-  m_queue_record_frames.pop();
-
+  auto frame_record = pullForRecord();
+  // get resource to record
   auto& resource_record = m_frame_resources.at(frame_record);
   // read out timer values
   if (frame > m_frame_resources.size()) {
@@ -168,11 +166,8 @@ void ApplicationLod::render() {
   resource_record.fenceDraw().wait();
   recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    m_queue_draw_frames.push(frame_record);
-    m_semaphore_draw.signal();
-  }
+  pushForDraw(frame_record);
+
   m_averages.at("cpu_record").add(m_timers.at("cpu_record").durationEnd());
 }
 
@@ -186,22 +181,14 @@ void ApplicationLod::draw() {
 
   static std::uint64_t frame = 0;
   ++frame;
-  uint32_t frame_draw = 0;
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    assert(!m_queue_draw_frames.empty());
-    // get frame to draw
-    frame_draw = m_queue_draw_frames.front();
-    m_queue_draw_frames.pop();
-  }
+  // get frame to draw
+  uint32_t frame_draw = pullForDraw();
+  // get resource to draw
   auto& resource_draw = m_frame_resources.at(frame_draw);
   submitDraw(resource_draw);
   // make frame avaible for rerecording
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
-    m_queue_present_frames.push(frame_draw);
-    m_semaphore_present.signal();
-  }
+  pushForPresent(frame_draw);
+
   m_averages.at("cpu_draw").add(m_timers.at("cpu_draw").durationEnd());
 }
 

@@ -45,21 +45,11 @@ void ApplicationThreaded::createFrameResources() {
 
 void ApplicationThreaded::present() {
   // get frame to present
-  uint32_t frame_present = 0;
-  bool can_present = false;
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
-    if (!m_queue_present_frames.empty()) {
-      // get next frame to present
-      frame_present = m_queue_present_frames.front();
-      m_queue_present_frames.pop();
-      can_present = true;
-    }   
-  }
-
-  if (can_present) {
+  auto frame_present = pullForPresent();
+  // present frame if one is avaible
+  if (frame_present >= 0) {
     presentFrame(m_frame_resources.at(frame_present), m_device.getQueue("present"));
-    m_queue_record_frames.push(frame_present);
+    m_queue_record_frames.push(uint32_t(frame_present));
   }  
 }
 
@@ -71,50 +61,81 @@ void ApplicationThreaded::render() {
   static uint64_t frame = 0;
   ++frame;
   // get next frame to record
-  uint32_t frame_record = 0;
-  frame_record = m_queue_record_frames.front();
-  m_queue_record_frames.pop();
-
+  auto frame_record = pullForRecord();
+  // get resource to record
   auto& resource_record = m_frame_resources.at(frame_record);
-
   // wait for last acquisition until acquiring again
   resource_record.fenceAcquire().wait();
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
   resource_record.fenceDraw().wait();
   recordDrawBuffer(resource_record);
-
   // add newly recorded frame for drawing
-  {
-    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    m_queue_draw_frames.push(frame_record);
-    m_semaphore_draw.signal();
-  }
+  pushForDraw(frame_record);
 }
 
 void ApplicationThreaded::draw() {
   m_semaphore_draw.wait();
   // allow closing of application
   if (!m_should_draw) return;
-
   static std::uint64_t frame = 0;
   ++frame;
+  // get frame to draw
+  auto frame_draw = pullForDraw();
+  // get resource to draw
+  auto& resource_draw = m_frame_resources.at(frame_draw);
+  submitDraw(resource_draw);
+  // make frame avaible for rerecording
+  pushForPresent(frame_draw);
+}
+
+void ApplicationThreaded::pushForDraw(uint32_t frame) {
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
+    m_queue_draw_frames.push(frame);
+  }
+  m_semaphore_draw.signal();
+}
+
+void ApplicationThreaded::pushForPresent(uint32_t frame) {
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
+    m_queue_present_frames.push(frame);
+  }
+  m_semaphore_present.signal();
+}
+
+uint32_t ApplicationThreaded::pullForRecord() {
+  // get next frame to record
+  uint32_t frame_record = 0;
+  frame_record = m_queue_record_frames.front();
+  m_queue_record_frames.pop();
+  return frame_record;
+}
+
+uint32_t ApplicationThreaded::pullForDraw() {
   uint32_t frame_draw = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     assert(!m_queue_draw_frames.empty());
     // get frame to draw
     frame_draw = m_queue_draw_frames.front();
-    m_queue_draw_frames.pop();
   }
-  auto& resource_draw = m_frame_resources.at(frame_draw);
-  submitDraw(resource_draw);
-  // make frame avaible for rerecording
+  m_queue_draw_frames.pop();
+  return frame_draw;
+}
+
+int64_t ApplicationThreaded::pullForPresent() {
+  int64_t frame_present = -1;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
-    m_queue_present_frames.push(frame_draw);
-    m_semaphore_present.signal();
+    if (!m_queue_present_frames.empty()) {
+      // get next frame to present
+      frame_present = m_queue_present_frames.front();
+      m_queue_present_frames.pop();
+    }   
   }
+  return frame_present;
 }
 
 void ApplicationThreaded::drawLoop() {
