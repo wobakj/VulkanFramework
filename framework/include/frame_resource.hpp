@@ -14,6 +14,7 @@ class FrameResource {
  public:
   FrameResource()
    :m_device{nullptr}
+   ,num_uploads{0.0}
   {}
 
   FrameResource(Device& dev)
@@ -96,10 +97,11 @@ class FrameResource {
   std::map<std::string, Buffer> buffers;
   std::map<std::string, BufferView> buffer_views;
   std::map<std::string, QueryPool> query_pools;
-  double num_uploads;
 
  private:
   Device const* m_device;
+ public:
+  double num_uploads;
 };
 
 #endif

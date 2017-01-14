@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "application_threaded.hpp"
+#include "application_threaded_transfer.hpp"
 #include "deleter.hpp"
 #include "model.hpp"
 #include "model_lod.hpp"
@@ -23,15 +23,13 @@
 #include <queue>
 #include <thread>
 
-class ApplicationLod : public ApplicationThreaded {
+class ApplicationLod : public ApplicationThreadedTransfer {
  public:
   ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
   ~ApplicationLod();
 
  private:
-  void render() override;
-  void draw() override;
-  void recordTransferBuffer(FrameResource& res);
+  void recordTransferBuffer(FrameResource& res) override;
   void recordDrawBuffer(FrameResource& res) override;
   void createCommandBuffers(FrameResource& res) override;
   void updateCommandBuffers(FrameResource& res) override;
@@ -57,8 +55,6 @@ class ApplicationLod : public ApplicationThreaded {
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
   void updateModel();
-  void submitTransfer(FrameResource& res);
-  void submitDraw(FrameResource& res) override;
 
   // path to the resource folders
   RenderPass m_render_pass;
