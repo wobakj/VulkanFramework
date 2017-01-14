@@ -86,8 +86,6 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   m_statistics.addAverager("gpu_draw");
 
   m_statistics.addTimer("update");
-  m_statistics.addTimer("record");
-  m_statistics.addTimer("draw");
 
   startRenderThread();
 }
@@ -97,9 +95,6 @@ ApplicationLod::~ApplicationLod() {
 
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
   std::cout << "Average LOD update time: " << m_statistics.get("update") << " milliseconds per node, " << m_statistics.get("update") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-  std::cout << "Average CPU record time: " << m_statistics.get("record") << " milliseconds " << std::endl;
-  std::cout << "Average CPU draw time: " << m_statistics.get("draw") << " milliseconds " << std::endl;
-  std::cout << std::endl;
   std::cout << "Average GPU draw time: " << m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << "Average GPU copy time: " << m_statistics.get("gpu_copy") << " milliseconds per node, " << m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
 }

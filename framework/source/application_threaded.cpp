@@ -12,15 +12,20 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   m_statistics.addTimer("fence_draw");
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("queue_present");
+  m_statistics.addTimer("record");
+  m_statistics.addTimer("draw");
 }
 
 ApplicationThreaded::~ApplicationThreaded() {
   std::cout << std::endl;
   std::cout << "Average present semaphore time: " << m_statistics.get("sema_present") << " milliseconds " << std::endl;
   std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
-  std::cout << "Average draw semaphore time: " << m_statistics.get("sema_draw") << " milliseconds " << std::endl;
   std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds " << std::endl;
   std::cout << "Average draw fence time: " << m_statistics.get("fence_draw") << " milliseconds " << std::endl;
+  std::cout << "Average record time: " << m_statistics.get("record") << " milliseconds " << std::endl;
+  std::cout << std::endl;
+  std::cout << "Average draw semaphore time: " << m_statistics.get("sema_draw") << " milliseconds " << std::endl;
+  std::cout << "Average CPU draw time: " << m_statistics.get("draw") << " milliseconds " << std::endl;
 }
 
 void ApplicationThreaded::startRenderThread() {
@@ -76,7 +81,7 @@ void ApplicationThreaded::render() {
   m_semaphore_present.wait();
   m_statistics.stop("sema_present");
   present();
-
+  m_statistics.start("record");
   static uint64_t frame = 0;
   ++frame;
   // get next frame to record
@@ -95,12 +100,15 @@ void ApplicationThreaded::render() {
   recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
   pushForDraw(frame_record);
+  m_statistics.stop("record");
 }
 
 void ApplicationThreaded::draw() {
   m_statistics.start("sema_draw");
   m_semaphore_draw.wait();
   m_statistics.stop("sema_draw");
+  m_statistics.start("draw");
+  m_statistics.start("draw");
   // allow closing of application
   if (!m_should_draw) return;
   static std::uint64_t frame = 0;
@@ -112,6 +120,7 @@ void ApplicationThreaded::draw() {
   submitDraw(resource_draw);
   // make frame avaible for rerecording
   pushForPresent(frame_draw);
+  m_statistics.stop("draw");
 }
 
 void ApplicationThreaded::pushForDraw(uint32_t frame) {

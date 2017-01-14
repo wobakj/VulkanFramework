@@ -5,24 +5,7 @@
 
 ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
  :ApplicationThreaded{resource_path, device, chain, window, args, 3}
-{
-  // m_statistics.addAverager("gpu_copy");
-  // m_statistics.addAverager("gpu_draw");
-
-  // m_statistics.addTimer("update");
-  // m_statistics.addTimer("record");
-  // m_statistics.addTimer("draw");
-}
-
-ApplicationThreadedTransfer::~ApplicationThreadedTransfer() {
-  // double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
-  // std::cout << "Average LOD update time: " << m_statistics.get("update") << " milliseconds per node, " << m_statistics.get("update") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-  // std::cout << "Average CPU record time: " << m_statistics.get("record") << " milliseconds " << std::endl;
-  // std::cout << "Average CPU draw time: " << m_statistics.get("draw") << " milliseconds " << std::endl;
-  // std::cout << std::endl;
-  // std::cout << "Average GPU draw time: " << m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
-  // std::cout << "Average GPU copy time: " << m_statistics.get("gpu_copy") << " milliseconds per node, " << m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-}
+{}
 
 void ApplicationThreadedTransfer::render() {
   m_statistics.start("sema_present");
@@ -50,7 +33,6 @@ void ApplicationThreadedTransfer::render() {
   recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
   pushForDraw(frame_record);
-
   m_statistics.stop("record");
 }
 

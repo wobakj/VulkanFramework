@@ -8,7 +8,7 @@
 class ApplicationThreadedTransfer : public ApplicationThreaded {
  public:
   ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
-  ~ApplicationThreadedTransfer();
+  virtual ~ApplicationThreadedTransfer() {};
 
  private:
   void render() override;
