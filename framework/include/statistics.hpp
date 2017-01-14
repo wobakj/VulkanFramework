@@ -27,8 +27,11 @@ class Statistics {
   void stop(std::string const& name) {
     m_averages.at(name).add(m_timers.at(name).durationEnd());
   }
+  double stopValue(std::string const& name) {
+    return m_timers.at(name).durationEnd();
+  }
 
-  void addValue(std::string const& name, double value) {
+  void add(std::string const& name, double value) {
     m_averages.at(name).add(value);
   }
 

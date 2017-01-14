@@ -82,22 +82,12 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
 
   resize();
 
-  m_averages["copy"] = Averager<double>{};
-  m_averages["draw"] = Averager<double>{};
-  m_averages["update"] = Averager<double>{};
-  m_averages["sema_record"] = Averager<double>{};
-  m_averages["sema_draw"] = Averager<double>{};
-  m_averages["cpu_record"] = Averager<double>{};
-  m_averages["cpu_draw"] = Averager<double>{};
-  m_averages["gpu_draw"] = Averager<double>{};
+  m_statistics.addAverager("gpu_copy");
+  m_statistics.addAverager("gpu_draw");
 
-  m_timers["update"] = Timer{};
-  m_timers["sema_record"] = Timer{};
-  m_timers["sema_draw"] = Timer{};
-  m_timers["cpu_record"] = Timer{};
-  m_timers["cpu_draw"] = Timer{};
-  m_timers["fence_draw"] = Timer{};
-  m_timers["gpu_draw"] = Timer{};
+  m_statistics.addTimer("update");
+  m_statistics.addTimer("record");
+  m_statistics.addTimer("draw");
 
   startRenderThread();
 }
@@ -106,16 +96,13 @@ ApplicationLod::~ApplicationLod() {
   shutDown();
 
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
-  std::cout << "Average LOD update time: " << m_averages.at("update").get() << " milliseconds per node, " << m_averages.at("update").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-  std::cout << "Average LOD copy time: " << m_averages.at("copy").get() << " milliseconds per node, " << m_averages.at("copy").get() / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-  std::cout << "Average draw time: " << m_averages.at("draw").get() << " milliseconds " << std::endl;
+  std::cout << "Average LOD update time: " << m_statistics.get("update") << " milliseconds per node, " << m_statistics.get("update") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   
-  std::cout << "Average record semaphore time: " << m_averages.at("sema_record").get() << " milliseconds " << std::endl;
-  std::cout << "Average draw semaphore time: " << m_averages.at("sema_draw").get() << " milliseconds " << std::endl;
+  std::cout << "Average CPU record time: " << m_statistics.get("record") << " milliseconds " << std::endl;
+  std::cout << "Average CPU draw time: " << m_statistics.get("draw") << " milliseconds " << std::endl;
 
-  std::cout << "Average CPU record time: " << m_averages.at("cpu_record").get() << " milliseconds " << std::endl;
-  std::cout << "Average CPU draw time: " << m_averages.at("cpu_draw").get() << " milliseconds " << std::endl;
-  std::cout << "Average GPU draw time: " << m_averages.at("gpu_draw").get() << " milliseconds " << std::endl;
+  std::cout << "Average GPU draw time: " << m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
+  std::cout << "Average GPU copy time: " << m_statistics.get("gpu_copy") << " milliseconds per node, " << m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
 }
 
 FrameResource ApplicationLod::createFrameResource() {
@@ -133,12 +120,12 @@ FrameResource ApplicationLod::createFrameResource() {
 }
 
 void ApplicationLod::render() {
-  m_timers.at("sema_record").start();
+  m_statistics.start("sema_present");
   m_semaphore_present.wait();
-  m_averages.at("sema_record").add(m_timers.at("sema_record").durationEnd());
-  m_timers.at("cpu_record").start();
+  m_statistics.stop("sema_present");
   
   present();
+  m_statistics.start("record");
 
   static uint64_t frame = 0;
   ++frame;
@@ -150,9 +137,9 @@ void ApplicationLod::render() {
   if (frame > m_frame_resources.size()) {
     if (resource_record.num_uploads > 0) {
       auto values = resource_record.query_pools.at("timers").getTimes();
-      m_averages.at("copy").add((values[1] - values[0]) / resource_record.num_uploads);
-      m_averages.at("draw").add((values[2] - values[1]));
-      m_averages.at("gpu_draw").add((values[2] - values[1]));
+      m_statistics.add("gpu_copy", (values[1] - values[0]) / resource_record.num_uploads);
+      // m_statistics.add("draw", (values[2] - values[1]));
+      m_statistics.add("gpu_draw", (values[2] - values[1]));
     }
   }
   // wait for previous transfer
@@ -168,14 +155,14 @@ void ApplicationLod::render() {
   // add newly recorded frame for drawing
   pushForDraw(frame_record);
 
-  m_averages.at("cpu_record").add(m_timers.at("cpu_record").durationEnd());
+  m_statistics.stop("record");
 }
 
 void ApplicationLod::draw() {
-  m_timers.at("sema_draw").start();
+  m_statistics.start("sema_draw");
   m_semaphore_draw.wait();
-  m_averages.at("sema_draw").add(m_timers.at("sema_draw").durationEnd());
-  m_timers.at("cpu_draw").start();
+  m_statistics.stop("sema_draw");
+  m_statistics.start("draw");
   // allow closing of application
   if (!m_should_draw) return;
 
@@ -189,7 +176,7 @@ void ApplicationLod::draw() {
   // make frame avaible for rerecording
   pushForPresent(frame_draw);
 
-  m_averages.at("cpu_draw").add(m_timers.at("cpu_draw").durationEnd());
+  m_statistics.stop("draw");
 }
 
 void ApplicationLod::submitTransfer(FrameResource& res) {
@@ -265,14 +252,14 @@ void ApplicationLod::recordTransferBuffer(FrameResource& res) {
   std::size_t curr_uploads = 0;
   // store upload num for later when reading out timers
   res.num_uploads = double(curr_uploads);
-  m_timers.at("update").start();
+  m_statistics.start("update");
   // upload node data
   m_model_lod.update(m_camera);
   curr_uploads = m_model_lod.numUploads();
   m_model_lod.performCopiesCommand(res.command_buffers.at("transfer"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("transfer"));
   if (curr_uploads > 0) {
-    m_averages.at("update").add(m_timers.at("update").durationEnd() / double(curr_uploads));
+    m_statistics.add("update", m_statistics.stopValue("update") / double(curr_uploads));
   }
   res.command_buffers.at("transfer").end();
 }
