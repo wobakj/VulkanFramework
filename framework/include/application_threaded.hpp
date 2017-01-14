@@ -6,6 +6,7 @@
 #include "application.hpp"
 #include "semaphore.hpp"
 #include "frame_resource.hpp"
+#include "statistics.hpp"
 
 #include <vector>
 #include <atomic>
@@ -16,6 +17,7 @@ class ApplicationThreaded : public Application {
  public:
   ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args, uint32_t num_frames);
   void emptyDrawQueue() override;
+  virtual ~ApplicationThreaded();
 
  protected:
   void createFrameResources();
@@ -54,6 +56,8 @@ class ApplicationThreaded : public Application {
   virtual void present();
   virtual void draw();
   std::atomic<bool> m_should_draw;
+  Statistics m_statistics;
+
  private:
   virtual void render() override;
   virtual void drawLoop();

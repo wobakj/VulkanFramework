@@ -6,7 +6,17 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
  ,m_semaphore_draw{0}
  ,m_semaphore_present{num_frames}
  ,m_should_draw{true}
-{}
+{
+  m_statistics.addTimer("sema_present");
+  m_statistics.addTimer("sema_draw");
+  m_statistics.addTimer("queue_present");
+}
+
+ApplicationThreaded::~ApplicationThreaded() {
+  std::cout << "Average present semaphore time: " << m_statistics.get("sema_present") << " milliseconds " << std::endl;
+  std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
+  std::cout << "Average draw semaphore time: " << m_statistics.get("sema_draw") << " milliseconds " << std::endl;
+}
 
 void ApplicationThreaded::startRenderThread() {
   if (!m_thread_render.joinable()) {
@@ -48,14 +58,18 @@ void ApplicationThreaded::present() {
   auto frame_present = pullForPresent();
   // present frame if one is avaible
   if (frame_present >= 0) {
+    m_statistics.start("queue_present");
     presentFrame(m_frame_resources.at(frame_present), m_device.getQueue("present"));
+    m_statistics.stop("queue_present");
     m_queue_record_frames.push(uint32_t(frame_present));
   }  
 }
 
 void ApplicationThreaded::render() {
+  m_statistics.start("sema_present");
   // only calculate new frame if previous one was rendered
   m_semaphore_present.wait();
+  m_statistics.stop("sema_present");
   present();
 
   static uint64_t frame = 0;
@@ -75,7 +89,9 @@ void ApplicationThreaded::render() {
 }
 
 void ApplicationThreaded::draw() {
+  m_statistics.start("sema_draw");
   m_semaphore_draw.wait();
+  m_statistics.stop("sema_draw");
   // allow closing of application
   if (!m_should_draw) return;
   static std::uint64_t frame = 0;
