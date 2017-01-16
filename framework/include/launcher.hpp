@@ -24,21 +24,15 @@ class Launcher {
   }
 
  private:
-
   Launcher(std::vector<std::string> const& args);
   // run application
   template<typename T>
   void runApp(std::vector<std::string> const& args){
-    initialize();
-
     m_application = new T{m_resource_path, m_device, m_swap_chain, m_window, args};
 
     mainLoop();
   }
-
   
-  // create window and set callbacks
-  void initialize();
   // start main loop
   void createSurface();
   void mainLoop();

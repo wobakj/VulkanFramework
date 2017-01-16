@@ -83,13 +83,13 @@ bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& su
   return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-Instance::Instance(bool validate)
+Instance::Instance()
  :Wrapper<vk::Instance, vk::InstanceCreateInfo>{}
- ,m_validate{validate}
- ,m_layers{validate ? std::vector<std::string>{"VK_LAYER_LUNARG_standard_validation"} : std::vector<std::string>{}}
+ // ,m_validate{validate}
+ ,m_layers{"VK_LAYER_LUNARG_standard_validation"}
 {}
 
-void Instance::create() {
+void Instance::create(bool validate) {
   vk::ApplicationInfo appInfo = {};
   appInfo.pApplicationName = "Hello Triangle";
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -101,7 +101,7 @@ void Instance::create() {
   createInfo.pApplicationInfo = &appInfo;
 
   std::vector<char const*> layers(m_layers.size());
-  if (m_validate) {
+  if (validate) {
     if (!checkValidationLayerSupport(m_layers)) {
       throw std::runtime_error("validation layers requested, but not available!");
     }
@@ -119,13 +119,13 @@ void Instance::create() {
     createInfo.enabledLayerCount = 0;
   }
 
-  auto extensions = getRequiredExtensions(m_validate);
+  auto extensions = getRequiredExtensions(validate);
   createInfo.enabledExtensionCount = uint32_t(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
   m_object =vk::createInstance(createInfo, nullptr);
   // create and attach debug callback
-  if(m_validate) {
+  if(validate) {
     m_debug_report.attach(get());
   }
 }

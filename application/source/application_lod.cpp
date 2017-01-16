@@ -58,7 +58,9 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   cmdline::parser cmd_parse{};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
-
+  // cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
+  cmd_parse.add("debug", 'd', "debug with validation layers");
+  
   cmd_parse.parse_check(args);
   if (cmd_parse.rest().size() != 1) {
     if (cmd_parse.rest().size() < 1) {

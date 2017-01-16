@@ -28,18 +28,7 @@ Launcher::Launcher(std::vector<std::string> const& args)
  ,m_swap_chain{}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
-{}
-
-std::string resourcePath(std::vector<std::string> const& args) {
-  std::string resource_path{};
-  std::string exe_path{args[0]};
-  resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
-  resource_path += "/resources/";
-  return resource_path;
-}
-
-void Launcher::initialize() {
-
+{
   glfwSetErrorCallback(glfw_error);
 
   if (!glfwInit()) {
@@ -62,7 +51,14 @@ void Launcher::initialize() {
     std::cout << "\t" << extension.extensionName << std::endl;
   }
 
-  m_instance.create();
+  bool validate = true;
+  #ifdef NDEBUG
+    // TODO: use actual cmdline option
+    if (std::find(args.begin(), args.end(), "-d") == args.end()) {
+      validate = false;
+    }
+  #endif
+  m_instance.create(validate);
   createSurface();
 
   std::vector<const char*> deviceExtensions = {
@@ -84,6 +80,15 @@ void Launcher::initialize() {
         static_cast<Launcher*>(glfwGetWindowUserPointer(w))->key_callback(w, a, b, c, d);
   };
   glfwSetKeyCallback(m_window, key_func);
+
+}
+
+std::string resourcePath(std::vector<std::string> const& args) {
+  std::string resource_path{};
+  std::string exe_path{args[0]};
+  resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
+  resource_path += "/resources/";
+  return resource_path;
 }
  
 void Launcher::mainLoop() {

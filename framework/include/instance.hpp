@@ -19,12 +19,12 @@ std::vector<const char*> getRequiredExtensions(bool enableValidationLayers);
 
 class Instance : public Wrapper<vk::Instance, vk::InstanceCreateInfo> {
  public:
-  Instance(bool validate = true);
+  Instance();
   Instance(Instance const&) = delete;
 
   Instance& operator=(Instance const&) = delete;
 
-  void create();
+  void create(bool validate);
 
   vk::PhysicalDevice pickPhysicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions);
   Device createLogicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions);
