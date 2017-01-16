@@ -49,16 +49,11 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
  ,m_setting_levels{false}
- ,avg_update{0.0}
- ,avg_copy{0.0}
- ,num_updates{0.0}
- ,num_copys{0.0}
 {
   std::cout << "old frame num " << m_swap_chain.numImages() - 1 << std::endl;
   cmdline::parser cmd_parse{};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
-  // cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
   cmd_parse.add("debug", 'd', "debug with validation layers");
   
   cmd_parse.parse_check(args);
@@ -86,6 +81,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
 
   m_statistics.addAverager("gpu_copy");
   m_statistics.addAverager("gpu_draw");
+  m_statistics.addAverager("uploads");
 
   m_statistics.addTimer("update");
 
@@ -96,6 +92,7 @@ ApplicationLod::~ApplicationLod() {
   shutDown();
 
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
+  std::cout << "Average upload: " << m_statistics.get("uploads") * mb_per_node << " MB"<< std::endl;
   std::cout << "Average LOD update time: " << m_statistics.get("update") << " milliseconds per node, " << m_statistics.get("update") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   std::cout << "Average GPU draw time: " << m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << "Average GPU copy time: " << m_statistics.get("gpu_copy") << " milliseconds per node, " << m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
@@ -147,25 +144,28 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
 void ApplicationLod::recordTransferBuffer(FrameResource& res) {
   // read out timer values from previous draw
-  if (res.num_uploads > 0) {
+  if (res.num_uploads > 0.0) {
     auto values = res.query_pools.at("timers").getTimes();
     m_statistics.add("gpu_copy", (values[1] - values[0]) / res.num_uploads);
     m_statistics.add("gpu_draw", (values[3] - values[2]));
   }
-  std::size_t curr_uploads = 0;
-  // store upload num for later when reading out timers
-  res.num_uploads = double(curr_uploads);
+
   m_statistics.start("update");
   // upload node data
   m_model_lod.update(m_camera);
-  curr_uploads = m_model_lod.numUploads();
+  size_t curr_uploads = m_model_lod.numUploads();
+  m_statistics.add("uploads", double(curr_uploads));
   if (curr_uploads > 0) {
     m_statistics.add("update", m_statistics.stopValue("update") / double(curr_uploads));
   }
+  // store upload num for later when reading out timers
+  res.num_uploads = double(curr_uploads);
+  
   // write transfer command buffer
   res.command_buffers.at("transfer").reset({});
 
   res.command_buffers.at("transfer").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.query_pools.at("timers").reset(res.command_buffers.at("transfer"));
   res.query_pools.at("timers").timestamp(res.command_buffers.at("transfer"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
 
   m_model_lod.performCopiesCommand(res.command_buffers.at("transfer"));
@@ -206,7 +206,6 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   );
 
 
-  res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
 
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
@@ -224,7 +223,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   res.command_buffers.at("draw").blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 3, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);
   res.command_buffers.at("draw").end();
 }
 

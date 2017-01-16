@@ -159,21 +159,22 @@ void ApplicationLodSingle::render() {
 
 void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
   // read out timer values from previous draw
-  // if (res.num_uploads > 0) {
-  //   auto values = res.query_pools.at("timers").getTimes();
-  //   m_statistics.add("gpu_copy", (values[1] - values[0]) / res.num_uploads);
-  //   m_statistics.add("gpu_draw", (values[3] - values[2]));
-  // }
-  std::size_t curr_uploads = 0;
-  // store upload num for later when reading out timers
-  res.num_uploads = double(curr_uploads);
+  if (res.num_uploads > 0) {
+    auto values = res.query_pools.at("timers").getTimes();
+    m_statistics.add("gpu_copy", (values[1] - values[0]) / res.num_uploads);
+    m_statistics.add("gpu_draw", (values[3] - values[2]));
+  }
+  
   m_statistics.start("update");
   // upload node data
   m_model_lod.update(m_camera);
-  curr_uploads = m_model_lod.numUploads();
+  std::size_t curr_uploads = m_model_lod.numUploads();
   if (curr_uploads > 0) {
     m_statistics.add("update", m_statistics.stopValue("update") / double(curr_uploads));
   }
+  // store upload num for later when reading out timers
+  res.num_uploads = double(curr_uploads);
+
   // write transfer command buffer
   res.command_buffers.at("draw").reset({});
 
