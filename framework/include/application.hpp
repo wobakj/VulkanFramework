@@ -8,6 +8,7 @@
 #include "camera.hpp"
 #include "device.hpp"
 #include "swap_chain.hpp"
+#include "cmdline.h"
 
 #include <map>
 #include <mutex>
@@ -17,7 +18,7 @@ class FrameResource;
 class Application {
  public:
   // allocate and initialize objects
-  Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
+  Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   // free resources
   virtual ~Application(){};
 
@@ -32,7 +33,9 @@ class Application {
   // render remaining recorded frames before pipeline rebuild
   // required for multithreaded rendering
   virtual void emptyDrawQueue() {};
-
+  static cmdline::parser getParser() {
+    return cmdline::parser{};
+  }; 
  protected:
   virtual void update() {};
   virtual void render() = 0;

@@ -38,8 +38,16 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreadedTransfer{resource_path, device, chain, window, args}
+cmdline::parser ApplicationLod::getParser() {
+  cmdline::parser cmd_parse{};
+  cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
+  cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
+  // cmd_parse.add("debug", 'd', "debug with validation layers");
+  return cmd_parse;
+}
+
+ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationThreadedTransfer{resource_path, device, chain, window, cmd_parse}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -51,12 +59,12 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
  ,m_setting_levels{false}
 {
   std::cout << "old frame num " << m_swap_chain.numImages() - 1 << std::endl;
-  cmdline::parser cmd_parse{};
-  cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
-  cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
-  cmd_parse.add("debug", 'd', "debug with validation layers");
+  // cmdline::parser cmd_parse{};
+  // cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
+  // cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
+  // cmd_parse.add("debug", 'd', "debug with validation layers");
   
-  cmd_parse.parse_check(args);
+  // cmd_parse.parse_check(args);
   if (cmd_parse.rest().size() != 1) {
     if (cmd_parse.rest().size() < 1) {
       std::cerr << "No filename specified" << std::endl;
@@ -160,7 +168,7 @@ void ApplicationLod::recordTransferBuffer(FrameResource& res) {
   }
   // store upload num for later when reading out timers
   res.num_uploads = double(curr_uploads);
-  
+
   // write transfer command buffer
   res.command_buffers.at("transfer").reset({});
 

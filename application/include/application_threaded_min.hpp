@@ -17,7 +17,7 @@
 
 class ApplicationThreadedMin : public ApplicationThreaded {
  public:
-  ApplicationThreadedMin(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
+  ApplicationThreadedMin(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationThreadedMin();
 
  private:

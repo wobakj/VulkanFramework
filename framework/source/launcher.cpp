@@ -14,7 +14,7 @@
 std::string resourcePath(std::vector<std::string> const& args);
 void glfw_error(int error, const char* description);
 
-Launcher::Launcher(std::vector<std::string> const& args) 
+Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& cmd_parse) 
  :m_camera_fov{glm::radians(60.0f)}
  ,m_window_width{640u}
  ,m_window_height{480u}
@@ -53,9 +53,7 @@ Launcher::Launcher(std::vector<std::string> const& args)
 
   bool validate = true;
   #ifdef NDEBUG
-    // TODO: use actual cmdline option
-    if (std::find(args.begin(), args.end(), "-d") == args.end()
-    && std::find(args.begin(), args.end(), "--debug") == args.end()) {
+    if (!cmd_parse.exist("debug")) {
       validate = false;
     }
   #endif

@@ -39,8 +39,8 @@ struct BufferLights {
 BufferLights buff_l;
 
 
-ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreaded{resource_path, device, chain, window, args, chain.numImages() - 1}
+ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, chain.numImages() - 1}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}

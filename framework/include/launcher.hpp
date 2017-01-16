@@ -5,6 +5,8 @@
 #include "instance.hpp"
 #include "swap_chain.hpp"
 
+#include "cmdline.h"
+
 #include <string>
 
 // forward declarations
@@ -19,20 +21,28 @@ class Launcher {
     for (int i = 0; i < argc; ++i) {
       args.emplace_back(argv[i]);
     }
-    Launcher launcher{args};
-    launcher.runApp<T>(args);
+    auto cmd_parse = getParser<T>();
+    cmd_parse.parse_check(args);
+    Launcher launcher{args, cmd_parse};
+    launcher.runApp<T>(cmd_parse);
   }
 
  private:
-  Launcher(std::vector<std::string> const& args);
+  Launcher(std::vector<std::string> const& args, cmdline::parser const& cmd_parse);
   // run application
   template<typename T>
-  void runApp(std::vector<std::string> const& args){
-    m_application = new T{m_resource_path, m_device, m_swap_chain, m_window, args};
-
+  void runApp(cmdline::parser const& cmd_parse){
+    m_application = new T{m_resource_path, m_device, m_swap_chain, m_window, cmd_parse};
     mainLoop();
-  }
+  };
   
+  template<typename T>
+  static cmdline::parser getParser() {
+    auto cmd_parse = T::getParser();
+    cmd_parse.add("debug", 'd', "debug with validation layers");
+    return cmd_parse;
+  }
+
   // start main loop
   void createSurface();
   void mainLoop();

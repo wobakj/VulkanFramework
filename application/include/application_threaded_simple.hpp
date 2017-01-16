@@ -17,7 +17,7 @@
 
 class ApplicationThreadedSimple : public ApplicationThreaded {
  public:
-  ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
+  ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationThreadedSimple();
 
  private:

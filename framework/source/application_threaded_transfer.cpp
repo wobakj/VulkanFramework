@@ -3,8 +3,8 @@
 // c++ wrapper
 #include <vulkan/vulkan.hpp>
 
-ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreaded{resource_path, device, chain, window, args, 3}
+ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, 3}
 {
   m_statistics.addTimer("fence_transfer");
 }

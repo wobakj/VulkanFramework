@@ -18,8 +18,8 @@
 #include <chrono>
 
 
-ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args) 
- :ApplicationThreaded{resource_path, device, chain, window, args, chain.numImages() - 1}
+ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, chain.numImages() - 1}
  ,m_pipeline{m_device, vkDestroyPipeline}
 {  
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/solid_frag.spv"}});

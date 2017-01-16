@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-Application::Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args)
+Application::Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse)
  :m_resource_path{resource_path}
  ,m_camera{45.0f, 10, 10, 0.1f, 500.0f, window}
  ,m_device(device)

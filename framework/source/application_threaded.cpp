@@ -1,7 +1,7 @@
 #include "application_threaded.hpp"
 
-ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, std::vector<std::string> const& args, uint32_t num_frames) 
- :Application{resource_path, device, chain, window, args}
+ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse, uint32_t num_frames) 
+ :Application{resource_path, device, chain, window, cmd_parse}
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_present{num_frames}
@@ -143,7 +143,7 @@ uint32_t ApplicationThreaded::pullForRecord() {
   // get next frame to record
   uint32_t frame_record = 0;
   frame_record = m_queue_record_frames.front();
-  std::cout << m_queue_record_frames.size() << std::endl;
+  // std::cout << m_queue_record_frames.size() << std::endl;
   m_queue_record_frames.pop();
   return frame_record;
 }
