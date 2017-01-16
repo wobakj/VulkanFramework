@@ -161,11 +161,11 @@ void ApplicationLodSingle::render() {
 
 void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
   // read out timer values from previous draw
-  // if (res.num_uploads > 0.0) {
-  //   auto values = res.query_pools.at("timers").getTimes();
-  //   m_statistics.add("gpu_copy", (values[1] - values[0]) / res.num_uploads);
-  //   m_statistics.add("gpu_draw", (values[3] - values[2]));
-  // }
+  if (res.num_uploads > 0.0) {
+    auto values = res.query_pools.at("timers").getTimes();
+    m_statistics.add("gpu_copy", (values[1] - values[0]) / res.num_uploads);
+    m_statistics.add("gpu_draw", (values[3] - values[2]));
+  }
 
   m_statistics.start("update");
   // upload node data
@@ -183,12 +183,12 @@ void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
 
 
   m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
   
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
   // res.command_buffers.at("draw").end();
 }

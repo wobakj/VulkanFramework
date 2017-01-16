@@ -19,6 +19,7 @@ class FrameResource {
 
   FrameResource(Device& dev)
    :m_device(&dev)
+   ,num_uploads{0.0}
    {
     // frame resource always has these objects
     semaphores.emplace("acquire", (*m_device)->createSemaphore({}));
