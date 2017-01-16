@@ -166,11 +166,11 @@ void ApplicationLod::recordTransferBuffer(FrameResource& res) {
 
   res.command_buffers.at("transfer").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   res.query_pools.at("timers").reset(res.command_buffers.at("transfer"));
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("transfer"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
 
   m_model_lod.performCopiesCommand(res.command_buffers.at("transfer"));
   m_model_lod.updateDrawCommands(res.command_buffers.at("transfer"));
   
+  res.query_pools.at("timers").timestamp(res.command_buffers.at("transfer"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
   res.query_pools.at("timers").timestamp(res.command_buffers.at("transfer"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
   res.command_buffers.at("transfer").end();
 }

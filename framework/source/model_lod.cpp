@@ -98,11 +98,11 @@ ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budg
   else {
     m_num_uploads = std::max(std::size_t{1}, leaf_length / 16);
   }
-  #ifdef FULL_UPLOAD
-    m_num_slots = m_num_nodes * 2;
-  #else
+  // #ifdef FULL_UPLOAD
+  //   m_num_slots = m_num_nodes * 2;
+  // #else
     m_num_slots = m_num_nodes + m_num_uploads;
-  #endif
+  // #endif
 
   std::cout << "LOD node size is " << m_size_node / 1024 / 1024 << " MB" << std::endl;
   assert(m_num_slots <= m_bvh.get_num_nodes());
@@ -684,8 +684,7 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
     for (std::size_t idx_slot = 0; idx_slot < m_slots.size(); ++idx_slot) {
       if (m_slots.at(idx_slot) == idx_node) {
         #ifdef FULL_UPLOAD
-        if (num_reused >= m_num_nodes - m_num_uploads) {
-          std::cout << "breaking" << std::endl;
+        if (num_reused >= cut.size() - m_num_uploads) {
           break;
         }
         #endif
