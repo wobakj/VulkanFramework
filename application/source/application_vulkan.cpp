@@ -56,13 +56,21 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createTextureSampler();
   createFramebufferAttachments();
   createRenderPass();
-  createCommandBuffers(m_frame_resource);
+
+  m_frame_resource = createFrameResource();
 
   resize();
 }
 
 ApplicationVulkan::~ApplicationVulkan() {
   m_frame_resource.waitFences();
+}
+
+FrameResource ApplicationVulkan::createFrameResource() {
+  FrameResource res{m_device};
+  res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  return res;
 }
 
 void ApplicationVulkan::updateModel() {
@@ -100,11 +108,6 @@ void ApplicationVulkan::render() {
   submitDraw(m_frame_resource);
 
   presentFrame(m_frame_resource);
-}
-
-void ApplicationVulkan::createCommandBuffers(FrameResource& res) {
-  res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
 }
 
 void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {

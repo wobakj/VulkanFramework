@@ -21,7 +21,7 @@ class ApplicationThreaded : public Application {
 
  protected:
   void createFrameResources();
-  virtual FrameResource createFrameResource() = 0;
+  virtual FrameResource createFrameResource() override = 0;
   void shutDown();
   void resize() override;
   void recreatePipeline() override;

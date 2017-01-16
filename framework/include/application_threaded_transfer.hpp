@@ -18,4 +18,17 @@ class ApplicationThreadedTransfer : public ApplicationThreaded {
 
 };
 
+class ApplicationThreadedTransferSingle : public ApplicationThreaded {
+ public:
+  ApplicationThreadedTransferSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
+  virtual ~ApplicationThreadedTransferSingle() {};
+
+ private:
+  void render() override;
+  virtual void recordTransferBuffer(FrameResource& res) = 0;
+  void submitTransfer(FrameResource& res);
+  void submitDraw(FrameResource& res) override;
+
+};
+
 #endif

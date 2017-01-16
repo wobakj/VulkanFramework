@@ -1,45 +1,59 @@
-#ifndef APPLICATION_VULKAN_HPP
-#define APPLICATION_VULKAN_HPP
-
-#include "application.hpp"
-
-#include "deleter.hpp"
-#include "model.hpp"
-#include "render_pass.hpp"
-#include "frame_buffer.hpp"
-#include "frame_resource.hpp"
-#include "frame_resource.hpp"
+#ifndef APPLICATION_LOD_HPP
+#define APPLICATION_LOD_HPP
 
 #include <vulkan/vulkan.hpp>
 
+#include "application.hpp"
+#include "deleter.hpp"
+#include "model.hpp"
+#include "model_lod.hpp"
+#include "buffer.hpp"
+#include "render_pass.hpp"
+#include "memory.hpp"
+#include "frame_buffer.hpp"
+#include "fence.hpp"
+#include "frame_resource.hpp"
+#include "semaphore.hpp"
+#include "statistics.hpp"
+
+#include "averager.hpp"
+#include "timer.hpp"
+
+#include <vector>
 #include <atomic>
+#include <queue>
 #include <thread>
 
-class ApplicationVulkan : public Application {
+class ApplicationLodSingle : public Application {
  public:
-  ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
-  ~ApplicationVulkan();
+  ApplicationLodSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, std::vector<std::string> const& args);
+  ~ApplicationLodSingle();
+
  private:
   void render() override;
+  void recordTransferBuffer(FrameResource& res);
   void recordDrawBuffer(FrameResource& res) override;
+  void updateCommandBuffers(FrameResource& res);
+  void updateDescriptors(FrameResource& resource);
   FrameResource createFrameResource() override;
   
   void createLights();
   void loadModel();
   void createUniformBuffers();
-  void createVertexBuffer();
+  void createVertexBuffer(std::string const& lod_path, std::size_t cur_budged, std::size_t upload_budget);
+
   void createTextureImage();
   void createTextureSampler();
 
+  void updateView() override;
   void resize() override;
   void recreatePipeline() override;
-  void updateView() override;
-  void updateCommandBuffers(FrameResource& res);
+
   void createFramebuffers();
-  void createRenderPass();
+  void createRenderPasses();
   void createMemoryPools();
-  void createGraphicsPipeline();
-  void createDescriptorPool();
+  void createPipelines();
+  void createDescriptorPools();
   void createFramebufferAttachments();
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
@@ -50,18 +64,23 @@ class ApplicationVulkan : public Application {
   Deleter<VkPipeline> m_pipeline;
   Deleter<VkPipeline> m_pipeline_2;
   FrameBuffer m_framebuffer;
-  Model m_model;
-  Model m_model_2;
+  Model m_model_light;
+  ModelLod m_model_lod;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
   vk::DescriptorSet m_descriptorSet;
   vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
-  std::thread m_thread_load;
-  std::atomic<bool> m_model_dirty;
-  bool m_sphere;
+
   FrameResource m_frame_resource;
+
+  bool m_setting_wire;
+  bool m_setting_transparent;
+  bool m_setting_shaded;
+  bool m_setting_levels;
+
+  Statistics m_statistics;
 };
 
 #endif

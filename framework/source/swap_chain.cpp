@@ -73,7 +73,8 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
 
   vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes) {
       for (const auto& availablePresentMode : availablePresentModes) {
-        if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
+        if (availablePresentMode == vk::PresentModeKHR::eImmediate) {
+        // if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
             return availablePresentMode;
         }
       }
