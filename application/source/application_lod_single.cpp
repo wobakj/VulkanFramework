@@ -83,6 +83,7 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
   m_statistics.addTimer("update");
   m_statistics.addTimer("render");
   m_statistics.addTimer("fence_acquire");
+  m_statistics.addTimer("fence_draw");
 
   m_frame_resource = createFrameResource();
   
@@ -101,6 +102,7 @@ ApplicationLodSingle::~ApplicationLodSingle() {
   std::cout << std::endl;
   std::cout << "Average render time: " << m_statistics.get("render") << " milliseconds" << std::endl;
   std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
+  std::cout << "Average draw fence time: " << m_statistics.get("fence_draw") << " milliseconds" << std::endl;
 }
 
 FrameResource ApplicationLodSingle::createFrameResource() {
@@ -147,7 +149,9 @@ void ApplicationLodSingle::render() {
   m_statistics.start("render");
   acquireImage(m_frame_resource);
   // make sure no command buffer is in use
+  m_statistics.start("fence_draw");
   m_frame_resource.fenceDraw().wait();
+  m_statistics.stop("fence_draw");
   static uint64_t frame = 0;
   ++frame;
   recordTransferBuffer(m_frame_resource);

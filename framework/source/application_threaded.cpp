@@ -10,6 +10,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
   m_statistics.addTimer("sema_present");
   m_statistics.addTimer("sema_draw");
   m_statistics.addTimer("fence_draw");
+  m_statistics.addTimer("fence_draw2");
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("queue_present");
   m_statistics.addTimer("record");
@@ -108,7 +109,6 @@ void ApplicationThreaded::draw() {
   m_semaphore_draw.wait();
   m_statistics.stop("sema_draw");
   m_statistics.start("draw");
-  m_statistics.start("draw");
   // allow closing of application
   if (!m_should_draw) return;
   static std::uint64_t frame = 0;
@@ -143,6 +143,7 @@ uint32_t ApplicationThreaded::pullForRecord() {
   // get next frame to record
   uint32_t frame_record = 0;
   frame_record = m_queue_record_frames.front();
+  std::cout << m_queue_record_frames.size() << std::endl;
   m_queue_record_frames.pop();
   return frame_record;
 }
@@ -152,10 +153,11 @@ uint32_t ApplicationThreaded::pullForDraw() {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
     assert(!m_queue_draw_frames.empty());
+    // std::cout << m_queue_draw_frames.size() << std::endl;
     // get frame to draw
     frame_draw = m_queue_draw_frames.front();
+    m_queue_draw_frames.pop();
   }
-  m_queue_draw_frames.pop();
   return frame_draw;
 }
 
