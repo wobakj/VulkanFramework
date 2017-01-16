@@ -177,7 +177,6 @@ void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
 }
 
 void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
-
   // res.command_buffers.at("draw").reset({});
 
   // res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});

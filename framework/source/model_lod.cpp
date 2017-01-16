@@ -8,6 +8,8 @@
 #include <queue>
 #include <set>
 
+#define FULL_UPLOAD
+
 template<typename T, typename U>
 bool contains(T const& container, U const& element) {
   return std::find(container.begin(), container.end(), element) != container.end();
@@ -96,7 +98,11 @@ ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budg
   else {
     m_num_uploads = std::max(std::size_t{1}, leaf_length / 16);
   }
-  m_num_slots = m_num_nodes + m_num_uploads;
+  #ifdef FULL_UPLOAD
+    m_num_slots = m_num_nodes * 2;
+  #else
+    m_num_slots = m_num_nodes + m_num_uploads;
+  #endif
 
   std::cout << "LOD node size is " << m_size_node / 1024 / 1024 << " MB" << std::endl;
   assert(m_num_slots <= m_bvh.get_num_nodes());
@@ -589,30 +595,16 @@ void ModelLod::update(Camera const& cam) {
   while (!queue_collapse.empty()) {
     // m_active_nodes
     auto idx_node = queue_collapse.top().node;
-    // if not already in a slot, upload necessary
-    bool keep_children = false;
-    if (!inCore(idx_node)) {
-      // upload budget sufficient
-      if (num_uploads < m_num_uploads && num_new_nodes < m_num_uploads) {
-        cut_new.push_back(idx_node);
+    // new node budget sufficient
+    if (num_new_nodes < m_num_uploads) {
+      if (!inCore(idx_node)) {
         ++num_uploads;
-        ++num_new_nodes;
       }
-      // if upload budget full, keep children
-      else {
-        keep_children = true;
-      }
+      cut_new.push_back(idx_node);
+      ++num_new_nodes;
     }
+    // if budget full, keep children
     else {
-      if (num_new_nodes < m_num_uploads) {
-        cut_new.push_back(idx_node);
-        ++num_new_nodes;
-      }
-      else {
-        keep_children = true;
-      }
-    }
-    if (keep_children) {
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         auto idx_child = m_bvh.get_child_id(idx_node, i);
         // child should be in last cut
@@ -628,18 +620,11 @@ void ModelLod::update(Camera const& cam) {
 
   // split nodes
   while (!queue_split.empty()) {
+    bool cancel_split = false;
     // split only if enough memory for remaining nodes
     if (m_num_nodes - cut_new.size() >= m_bvh.get_fan_factor() + queue_split.size() - 1) {
-      // collect children which need to be uploaded
-      std::size_t num_out_core{};
-      for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
-        auto idx_child = m_bvh.get_child_id(queue_split.top().node, i);
-        if (!inCore(idx_child)) {
-          ++num_out_core;
-        }
-      } 
-      // check if split uploads are too many for this frame
-      if (num_out_core <= m_num_uploads - num_uploads && m_bvh.get_fan_factor() < m_num_uploads - num_new_nodes) {
+      // check if new nodes are too many for this frame
+      if (m_bvh.get_fan_factor() < m_num_uploads - num_new_nodes) {
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
           auto idx_child = m_bvh.get_child_id(queue_split.top().node, i);
           cut_new.push_back(idx_child);
@@ -650,19 +635,20 @@ void ModelLod::update(Camera const& cam) {
           check_sanity();
         }
       }
-      // too many resulting uploads from split
+      // too many resulting new nodes from split
       else {
-        cut_new.push_back(queue_split.top().node);
-        check_sanity();
-        // std::cout << "dont split " << queue_split.top().node << std::endl;
+        cancel_split = true;
       }
     }
-    // too many resulting nodes from split
+    // too many resulting draw nodes from split
     else {
+      cancel_split = true;
+    }
+    // fallback
+    if (cancel_split) {
       cut_new.push_back(queue_split.top().node);
       check_sanity();
       // std::cout << "dont split " << queue_split.top().node << std::endl;
-
     }
     assert(!contains(cut_new, m_bvh.get_parent_id(queue_split.top().node)));
     queue_split.pop();
@@ -693,13 +679,21 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   std::vector<std::size_t> slots_active_new{};
   // collect nodes that were already in previous cut
   std::set<std::size_t> nodes_incore{};
+  std::size_t num_reused = 0;
   for (auto const& idx_node : cut) {
     for (std::size_t idx_slot = 0; idx_slot < m_slots.size(); ++idx_slot) {
       if (m_slots.at(idx_slot) == idx_node) {
+        #ifdef FULL_UPLOAD
+        if (num_reused >= m_num_nodes - m_num_uploads) {
+          std::cout << "breaking" << std::endl;
+          break;
+        }
+        #endif
         // node is incore
         nodes_incore.emplace(idx_node);
         // slot is now active for this cut
         slots_active_new.emplace_back(idx_slot);
+        ++num_reused;
         break;
       }
     }
