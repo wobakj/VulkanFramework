@@ -33,9 +33,11 @@ class Application {
   // render remaining recorded frames before pipeline rebuild
   // required for multithreaded rendering
   virtual void emptyDrawQueue() {};
+  // default parser without arguments
   static cmdline::parser getParser() {
     return cmdline::parser{};
   }; 
+
  protected:
   virtual void update() {};
   virtual void render() = 0;

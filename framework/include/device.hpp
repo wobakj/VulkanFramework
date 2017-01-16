@@ -28,10 +28,7 @@ class Device : public WrapperDevice {
 
   Device(Device const&) = delete;
   Device& operator=(Device const&) = delete;
-
   
-  SwapChain createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const;
-
   Device(Device && dev);
 
   Device& operator=(Device&& dev);

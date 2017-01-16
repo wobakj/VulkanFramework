@@ -71,14 +71,13 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
     return availableFormats[0];
   }
 
-  vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes) {
+  vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> availablePresentModes, vk::PresentModeKHR const& preferred) {
       for (const auto& availablePresentMode : availablePresentModes) {
-        if (availablePresentMode == vk::PresentModeKHR::eImmediate) {
-        // if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
-            return availablePresentMode;
+        if (availablePresentMode == preferred) {
+          return availablePresentMode;
         }
       }
-
+      std::cout << "Present mode " << to_string(preferred)  << " not avaible, falling back to FIFO" << std::endl;
       return vk::PresentModeKHR::eFifo;
   }
 
@@ -133,13 +132,13 @@ SwapChain::~SwapChain() {
   std::swap(m_layout, chain.m_layout);
  }
 
-void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent) {
+void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent, vk::PresentModeKHR const& present_mode) {
   m_device = &device;
   m_info.surface = surface;
 
   SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device.physical(), surface);
 
-  m_info.presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+  m_info.presentMode = chooseSwapPresentMode(swapChainSupport.presentModes, present_mode);
   vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;

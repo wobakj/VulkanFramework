@@ -109,12 +109,6 @@ std::vector<uint32_t> Device::ownerIndices() const {
   return owners;
 }
 
-SwapChain Device::createSwapChain(vk::SurfaceKHR const& surf, vk::Extent2D const& extend) const {
-  SwapChain chain{};
-  chain.create(*this, surf, extend);
-  return chain; 
-}
-
 Device::Device(Device && dev)
  :Device{}
  {
