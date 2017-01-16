@@ -54,7 +54,8 @@ Launcher::Launcher(std::vector<std::string> const& args)
   bool validate = true;
   #ifdef NDEBUG
     // TODO: use actual cmdline option
-    if (std::find(args.begin(), args.end(), "-d") == args.end()) {
+    if (std::find(args.begin(), args.end(), "-d") == args.end()
+    && std::find(args.begin(), args.end(), "--debug") == args.end()) {
       validate = false;
     }
   #endif

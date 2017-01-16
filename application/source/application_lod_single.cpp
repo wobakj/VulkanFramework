@@ -54,6 +54,7 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
   cmdline::parser cmd_parse{};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
+  cmd_parse.add("debug", 'd', "debug with validation layers");
 
   cmd_parse.parse_check(args);
   if (cmd_parse.rest().size() != 1) {
@@ -79,6 +80,8 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
   m_statistics.addAverager("gpu_draw");
 
   m_statistics.addTimer("update");
+  m_statistics.addTimer("render");
+  m_statistics.addTimer("fence_acquire");
 
   m_frame_resource = createFrameResource();
   
@@ -86,10 +89,16 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
 }
 
 ApplicationLodSingle::~ApplicationLodSingle() {
+  m_frame_resource.fenceAcquire().wait();
+  m_frame_resource.fenceDraw().wait();
+
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
   std::cout << "Average LOD update time: " << m_statistics.get("update") << " milliseconds per node, " << m_statistics.get("update") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   std::cout << "Average GPU draw time: " << m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << "Average GPU copy time: " << m_statistics.get("gpu_copy") << " milliseconds per node, " << m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
+  std::cout << std::endl;
+  std::cout << "Average render time: " << m_statistics.get("render") << " milliseconds" << std::endl;
+  std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
 }
 
 FrameResource ApplicationLodSingle::createFrameResource() {
@@ -130,7 +139,10 @@ void ApplicationLodSingle::updateCommandBuffers(FrameResource& res) {
 
 void ApplicationLodSingle::render() { 
   // make sure image was acquired
+  m_statistics.start("fence_acquire");
   m_frame_resource.fenceAcquire().wait();
+  m_statistics.stop("fence_acquire");
+  m_statistics.start("render");
   acquireImage(m_frame_resource);
   // make sure no command buffer is in use
   m_frame_resource.fenceDraw().wait();
@@ -142,6 +154,7 @@ void ApplicationLodSingle::render() {
   submitDraw(m_frame_resource);
 
   presentFrame(m_frame_resource);
+  m_statistics.stop("render");
 }
 
 void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
