@@ -42,12 +42,12 @@ cmdline::parser ApplicationLodSingle::getParser() {
   cmdline::parser cmd_parse{};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
-  cmd_parse.add("debug", 'd', "debug with validation layers");
+  // cmd_parse.add("debug", 'd', "debug with validation layers");
   return cmd_parse;
 }
 
 ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :Application{resource_path, device, chain, window, cmd_parse}
+ :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -82,9 +82,6 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
   m_statistics.addAverager("uploads");
 
   m_statistics.addTimer("update");
-  m_statistics.addTimer("render");
-  m_statistics.addTimer("fence_acquire");
-  m_statistics.addTimer("fence_draw");
 
   m_frame_resource = createFrameResource();
   
@@ -92,8 +89,7 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
 }
 
 ApplicationLodSingle::~ApplicationLodSingle() {
-  m_frame_resource.fenceAcquire().wait();
-  m_frame_resource.fenceDraw().wait();
+  shutDown();
 
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
   std::cout << "Average upload: " << m_statistics.get("uploads") * mb_per_node << " MB"<< std::endl;
@@ -142,28 +138,6 @@ void ApplicationLodSingle::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").end();
 }
 
-void ApplicationLodSingle::render() { 
-  // make sure image was acquired
-  m_statistics.start("fence_acquire");
-  m_frame_resource.fenceAcquire().wait();
-  m_statistics.stop("fence_acquire");
-  m_statistics.start("render");
-  acquireImage(m_frame_resource);
-  // make sure no command buffer is in use
-  m_statistics.start("fence_draw");
-  m_frame_resource.fenceDraw().wait();
-  m_statistics.stop("fence_draw");
-  static uint64_t frame = 0;
-  ++frame;
-  recordTransferBuffer(m_frame_resource);
-  recordDrawBuffer(m_frame_resource);
-  
-  submitDraw(m_frame_resource);
-
-  presentFrame(m_frame_resource);
-  m_statistics.stop("render");
-}
-
 void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
   // read out timer values from previous draw
   if (res.num_uploads > 0.0) {
@@ -199,6 +173,7 @@ void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
 }
 
 void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
+  recordTransferBuffer(res);
   // res.command_buffers.at("draw").reset({});
 
   // res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
@@ -458,23 +433,6 @@ void ApplicationLodSingle::updateView() {
   ubo_cam.shade = m_setting_shaded ? glm::fvec4{1.0f} : glm::fvec4{0.0};
 }
 
-void ApplicationLodSingle::resize() {
-  m_frame_resource.fenceDraw().wait();
-  createFramebufferAttachments();
-  createRenderPasses();
-  createFramebuffers();
-
-  recreatePipeline();
-}
-void ApplicationLodSingle::recreatePipeline() {
-  // make sure pipeline is free before rebuilding
-  m_frame_resource.fenceDraw().wait();
-  createPipelines();
-  createDescriptorPools();
-
-  updateDescriptors(m_frame_resource);
-  updateCommandBuffers(m_frame_resource);
-}
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void ApplicationLodSingle::keyCallback(int key, int scancode, int action, int mods) {

@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "application.hpp"
+#include "application_single.hpp"
 #include "deleter.hpp"
 #include "model.hpp"
 #include "model_lod.hpp"
@@ -24,18 +24,17 @@
 #include <queue>
 #include <thread>
 
-class ApplicationLodSingle : public Application {
+class ApplicationLodSingle : public ApplicationSingle {
  public:
   ApplicationLodSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationLodSingle();
   static cmdline::parser getParser(); 
 
  private:
-  void render() override;
   void recordTransferBuffer(FrameResource& res);
   void recordDrawBuffer(FrameResource& res) override;
-  void updateCommandBuffers(FrameResource& res);
-  void updateDescriptors(FrameResource& resource);
+  void updateCommandBuffers(FrameResource& res) override;
+  void updateDescriptors(FrameResource& resource) override;
   FrameResource createFrameResource() override;
   
   void createLights();
@@ -47,15 +46,13 @@ class ApplicationLodSingle : public Application {
   void createTextureSampler();
 
   void updateView() override;
-  void resize() override;
-  void recreatePipeline() override;
 
-  void createFramebuffers();
-  void createRenderPasses();
-  void createMemoryPools();
-  void createPipelines();
-  void createDescriptorPools();
-  void createFramebufferAttachments();
+  void createFramebuffers() override;
+  void createRenderPasses() override;
+  void createMemoryPools() override;
+  void createPipelines() override;
+  void createDescriptorPools() override;
+  void createFramebufferAttachments() override;
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
   void updateModel();
@@ -74,14 +71,10 @@ class ApplicationLodSingle : public Application {
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
 
-  FrameResource m_frame_resource;
-
   bool m_setting_wire;
   bool m_setting_transparent;
   bool m_setting_shaded;
   bool m_setting_levels;
-
-  Statistics m_statistics;
 };
 
 #endif
