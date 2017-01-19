@@ -15,9 +15,12 @@
 
 class ApplicationThreaded : public Application {
  public:
-  ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse, uint32_t num_frames);
+  // possibly override number of frames in abstract child classes
+  ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse, uint32_t num_frames = imageCount - 1);
   void emptyDrawQueue() override;
   virtual ~ApplicationThreaded();
+
+  static const uint32_t imageCount;
 
  protected:
   void createFrameResources();

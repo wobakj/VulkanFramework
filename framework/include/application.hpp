@@ -38,6 +38,8 @@ class Application {
     return cmdline::parser{};
   }; 
 
+  static const uint32_t imageCount;
+
  protected:
   virtual void update() {};
   virtual void render() = 0;

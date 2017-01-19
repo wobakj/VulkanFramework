@@ -48,7 +48,7 @@ class SwapChain : public WrapperSwap {
 
   void swap(SwapChain& chain);
 
-  void create(Device const& dev, vk::SurfaceKHR const& surface, VkExtent2D const& extent, vk::PresentModeKHR const& present_mode);
+  void create(Device const& dev, vk::SurfaceKHR const& surface, VkExtent2D const& extent, vk::PresentModeKHR const& present_mode, uint32_t num_images);
   void recreate(vk::Extent2D const& extent);
   void transitionToLayout(vk::ImageLayout const& newLayout);
 

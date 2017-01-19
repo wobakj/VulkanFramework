@@ -9,6 +9,8 @@ class ApplicationThreadedTransfer : public ApplicationThreaded {
  public:
   ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   virtual ~ApplicationThreadedTransfer();
+  
+  static const uint32_t imageCount;
 
  protected:
   virtual FrameResource createFrameResource() override;

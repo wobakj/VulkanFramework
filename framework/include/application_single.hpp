@@ -9,6 +9,7 @@ class ApplicationSingle : public Application {
  public:
   ApplicationSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationSingle();
+  static const uint32_t imageCount;
 
  protected:
   void resize() override;

@@ -132,7 +132,7 @@ SwapChain::~SwapChain() {
   std::swap(m_layout, chain.m_layout);
  }
 
-void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent, vk::PresentModeKHR const& present_mode) {
+void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent, vk::PresentModeKHR const& present_mode, uint32_t num_images) {
   m_device = &device;
   m_info.surface = surface;
 

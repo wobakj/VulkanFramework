@@ -2,6 +2,9 @@
 
 #include <vulkan/vulkan.hpp>
 
+// child classes must overwrite
+const uint32_t ApplicationSingle::imageCount = 1;
+
 ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :Application{resource_path, device, chain, window, cmd_parse}
 {

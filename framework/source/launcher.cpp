@@ -65,19 +65,6 @@ Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& 
   };
   m_device = m_instance.createLogicalDevice(vk::SurfaceKHR{m_surface}, deviceExtensions);
 
-  vk::PresentModeKHR present_mode{};
-  std::string mode = cmd_parse.get<std::string>("present");
-  if (mode == "fifo") {
-    present_mode = vk::PresentModeKHR::eFifo;
-  }
-  else if (mode == "mailbox") {
-    present_mode = vk::PresentModeKHR::eMailbox;
-  }
-  else if (mode == "immediate") {
-    present_mode = vk::PresentModeKHR::eImmediate;
-  }
-  m_swap_chain.create(m_device, vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height}, present_mode);
-
   // // set user pointer to access this instance statically
   glfwSetWindowUserPointer(m_window, this);
   // register resizing function
@@ -91,7 +78,6 @@ Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& 
         static_cast<Launcher*>(glfwGetWindowUserPointer(w))->key_callback(w, a, b, c, d);
   };
   glfwSetKeyCallback(m_window, key_func);
-
 }
 
 std::string resourcePath(std::vector<std::string> const& args) {

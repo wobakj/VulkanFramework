@@ -3,8 +3,11 @@
 // c++ wrapper
 #include <vulkan/vulkan.hpp>
 
+// child classes must overwrite
+const uint32_t ApplicationThreadedTransfer::imageCount = 4;
+
 ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, 3}
+ :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, imageCount - 1}
 {
   m_statistics.addTimer("fence_transfer");
 }
