@@ -67,7 +67,7 @@ ApplicationVulkan::~ApplicationVulkan() {
 }
 
 FrameResource ApplicationVulkan::createFrameResource() {
-  FrameResource res{m_device};
+  auto res = Application::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   return res;
@@ -89,10 +89,10 @@ void ApplicationVulkan::updateModel() {
 
 void ApplicationVulkan::render() { 
   // make sure image was acquired
-  m_frame_resource.fenceAcquire().wait();
+  m_frame_resource.fence("acquire").wait();
   acquireImage(m_frame_resource);
   // make sure no command buffer is in use
-  m_frame_resource.fenceDraw().wait();
+  m_frame_resource.fence("draw").wait();
 
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
@@ -454,7 +454,7 @@ void ApplicationVulkan::updateView() {
 }
 
 void ApplicationVulkan::resize() {
-  m_frame_resource.fenceDraw().wait();
+  m_frame_resource.fence("draw").wait();
   createFramebufferAttachments();
   createRenderPass();
   createFramebuffers();
@@ -463,7 +463,7 @@ void ApplicationVulkan::resize() {
 }
 void ApplicationVulkan::recreatePipeline() {
   // make sure pipeline is free before rebuilding
-  m_frame_resource.fenceDraw().wait();
+  m_frame_resource.fence("draw").wait();
   createGraphicsPipeline();
   createDescriptorPool();
 

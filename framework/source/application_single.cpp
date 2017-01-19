@@ -32,13 +32,13 @@ FrameResource ApplicationSingle::createFrameResource() {
 void ApplicationSingle::render() { 
   // make sure image was acquired
   m_statistics.start("fence_acquire");
-  m_frame_resource.fenceAcquire().wait();
+  m_frame_resource.fence("acquire").wait();
   m_statistics.stop("fence_acquire");
   m_statistics.start("render");
   acquireImage(m_frame_resource);
   // make sure no command buffer is in use
   m_statistics.start("fence_draw");
-  m_frame_resource.fenceDraw().wait();
+  m_frame_resource.fence("draw").wait();
   m_statistics.stop("fence_draw");
   static uint64_t frame = 0;
   ++frame;

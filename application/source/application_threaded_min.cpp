@@ -36,13 +36,9 @@ ApplicationThreadedMin::~ApplicationThreadedMin() {
 }
 
 FrameResource ApplicationThreadedMin::createFrameResource() {
-  FrameResource res{m_device};
-  createCommandBuffers(res);
-  return res;
-}
-
-void ApplicationThreadedMin::createCommandBuffers(FrameResource& res) {
+  auto res = ApplicationThreaded::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  return res;
 }
 
 void ApplicationThreadedMin::updateCommandBuffers(FrameResource& res) {

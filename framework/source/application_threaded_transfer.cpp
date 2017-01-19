@@ -14,6 +14,15 @@ ApplicationThreadedTransfer::~ApplicationThreadedTransfer() {
   std::cout << "Average transfer fence time: " << m_statistics.get("fence_transfer") << " milliseconds " << std::endl;
 }
 
+FrameResource ApplicationThreadedTransfer::createFrameResource() {
+  auto res = ApplicationThreaded::createFrameResource();
+  // separate transfer
+  res.addCommandBuffer("transfer", m_device.createCommandBuffer("graphics"));
+  res.addSemaphore("transfer");
+  res.addFence("transfer");
+  return res;
+}
+
 void ApplicationThreadedTransfer::render() {
   m_statistics.start("sema_present");
   m_semaphore_present.wait();
@@ -36,13 +45,13 @@ void ApplicationThreadedTransfer::render() {
   submitTransfer(resource_record);
   // wait for last acquisition until acquiring again
   m_statistics.start("fence_acquire");
-  resource_record.fenceAcquire().wait();
+  resource_record.fence("acquire").wait();
   m_statistics.stop("fence_acquire");
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
-  m_statistics.start("fence_draw");
-  resource_record.fenceDraw().wait();
-  m_statistics.stop("fence_draw");
+  // m_statistics.start("fence_draw");
+  // resource_record.fence("draw").wait();
+  // m_statistics.stop("fence_draw");
   recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
   pushForDraw(frame_record);
@@ -66,7 +75,7 @@ void ApplicationThreadedTransfer::submitTransfer(FrameResource& res) {
 void ApplicationThreadedTransfer::submitDraw(FrameResource& res) {
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
   // wait on image acquisition and data transfer
-  vk::Semaphore waitSemaphores[]{res.semaphoreAcquire(), res.semaphores.at("transfer")};
+  vk::Semaphore waitSemaphores[]{res.semaphore("acquire"), res.semaphores.at("transfer")};
   vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eDrawIndirect};
   submitInfos[0].setWaitSemaphoreCount(2);
   submitInfos[0].setPWaitSemaphores(waitSemaphores);
@@ -75,10 +84,10 @@ void ApplicationThreadedTransfer::submitDraw(FrameResource& res) {
   submitInfos[0].setCommandBufferCount(1);
   submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw"));
 
-  vk::Semaphore signalSemaphores[]{res.semaphoreDraw()};
+  vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  res.fenceDraw().reset();
-  m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
+  res.fence("draw").reset();
+  m_device.getQueue("graphics").submit(submitInfos, res.fence("draw"));
 }

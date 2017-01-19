@@ -23,7 +23,6 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
  private:
   void update() override;
   void recordDrawBuffer(FrameResource& res) override;
-  void createCommandBuffers(FrameResource& res) override;
   void updateCommandBuffers(FrameResource& res) override;
   void updateDescriptors(FrameResource& resource) override;
   

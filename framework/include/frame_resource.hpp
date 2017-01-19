@@ -20,14 +20,7 @@ class FrameResource {
   FrameResource(Device& dev)
    :m_device(&dev)
    ,num_uploads{0.0}
-   {
-    // frame resource always has these objects
-    semaphores.emplace("acquire", (*m_device)->createSemaphore({}));
-    semaphores.emplace("draw", (*m_device)->createSemaphore({}));
-    fences.emplace("draw", Fence{dev, vk::FenceCreateFlagBits::eSignaled});
-    fences.emplace("acquire", Fence{dev, vk::FenceCreateFlagBits::eSignaled});
-    command_buffers.emplace("draw", m_device->createCommandBuffer("graphics"));
-  }
+   {}
 
   FrameResource(FrameResource&& rhs)
    :FrameResource{}
@@ -53,20 +46,28 @@ class FrameResource {
     return *this;
   }
 
-  vk::Semaphore const& semaphoreAcquire() {
-    return semaphores.at("acquire");
+  void addSemaphore(std::string const& name) {
+    semaphores.emplace(name, (*m_device)->createSemaphore({}));
   }
 
-  vk::Semaphore const& semaphoreDraw() {
-    return semaphores.at("draw");
+  void addFence(std::string const& name) {
+   fences.emplace(name, Fence{(*m_device), vk::FenceCreateFlagBits::eSignaled});
   }
 
-  Fence& fenceDraw() {
-    return fences.at("draw");
+  void addCommandBuffer(std::string const& name, vk::CommandBuffer && buffer) {
+    command_buffers.emplace(name, buffer);
   }
 
-  Fence& fenceAcquire() {
-    return fences.at("acquire");
+  vk::Semaphore const& semaphore(std::string const& name) {
+    return semaphores.at(name);
+  }
+
+  Fence& fence(std::string const& name) {
+    return fences.at(name);
+  }
+
+  vk::CommandBuffer& commandBuffer(std::string const& name) {
+    return command_buffers.at(name);
   }
 
   void waitFences() const {

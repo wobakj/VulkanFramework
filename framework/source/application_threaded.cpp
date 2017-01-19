@@ -91,13 +91,9 @@ void ApplicationThreaded::render() {
   auto& resource_record = m_frame_resources.at(frame_record);
   // wait for last acquisition until acquiring again
   m_statistics.start("fence_acquire");
-  resource_record.fenceAcquire().wait();
+  resource_record.fence("acquire").wait();
   m_statistics.stop("fence_acquire");
   acquireImage(resource_record);
-  // wait for drawing finish until rerecording
-  m_statistics.start("fence_draw");
-  resource_record.fenceDraw().wait();
-  m_statistics.stop("fence_draw");
   recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
   pushForDraw(frame_record);
@@ -118,6 +114,10 @@ void ApplicationThreaded::draw() {
   // get resource to draw
   auto& resource_draw = m_frame_resources.at(frame_draw);
   submitDraw(resource_draw);
+  // wait for drawing finish until rerecording
+  m_statistics.start("fence_draw");
+  resource_draw.fence("draw").wait();
+  m_statistics.stop("fence_draw");
   // make frame avaible for rerecording
   pushForPresent(frame_draw);
   m_statistics.stop("draw");

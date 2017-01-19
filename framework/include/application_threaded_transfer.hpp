@@ -10,6 +10,9 @@ class ApplicationThreadedTransfer : public ApplicationThreaded {
   ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   virtual ~ApplicationThreadedTransfer();
 
+ protected:
+  virtual FrameResource createFrameResource() override;
+ 
  private:
   void render() override;
   virtual void recordTransferBuffer(FrameResource& res) = 0;

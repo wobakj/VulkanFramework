@@ -21,13 +21,12 @@ class ApplicationThreaded : public Application {
 
  protected:
   void createFrameResources();
-  virtual FrameResource createFrameResource() override = 0;
+  // virtual FrameResource createFrameResource() override;
   void shutDown();
   void resize() override;
   void recreatePipeline() override;
   void startRenderThread();
   
-  virtual void createCommandBuffers(FrameResource& res) = 0;
   virtual void updateCommandBuffers(FrameResource& res) = 0;
   virtual void updateDescriptors(FrameResource& resource) {};
 

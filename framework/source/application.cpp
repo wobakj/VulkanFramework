@@ -11,6 +11,16 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
  ,m_swap_chain(chain)
 {}
 
+FrameResource Application::createFrameResource() {
+  auto res = FrameResource{m_device};
+  res.addSemaphore("acquire");
+  res.addSemaphore("draw");
+  res.addFence("draw");
+  res.addFence("acquire");
+  res.addCommandBuffer("draw", m_device.createCommandBuffer("graphics"));
+  return res;
+}
+
 void Application::updateShaderPrograms() {
 	for (auto& pair : m_shaders) {
     pair.second = Shader{m_device, pair.second.paths()};
@@ -38,8 +48,8 @@ void Application::frame() {
 }
 
 void Application::acquireImage(FrameResource& res) {
-  res.fenceAcquire().reset();
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, 1000, res.semaphoreAcquire(), res.fenceAcquire(), &res.image);
+  res.fence("acquire").reset();
+  auto result = m_device->acquireNextImageKHR(m_swap_chain, 1000, res.semaphore("acquire"), res.fence("acquire"), &res.image);
   if (result == vk::Result::eErrorOutOfDateKHR) {
       // handle swapchain recreation
       // recreateSwapChain();
@@ -60,7 +70,7 @@ void Application::presentFrame(FrameResource& res) {
 void Application::presentFrame(FrameResource& res, vk::Queue const& queue) {
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &res.semaphoreDraw();
+  presentInfo.pWaitSemaphores = &res.semaphore("draw");
 
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = &m_swap_chain.get();
@@ -74,7 +84,7 @@ void Application::presentFrame(FrameResource& res, vk::Queue const& queue) {
 void Application::submitDraw(FrameResource& res) {
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
-  vk::Semaphore waitSemaphores[]{res.semaphoreAcquire()};
+  vk::Semaphore waitSemaphores[]{res.semaphore("acquire")};
   vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
   submitInfos[0].setWaitSemaphoreCount(1);
   submitInfos[0].setPWaitSemaphores(waitSemaphores);
@@ -83,10 +93,10 @@ void Application::submitDraw(FrameResource& res) {
   submitInfos[0].setCommandBufferCount(1);
   submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw"));
 
-  vk::Semaphore signalSemaphores[]{res.semaphoreDraw()};
+  vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
   submitInfos[0].signalSemaphoreCount = 1;
   submitInfos[0].pSignalSemaphores = signalSemaphores;
 
-  res.fenceDraw().reset();
-  m_device.getQueue("graphics").submit(submitInfos, res.fenceDraw());
+  res.fence("draw").reset();
+  m_device.getQueue("graphics").submit(submitInfos, res.fence("draw"));
 }

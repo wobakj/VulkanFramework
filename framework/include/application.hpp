@@ -44,7 +44,7 @@ class Application {
   virtual void updateView() {};
   virtual void recreatePipeline() = 0;
   virtual void resize() = 0;
-  virtual FrameResource createFrameResource() = 0;
+  virtual FrameResource createFrameResource();
   
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);
