@@ -38,6 +38,8 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
+// child classes must overwrite
+const uint32_t ApplicationThreadedSimple::imageCount = 3;
 
 ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded{resource_path, device, chain, window, cmd_parse}

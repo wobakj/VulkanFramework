@@ -19,6 +19,8 @@ class ApplicationVulkan : public Application {
  public:
   ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationVulkan();
+  static const uint32_t imageCount;
+  
  private:
   void render() override;
   void recordDrawBuffer(FrameResource& res) override;

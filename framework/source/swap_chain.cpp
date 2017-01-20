@@ -141,13 +141,11 @@ void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkEx
   m_info.presentMode = chooseSwapPresentMode(swapChainSupport.presentModes, present_mode);
   vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 
-  uint32_t imageCount = 4;
-  // uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-  if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-    imageCount = swapChainSupport.capabilities.maxImageCount;
+  if (swapChainSupport.capabilities.maxImageCount > 0 && num_images > swapChainSupport.capabilities.maxImageCount) {
+    num_images = swapChainSupport.capabilities.maxImageCount;
   }
-  std::cout << "swapchain has " << imageCount << " images, preset mode is " << to_string(m_info.presentMode) << std::endl;
-  m_info.minImageCount = imageCount;
+  std::cout << "swapchain has " << num_images << " images, preset mode is " << to_string(m_info.presentMode) << std::endl;
+  m_info.minImageCount = num_images;
   m_info.imageFormat = surfaceFormat.format;
   m_info.imageColorSpace = surfaceFormat.colorSpace;
   m_info.imageArrayLayers = 1;

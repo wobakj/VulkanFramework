@@ -45,6 +45,8 @@ cmdline::parser ApplicationLodSingle::getParser() {
   // cmd_parse.add("debug", 'd', "debug with validation layers");
   return cmd_parse;
 }
+// child classes must overwrite
+const uint32_t ApplicationLodSingle::imageCount = 2;
 
 ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}

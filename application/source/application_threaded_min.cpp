@@ -17,6 +17,8 @@
 #include <iostream>
 #include <chrono>
 
+// child classes must overwrite
+const uint32_t ApplicationThreadedMin::imageCount = 3;
 
 ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded{resource_path, device, chain, window, cmd_parse}

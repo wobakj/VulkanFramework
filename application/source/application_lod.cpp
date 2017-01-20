@@ -44,6 +44,8 @@ cmdline::parser ApplicationLod::getParser() {
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
   return cmd_parse;
 }
+// child classes must overwrite
+const uint32_t ApplicationLod::imageCount = 4;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreadedTransfer{resource_path, device, chain, window, cmd_parse}

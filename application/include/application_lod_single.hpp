@@ -29,6 +29,7 @@ class ApplicationLodSingle : public ApplicationSingle {
   ApplicationLodSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationLodSingle();
   static cmdline::parser getParser(); 
+  static const uint32_t imageCount;
 
  private:
   void recordTransferBuffer(FrameResource& res);

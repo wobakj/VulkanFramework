@@ -19,6 +19,7 @@ class ApplicationThreadedMin : public ApplicationThreaded {
  public:
   ApplicationThreadedMin(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationThreadedMin();
+  static const uint32_t imageCount;
 
  private:
   void recordDrawBuffer(FrameResource& res) override;

@@ -34,6 +34,9 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
+// child classes must overwrite
+const uint32_t ApplicationVulkan::imageCount = 2;
+
 ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :Application{resource_path, device, chain, window, cmd_parse}
  ,m_pipeline{m_device, vkDestroyPipeline}

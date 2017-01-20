@@ -19,6 +19,7 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
  public:
   ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationThreadedSimple();
+  static const uint32_t imageCount;
 
  private:
   void update() override;
