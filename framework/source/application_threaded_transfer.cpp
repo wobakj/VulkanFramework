@@ -8,13 +8,41 @@ const uint32_t ApplicationThreadedTransfer::imageCount = 4;
 
 ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, imageCount - 1}
+ ,m_semaphore_transfer{0}
+ ,m_should_transfer{true}
 {
   m_statistics.addTimer("fence_transfer");
+  m_statistics.addTimer("sema_transfer");
+  m_statistics.addTimer("transfer");
+
+  startTransferThread();
 }
 
 ApplicationThreadedTransfer::~ApplicationThreadedTransfer() {
   std::cout << std::endl;
+  std::cout << "Average transfer semaphore time: " << m_statistics.get("sema_transfer") << " milliseconds " << std::endl;
   std::cout << "Average transfer fence time: " << m_statistics.get("fence_transfer") << " milliseconds " << std::endl;
+  std::cout << "Average transfer time: " << m_statistics.get("transfer") << " milliseconds " << std::endl;
+}
+
+void ApplicationThreadedTransfer::startTransferThread() {
+  if (!m_thread_transfer.joinable()) {
+    m_thread_transfer = std::thread(&ApplicationThreadedTransfer::transferLoop, this);
+  }
+}
+
+void ApplicationThreadedTransfer::shutDown() {
+  // shut down transfer thread
+  m_should_transfer = false;
+  if(m_thread_transfer.joinable()) {
+    m_semaphore_transfer.shutDown();
+    m_thread_transfer.join();
+  }
+  else {
+    throw std::runtime_error{"could not join thread"};
+  }
+  m_device.getQueue("transfer").waitIdle();
+ ApplicationThreaded::shutDown();
 }
 
 FrameResource ApplicationThreadedTransfer::createFrameResource() {
@@ -41,24 +69,62 @@ void ApplicationThreadedTransfer::render() {
   // get resource to record
   auto& resource_record = m_frame_resources.at(frame_record);
   // wait for previous transfer
-  m_statistics.start("fence_transfer");
-  resource_record.fences.at("transfer").wait();
-  m_statistics.stop("fence_transfer");
   recordTransferBuffer(resource_record);
-  submitTransfer(resource_record);
+  // submitTransfer(resource_record);
   // wait for last acquisition until acquiring again
   m_statistics.start("fence_acquire");
   resource_record.fence("acquire").wait();
   m_statistics.stop("fence_acquire");
   acquireImage(resource_record);
   // wait for drawing finish until rerecording
-  // m_statistics.start("fence_draw");
-  // resource_record.fence("draw").wait();
-  // m_statistics.stop("fence_draw");
   recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
-  pushForDraw(frame_record);
+  pushForTransfer(frame_record);
   m_statistics.stop("record");
+}
+
+void ApplicationThreadedTransfer::transfer() {
+  m_statistics.start("sema_transfer");
+  m_semaphore_transfer.wait();
+  m_statistics.stop("sema_transfer");
+  m_statistics.start("transfer");
+  // allow closing of application
+  if (!m_should_transfer) return;
+  static std::uint64_t frame = 0;
+  ++frame;
+  // get frame to transfer
+  auto frame_transfer = pullForTransfer();
+  // get resource to transfer
+  auto& resource_transfer = m_frame_resources.at(frame_transfer);
+  submitTransfer(resource_transfer);
+  // wait for transfering finish until rerecording
+  m_statistics.start("fence_transfer");
+  resource_transfer.fence("transfer").wait();
+  m_statistics.stop("fence_transfer");
+  // make frame avaible for rerecording
+  pushForDraw(frame_transfer);
+  m_statistics.stop("transfer");
+}
+
+void ApplicationThreadedTransfer::pushForTransfer(uint32_t frame) {
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_transfer_queue};
+    m_queue_transfer_frames.push(frame);
+  }
+  m_semaphore_transfer.signal();
+}
+
+uint32_t ApplicationThreadedTransfer::pullForTransfer() {
+  uint32_t frame_transfer = 0;
+  {
+    std::lock_guard<std::mutex> queue_lock{m_mutex_transfer_queue};
+    assert(!m_queue_transfer_frames.empty());
+    // std::cout << m_queue_transfer_frames.size() << std::endl;
+    // get frame to transfer
+    frame_transfer = m_queue_transfer_frames.front();
+    m_queue_transfer_frames.pop();
+  }
+  return frame_transfer;
 }
 
 void ApplicationThreadedTransfer::submitTransfer(FrameResource& res) {
@@ -93,4 +159,10 @@ void ApplicationThreadedTransfer::submitDraw(FrameResource& res) {
 
   res.fence("draw").reset();
   m_device.getQueue("graphics").submit(submitInfos, res.fence("draw"));
+}
+
+void ApplicationThreadedTransfer::transferLoop() {
+  while (m_should_transfer) {
+    transfer();
+  }
 }

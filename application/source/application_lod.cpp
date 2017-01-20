@@ -94,6 +94,7 @@ ApplicationLod::~ApplicationLod() {
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
   std::cout << "Average upload: " << m_statistics.get("uploads") * mb_per_node << " MB"<< std::endl;
   std::cout << "Average LOD update time: " << m_statistics.get("update") << " milliseconds per node, " << m_statistics.get("update") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
+  std::cout << "Average LOD transfer time: " << m_statistics.get("transfer") << " milliseconds per node, " << m_statistics.get("transfer") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   std::cout << "Average GPU draw time: " << m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << "Average GPU copy time: " << m_statistics.get("gpu_copy") << " milliseconds per node, " << m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
 }

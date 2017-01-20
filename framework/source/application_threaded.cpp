@@ -33,8 +33,8 @@ ApplicationThreaded::~ApplicationThreaded() {
 }
 
 void ApplicationThreaded::startRenderThread() {
-  if (!m_thread_render.joinable()) {
-    m_thread_render = std::thread(&ApplicationThreaded::drawLoop, this);
+  if (!m_thread_draw.joinable()) {
+    m_thread_draw = std::thread(&ApplicationThreaded::drawLoop, this);
   }
 }
 
@@ -42,9 +42,9 @@ void ApplicationThreaded::shutDown() {
   emptyDrawQueue();
   // shut down render thread
   m_should_draw = false;
-  if(m_thread_render.joinable()) {
+  if(m_thread_draw.joinable()) {
     m_semaphore_draw.shutDown();
-    m_thread_render.join();
+    m_thread_draw.join();
   }
   else {
     throw std::runtime_error{"could not join thread"};

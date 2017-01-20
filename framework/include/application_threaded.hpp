@@ -25,7 +25,7 @@ class ApplicationThreaded : public Application {
  protected:
   void createFrameResources();
   // virtual FrameResource createFrameResource() override;
-  void shutDown();
+  virtual void shutDown();
   void resize() override;
   void recreatePipeline() override;
   void startRenderThread();
@@ -63,7 +63,7 @@ class ApplicationThreaded : public Application {
  private:
   virtual void render() override;
   virtual void drawLoop();
-  std::thread m_thread_render;
+  std::thread m_thread_draw;
 };
 
 #endif
