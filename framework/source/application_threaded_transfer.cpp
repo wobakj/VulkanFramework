@@ -119,7 +119,6 @@ uint32_t ApplicationThreadedTransfer::pullForTransfer() {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_transfer_queue};
     assert(!m_queue_transfer_frames.empty());
-    // std::cout << m_queue_transfer_frames.size() << std::endl;
     // get frame to transfer
     frame_transfer = m_queue_transfer_frames.front();
     m_queue_transfer_frames.pop();

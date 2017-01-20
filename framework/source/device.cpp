@@ -48,6 +48,7 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
     queueCreateInfo.queueCount = num;
     queueCreateInfo.pQueuePriorities = &queuePriority;
     queueCreateInfos.push_back(queueCreateInfo);
+    std::cout << "creating " << num << " queues from family " << queueFamily << std::endl;
   }
   
   vk::PhysicalDeviceFeatures deviceFeatures{};
@@ -69,7 +70,7 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
     if(num_used.find(index.second) == num_used.end()) {
       num_used.emplace(index.second, 0);
     }
-    m_queues.emplace(index.first, get().getQueue(index.second, num_used.at(index.second)));   
+    m_queues.emplace(index.first, get().getQueue(index.second, num_used.at(index.second)));
     ++num_used.at(index.second);
   }
 

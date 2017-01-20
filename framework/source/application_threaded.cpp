@@ -25,10 +25,10 @@ ApplicationThreaded::~ApplicationThreaded() {
   std::cout << "Average present semaphore time: " << m_statistics.get("sema_present") << " milliseconds " << std::endl;
   std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
   std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds " << std::endl;
-  std::cout << "Average draw fence time: " << m_statistics.get("fence_draw") << " milliseconds " << std::endl;
   std::cout << "Average record time: " << m_statistics.get("record") << " milliseconds " << std::endl;
   std::cout << std::endl;
   std::cout << "Average draw semaphore time: " << m_statistics.get("sema_draw") << " milliseconds " << std::endl;
+  std::cout << "Average draw fence time: " << m_statistics.get("fence_draw") << " milliseconds " << std::endl;
   std::cout << "Average CPU draw time: " << m_statistics.get("draw") << " milliseconds " << std::endl;
 }
 
