@@ -47,7 +47,7 @@ class Image : public ResourceImage {
   // write as combined sampler
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
   // write as input attachment
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const override;
+  void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
   vk::MemoryRequirements requirements() const;
 
  private:

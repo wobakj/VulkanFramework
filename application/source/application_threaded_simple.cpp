@@ -438,9 +438,9 @@ void ApplicationThreadedSimple::createDescriptorPools() {
   m_descriptorPool_2 = m_shaders.at("quad").createPool(1);
   m_descriptor_sets["lighting"] = m_shaders.at("quad").allocateSet(m_descriptorPool_2.get(), 1);
 
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2);
+  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
+  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 

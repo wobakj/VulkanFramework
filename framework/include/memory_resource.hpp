@@ -44,7 +44,7 @@ class MemoryResource : public Wrapper<T, U> {
     return requirements().memoryTypeBits;
   }
 
-  virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const = 0;
+  // virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const = 0;
 
  protected:
   Device const* m_device;
