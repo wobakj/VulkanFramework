@@ -62,8 +62,6 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
 
   m_frame_resource = createFrameResource();
   resize();
-
-  updateLightVolume();
 }
 
 ApplicationClustered::~ApplicationClustered () {
@@ -88,7 +86,7 @@ void ApplicationClustered ::render() {
     updateView();
   }
 
-  // updateLightVolume();
+  updateLightVolume();
 
   recordDrawBuffer(m_frame_resource);
   
@@ -99,6 +97,13 @@ void ApplicationClustered ::render() {
 
 void ApplicationClustered::updateLightVolume() {
   // update light colume data
+  for (uint32_t x = 0; x < RES_LIGHT_VOL.x; ++x) {
+    for (uint32_t y = 0; y < RES_LIGHT_VOL.y; ++y) {
+      for (uint32_t z = 0; z < RES_LIGHT_VOL.z; ++z) {
+        m_data_light_volume[z * RES_LIGHT_VOL.y * RES_LIGHT_VOL.x + y * RES_LIGHT_VOL.x + x] = x;      
+      }
+    }
+  }
 
   m_device.uploadImageData(m_data_light_volume.data(), m_images.at("light_vol"));
 }

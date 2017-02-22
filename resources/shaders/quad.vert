@@ -28,8 +28,10 @@ vec2 positions[4] = vec2[](
   vec2(-1.0, 1.0),
   vec2(1.0, 1.0)
 );
-layout(location = 0) out flat int frag_InstanceId;
+
+layout(location = 0) out vec2 frag_positionNdc;
 
 void main() {
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+  frag_positionNdc = vec2(gl_Position * 0.5 + 0.5);
 }

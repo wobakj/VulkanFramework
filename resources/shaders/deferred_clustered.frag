@@ -4,9 +4,9 @@
 layout (input_attachment_index = 0, set = 1, binding = 0) uniform subpassInput color;
 layout (input_attachment_index = 1, set = 1, binding = 1) uniform subpassInput position;
 layout (input_attachment_index = 2, set = 1, binding = 2) uniform subpassInput normal;
-
-layout(location = 0) flat in int frag_InstanceId;
-
+// vertex input
+layout(location = 0) in vec2 frag_positionNdc;
+// fragment output
 layout(location = 0) out vec4 out_Color;
 
 layout(set = 0, binding = 0) buffer MatrixBuffer {
@@ -36,8 +36,9 @@ const uvec3 RES_VOL = uvec3(32, 32, 16);
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
 
-ivec3 calculateFragCell() {
-  return ivec3(0);
+ivec3 calculateFragCell(const in vec3 pos_view) {
+  ivec3 index_cell = ivec3(frag_positionNdc.x * RES_VOL.x, frag_positionNdc.y * RES_VOL.y, 0);
+  return index_cell;
 }
 
 // phong diff and spec coefficient calculation in viewspace
@@ -73,7 +74,7 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  uint mask_lights = texelFetch(volumeLight, calculateFragCell(), 0).r;
+  uint mask_lights = texelFetch(volumeLight, calculateFragCell(frag_Position), 0).r;
 
   out_Color = vec4(0.0);
   for (uint i = 0u; i < Lights.length(); ++i) {
