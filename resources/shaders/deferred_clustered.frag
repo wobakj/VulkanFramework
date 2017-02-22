@@ -9,18 +9,22 @@ layout(location = 0) flat in int frag_InstanceId;
 
 layout(location = 0) out vec4 out_Color;
 
-struct light_t {
-  vec3 position;
-  float pad;
-  vec3 color;
-  float radius;
-};
 layout(set = 0, binding = 0) buffer MatrixBuffer {
     mat4 model;
     mat4 view;
     mat4 proj;
     mat4 normal;
 } ubo;
+
+struct light_t {
+  vec3 position;
+  float pad;
+  vec3 color;
+  float radius;
+};
+
+
+layout(set = 1, binding = 4) uniform usampler3D volumeLight;
 
 layout(set = 1, binding = 3) buffer LightBuffer {
   light_t[] Lights;
@@ -31,6 +35,10 @@ const uvec3 RES_VOL = uvec3(32, 32, 16);
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
+
+ivec3 calculateFragCell() {
+  return ivec3(0);
+}
 
 // phong diff and spec coefficient calculation in viewspace
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos) {
@@ -65,13 +73,13 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  out_Color = vec4(0.0);
-  uint mask_lights = -1;
+  uint mask_lights = texelFetch(volumeLight, calculateFragCell(), 0).r;
 
+  out_Color = vec4(0.0);
   for (uint i = 0u; i < Lights.length(); ++i) {
     uint flag_curr = 1 << i;
     // skip if lgiht is not in mask
-    // if ((mask_lights & flag_curr) != flag_curr) continue;
+    if ((mask_lights & flag_curr) != flag_curr) continue;
     // else do lighting
     vec3 pos_light = (ubo.view * vec4(Lights[i].position, 1.0)).xyz;
     float dist = distance(frag_Position, pos_light);
@@ -83,7 +91,7 @@ void main() {
     out_Color += vec4(color * 0.005 * diffuseColor 
                     + color * diffuseColor * diffSpec.x
                     + color * ks * diffSpec.y, 1.0) * (1.0 - dist / radius);
-    
   }
+
   out_Color.rgb = out_Color.rgb / out_Color.w;
 }

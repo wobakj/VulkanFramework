@@ -139,7 +139,18 @@ Image::Image(Device const& device,  vk::Extent3D const& extent, vk::Format const
 {  
   m_device = &device;
 
-  m_info.imageType = vk::ImageType::e2D;
+  if (extent.height > 1) {
+    if (extent.depth > 1) {
+      m_info.imageType = vk::ImageType::e3D;
+    }
+    else {
+      m_info.imageType = vk::ImageType::e2D;
+    }
+  }
+  else {
+    m_info.imageType = vk::ImageType::e1D;
+  }
+
   m_info.extent = extent;
   m_info.mipLevels = 1;
   m_info.arrayLayers = 1;

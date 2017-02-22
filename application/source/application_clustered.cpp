@@ -62,6 +62,8 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
 
   m_frame_resource = createFrameResource();
   resize();
+
+  updateLightVolume();
 }
 
 ApplicationClustered::~ApplicationClustered () {
@@ -86,7 +88,7 @@ void ApplicationClustered ::render() {
     updateView();
   }
 
-  updateLightVolume();
+  // updateLightVolume();
 
   recordDrawBuffer(m_frame_resource);
   
@@ -124,6 +126,7 @@ void ApplicationClustered ::updateCommandBuffers(FrameResource& res) {
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting").reset({});
+  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
@@ -238,7 +241,8 @@ void ApplicationClustered ::createGraphicsPipeline() {
 
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
-  pipelineInfo2.pVertexInputState = &vert_info;
+  vk::PipelineVertexInputStateCreateInfo vert_info2{};
+  pipelineInfo2.pVertexInputState = &vert_info2;
 
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly2{};
   inputAssembly2.topology = vk::PrimitiveTopology::eTriangleStrip;
@@ -357,6 +361,7 @@ void ApplicationClustered ::createTextureImages() {
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
   // bind light volume
   m_images.at("light_vol").bindTo(m_device.memoryPool("textures"));
+  m_images.at("light_vol").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void ApplicationClustered ::createTextureSamplers() {
@@ -390,6 +395,7 @@ void ApplicationClustered ::createDescriptorPool() {
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
 }
 
 void ApplicationClustered ::createUniformBuffers() {
