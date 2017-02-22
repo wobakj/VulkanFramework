@@ -56,9 +56,6 @@ class ApplicationVulkan : public Application {
   Model m_model_2;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
-  vk::DescriptorSet m_descriptorSet;
-  vk::DescriptorSet m_descriptorSet_3;
-  vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;

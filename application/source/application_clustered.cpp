@@ -26,7 +26,7 @@ struct light_t {
   glm::fvec3 color;
   float radius;
 };
-const std::size_t NUM_LIGHTS = 60;
+const std::size_t NUM_LIGHTS = 32;
 struct BufferLights {
   light_t lights[NUM_LIGHTS];
 };
@@ -45,11 +45,12 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_frame_resource{device}
- ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, 0)
+ // assume all lights are in all cells
+ ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, -1)
 {
 
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_clustered_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -123,15 +124,11 @@ void ApplicationClustered ::updateCommandBuffers(FrameResource& res) {
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting").reset({});
-  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model_light.buffer()}, {0});
-  res.command_buffers.at("lighting").bindIndexBuffer(m_model_light.buffer(), m_model_light.indexOffset(), vk::IndexType::eUint32);
-
-  res.command_buffers.at("lighting").drawIndexed(m_model_light.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  res.command_buffers.at("lighting").draw(4, 1, 0, 0);
 
   res.command_buffers.at("lighting").end();
 }
@@ -242,8 +239,10 @@ void ApplicationClustered ::createGraphicsPipeline() {
   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
   
   pipelineInfo2.pVertexInputState = &vert_info;
-  
-  pipelineInfo2.pInputAssemblyState = &inputAssembly;
+
+  vk::PipelineInputAssemblyStateCreateInfo inputAssembly2{};
+  inputAssembly2.topology = vk::PrimitiveTopology::eTriangleStrip;
+  pipelineInfo2.pInputAssemblyState = &inputAssembly2;
 
   // cull frontfaces 
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
@@ -257,13 +256,6 @@ void ApplicationClustered ::createGraphicsPipeline() {
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment2.blendEnable = VK_TRUE;
-  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
 
   vk::PipelineColorBlendStateCreateInfo colorBlending2{};
   colorBlending2.attachmentCount = 1;
@@ -273,9 +265,6 @@ void ApplicationClustered ::createGraphicsPipeline() {
   pipelineInfo2.pDynamicState = nullptr; // Optional
   // shade fragment only if light sphere reaches behind it
   vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  depthStencil2.depthTestEnable = VK_TRUE;
-  depthStencil2.depthWriteEnable = VK_FALSE;
-  depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
   pipelineInfo2.pDepthStencilState = &depthStencil2;
   
   pipelineInfo2.renderPass = m_render_pass;

@@ -56,9 +56,6 @@ class ApplicationClustered : public Application {
   Model m_model_light;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
-  vk::DescriptorSet m_descriptorSet;
-  vk::DescriptorSet m_descriptorSet_3;
-  vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
   Deleter<VkSampler> m_volumeSampler;
   std::thread m_thread_load;
