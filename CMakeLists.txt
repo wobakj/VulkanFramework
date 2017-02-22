@@ -94,6 +94,10 @@ add_executable(vulkan_lod_single application/source/application_lod_single.cpp)
 target_link_libraries(vulkan_lod_single framework)
 install(TARGETS vulkan_lod_single DESTINATION .)
 
+add_executable(vulkan_clustered application/source/application_clustered.cpp)
+target_link_libraries(vulkan_clustered framework)
+install(TARGETS vulkan_clustered DESTINATION .)
+
 # set build type dependent flags
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
