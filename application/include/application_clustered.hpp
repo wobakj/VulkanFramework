@@ -29,8 +29,8 @@ class ApplicationClustered : public Application {
   void loadModel();
   void createUniformBuffers();
   void createVertexBuffer();
-  void createTextureImage();
-  void createTextureSampler();
+  void createTextureImages();
+  void createTextureSamplers();
 
   void resize() override;
   void recreatePipeline() override;
@@ -42,6 +42,7 @@ class ApplicationClustered : public Application {
   void createGraphicsPipeline();
   void createDescriptorPool();
   void createFramebufferAttachments();
+  void updateLightVolume();
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
   void updateModel();
@@ -59,8 +60,11 @@ class ApplicationClustered : public Application {
   vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
+  Deleter<VkSampler> m_volumeSampler;
   std::thread m_thread_load;
   FrameResource m_frame_resource;
+
+  std::vector<uint32_t> m_data_light_volume;
 };
 
 #endif

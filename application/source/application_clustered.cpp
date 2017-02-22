@@ -32,6 +32,8 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
+const glm::uvec3 RES_LIGHT_VOL{32, 32, 16};
+
 // child classes must overwrite
 const uint32_t ApplicationClustered ::imageCount = 2;
 
@@ -43,21 +45,21 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_frame_resource{device}
+ ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, 0)
 {
 
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_clustered_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
   createLights();  
-  createTextureImage();
-  createTextureSampler();
+  createTextureImages();
+  createTextureSamplers();
   createFramebufferAttachments();
   createRenderPass();
 
   m_frame_resource = createFrameResource();
-
   resize();
 }
 
@@ -82,11 +84,20 @@ void ApplicationClustered ::render() {
   if (m_camera.changed()) {
     updateView();
   }
+
+  updateLightVolume();
+
   recordDrawBuffer(m_frame_resource);
   
   submitDraw(m_frame_resource);
 
   presentFrame(m_frame_resource);
+}
+
+void ApplicationClustered::updateLightVolume() {
+  // update light colume data
+
+  m_device.uploadImageData(m_data_light_volume.data(), m_images.at("light_vol"));
 }
 
 void ApplicationClustered ::updateCommandBuffers(FrameResource& res) {
@@ -343,20 +354,25 @@ void ApplicationClustered ::createFramebufferAttachments() {
   createMemoryPools();
 }
 
-void ApplicationClustered ::createTextureImage() {
+void ApplicationClustered ::createTextureImages() {
+  // test texture
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
-
   m_images["texture"] = m_device.createImage(pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
+  // light volume
+  m_images["light_vol"] = m_device.createImage(vk::Extent3D{RES_LIGHT_VOL.x, RES_LIGHT_VOL.y, RES_LIGHT_VOL.z}, vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
   // space for 14 8x3 1028 textures
   m_device.allocateMemoryPool("textures", m_images.at("texture").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("texture").size() * 16);
+  // bind and upload test texture data
   m_images.at("texture").bindTo(m_device.memoryPool("textures"));
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-  
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
+  // bind light volume
+  m_images.at("light_vol").bindTo(m_device.memoryPool("textures"));
 }
 
-void ApplicationClustered ::createTextureSampler() {
+void ApplicationClustered ::createTextureSamplers() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+  m_volumeSampler = m_device->createSampler({{}, vk::Filter::eNearest, vk::Filter::eNearest});
 }
 
 void ApplicationClustered ::createDescriptorPool() {
