@@ -50,19 +50,16 @@ class ApplicationClustered : public ApplicationSingle {
 
   // path to the resource folders
   RenderPass m_render_pass;
-  Deleter<VkPipeline> m_pipeline;
-  Deleter<VkPipeline> m_pipeline_2;
+  Pipeline m_pipeline;
+  Pipeline m_pipeline_2;
   FrameBuffer m_framebuffer;
   Model m_model;
-  Model m_model_light;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
   Deleter<VkSampler> m_textureSampler;
   Deleter<VkSampler> m_volumeSampler;
   std::thread m_thread_load;
-  PipelineInfo m_info_pipe;
-  PipelineInfo m_info_pipe2;
-  // Pipeline m_pipeline;
+
   std::vector<uint32_t> m_data_light_volume;
 };
 

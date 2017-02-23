@@ -10,6 +10,10 @@ public:
   operator T const&() const {
     return m_object;
   }
+  operator bool() const {
+    return m_object;
+  }
+
   // call methods on underlying object
   T const* operator->() const {
     return &m_object;

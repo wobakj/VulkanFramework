@@ -47,12 +47,11 @@ const uint32_t ApplicationClustered ::imageCount = 2;
 
 ApplicationClustered::ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_pipeline{m_device, vkDestroyPipeline}
- ,m_pipeline_2{m_device, vkDestroyPipeline}
+ // ,m_pipeline{m_device, vkDestroyPipeline}
+ // ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_info_pipe{}
  // assume all lights are in all cells
  ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, -1)
 {
@@ -193,51 +192,63 @@ void ApplicationClustered ::createRenderPasses() {
 }
 
 void ApplicationClustered ::createPipelines() {
-  m_info_pipe.setResolution(m_swap_chain.extent());
-  m_info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
-  
-  vk::PipelineRasterizationStateCreateInfo rasterizer{};
-  rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-  m_info_pipe.setRasterizer(rasterizer);
+  if (!(m_pipeline || m_pipeline_2)) {
+    PipelineInfo info_pipe;
+    PipelineInfo info_pipe2;
 
-  vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
-  colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  m_info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
-  m_info_pipe.setAttachmentBlending(colorBlendAttachment, 1);
-  m_info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
+    info_pipe.setResolution(m_swap_chain.extent());
+    info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
+    
+    vk::PipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+    info_pipe.setRasterizer(rasterizer);
 
-  m_info_pipe.setShader(m_shaders.at("simple"));
-  m_info_pipe.setVertexInput(m_model.inputInfo());
-  m_info_pipe.setPass(m_render_pass, 0);
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
+    info_pipe.setAttachmentBlending(colorBlendAttachment, 1);
+    info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
-  vk::PipelineDepthStencilStateCreateInfo depthStencil{};
-  depthStencil.depthTestEnable = VK_TRUE;
-  depthStencil.depthWriteEnable = VK_TRUE;
-  depthStencil.depthCompareOp = vk::CompareOp::eLess;
-  m_info_pipe.setDepthStencil(depthStencil);
+    info_pipe.setShader(m_shaders.at("simple"));
+    info_pipe.setVertexInput(m_model.inputInfo());
+    info_pipe.setPass(m_render_pass, 0);
 
-  m_info_pipe2.setResolution(m_swap_chain.extent());
-  m_info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleStrip);
-  
-  vk::PipelineRasterizationStateCreateInfo rasterizer2{};
-  rasterizer2.lineWidth = 1.0f;
-  rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
-  m_info_pipe2.setRasterizer(rasterizer2);
+    vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = vk::CompareOp::eLess;
+    info_pipe.setDepthStencil(depthStencil);
 
-  m_info_pipe2.setAttachmentBlending(colorBlendAttachment, 0);
+    info_pipe2.setResolution(m_swap_chain.extent());
+    info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleStrip);
+    
+    vk::PipelineRasterizationStateCreateInfo rasterizer2{};
+    rasterizer2.lineWidth = 1.0f;
+    rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
+    info_pipe2.setRasterizer(rasterizer2);
 
-  m_info_pipe2.setShader(m_shaders.at("quad"));
-  m_info_pipe2.setPass(m_render_pass, 1);
+    info_pipe2.setAttachmentBlending(colorBlendAttachment, 0);
 
-  if (m_pipeline && m_pipeline_2) {
-    // insert previously created pipeline here to derive this one from
-    m_info_pipe.setRoot(m_pipeline.get());
-    m_info_pipe2.setRoot(m_pipeline.get());
+    info_pipe2.setShader(m_shaders.at("quad"));
+    info_pipe2.setPass(m_render_pass, 1);
+
+    m_pipeline = Pipeline{m_device, info_pipe};
+    m_pipeline_2 = Pipeline{m_device, info_pipe2};
   }
-  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {m_info_pipe, m_info_pipe2});
-  m_pipeline = pipelines[0];
-  m_pipeline_2 = pipelines[1];
+  else {
+    auto info_pipe = m_pipeline.info();
+    info_pipe.setShader(m_shaders.at("simple"));
+    info_pipe.setPass(m_render_pass, 0);
+    info_pipe.setResolution(m_swap_chain.extent());
+    m_pipeline.recreate(info_pipe);
+
+    auto info_pipe2 = m_pipeline_2.info();
+    info_pipe2.setShader(m_shaders.at("quad"));
+    info_pipe2.setPass(m_render_pass, 1);
+    info_pipe2.setResolution(m_swap_chain.extent());
+    m_pipeline_2.recreate(info_pipe2);
+  }
 }
 
 void ApplicationClustered ::createVertexBuffer() {
