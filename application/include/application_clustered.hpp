@@ -1,7 +1,7 @@
 #ifndef APPLICATION_CLUSTERED_HPP
 #define APPLICATION_CLUSTERED_HPP
 
-#include "application.hpp"
+#include "application_single.hpp"
 
 #include "deleter.hpp"
 #include "model.hpp"
@@ -9,21 +9,25 @@
 #include "frame_buffer.hpp"
 #include "frame_resource.hpp"
 #include "pipeline_info.hpp"
+#include "pipeline.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 #include <thread>
 
-class ApplicationClustered : public Application {
+class ApplicationClustered : public ApplicationSingle {
  public:
   ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationClustered();
+  static cmdline::parser getParser(); 
   static const uint32_t imageCount;
   
  private:
   void render() override;
   void recordDrawBuffer(FrameResource& res) override;
   FrameResource createFrameResource() override;
+  void updateCommandBuffers(FrameResource& res) override;
+  void updateDescriptors(FrameResource& resource) override;
   
   void createLights();
   void loadModel();
@@ -31,21 +35,18 @@ class ApplicationClustered : public Application {
   void createVertexBuffer();
   void createTextureImages();
   void createTextureSamplers();
-
-  void resize() override;
-  void recreatePipeline() override;
-  void updateView() override;
-  void updateCommandBuffers(FrameResource& res);
-  void createFramebuffers();
-  void createRenderPass();
-  void createMemoryPools();
-  void createGraphicsPipeline();
-  void createDescriptorPool();
-  void createFramebufferAttachments();
   void updateLightVolume();
+
+  void updateView() override;
+
+  void createFramebuffers() override;
+  void createRenderPasses() override;
+  void createMemoryPools() override;
+  void createPipelines() override;
+  void createDescriptorPools() override;
+  void createFramebufferAttachments() override;
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
-  void updateModel();
 
   // path to the resource folders
   RenderPass m_render_pass;
@@ -59,10 +60,9 @@ class ApplicationClustered : public Application {
   Deleter<VkSampler> m_textureSampler;
   Deleter<VkSampler> m_volumeSampler;
   std::thread m_thread_load;
-  FrameResource m_frame_resource;
   PipelineInfo m_info_pipe;
   PipelineInfo m_info_pipe2;
-
+  // Pipeline m_pipeline;
   std::vector<uint32_t> m_data_light_volume;
 };
 

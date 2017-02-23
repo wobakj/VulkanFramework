@@ -34,17 +34,24 @@ BufferLights buff_l;
 
 const glm::uvec3 RES_LIGHT_VOL{32, 32, 16};
 
+
+cmdline::parser ApplicationClustered::getParser() {
+  cmdline::parser cmd_parse{};
+  // cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
+  // cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
+  // cmd_parse.add("debug", 'd', "debug with validation layers");
+  return cmd_parse;
+}
 // child classes must overwrite
 const uint32_t ApplicationClustered ::imageCount = 2;
 
 ApplicationClustered::ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :Application{resource_path, device, chain, window, cmd_parse}
+ :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_frame_resource{device}
  ,m_info_pipe{}
  // assume all lights are in all cells
  ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, -1)
@@ -58,22 +65,26 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
   createLights();  
   createTextureImages();
   createTextureSamplers();
-  createFramebufferAttachments();
-  createRenderPass();
 
   m_frame_resource = createFrameResource();
+
   resize();
 }
 
 ApplicationClustered::~ApplicationClustered () {
-  m_frame_resource.waitFences();
+  shutDown();
 }
 
 FrameResource ApplicationClustered::createFrameResource() {
-  auto res = Application::createFrameResource();
+  auto res = ApplicationSingle::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   return res;
+}
+
+void ApplicationClustered::updateDescriptors(FrameResource& res) {
+  // res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
+  // res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
 void ApplicationClustered ::render() { 
@@ -173,7 +184,7 @@ void ApplicationClustered ::createFramebuffers() {
   m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
 }
 
-void ApplicationClustered ::createRenderPass() {
+void ApplicationClustered ::createRenderPasses() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -181,7 +192,7 @@ void ApplicationClustered ::createRenderPass() {
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
-void ApplicationClustered ::createGraphicsPipeline() {
+void ApplicationClustered ::createPipelines() {
   m_info_pipe.setResolution(m_swap_chain.extent());
   m_info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
@@ -192,7 +203,6 @@ void ApplicationClustered ::createGraphicsPipeline() {
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment.blendEnable = VK_FALSE;
   m_info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
   m_info_pipe.setAttachmentBlending(colorBlendAttachment, 1);
   m_info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
@@ -306,7 +316,7 @@ void ApplicationClustered ::createTextureSamplers() {
   m_volumeSampler = m_device->createSampler({{}, vk::Filter::eNearest, vk::Filter::eNearest});
 }
 
-void ApplicationClustered ::createDescriptorPool() {
+void ApplicationClustered ::createDescriptorPools() {
   m_descriptorPool = m_shaders.at("simple").createPool(2);
 
   vk::DescriptorSetAllocateInfo allocInfo{};
@@ -357,23 +367,6 @@ void ApplicationClustered ::updateView() {
   ubo.proj = m_camera.projectionMatrix();
 
   m_device.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
-}
-
-void ApplicationClustered ::resize() {
-  m_frame_resource.fence("draw").wait();
-  createFramebufferAttachments();
-  createRenderPass();
-  createFramebuffers();
-
-  recreatePipeline();
-}
-void ApplicationClustered ::recreatePipeline() {
-  // make sure pipeline is free before rebuilding
-  m_frame_resource.fence("draw").wait();
-  createGraphicsPipeline();
-  createDescriptorPool();
-
-  updateCommandBuffers(m_frame_resource);
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

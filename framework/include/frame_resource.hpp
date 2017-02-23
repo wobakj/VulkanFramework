@@ -75,7 +75,9 @@ class FrameResource {
     for(auto const& pair_fence : fences) {
       wait_fences.emplace_back(pair_fence.second);
     }
-    m_device->waitFences(wait_fences);
+    if (!wait_fences.empty()) {
+      m_device->waitFences(wait_fences);
+    }
   }
 
   void swap(FrameResource& rhs) {

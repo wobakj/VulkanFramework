@@ -8,11 +8,12 @@ const uint32_t ApplicationSingle::imageCount = 1;
 ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :Application{resource_path, device, chain, window, cmd_parse}
 {
+  m_statistics.addTimer("gpu_draw");
   m_statistics.addTimer("render");
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("fence_draw");
 
-  m_frame_resource = createFrameResource();  
+  // m_frame_resource = createFrameResource();  
 }
 
 void ApplicationSingle::shutDown() {
@@ -28,8 +29,7 @@ ApplicationSingle::~ApplicationSingle() {
 }
 
 FrameResource ApplicationSingle::createFrameResource() {
-  FrameResource res{m_device};
-  return res;
+  return Application::createFrameResource();
 }
 
 void ApplicationSingle::render() { 
