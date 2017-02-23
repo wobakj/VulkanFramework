@@ -37,7 +37,7 @@ Pipeline& Pipeline::operator=(Pipeline&& Pipeline) {
 void Pipeline::recreate(PipelineInfo const& info) {
   m_info = info;
   m_info.setRoot(get());
-  m_object = (*m_device)->createGraphicsPipelines(vk::PipelineCache{}, {m_info})[0];
+  m_object = (*m_device)->createGraphicsPipelines(VK_NULL_HANDLE, {m_info})[0];
 }
 
 void Pipeline::swap(Pipeline& Pipeline) {

@@ -24,13 +24,15 @@ class Model {
   vk::Buffer const& buffer() const;
   vk::DeviceSize indexOffset() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
+  std::vector<vk::VertexInputBindingDescription> const& bindInfos() const;
+  std::vector<vk::VertexInputAttributeDescription> const& attributeInfos() const;
   std::uint32_t numIndices() const;
   std::uint32_t numVertices() const;
 
  private:
   model_t m_model;
   Device const* m_device;
-  vk::VertexInputBindingDescription m_bind_info;
+  std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer;
   Memory m_memory;

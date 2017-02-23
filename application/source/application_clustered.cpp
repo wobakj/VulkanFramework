@@ -37,9 +37,6 @@ const glm::uvec3 RES_LIGHT_VOL{32, 32, 16};
 
 cmdline::parser ApplicationClustered::getParser() {
   cmdline::parser cmd_parse{};
-  // cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
-  // cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
-  // cmd_parse.add("debug", 'd', "debug with validation layers");
   return cmd_parse;
 }
 // child classes must overwrite
@@ -211,7 +208,7 @@ void ApplicationClustered ::createPipelines() {
     info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
     info_pipe.setShader(m_shaders.at("simple"));
-    info_pipe.setVertexInput(m_model.inputInfo());
+    info_pipe.setVertexInput(m_model);
     info_pipe.setPass(m_render_pass, 0);
 
     vk::PipelineDepthStencilStateCreateInfo depthStencil{};

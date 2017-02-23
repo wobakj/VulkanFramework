@@ -51,7 +51,8 @@ Model::Model(Device& device, model_t const& model)
  ,m_attrib_info{}
  ,m_buffer{}
 {
-  m_bind_info = model_to_bind(model);
+  // TODO: support for multiple bindings
+  m_bind_info.emplace_back(model_to_bind(model));
   m_attrib_info = model_to_attr(model);
   // create one buffer to store all data
   vk::DeviceSize combined_size = m_model.vertex_num * m_model.vertex_bytes + uint32_t(m_model.indices.size() * model_t::INDEX.size);
@@ -86,11 +87,19 @@ vk::Buffer const& Model::buffer() const {
   return m_buffer;
 }
 
+std::vector<vk::VertexInputBindingDescription> const& Model::bindInfos() const {
+  return m_bind_info;
+}
+
+std::vector<vk::VertexInputAttributeDescription> const& Model::attributeInfos() const {
+  return m_attrib_info;
+}
+
 vk::PipelineVertexInputStateCreateInfo Model::inputInfo() const {
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
+  vertexInputInfo.vertexBindingDescriptionCount = std::uint32_t(m_bind_info.size());
+  vertexInputInfo.pVertexBindingDescriptions = m_bind_info.data();
   vertexInputInfo.vertexAttributeDescriptionCount = std::uint32_t(m_attrib_info.size());
-  vertexInputInfo.pVertexBindingDescriptions = &m_bind_info;
   vertexInputInfo.pVertexAttributeDescriptions = m_attrib_info.data();
   return vertexInputInfo;
 }

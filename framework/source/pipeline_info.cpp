@@ -34,9 +34,7 @@ PipelineInfo::PipelineInfo()
   info_raster.lineWidth = 1.0f;
   info_raster.cullMode = vk::CullModeFlagBits::eBack;
 
-  info_ds.depthTestEnable = VK_TRUE;
-  info_ds.depthWriteEnable = VK_TRUE;
-  info_ds.depthCompareOp = vk::CompareOp::eLess;
+
   // VkDynamicState dynamicStates[] = {
   //   VK_DYNAMIC_STATE_VIEWPORT,
   //   VK_DYNAMIC_STATE_LINE_WIDTH
@@ -46,27 +44,63 @@ PipelineInfo::PipelineInfo()
   // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   // dynamicState.dynamicStateCount = 2;
   // dynamicState.pDynamicStates = dynamicStates;
-  vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
-  colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment.blendEnable = VK_FALSE;
-  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
-
   info.pDynamicState = nullptr; // Optional
 
   info.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
   info.basePipelineIndex = -1; // Optional
 } 
 
-void PipelineInfo::setShader(Shader const& shader) {
-  auto info_start = shader.startPipelineInfo();
+PipelineInfo::PipelineInfo(PipelineInfo const& rhs)
+ :PipelineInfo{}
+{
+  info.layout = rhs.info.layout;
+  setShaderStages(rhs.info_stages);
 
-  info.stageCount = info_start.stageCount;
-  info.pStages = info_start.pStages;
-  info.layout = info_start.layout;
+  setVertexBindings(rhs.info_bindings);
+  setVertexAttributes(rhs.info_attributes);
+
+  setTopology(rhs.info_assembly.topology);
+  setResolution(rhs.info_scissor.extent);
+  setDepthStencil(rhs.info_ds);
+  setRasterizer(rhs.info_raster);
+
+  for (uint32_t i = 0; i < rhs.attachment_blendings.size(); ++i) {
+    setAttachmentBlending(rhs.attachment_blendings[i], i);
+  }
+
+  setPass(rhs.info.renderPass, rhs.info.subpass);
+
+  if (rhs.info.basePipelineHandle) {
+    setRoot(rhs.info.basePipelineHandle);
+  }
 }
 
-void PipelineInfo::setVertexInput(vk::PipelineVertexInputStateCreateInfo const& input) {
-  info_vert = input;
+void PipelineInfo::setShader(Shader const& shader) {
+  info.layout = shader.get();
+  setShaderStages(shader.shaderStages());
+}
+
+void PipelineInfo::setVertexInput(Model const& model) {
+  setVertexBindings(model.bindInfos());
+  setVertexAttributes(model.attributeInfos());
+}
+
+void PipelineInfo::setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages) {
+  info_stages = stages;
+  info.stageCount = uint32_t(info_stages.size());
+  info.pStages = info_stages.data();
+}
+
+void PipelineInfo::setVertexBindings(std::vector<vk::VertexInputBindingDescription> const& bindings) {
+  info_bindings = bindings;
+  info_vert.vertexBindingDescriptionCount = std::uint32_t(info_bindings.size());
+  info_vert.pVertexBindingDescriptions = info_bindings.data();
+}
+
+void PipelineInfo::setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes) {
+  info_attributes = attributes;
+  info_vert.vertexAttributeDescriptionCount = std::uint32_t(info_attributes.size());
+  info_vert.pVertexAttributeDescriptions = info_attributes.data();
 }
 
 void PipelineInfo::setTopology(vk::PrimitiveTopology const& topo) {
@@ -105,11 +139,9 @@ void PipelineInfo::setPass(vk::RenderPass const& pass, uint32_t subpass) {
 }
 
 void PipelineInfo::setRoot(vk::Pipeline const& root) {
-  if (root) {
-    info.flags |= vk::PipelineCreateFlagBits::eDerivative;
-    // insert previously created pipeline here to derive this one from
-    info.basePipelineHandle = root;
-  }
+  info.flags |= vk::PipelineCreateFlagBits::eDerivative;
+  // insert previously created pipeline here to derive this one from
+  info.basePipelineHandle = root;
 }
 
 PipelineInfo::operator vk::GraphicsPipelineCreateInfo const&() const {

@@ -5,14 +5,16 @@
 #include <vector>
 
 class Shader;
+class Model;
 
 class PipelineInfo {
  public:
   PipelineInfo();
+  PipelineInfo(PipelineInfo const&);
 
   void setShader(Shader const& shader);
 
-  void setVertexInput(vk::PipelineVertexInputStateCreateInfo const& input);
+  void setVertexInput(Model const& model);
 
   void setTopology(vk::PrimitiveTopology const& topo);
 
@@ -31,6 +33,10 @@ class PipelineInfo {
   operator vk::GraphicsPipelineCreateInfo const&() const;
 
  private:
+  void setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes);
+  void setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages);
+  void setVertexBindings(std::vector<vk::VertexInputBindingDescription> const& bindings);
+
   vk::GraphicsPipelineCreateInfo info;
   vk::PipelineVertexInputStateCreateInfo info_vert;
   vk::PipelineInputAssemblyStateCreateInfo info_assembly;
@@ -39,11 +45,15 @@ class PipelineInfo {
   vk::PipelineDepthStencilStateCreateInfo info_ds;
   vk::PipelineRasterizationStateCreateInfo info_raster;
   vk::PipelineColorBlendStateCreateInfo info_blending;
-
+  // secondary resources
   std::vector<vk::PipelineColorBlendAttachmentState> attachment_blendings;
-
+  std::vector<vk::PipelineShaderStageCreateInfo> info_stages;
+  // viewport
   vk::Viewport info_viewport;
   vk::Rect2D info_scissor;
+  // vertex input
+  std::vector<vk::VertexInputBindingDescription> info_bindings;
+  std::vector<vk::VertexInputAttributeDescription> info_attributes;
 };
 
 #endif
