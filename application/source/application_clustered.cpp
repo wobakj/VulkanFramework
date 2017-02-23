@@ -45,6 +45,7 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_frame_resource{device}
+ ,m_info_pipe{}
  // assume all lights are in all cells
  ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, -1)
 {
@@ -181,116 +182,50 @@ void ApplicationClustered ::createRenderPass() {
 }
 
 void ApplicationClustered ::createGraphicsPipeline() {
+  m_info_pipe.setResolution(m_swap_chain.extent());
+  m_info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
-  inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
-
-  vk::Viewport viewport{};
-  viewport.width = (float) m_swap_chain.extent().width;
-  viewport.height = (float) m_swap_chain.extent().height;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  vk::Rect2D scissor{};
-  scissor.extent = m_swap_chain.extent();
-
-  vk::PipelineViewportStateCreateInfo viewportState{};
-  viewportState.viewportCount = 1;
-  viewportState.pViewports = &viewport;
-  viewportState.scissorCount = 1;
-  viewportState.pScissors = &scissor;
-
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-
-  vk::PipelineMultisampleStateCreateInfo multisampling{};
+  m_info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment.blendEnable = VK_FALSE;
-  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+  m_info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
+  m_info_pipe.setAttachmentBlending(colorBlendAttachment, 1);
+  m_info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
-  vk::PipelineColorBlendStateCreateInfo colorBlending{};
-  colorBlending.attachmentCount = uint32_t(states.size());
-  colorBlending.pAttachments = states.data();
+  m_info_pipe.setShader(m_shaders.at("simple"));
+  m_info_pipe.setVertexInput(m_model.inputInfo());
+  m_info_pipe.setPass(m_render_pass, 0);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
-  // VkDynamicState dynamicStates[] = {
-  //   VK_DYNAMIC_STATE_VIEWPORT,
-  //   VK_DYNAMIC_STATE_LINE_WIDTH
-  // };
+  m_info_pipe.setDepthStencil(depthStencil);
 
-  // VkPipelineDynamicStateCreateInfo dynamicState = {};
-  // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  // dynamicState.dynamicStateCount = 2;
-  // dynamicState.pDynamicStates = dynamicStates;
-  auto pipelineInfo = m_shaders.at("simple").startPipelineInfo();
-
-  auto vert_info = m_model.inputInfo();
-  pipelineInfo.pVertexInputState = &vert_info;
-  pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;  
-  pipelineInfo.pRasterizationState = &rasterizer;
-  pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = nullptr; // Optional
-  pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = nullptr; // Optional
-  pipelineInfo.pDepthStencilState = &depthStencil;
+  m_info_pipe2.setResolution(m_swap_chain.extent());
+  m_info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleStrip);
   
-  pipelineInfo.renderPass = m_render_pass;
-  pipelineInfo.subpass = 0;
-
-  auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
-  
-  vk::PipelineVertexInputStateCreateInfo vert_info2{};
-  pipelineInfo2.pVertexInputState = &vert_info2;
-
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly2{};
-  inputAssembly2.topology = vk::PrimitiveTopology::eTriangleStrip;
-  pipelineInfo2.pInputAssemblyState = &inputAssembly2;
-
-  // cull frontfaces 
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
   rasterizer2.lineWidth = 1.0f;
   rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
-  pipelineInfo2.pRasterizationState = &rasterizer2;
+  m_info_pipe2.setRasterizer(rasterizer2);
 
-  pipelineInfo2.pViewportState = &viewportState;
-  pipelineInfo2.pMultisampleState = &multisampling;
-  pipelineInfo2.pDepthStencilState = nullptr; // Optional
+  m_info_pipe2.setAttachmentBlending(colorBlendAttachment, 0);
 
-  vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
-  colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  m_info_pipe2.setShader(m_shaders.at("quad"));
+  m_info_pipe2.setPass(m_render_pass, 1);
 
-  vk::PipelineColorBlendStateCreateInfo colorBlending2{};
-  colorBlending2.attachmentCount = 1;
-  colorBlending2.pAttachments = &colorBlendAttachment2;
-  pipelineInfo2.pColorBlendState = &colorBlending2;
-  
-  pipelineInfo2.pDynamicState = nullptr; // Optional
-  // shade fragment only if light sphere reaches behind it
-  vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  pipelineInfo2.pDepthStencilState = &depthStencil2;
-  
-  pipelineInfo2.renderPass = m_render_pass;
-  pipelineInfo2.subpass = 1;
-
-  pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  pipelineInfo2.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
   if (m_pipeline && m_pipeline_2) {
-    pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
-    pipelineInfo2.flags |= vk::PipelineCreateFlagBits::eDerivative;
     // insert previously created pipeline here to derive this one from
-    pipelineInfo.basePipelineHandle = m_pipeline.get();
-    pipelineInfo.basePipelineIndex = -1; // Optional
-    pipelineInfo2.basePipelineHandle = m_pipeline_2.get();
-    pipelineInfo2.basePipelineIndex = -1; // Optional
+    m_info_pipe.setRoot(m_pipeline.get());
+    m_info_pipe2.setRoot(m_pipeline.get());
   }
-  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo, pipelineInfo2});
+  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {m_info_pipe, m_info_pipe2});
   m_pipeline = pipelines[0];
   m_pipeline_2 = pipelines[1];
 }
@@ -298,9 +233,6 @@ void ApplicationClustered ::createGraphicsPipeline() {
 void ApplicationClustered ::createVertexBuffer() {
   model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model = Model{m_device, tri};
-
-  tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
-  m_model_light = Model{m_device, tri};
 }
 
 void ApplicationClustered ::createLights() {

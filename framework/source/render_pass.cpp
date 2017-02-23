@@ -223,7 +223,7 @@ RenderPass::RenderPass(Device const& device, std::vector<vk::ImageCreateInfo> co
  ,m_device{&device}
 {
   m_info = render_pass_t{images, subpasses};
-  m_object =device->createRenderPass(m_info.to_info(), nullptr);
+  m_object = device->createRenderPass(m_info.to_info(), nullptr);
 }
 
 RenderPass::~RenderPass() {

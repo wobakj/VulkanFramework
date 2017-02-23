@@ -8,7 +8,7 @@
 #include "render_pass.hpp"
 #include "frame_buffer.hpp"
 #include "frame_resource.hpp"
-#include "frame_resource.hpp"
+#include "pipeline_info.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -60,6 +60,8 @@ class ApplicationClustered : public Application {
   Deleter<VkSampler> m_volumeSampler;
   std::thread m_thread_load;
   FrameResource m_frame_resource;
+  PipelineInfo m_info_pipe;
+  PipelineInfo m_info_pipe2;
 
   std::vector<uint32_t> m_data_light_volume;
 };
