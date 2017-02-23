@@ -36,6 +36,10 @@ void Application::resize(std::size_t width, std::size_t height) {
   resize();
 }
 
+void Application::updatePipelines() {
+  createPipelines();
+}
+
 void Application::frame() {
   static double time_last = glfwGetTime();
 	// calculate delta time

@@ -40,12 +40,10 @@ cmdline::parser ApplicationClustered::getParser() {
   return cmd_parse;
 }
 // child classes must overwrite
-const uint32_t ApplicationClustered ::imageCount = 2;
+const uint32_t ApplicationClustered::imageCount = 2;
 
 ApplicationClustered::ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- // ,m_pipeline{m_device, vkDestroyPipeline}
- // ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
@@ -63,11 +61,18 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
   createTextureSamplers();
 
   m_frame_resource = createFrameResource();
+  
+  createFramebufferAttachments();
+  createRenderPasses();
+  createFramebuffers();
+  createPipelines();
+  createDescriptorPools();
 
-  resize();
+  updateDescriptors(m_frame_resource);
+  updateCommandBuffers(m_frame_resource);
 }
 
-ApplicationClustered::~ApplicationClustered () {
+ApplicationClustered::~ApplicationClustered() {
   shutDown();
 }
 
@@ -83,7 +88,7 @@ void ApplicationClustered::updateDescriptors(FrameResource& res) {
   // res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
-void ApplicationClustered ::render() { 
+void ApplicationClustered::render() { 
   // make sure image was acquired
   m_frame_resource.fence("acquire").wait();
   acquireImage(m_frame_resource);
@@ -116,7 +121,7 @@ void ApplicationClustered::updateLightVolume() {
   m_device.uploadImageData(m_data_light_volume.data(), m_images.at("light_vol"));
 }
 
-void ApplicationClustered ::updateCommandBuffers(FrameResource& res) {
+void ApplicationClustered::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -127,7 +132,7 @@ void ApplicationClustered ::updateCommandBuffers(FrameResource& res) {
   // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").get());
   res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model.buffer()}, {0});
@@ -141,7 +146,7 @@ void ApplicationClustered ::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").reset({});
   res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
+  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").get());
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
   res.command_buffers.at("lighting").draw(4, 1, 0, 0);
@@ -149,7 +154,7 @@ void ApplicationClustered ::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").end();
 }
 
-void ApplicationClustered ::recordDrawBuffer(FrameResource& res) {
+void ApplicationClustered::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").reset({});
 
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
@@ -176,11 +181,11 @@ void ApplicationClustered ::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").end();
 }
 
-void ApplicationClustered ::createFramebuffers() {
+void ApplicationClustered::createFramebuffers() {
   m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
 }
 
-void ApplicationClustered ::createRenderPasses() {
+void ApplicationClustered::createRenderPasses() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -188,72 +193,71 @@ void ApplicationClustered ::createRenderPasses() {
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
-void ApplicationClustered ::createPipelines() {
-  if (!(m_pipeline || m_pipeline_2)) {
-    PipelineInfo info_pipe;
-    PipelineInfo info_pipe2;
+void ApplicationClustered::createPipelines() {
+  PipelineInfo info_pipe;
+  PipelineInfo info_pipe2;
 
-    info_pipe.setResolution(m_swap_chain.extent());
-    info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
-    
-    vk::PipelineRasterizationStateCreateInfo rasterizer{};
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-    info_pipe.setRasterizer(rasterizer);
+  info_pipe.setResolution(m_swap_chain.extent());
+  info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
+  
+  vk::PipelineRasterizationStateCreateInfo rasterizer{};
+  rasterizer.lineWidth = 1.0f;
+  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+  info_pipe.setRasterizer(rasterizer);
 
-    vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
-    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-    info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
-    info_pipe.setAttachmentBlending(colorBlendAttachment, 1);
-    info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
+  vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
+  colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 1);
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
-    info_pipe.setShader(m_shaders.at("simple"));
-    info_pipe.setVertexInput(m_model);
-    info_pipe.setPass(m_render_pass, 0);
+  info_pipe.setShader(m_shaders.at("simple"));
+  info_pipe.setVertexInput(m_model);
+  info_pipe.setPass(m_render_pass, 0);
 
-    vk::PipelineDepthStencilStateCreateInfo depthStencil{};
-    depthStencil.depthTestEnable = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = vk::CompareOp::eLess;
-    info_pipe.setDepthStencil(depthStencil);
+  vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+  depthStencil.depthTestEnable = VK_TRUE;
+  depthStencil.depthWriteEnable = VK_TRUE;
+  depthStencil.depthCompareOp = vk::CompareOp::eLess;
+  info_pipe.setDepthStencil(depthStencil);
 
-    info_pipe2.setResolution(m_swap_chain.extent());
-    info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleStrip);
-    
-    vk::PipelineRasterizationStateCreateInfo rasterizer2{};
-    rasterizer2.lineWidth = 1.0f;
-    rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
-    info_pipe2.setRasterizer(rasterizer2);
+  info_pipe2.setResolution(m_swap_chain.extent());
+  info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleStrip);
+  
+  vk::PipelineRasterizationStateCreateInfo rasterizer2{};
+  rasterizer2.lineWidth = 1.0f;
+  rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
+  info_pipe2.setRasterizer(rasterizer2);
 
-    info_pipe2.setAttachmentBlending(colorBlendAttachment, 0);
+  info_pipe2.setAttachmentBlending(colorBlendAttachment, 0);
 
-    info_pipe2.setShader(m_shaders.at("quad"));
-    info_pipe2.setPass(m_render_pass, 1);
+  info_pipe2.setShader(m_shaders.at("quad"));
+  info_pipe2.setPass(m_render_pass, 1);
 
-    m_pipeline = Pipeline{m_device, info_pipe};
-    m_pipeline_2 = Pipeline{m_device, info_pipe2};
-  }
-  else {
-    auto info_pipe = m_pipeline.info();
-    info_pipe.setShader(m_shaders.at("simple"));
-    info_pipe.setPass(m_render_pass, 0);
-    info_pipe.setResolution(m_swap_chain.extent());
-    m_pipeline.recreate(info_pipe);
-
-    auto info_pipe2 = m_pipeline_2.info();
-    info_pipe2.setShader(m_shaders.at("quad"));
-    info_pipe2.setPass(m_render_pass, 1);
-    info_pipe2.setResolution(m_swap_chain.extent());
-    m_pipeline_2.recreate(info_pipe2);
-  }
+  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe});
+  m_pipelines.emplace("quad", Pipeline{m_device, info_pipe2});
 }
 
-void ApplicationClustered ::createVertexBuffer() {
+void ApplicationClustered::updatePipelines() {
+  auto info_pipe = m_pipelines.at("scene").info();
+  info_pipe.setShader(m_shaders.at("simple"));
+  info_pipe.setPass(m_render_pass, 0);
+  info_pipe.setResolution(m_swap_chain.extent());
+  m_pipelines.at("scene").recreate(info_pipe);
+
+  auto info_pipe2 = m_pipelines.at("quad").info();
+  info_pipe2.setShader(m_shaders.at("quad"));
+  info_pipe2.setPass(m_render_pass, 1);
+  info_pipe2.setResolution(m_swap_chain.extent());
+  m_pipelines.at("quad").recreate(info_pipe2);
+}
+
+void ApplicationClustered::createVertexBuffer() {
   model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
   m_model = Model{m_device, tri};
 }
 
-void ApplicationClustered ::createLights() {
+void ApplicationClustered::createLights() {
   std::srand(5);
   for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     light_t light;
@@ -265,7 +269,7 @@ void ApplicationClustered ::createLights() {
   m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
-void ApplicationClustered ::createMemoryPools() {
+void ApplicationClustered::createMemoryPools() {
   // allocate pool for 5 32x4 fb attachments
   m_device.reallocateMemoryPool("framebuffer", m_images.at("pos").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("pos").size() * 5);
   
@@ -276,7 +280,7 @@ void ApplicationClustered ::createMemoryPools() {
   m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
 }
 
-void ApplicationClustered ::createFramebufferAttachments() {
+void ApplicationClustered::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -302,7 +306,7 @@ void ApplicationClustered ::createFramebufferAttachments() {
   createMemoryPools();
 }
 
-void ApplicationClustered ::createTextureImages() {
+void ApplicationClustered::createTextureImages() {
   // test texture
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
   m_images["texture"] = m_device.createImage(pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
@@ -319,12 +323,12 @@ void ApplicationClustered ::createTextureImages() {
   m_images.at("light_vol").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
-void ApplicationClustered ::createTextureSamplers() {
+void ApplicationClustered::createTextureSamplers() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
   m_volumeSampler = m_device->createSampler({{}, vk::Filter::eNearest, vk::Filter::eNearest});
 }
 
-void ApplicationClustered ::createDescriptorPools() {
+void ApplicationClustered::createDescriptorPools() {
   m_descriptorPool = m_shaders.at("simple").createPool(2);
 
   vk::DescriptorSetAllocateInfo allocInfo{};
@@ -353,7 +357,7 @@ void ApplicationClustered ::createDescriptorPools() {
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
 }
 
-void ApplicationClustered ::createUniformBuffers() {
+void ApplicationClustered::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
@@ -367,7 +371,7 @@ void ApplicationClustered ::createUniformBuffers() {
 }
 
 ///////////////////////////// update functions ////////////////////////////////
-void ApplicationClustered ::updateView() {
+void ApplicationClustered::updateView() {
   UniformBufferObject ubo{};
   ubo.model = glm::mat4();
   ubo.view = m_camera.viewMatrix();
@@ -379,7 +383,7 @@ void ApplicationClustered ::updateView() {
 
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
-void ApplicationClustered ::keyCallback(int key, int scancode, int action, int mods) {
+void ApplicationClustered::keyCallback(int key, int scancode, int action, int mods) {
 }
 
 // exe entry point

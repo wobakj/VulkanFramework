@@ -221,7 +221,7 @@ void ApplicationThreaded::resize() {
   createRenderPasses();
   createFramebuffers();
 
-  createPipelines();
+  updatePipelines();
   createDescriptorPools();
   for (auto& res : m_frame_resources) {
     updateDescriptors(res);
@@ -232,7 +232,7 @@ void ApplicationThreaded::resize() {
 void ApplicationThreaded::recreatePipeline() {
   emptyDrawQueue();
 
-  createPipelines();
+  updatePipelines();
   createDescriptorPools();
   for (auto& res : m_frame_resources) {
     updateDescriptors(res);

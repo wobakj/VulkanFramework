@@ -1,13 +1,12 @@
 #ifndef APPLICATION_VULKAN_HPP
 #define APPLICATION_VULKAN_HPP
 
-#include "application.hpp"
+#include "application_single.hpp"
 
 #include "deleter.hpp"
 #include "model.hpp"
 #include "render_pass.hpp"
 #include "frame_buffer.hpp"
-#include "frame_resource.hpp"
 #include "frame_resource.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -15,7 +14,7 @@
 #include <atomic>
 #include <thread>
 
-class ApplicationVulkan : public Application {
+class ApplicationVulkan : public ApplicationSingle {
  public:
   ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationVulkan();
@@ -33,15 +32,13 @@ class ApplicationVulkan : public Application {
   void createTextureImage();
   void createTextureSampler();
 
-  void resize() override;
-  void recreatePipeline() override;
   void updateView() override;
   void updateCommandBuffers(FrameResource& res);
   void createFramebuffers();
-  void createRenderPass();
+  void createRenderPasses();
   void createMemoryPools();
-  void createGraphicsPipeline();
-  void createDescriptorPool();
+  void createPipelines();
+  void createDescriptorPools();
   void createFramebufferAttachments();
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
@@ -60,7 +57,6 @@ class ApplicationVulkan : public Application {
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;
   bool m_sphere;
-  FrameResource m_frame_resource;
 };
 
 #endif

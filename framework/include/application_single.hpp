@@ -18,17 +18,8 @@ class ApplicationSingle : public Application {
 
   // void recordTransferBuffer(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
-  virtual void updateCommandBuffers(FrameResource& res) = 0;
-  virtual void updateDescriptors(FrameResource& resource) = 0;
   virtual FrameResource createFrameResource();
   
-  virtual void createRenderPasses() = 0;
-  virtual void createMemoryPools() = 0;
-  virtual void createPipelines() = 0;
-  virtual void createFramebuffers() = 0;
-  virtual void createDescriptorPools() = 0;
-  virtual void createFramebufferAttachments() = 0;
-
   FrameResource m_frame_resource;
   Statistics m_statistics;
 

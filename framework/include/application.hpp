@@ -3,6 +3,7 @@
 
 #include "shader.hpp"
 #include "image.hpp"
+#include "pipeline.hpp"
 #include "buffer.hpp"
 #include "buffer_view.hpp"
 #include "camera.hpp"
@@ -41,12 +42,24 @@ class Application {
   static const uint32_t imageCount;
 
  protected:
+  virtual void createMemoryPools() = 0;
+  virtual void createPipelines() = 0;
+  virtual void updatePipelines();
+  virtual void createFramebuffers() = 0;
+  virtual void createFramebufferAttachments() = 0;
+  virtual void createDescriptorPools() {};
+  virtual void createRenderPasses() = 0;
+
   virtual void update() {};
   virtual void render() = 0;
   virtual void updateView() {};
+  // called on shader reload
   virtual void recreatePipeline() = 0;
+  // called on resize
   virtual void resize() = 0;
   virtual FrameResource createFrameResource();
+  virtual void updateDescriptors(FrameResource& resource) {};
+  virtual void updateCommandBuffers(FrameResource& res) = 0;
   
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);
@@ -63,6 +76,7 @@ class Application {
 
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
   std::map<std::string, Shader> m_shaders;
+  std::map<std::string, Pipeline> m_pipelines;
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
   std::map<std::string, BufferView> m_buffer_views;

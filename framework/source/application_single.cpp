@@ -67,7 +67,7 @@ void ApplicationSingle::resize() {
 void ApplicationSingle::recreatePipeline() {
   // make sure pipeline is free before rebuilding
   m_frame_resource.waitFences();
-  createPipelines();
+  updatePipelines();
   createDescriptorPools();
 
   updateDescriptors(m_frame_resource);

@@ -38,7 +38,7 @@ BufferLights buff_l;
 const uint32_t ApplicationVulkan::imageCount = 2;
 
 ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :Application{resource_path, device, chain, window, cmd_parse}
+ :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
  ,m_pipeline{m_device, vkDestroyPipeline}
  ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
@@ -46,7 +46,6 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_model_dirty{false}
  ,m_sphere{true}
- ,m_frame_resource{device}
 {
 
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
@@ -57,8 +56,6 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createLights();  
   createTextureImage();
   createTextureSampler();
-  createFramebufferAttachments();
-  createRenderPass();
 
   m_frame_resource = createFrameResource();
 
@@ -66,7 +63,7 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
 }
 
 ApplicationVulkan::~ApplicationVulkan() {
-  m_frame_resource.waitFences();
+  shutDown();
 }
 
 FrameResource ApplicationVulkan::createFrameResource() {
@@ -188,7 +185,7 @@ void ApplicationVulkan::createFramebuffers() {
   m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
 }
 
-void ApplicationVulkan::createRenderPass() {
+void ApplicationVulkan::createRenderPasses() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -196,7 +193,7 @@ void ApplicationVulkan::createRenderPass() {
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
-void ApplicationVulkan::createGraphicsPipeline() {
+void ApplicationVulkan::createPipelines() {
   
   vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
@@ -404,7 +401,7 @@ void ApplicationVulkan::createTextureSampler() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
 }
 
-void ApplicationVulkan::createDescriptorPool() {
+void ApplicationVulkan::createDescriptorPools() {
   m_descriptorPool = m_shaders.at("simple").createPool(2);
 
   vk::DescriptorSetAllocateInfo allocInfo{};
@@ -454,23 +451,6 @@ void ApplicationVulkan::updateView() {
   ubo.proj = m_camera.projectionMatrix();
 
   m_device.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
-}
-
-void ApplicationVulkan::resize() {
-  m_frame_resource.fence("draw").wait();
-  createFramebufferAttachments();
-  createRenderPass();
-  createFramebuffers();
-
-  recreatePipeline();
-}
-void ApplicationVulkan::recreatePipeline() {
-  // make sure pipeline is free before rebuilding
-  m_frame_resource.fence("draw").wait();
-  createGraphicsPipeline();
-  createDescriptorPool();
-
-  updateCommandBuffers(m_frame_resource);
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

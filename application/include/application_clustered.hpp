@@ -28,6 +28,7 @@ class ApplicationClustered : public ApplicationSingle {
   FrameResource createFrameResource() override;
   void updateCommandBuffers(FrameResource& res) override;
   void updateDescriptors(FrameResource& resource) override;
+  void updatePipelines() override;
   
   void createLights();
   void loadModel();

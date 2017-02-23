@@ -30,15 +30,13 @@ class ApplicationThreaded : public Application {
   void recreatePipeline() override;
   void startRenderThread();
   
-  virtual void updateCommandBuffers(FrameResource& res) = 0;
-  virtual void updateDescriptors(FrameResource& resource) {};
-
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;
   virtual void createRenderPasses() = 0;
   virtual void createMemoryPools() = 0;
   virtual void createPipelines() = 0;
   virtual void createDescriptorPools() {};
+
   void pushForDraw(uint32_t frame);
   void pushForPresent(uint32_t frame);
   uint32_t pullForRecord();
