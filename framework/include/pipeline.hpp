@@ -12,7 +12,7 @@ using WrapperPipeline = Wrapper<vk::Pipeline, PipelineInfo>;
 class Pipeline : public WrapperPipeline {
  public:
   Pipeline();
-  Pipeline(Device const& rhs, PipelineInfo const& info);
+  Pipeline(Device const& rhs, PipelineInfo const& info, vk::PipelineCache const& cache = VK_NULL_HANDLE);
   Pipeline(Pipeline && rhs);
   Pipeline(Pipeline const&) = delete;
   ~Pipeline();
@@ -28,6 +28,7 @@ class Pipeline : public WrapperPipeline {
   void destroy() override;
 
   Device const* m_device;
+  vk::PipelineCache m_cache;
 };
 
 #endif

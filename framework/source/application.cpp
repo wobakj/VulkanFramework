@@ -12,6 +12,7 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
  ,m_camera{45.0f, 10, 10, 0.1f, 500.0f, window}
  ,m_device(device)
  ,m_swap_chain(chain)
+ ,m_pipeline_cache{m_device}
 {}
 
 FrameResource Application::createFrameResource() {
@@ -23,7 +24,6 @@ FrameResource Application::createFrameResource() {
   res.addCommandBuffer("draw", m_device.createCommandBuffer("graphics"));
   return res;
 }
-
 
 void Application::frame() {
   static double time_last = glfwGetTime();

@@ -225,8 +225,8 @@ void ApplicationClustered::createPipelines() {
   info_pipe2.setShader(m_shaders.at("quad"));
   info_pipe2.setPass(m_render_pass, 1);
 
-  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe});
-  m_pipelines.emplace("quad", Pipeline{m_device, info_pipe2});
+  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe, m_pipeline_cache});
+  m_pipelines.emplace("quad", Pipeline{m_device, info_pipe2, m_pipeline_cache});
 }
 
 void ApplicationClustered::updatePipelines() {

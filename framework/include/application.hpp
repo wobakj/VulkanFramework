@@ -4,6 +4,7 @@
 #include "shader.hpp"
 #include "image.hpp"
 #include "pipeline.hpp"
+#include "pipeline_cache.hpp"
 #include "buffer.hpp"
 #include "buffer_view.hpp"
 #include "camera.hpp"
@@ -76,6 +77,7 @@ class Application {
   Camera m_camera;
   Device& m_device;
   SwapChain const& m_swap_chain;
+  PipelineCache m_pipeline_cache;
 
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
   std::map<std::string, Shader> m_shaders;
