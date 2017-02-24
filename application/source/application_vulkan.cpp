@@ -119,8 +119,10 @@ void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
   // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
   // choose between sphere and house
   Model const* model = nullptr;
   if (m_sphere) {
@@ -141,8 +143,10 @@ void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").reset({});
   res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline_2.get());
+  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad"));
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("lighting").setScissor(0, {m_swap_chain.asRect()});
 
   res.command_buffers.at("lighting").bindVertexBuffers(0, {m_model.buffer()}, {0});
   res.command_buffers.at("lighting").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
@@ -191,85 +195,164 @@ void ApplicationVulkan::createRenderPasses() {
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
-void ApplicationVulkan::createPipelines() {
+// void ApplicationVulkan::createPipelines() {
   
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
-  inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
+//   vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
+//   inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
 
-  vk::Viewport viewport{};
-  viewport.width = (float) m_swap_chain.extent().width;
-  viewport.height = (float) m_swap_chain.extent().height;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
+//   vk::Viewport viewport{};
+//   viewport.width = (float) m_swap_chain.extent().width;
+//   viewport.height = (float) m_swap_chain.extent().height;
+//   viewport.minDepth = 0.0f;
+//   viewport.maxDepth = 1.0f;
 
-  vk::Rect2D scissor{};
-  scissor.extent = m_swap_chain.extent();
+//   vk::Rect2D scissor{};
+//   scissor.extent = m_swap_chain.extent();
 
-  vk::PipelineViewportStateCreateInfo viewportState{};
-  viewportState.viewportCount = 1;
-  viewportState.pViewports = &viewport;
-  viewportState.scissorCount = 1;
-  viewportState.pScissors = &scissor;
+//   vk::PipelineViewportStateCreateInfo viewportState{};
+//   viewportState.viewportCount = 1;
+//   viewportState.pViewports = &viewport;
+//   viewportState.scissorCount = 1;
+//   viewportState.pScissors = &scissor;
 
+//   vk::PipelineRasterizationStateCreateInfo rasterizer{};
+//   rasterizer.lineWidth = 1.0f;
+//   rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+
+//   vk::PipelineMultisampleStateCreateInfo multisampling{};
+
+//   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
+//   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+//   colorBlendAttachment.blendEnable = VK_FALSE;
+//   std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+
+//   vk::PipelineColorBlendStateCreateInfo colorBlending{};
+//   colorBlending.attachmentCount = uint32_t(states.size());
+//   colorBlending.pAttachments = states.data();
+
+//   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+//   depthStencil.depthTestEnable = VK_TRUE;
+//   depthStencil.depthWriteEnable = VK_TRUE;
+//   depthStencil.depthCompareOp = vk::CompareOp::eLess;
+//   // VkDynamicState dynamicStates[] = {
+//   //   VK_DYNAMIC_STATE_VIEWPORT,
+//   //   VK_DYNAMIC_STATE_LINE_WIDTH
+//   // };
+
+//   // VkPipelineDynamicStateCreateInfo dynamicState = {};
+//   // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+//   // dynamicState.dynamicStateCount = 2;
+//   // dynamicState.pDynamicStates = dynamicStates;
+//   auto pipelineInfo = m_shaders.at("simple").startPipelineInfo();
+
+//   auto vert_info = m_model.inputInfo();
+//   pipelineInfo.pVertexInputState = &vert_info;
+//   pipelineInfo.pInputAssemblyState = &inputAssembly;
+//   pipelineInfo.pViewportState = &viewportState;  
+//   pipelineInfo.pRasterizationState = &rasterizer;
+//   pipelineInfo.pMultisampleState = &multisampling;
+//   pipelineInfo.pDepthStencilState = nullptr; // Optional
+//   pipelineInfo.pColorBlendState = &colorBlending;
+//   pipelineInfo.pDynamicState = nullptr; // Optional
+//   pipelineInfo.pDepthStencilState = &depthStencil;
+  
+//   pipelineInfo.renderPass = m_render_pass;
+//   pipelineInfo.subpass = 0;
+
+//   auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
+  
+//   pipelineInfo2.pVertexInputState = &vert_info;
+  
+//   pipelineInfo2.pInputAssemblyState = &inputAssembly;
+
+//   // cull frontfaces 
+//   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
+//   rasterizer2.lineWidth = 1.0f;
+//   rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
+//   pipelineInfo2.pRasterizationState = &rasterizer2;
+
+//   pipelineInfo2.pViewportState = &viewportState;
+//   pipelineInfo2.pMultisampleState = &multisampling;
+//   pipelineInfo2.pDepthStencilState = nullptr; // Optional
+
+//   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
+//   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+//   colorBlendAttachment2.blendEnable = VK_TRUE;
+//   colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+//   colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+//   colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
+//   colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+//   colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+//   colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
+
+//   vk::PipelineColorBlendStateCreateInfo colorBlending2{};
+//   colorBlending2.attachmentCount = 1;
+//   colorBlending2.pAttachments = &colorBlendAttachment2;
+//   pipelineInfo2.pColorBlendState = &colorBlending2;
+  
+//   pipelineInfo2.pDynamicState = nullptr; // Optional
+//   // shade fragment only if light sphere reaches behind it
+//   vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
+//   depthStencil2.depthTestEnable = VK_TRUE;
+//   depthStencil2.depthWriteEnable = VK_FALSE;
+//   depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
+//   pipelineInfo2.pDepthStencilState = &depthStencil2;
+  
+//   pipelineInfo2.renderPass = m_render_pass;
+//   pipelineInfo2.subpass = 1;
+
+//   pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
+//   pipelineInfo2.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
+//   if (m_pipeline && m_pipeline_2) {
+//     pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
+//     pipelineInfo2.flags |= vk::PipelineCreateFlagBits::eDerivative;
+//     // insert previously created pipeline here to derive this one from
+//     pipelineInfo.basePipelineHandle = m_pipeline.get();
+//     pipelineInfo.basePipelineIndex = -1; // Optional
+//     pipelineInfo2.basePipelineHandle = m_pipeline_2.get();
+//     pipelineInfo2.basePipelineIndex = -1; // Optional
+//   }
+//   auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo, pipelineInfo2});
+//   m_pipeline = pipelines[0];
+//   m_pipeline_2 = pipelines[1];
+// }
+void ApplicationVulkan::createPipelines() {
+  PipelineInfo info_pipe;
+  PipelineInfo info_pipe2;
+
+  info_pipe.setResolution(m_swap_chain.extent());
+  info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
+  
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = vk::CullModeFlagBits::eBack;
-
-  vk::PipelineMultisampleStateCreateInfo multisampling{};
+  info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment.blendEnable = VK_FALSE;
-  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment, colorBlendAttachment, colorBlendAttachment};
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 1);
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
-  vk::PipelineColorBlendStateCreateInfo colorBlending{};
-  colorBlending.attachmentCount = uint32_t(states.size());
-  colorBlending.pAttachments = states.data();
+  info_pipe.setShader(m_shaders.at("simple"));
+  info_pipe.setVertexInput(m_model);
+  info_pipe.setPass(m_render_pass, 0);
+  info_pipe.addDynamic(vk::DynamicState::eViewport);
+  info_pipe.addDynamic(vk::DynamicState::eScissor);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
-  // VkDynamicState dynamicStates[] = {
-  //   VK_DYNAMIC_STATE_VIEWPORT,
-  //   VK_DYNAMIC_STATE_LINE_WIDTH
-  // };
+  info_pipe.setDepthStencil(depthStencil);
 
-  // VkPipelineDynamicStateCreateInfo dynamicState = {};
-  // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  // dynamicState.dynamicStateCount = 2;
-  // dynamicState.pDynamicStates = dynamicStates;
-  auto pipelineInfo = m_shaders.at("simple").startPipelineInfo();
-
-  auto vert_info = m_model.inputInfo();
-  pipelineInfo.pVertexInputState = &vert_info;
-  pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;  
-  pipelineInfo.pRasterizationState = &rasterizer;
-  pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = nullptr; // Optional
-  pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = nullptr; // Optional
-  pipelineInfo.pDepthStencilState = &depthStencil;
+  info_pipe2.setResolution(m_swap_chain.extent());
+  info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleList);
   
-  pipelineInfo.renderPass = m_render_pass;
-  pipelineInfo.subpass = 0;
-
-  auto pipelineInfo2 = m_shaders.at("quad").startPipelineInfo();
-  
-  pipelineInfo2.pVertexInputState = &vert_info;
-  
-  pipelineInfo2.pInputAssemblyState = &inputAssembly;
-
-  // cull frontfaces 
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
   rasterizer2.lineWidth = 1.0f;
   rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
-  pipelineInfo2.pRasterizationState = &rasterizer2;
-
-  pipelineInfo2.pViewportState = &viewportState;
-  pipelineInfo2.pMultisampleState = &multisampling;
-  pipelineInfo2.pDepthStencilState = nullptr; // Optional
+  info_pipe2.setRasterizer(rasterizer2);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
@@ -280,37 +363,36 @@ void ApplicationVulkan::createPipelines() {
   colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
   colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
   colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
+  info_pipe2.setAttachmentBlending(colorBlendAttachment2, 0);
 
-  vk::PipelineColorBlendStateCreateInfo colorBlending2{};
-  colorBlending2.attachmentCount = 1;
-  colorBlending2.pAttachments = &colorBlendAttachment2;
-  pipelineInfo2.pColorBlendState = &colorBlending2;
-  
-  pipelineInfo2.pDynamicState = nullptr; // Optional
-  // shade fragment only if light sphere reaches behind it
-  vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  depthStencil2.depthTestEnable = VK_TRUE;
-  depthStencil2.depthWriteEnable = VK_FALSE;
-  depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
-  pipelineInfo2.pDepthStencilState = &depthStencil2;
-  
-  pipelineInfo2.renderPass = m_render_pass;
-  pipelineInfo2.subpass = 1;
+  info_pipe2.setVertexInput(m_model);
+  info_pipe2.setShader(m_shaders.at("quad"));
+  info_pipe2.setPass(m_render_pass, 1);
+  info_pipe2.addDynamic(vk::DynamicState::eViewport);
+  info_pipe2.addDynamic(vk::DynamicState::eScissor);
 
-  pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  pipelineInfo2.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  if (m_pipeline && m_pipeline_2) {
-    pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
-    pipelineInfo2.flags |= vk::PipelineCreateFlagBits::eDerivative;
-    // insert previously created pipeline here to derive this one from
-    pipelineInfo.basePipelineHandle = m_pipeline.get();
-    pipelineInfo.basePipelineIndex = -1; // Optional
-    pipelineInfo2.basePipelineHandle = m_pipeline_2.get();
-    pipelineInfo2.basePipelineIndex = -1; // Optional
-  }
-  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo, pipelineInfo2});
-  m_pipeline = pipelines[0];
-  m_pipeline_2 = pipelines[1];
+  // vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
+  // depthStencil2.depthTestEnable = VK_TRUE;
+  // depthStencil2.depthWriteEnable = VK_FALSE;
+  // depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
+  // info_pipe.setDepthStencil(depthStencil2);
+
+  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe, m_pipeline_cache});
+  m_pipelines.emplace("quad", Pipeline{m_device, info_pipe2, m_pipeline_cache});
+}
+
+void ApplicationVulkan::updatePipelines() {
+  auto info_pipe = m_pipelines.at("scene").info();
+  info_pipe.setShader(m_shaders.at("simple"));
+  info_pipe.setPass(m_render_pass, 0);
+  info_pipe.setResolution(m_swap_chain.extent());
+  m_pipelines.at("scene").recreate(info_pipe);
+
+  auto info_pipe2 = m_pipelines.at("quad").info();
+  info_pipe2.setShader(m_shaders.at("quad"));
+  info_pipe2.setPass(m_render_pass, 1);
+  info_pipe2.setResolution(m_swap_chain.extent());
+  m_pipelines.at("quad").recreate(info_pipe2);
 }
 
 void ApplicationVulkan::createVertexBuffer() {

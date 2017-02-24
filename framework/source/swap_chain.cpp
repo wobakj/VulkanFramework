@@ -237,6 +237,14 @@ vk::Extent2D const& SwapChain::extent() const {
   return m_info.imageExtent;
 }
 
+vk::Viewport SwapChain::asViewport() const {
+  return vk::Viewport{0.0f, 0.0f, float(extent().width), float(extent().height), 0.0f, 1.0f};
+}
+
+vk::Rect2D SwapChain::asRect() const {
+  return vk::Rect2D{vk::Offset2D{}, extent()};
+}
+
 void SwapChain::destroy() { 
   (*m_device)->destroySwapchainKHR(get());
 }

@@ -51,8 +51,6 @@ class ApplicationClustered : public ApplicationSingle {
 
   // path to the resource folders
   RenderPass m_render_pass;
-  Pipeline m_pipeline;
-  Pipeline m_pipeline_2;
   FrameBuffer m_framebuffer;
   Model m_model;
   Deleter<VkDescriptorPool> m_descriptorPool;

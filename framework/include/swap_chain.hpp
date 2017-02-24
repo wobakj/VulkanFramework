@@ -61,6 +61,8 @@ class SwapChain : public WrapperSwap {
   uint32_t numImages() const;
   vk::Format format() const;
   vk::Extent2D const& extent() const;
+  vk::Viewport asViewport() const;
+  vk::Rect2D asRect() const;
   vk::ImageLayout const& layout() const;
 
  private:

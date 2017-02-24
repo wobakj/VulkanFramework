@@ -24,6 +24,7 @@ class ApplicationVulkan : public ApplicationSingle {
   void render() override;
   void recordDrawBuffer(FrameResource& res) override;
   FrameResource createFrameResource() override;
+  void updatePipelines() override;
   
   void createLights();
   void loadModel();

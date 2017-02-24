@@ -125,6 +125,8 @@ void ApplicationClustered::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").get());
   res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model.buffer()}, {0});
   res.command_buffers.at("gbuffer").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
@@ -139,6 +141,8 @@ void ApplicationClustered::updateCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").get());
   res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("lighting").setScissor(0, {m_swap_chain.asRect()});
 
   res.command_buffers.at("lighting").draw(4, 1, 0, 0);
 
@@ -205,6 +209,8 @@ void ApplicationClustered::createPipelines() {
   info_pipe.setShader(m_shaders.at("simple"));
   info_pipe.setVertexInput(m_model);
   info_pipe.setPass(m_render_pass, 0);
+  info_pipe.addDynamic(vk::DynamicState::eViewport);
+  info_pipe.addDynamic(vk::DynamicState::eScissor);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
@@ -224,6 +230,8 @@ void ApplicationClustered::createPipelines() {
 
   info_pipe2.setShader(m_shaders.at("quad"));
   info_pipe2.setPass(m_render_pass, 1);
+  info_pipe2.addDynamic(vk::DynamicState::eViewport);
+  info_pipe2.addDynamic(vk::DynamicState::eScissor);
 
   m_pipelines.emplace("scene", Pipeline{m_device, info_pipe, m_pipeline_cache});
   m_pipelines.emplace("quad", Pipeline{m_device, info_pipe2, m_pipeline_cache});
