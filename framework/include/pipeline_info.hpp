@@ -30,6 +30,8 @@ class PipelineInfo {
   
   void setRoot(vk::Pipeline const& pass);
 
+  void addDynamic(vk::DynamicState const& state);
+
   operator vk::GraphicsPipelineCreateInfo const&() const;
 
  private:
@@ -45,6 +47,7 @@ class PipelineInfo {
   vk::PipelineDepthStencilStateCreateInfo info_ds;
   vk::PipelineRasterizationStateCreateInfo info_raster;
   vk::PipelineColorBlendStateCreateInfo info_blending;
+  vk::PipelineDynamicStateCreateInfo info_dynamic;
   // secondary resources
   std::vector<vk::PipelineColorBlendAttachmentState> attachment_blendings;
   std::vector<vk::PipelineShaderStageCreateInfo> info_stages;
@@ -54,6 +57,8 @@ class PipelineInfo {
   // vertex input
   std::vector<vk::VertexInputBindingDescription> info_bindings;
   std::vector<vk::VertexInputAttributeDescription> info_attributes;
+  
+  std::vector<vk::DynamicState> info_dynamics;
 };
 
 #endif

@@ -12,6 +12,7 @@ PipelineInfo::PipelineInfo()
  ,info_ds{}
  ,info_raster{}
  ,info_blending{}
+ ,info_dynamic{}
  ,info_viewport{}
  ,info_scissor{}
 {
@@ -34,16 +35,11 @@ PipelineInfo::PipelineInfo()
   info_raster.lineWidth = 1.0f;
   info_raster.cullMode = vk::CullModeFlagBits::eBack;
 
-
   // VkDynamicState dynamicStates[] = {
   //   VK_DYNAMIC_STATE_VIEWPORT,
   //   VK_DYNAMIC_STATE_LINE_WIDTH
   // };
 
-  // VkPipelineDynamicStateCreateInfo dynamicState = {};
-  // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  // dynamicState.dynamicStateCount = 2;
-  // dynamicState.pDynamicStates = dynamicStates;
   info.pDynamicState = nullptr; // Optional
 
   info.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
@@ -66,6 +62,10 @@ PipelineInfo::PipelineInfo(PipelineInfo const& rhs)
 
   for (uint32_t i = 0; i < rhs.attachment_blendings.size(); ++i) {
     setAttachmentBlending(rhs.attachment_blendings[i], i);
+  }
+
+  for (auto const& state : rhs.info_dynamics) {
+    addDynamic(state);
   }
 
   setPass(rhs.info.renderPass, rhs.info.subpass);
@@ -136,6 +136,14 @@ void PipelineInfo::setAttachmentBlending(vk::PipelineColorBlendAttachmentState c
 void PipelineInfo::setPass(vk::RenderPass const& pass, uint32_t subpass) {
   info.renderPass = pass;
   info.subpass = subpass;
+}
+
+void PipelineInfo::addDynamic(vk::DynamicState const& state) {
+  info.pDynamicState = &info_dynamic;
+  
+  info_dynamics.emplace_back(state);
+  info_dynamic.dynamicStateCount = uint32_t(info_dynamics.size());
+  info_dynamic.pDynamicStates = info_dynamics.data();
 }
 
 void PipelineInfo::setRoot(vk::Pipeline const& root) {
