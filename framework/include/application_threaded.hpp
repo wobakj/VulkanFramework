@@ -17,25 +17,18 @@ class ApplicationThreaded : public Application {
  public:
   // possibly override number of frames in abstract child classes
   ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse, uint32_t num_frames = imageCount - 1);
-  void emptyDrawQueue() override;
   virtual ~ApplicationThreaded();
 
   static const uint32_t imageCount;
+  void emptyDrawQueue() override;
 
  protected:
   void createFrameResources();
   // virtual FrameResource createFrameResource() override;
   virtual void shutDown();
-  void resize() override;
-  void recreatePipeline() override;
+  void createRenderResources() override;
+  void updatePipelineUsage() override;
   void startRenderThread();
-  
-  virtual void createFramebuffers() = 0;
-  virtual void createFramebufferAttachments() = 0;
-  virtual void createRenderPasses() = 0;
-  virtual void createMemoryPools() = 0;
-  virtual void createPipelines() = 0;
-  virtual void createDescriptorPools() {};
 
   void pushForDraw(uint32_t frame);
   void pushForPresent(uint32_t frame);

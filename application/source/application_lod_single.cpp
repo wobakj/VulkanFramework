@@ -85,9 +85,7 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
 
   m_statistics.addTimer("update");
 
-  m_frame_resource = createFrameResource();
-  
-  resize();
+  createRenderResources();
 }
 
 ApplicationLodSingle::~ApplicationLodSingle() {

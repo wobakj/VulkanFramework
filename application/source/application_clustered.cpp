@@ -60,16 +60,7 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
   createTextureImages();
   createTextureSamplers();
 
-  m_frame_resource = createFrameResource();
-  
-  createFramebufferAttachments();
-  createRenderPasses();
-  createFramebuffers();
-  createPipelines();
-  createDescriptorPools();
-
-  updateDescriptors(m_frame_resource);
-  updateCommandBuffers(m_frame_resource);
+  createRenderResources();
 }
 
 ApplicationClustered::~ApplicationClustered() {

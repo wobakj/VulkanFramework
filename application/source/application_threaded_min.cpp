@@ -26,9 +26,7 @@ ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path,
 {  
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/solid_frag.spv"}});
 
-  createFrameResources();
-
-  resize();
+  createRenderResources();
 
   startRenderThread();
 }

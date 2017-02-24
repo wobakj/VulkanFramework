@@ -77,9 +77,8 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
   createLights();  
   createTextureImage();
   createTextureSampler();
-  createFrameResources();
 
-  resize();
+  createRenderResources();
 
   m_statistics.addAverager("gpu_copy");
   m_statistics.addAverager("gpu_draw");

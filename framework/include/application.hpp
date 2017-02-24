@@ -33,7 +33,7 @@ class Application {
 
   // render remaining recorded frames before pipeline rebuild
   // required for multithreaded rendering
-  virtual void emptyDrawQueue() {};
+  virtual void emptyDrawQueue() = 0;
   // default parser without arguments
   static cmdline::parser getParser() {
     return cmdline::parser{};
@@ -42,24 +42,27 @@ class Application {
   static const uint32_t imageCount;
 
  protected:
+  virtual void createRenderResources() = 0;
   virtual void createMemoryPools() = 0;
   virtual void createPipelines() = 0;
   virtual void updatePipelines();
+  virtual void updatePipelineUsage() = 0;
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;
-  virtual void createDescriptorPools() {};
   virtual void createRenderPasses() = 0;
+  virtual void createDescriptorPools() {};
+  virtual void createRenderTargets();
 
   virtual void update() {};
   virtual void render() = 0;
   virtual void updateView() {};
-  // called on shader reload
-  virtual void recreatePipeline() = 0;
+  // rebuild pipeline
+  virtual void recreatePipeline();
   // called on resize
-  virtual void resize() = 0;
   virtual FrameResource createFrameResource();
   virtual void updateDescriptors(FrameResource& resource) {};
   virtual void updateCommandBuffers(FrameResource& res) = 0;
+  void updateFrameResource(FrameResource& res);
   
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);

@@ -10,10 +10,13 @@ class ApplicationSingle : public Application {
   ApplicationSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationSingle();
   static const uint32_t imageCount;
+  
+  void emptyDrawQueue() override;
 
  protected:
-  void resize() override;
-  void recreatePipeline();
+  void createRenderResources() override;
+  void updatePipelineUsage() override;
+
   void shutDown();
 
   // void recordTransferBuffer(FrameResource& res);
@@ -25,6 +28,7 @@ class ApplicationSingle : public Application {
 
  private:
   void render() override;
+
 };
 
 #endif

@@ -57,9 +57,7 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createTextureImage();
   createTextureSampler();
 
-  m_frame_resource = createFrameResource();
-
-  resize();
+  createRenderResources();
 }
 
 ApplicationVulkan::~ApplicationVulkan() {

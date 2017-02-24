@@ -24,34 +24,19 @@ FrameResource Application::createFrameResource() {
   return res;
 }
 
-void Application::updateShaderPrograms() {
-	for (auto& pair : m_shaders) {
-    pair.second = Shader{m_device, pair.second.paths()};
-  }
-  recreatePipeline();
-}
-
-void Application::resize(std::size_t width, std::size_t height) {
-  m_camera.setAspect(width, height);
-  resize();
-}
-
-void Application::updatePipelines() {
-  createPipelines();
-}
 
 void Application::frame() {
   static double time_last = glfwGetTime();
-	// calculate delta time
-	double time_current = glfwGetTime();
-	float time_delta = float(time_current - time_last);
-	time_last = time_current;
-	// update buffers
-	m_camera.update(time_delta);
+  // calculate delta time
+  double time_current = glfwGetTime();
+  float time_delta = float(time_current - time_last);
+  time_last = time_current;
+  // update buffers
+  m_camera.update(time_delta);
   // do logic
   update();
-	// do actual rendering
-	render();
+  // do actual rendering
+  render();
 }
 
 void Application::acquireImage(FrameResource& res) {
@@ -106,4 +91,42 @@ void Application::submitDraw(FrameResource& res) {
 
   res.fence("draw").reset();
   m_device.getQueue("graphics").submit(submitInfos, res.fence("draw"));
+}
+
+void Application::updateShaderPrograms() {
+	for (auto& pair : m_shaders) {
+    pair.second = Shader{m_device, pair.second.paths()};
+  }
+  recreatePipeline();
+}
+
+void Application::resize(std::size_t width, std::size_t height) {
+  m_camera.setAspect(width, height);
+  // draw queue is emptied in launcher::resize
+  createRenderTargets();
+  updatePipelines();
+  updatePipelineUsage();
+}
+
+void Application::updatePipelines() {
+  createPipelines();
+}
+
+void Application::createRenderTargets() {
+  createFramebufferAttachments();
+  createRenderPasses();
+  createFramebuffers();
+}
+
+void Application::updateFrameResource(FrameResource& res) {
+  updateDescriptors(res);
+  updateCommandBuffers(res);
+}
+
+void Application::recreatePipeline() {
+  // wait for avaiability of resources
+  emptyDrawQueue();
+  // update pipeline and descriptors
+  updatePipelines();
+  updatePipelineUsage();
 }

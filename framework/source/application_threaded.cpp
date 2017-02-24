@@ -67,6 +67,20 @@ void ApplicationThreaded::createFrameResources() {
   }
 }
 
+void ApplicationThreaded::createRenderResources() {
+  createFrameResources();
+  createRenderTargets();
+  createPipelines();
+  updatePipelineUsage();
+}
+
+void ApplicationThreaded::updatePipelineUsage() {
+  createDescriptorPools();
+  for (auto& res : m_frame_resources) {
+    updateFrameResource(res);
+  }
+}
+
 void ApplicationThreaded::present() {
   // get frame to present
   auto frame_present = pullForPresent();
@@ -213,29 +227,4 @@ void ApplicationThreaded::emptyDrawQueue() {
   }
   // give record queue enough signals to process all frames
   m_semaphore_present.set(uint32_t(m_frame_resources.size()));
-}
-
-void ApplicationThreaded::resize() {
-  // draw queue is emptied in launcher::resize
-  createFramebufferAttachments();
-  createRenderPasses();
-  createFramebuffers();
-
-  updatePipelines();
-  createDescriptorPools();
-  for (auto& res : m_frame_resources) {
-    updateDescriptors(res);
-    updateCommandBuffers(res);
-  }
-}
-
-void ApplicationThreaded::recreatePipeline() {
-  emptyDrawQueue();
-
-  updatePipelines();
-  createDescriptorPools();
-  for (auto& res : m_frame_resources) {
-    updateDescriptors(res);
-    updateCommandBuffers(res);
-  }
 }

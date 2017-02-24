@@ -12,8 +12,6 @@ ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& d
   m_statistics.addTimer("render");
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("fence_draw");
-
-  // m_frame_resource = createFrameResource();  
 }
 
 void ApplicationSingle::shutDown() {
@@ -26,6 +24,19 @@ ApplicationSingle::~ApplicationSingle() {
   std::cout << "Average render time: " << m_statistics.get("render") << " milliseconds" << std::endl;
   std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
   std::cout << "Average draw fence time: " << m_statistics.get("fence_draw") << " milliseconds" << std::endl;
+}
+
+void ApplicationSingle::createRenderResources() {
+  m_frame_resource = createFrameResource();
+  
+  createRenderTargets();
+  createPipelines();
+  updatePipelineUsage();
+}
+
+void ApplicationSingle::updatePipelineUsage() {
+  createDescriptorPools();
+  updateFrameResource(m_frame_resource);
 }
 
 FrameResource ApplicationSingle::createFrameResource() {
@@ -54,22 +65,7 @@ void ApplicationSingle::render() {
   m_statistics.stop("render");
 }
 
-///////////////////////////// update functions ////////////////////////////////
-void ApplicationSingle::resize() {
+void ApplicationSingle::emptyDrawQueue() {
+  // no draw queue exists, just wait forcurrent draw
   m_frame_resource.waitFences();
-  createFramebufferAttachments();
-  createRenderPasses();
-  createFramebuffers();
-
-  recreatePipeline();
-}
-
-void ApplicationSingle::recreatePipeline() {
-  // make sure pipeline is free before rebuilding
-  m_frame_resource.waitFences();
-  updatePipelines();
-  createDescriptorPools();
-
-  updateDescriptors(m_frame_resource);
-  updateCommandBuffers(m_frame_resource);
 }

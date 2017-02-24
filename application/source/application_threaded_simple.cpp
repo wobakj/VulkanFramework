@@ -59,9 +59,9 @@ ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource
   createLights();  
   createTextureImage();
   createTextureSampler();
-  createFrameResources();
 
-  resize();
+  createRenderResources();
+
 
   startRenderThread();
 }
