@@ -26,6 +26,7 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   void recordDrawBuffer(FrameResource& res) override;
   void updateCommandBuffers(FrameResource& res) override;
   void updateDescriptors(FrameResource& resource) override;
+  void updatePipelines() override;
   
   void createLights();
   void loadModel();
@@ -49,16 +50,11 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
 
   // path to the resource folders
   RenderPass m_render_pass;
-  Deleter<VkPipeline> m_pipeline;
-  Deleter<VkPipeline> m_pipeline_2;
   FrameBuffer m_framebuffer;
   Model m_model;
   Model m_model_2;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
-  vk::DescriptorSet m_descriptorSet;
-  vk::DescriptorSet m_descriptorSet_3;
-  vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
 
   bool m_sphere;
