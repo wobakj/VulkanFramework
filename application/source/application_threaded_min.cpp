@@ -22,9 +22,8 @@ const uint32_t ApplicationThreadedMin::imageCount = 3;
 
 ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded{resource_path, device, chain, window, cmd_parse}
- ,m_pipeline{m_device, vkDestroyPipeline}
 {  
-  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/solid_frag.spv"}});
+  m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/solid_frag.spv"}});
 
   createRenderResources();
 
@@ -42,7 +41,6 @@ FrameResource ApplicationThreadedMin::createFrameResource() {
 }
 
 void ApplicationThreadedMin::updateCommandBuffers(FrameResource& res) {
-
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -53,7 +51,9 @@ void ApplicationThreadedMin::updateCommandBuffers(FrameResource& res) {
   // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
+  res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
 
   res.command_buffers.at("gbuffer").draw(3, 1, 0, 0);
 
@@ -93,67 +93,34 @@ void ApplicationThreadedMin::createRenderPasses() {
 }
 
 void ApplicationThreadedMin::createPipelines() {
+  PipelineInfo info_pipe;
+
+  info_pipe.setResolution(m_swap_chain.extent());
+  info_pipe.setTopology(vk::PrimitiveTopology::eTriangleStrip);
   
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
-  inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
-
-  vk::Viewport viewport{};
-  viewport.width = (float) m_swap_chain.extent().width;
-  viewport.height = (float) m_swap_chain.extent().height;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
-
-  vk::Rect2D scissor{};
-  scissor.extent = m_swap_chain.extent();
-
-  vk::PipelineViewportStateCreateInfo viewportState{};
-  viewportState.viewportCount = 1;
-  viewportState.pViewports = &viewport;
-  viewportState.scissorCount = 1;
-  viewportState.pScissors = &scissor;
-
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = vk::CullModeFlagBits::eNone;
-
-  vk::PipelineMultisampleStateCreateInfo multisampling{};
+  info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment.blendEnable = VK_FALSE;
-  std::vector<vk::PipelineColorBlendAttachmentState> states{colorBlendAttachment};
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
 
-  vk::PipelineColorBlendStateCreateInfo colorBlending{};
-  colorBlending.attachmentCount = uint32_t(states.size());
-  colorBlending.pAttachments = states.data();
+  info_pipe.setShader(m_shaders.at("scene"));
+  info_pipe.setPass(m_render_pass, 0);
+  info_pipe.addDynamic(vk::DynamicState::eViewport);
+  info_pipe.addDynamic(vk::DynamicState::eScissor);
 
-  vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe, m_pipeline_cache});
+}
 
-  auto pipelineInfo = m_shaders.at("simple").startPipelineInfo();
-
-  vk::PipelineVertexInputStateCreateInfo vert_info{};
-  pipelineInfo.pVertexInputState = &vert_info;
-  pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;  
-  pipelineInfo.pRasterizationState = &rasterizer;
-  pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = nullptr; // Optional
-  pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = nullptr; // Optional
-  pipelineInfo.pDepthStencilState = &depthStencil;
-  
-  pipelineInfo.renderPass = m_render_pass;
-  pipelineInfo.subpass = 0;
-
-  pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  if (m_pipeline) {
-    pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
-    // insert previously created pipeline here to derive this one from
-    pipelineInfo.basePipelineHandle = m_pipeline.get();
-    pipelineInfo.basePipelineIndex = -1; // Optional
-  }
-  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo});
-  m_pipeline = pipelines[0];
+void ApplicationThreadedMin::updatePipelines() {
+  auto info_pipe = m_pipelines.at("scene").info();
+  info_pipe.setShader(m_shaders.at("scene"));
+  info_pipe.setPass(m_render_pass, 0);
+  info_pipe.setResolution(m_swap_chain.extent());
+  m_pipelines.at("scene").recreate(info_pipe);
 }
 
 void ApplicationThreadedMin::createMemoryPools() {

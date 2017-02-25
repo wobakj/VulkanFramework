@@ -71,7 +71,7 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
 
   createVertexBuffer(cmd_parse.rest()[0], cmd_parse.get<int>("cut"), cmd_parse.get<int>("upload"));
 
-  m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/forward_lod_frag.spv"}});
+  m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/lod_vert.spv", m_resource_path + "shaders/forward_lod_frag.spv"}});
 
   createUniformBuffers();
   createLights();  

@@ -39,8 +39,6 @@ const uint32_t ApplicationVulkan::imageCount = 2;
 
 ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_pipeline{m_device, vkDestroyPipeline}
- ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}

@@ -24,6 +24,7 @@ class ApplicationThreadedMin : public ApplicationThreaded {
  private:
   void recordDrawBuffer(FrameResource& res) override;
   void updateCommandBuffers(FrameResource& res) override;
+  void updatePipelines() override;
   
   void createFramebuffers() override;
   void createFramebufferAttachments() override;
@@ -36,7 +37,6 @@ class ApplicationThreadedMin : public ApplicationThreaded {
 
   // path to the resource folders
   RenderPass m_render_pass;
-  Deleter<VkPipeline> m_pipeline;
   FrameBuffer m_framebuffer;
 };
 

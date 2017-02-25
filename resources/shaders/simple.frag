@@ -22,7 +22,6 @@ layout(set = 1, binding = 1) buffer LevelBuffer {
 layout(location = 0) out vec4 out_Color;
 layout(location = 1) out vec4 out_Position;
 layout(location = 2) out vec4 out_Normal;
-layout(location = 3) flat in int frag_VertexIndex;
 
 void main() {
   out_Color = vec4(texture(texSampler, frag_Texcoord).rgb, 0.5);
