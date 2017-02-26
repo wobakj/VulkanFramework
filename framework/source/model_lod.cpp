@@ -79,7 +79,7 @@ ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budg
   }
   // store model for easier descriptor generation
   m_model = model_t{m_nodes.front(), model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
-  m_bind_info = model_to_bind(m_model);
+  m_bind_info.emplace_back(model_to_bind(m_model));
   m_attrib_info = model_to_attr(m_model);
 
   std::cout << "Bvh has depth " << m_bvh.get_depth() << ", with " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
@@ -423,6 +423,14 @@ std::size_t ModelLod::numNodes() const {
   return m_num_nodes;
 }
 
+std::vector<vk::VertexInputBindingDescription> const& ModelLod::bindInfos() const {
+  return m_bind_info;
+}
+
+std::vector<vk::VertexInputAttributeDescription> const& ModelLod::attributeInfos() const {
+  return m_attrib_info;
+}
+
 std::vector<std::size_t> const& ModelLod::cut() const {
   return m_cut;
 }
@@ -439,7 +447,7 @@ vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.vertexBindingDescriptionCount = 1;
   vertexInputInfo.vertexAttributeDescriptionCount = std::uint32_t(m_attrib_info.size());
-  vertexInputInfo.pVertexBindingDescriptions = &m_bind_info;
+  vertexInputInfo.pVertexBindingDescriptions = m_bind_info.data();
   vertexInputInfo.pVertexAttributeDescriptions = m_attrib_info.data();
   return vertexInputInfo;
 }

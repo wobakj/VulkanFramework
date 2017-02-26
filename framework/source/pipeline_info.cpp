@@ -2,6 +2,7 @@
 
 #include "shader.hpp"
 #include "model.hpp"
+#include "model_lod.hpp"
 
 PipelineInfo::PipelineInfo()
  :info{}
@@ -81,6 +82,11 @@ void PipelineInfo::setShader(Shader const& shader) {
 }
 
 void PipelineInfo::setVertexInput(Model const& model) {
+  setVertexBindings(model.bindInfos());
+  setVertexAttributes(model.attributeInfos());
+}
+
+void PipelineInfo::setVertexInput(ModelLod const& model) {
   setVertexBindings(model.bindInfos());
   setVertexAttributes(model.attributeInfos());
 }

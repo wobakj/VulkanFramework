@@ -49,7 +49,9 @@ class ModelLod {
   std::uint32_t numVertices() const;
   std::size_t numUploads() const;
   std::size_t sizeNode() const;
-
+  std::vector<vk::VertexInputBindingDescription> const& bindInfos() const;
+  std::vector<vk::VertexInputAttributeDescription> const& attributeInfos() const;
+  
   void update(Camera const& cam);
   void performCopiesCommand(vk::CommandBuffer const& command_buffer);
   void updateDrawCommands(vk::CommandBuffer const& command_buffer);
@@ -84,7 +86,7 @@ class ModelLod {
 
   model_t m_model;
   Device const* m_device;
-  vk::VertexInputBindingDescription m_bind_info;
+  std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer;
   Buffer m_buffer_stage;

@@ -6,6 +6,7 @@
 
 class Shader;
 class Model;
+class ModelLod;
 
 class PipelineInfo {
  public:
@@ -15,6 +16,7 @@ class PipelineInfo {
   void setShader(Shader const& shader);
 
   void setVertexInput(Model const& model);
+  void setVertexInput(ModelLod const& model);
 
   void setTopology(vk::PrimitiveTopology const& topo);
 
