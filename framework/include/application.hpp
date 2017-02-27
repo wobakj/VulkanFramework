@@ -58,7 +58,7 @@ class Application {
   virtual void updateCommandBuffers() = 0;
   virtual void updateDescriptors() = 0;
 
-  virtual void update() {};
+  virtual void logic() {};
   virtual void render() = 0;
   virtual void updateView() {};
 

@@ -34,7 +34,7 @@ void Application::frame() {
   // update buffers
   m_camera.update(time_delta);
   // do logic
-  update();
+  logic();
   // do actual rendering
   render();
 }
