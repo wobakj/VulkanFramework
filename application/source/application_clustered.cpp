@@ -47,7 +47,7 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- // assume all lights are in all cells
+ ,m_light_grid{m_camera.near(), m_camera.far(), m_camera.projectionMatrix(), glm::uvec2(chain.extent().width, chain.extent().height)}
  ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, -1)
 {
 
@@ -99,114 +99,26 @@ void ApplicationClustered::render() {
   presentFrame(m_frame_resource);
 }
 
-float ApplicationClustered::zFromFrustumSlice(unsigned int slice) const {
-  // values from Emil Persson's "Practical Clustered Shading"
-  // (http://www.humus.name/Articles/PracticalClusteredShading.pdf)
-  std::vector<float> z = {0.1,  5.0,  6.8, 9.2, 12.6, 17.1, 23.2, 31.5, 42.9,
-                          58.3, 79.2, 108, 146, 199,  271,  368,  500};
-  // TODO: replace this with dynamically computed values
-  return -z.at(slice);
-}
-
-glm::vec3 ApplicationClustered::froxelCorner(
-    unsigned int tileX,
-    unsigned int tileY,
-    float z,
-    std::vector<glm::vec3> const& frustumCorners) const {
-  auto t =
-      glm::vec2(tileX / (float)RES_LIGHT_VOL.x, tileY / (float)RES_LIGHT_VOL.y);
-
-  auto ray = glm::mix(
-      // linear interpolation between upper left and right corner of the
-      // frustum's near plane
-      glm::mix(frustumCorners[0], frustumCorners[1], t.x),
-      // linear interpolation between lower left and right corner of the
-      // frustum's near plane
-      glm::mix(frustumCorners[3], frustumCorners[2], t.x),
-      // linear interpolation between these two points in y-direction
-      // 1 - t.y because we start at the top
-      1 - t.y);
-  ray = glm::normalize(ray);
-
-  // set the length to the desired depth
-  return ray * (z / ray.z);
-}
-
-// from Oculus' Clustered Renderer using Unreal Engine
-// (https://github.com/Oculus-VR/UnrealEngine/blob/4.12-ofr/Engine/Shaders/ClusteredLightGridInjection.usf#L60)
-float ApplicationClustered::pointFroxelDistance(
-    glm::vec3 const& froxelFrontTopLeft,
-    glm::vec3 const& froxelFrontBottomRight,
-    glm::vec3 const& froxelBackTopLeft,
-    glm::vec3 const& froxelBackBottomRight,
-    glm::vec3 const& froxelCenter,
-    glm::vec3 const& planeNormal,
-    glm::vec3 const& point) const {
-  float min1 = -dot(planeNormal, point);
-  float min2 = min1;
-
-  // factors out a ton of common terms.
-  min1 += glm::min(planeNormal.x * froxelFrontTopLeft.x,
-                   planeNormal.x * froxelFrontBottomRight.x);
-  min1 += glm::min(planeNormal.y * froxelFrontTopLeft.y,
-                   planeNormal.y * froxelFrontBottomRight.y);
-  min1 += planeNormal.z * froxelFrontTopLeft.z;
-  min2 += glm::min(planeNormal.x * froxelBackTopLeft.x,
-                   planeNormal.x * froxelBackBottomRight.x);
-  min2 += glm::min(planeNormal.y * froxelBackTopLeft.y,
-                   planeNormal.y * froxelBackBottomRight.y);
-  min2 += planeNormal.z * froxelBackBottomRight.z;
-
-  return glm::min(min1, min2);
-}
-
 void ApplicationClustered::updateLightVolume() {
-  auto invProj = glm::inverse(m_camera.projectionMatrix());
-  auto frustumNearCornersClipSpace = {
-      glm::vec4(-1.0f, +1.0f, 0.0f, 1.0f),  // bottom left
-      glm::vec4(+1.0f, +1.0f, 0.0f, 1.0f),  // bottom right
-      glm::vec4(+1.0f, -1.0f, 0.0f, 1.0f),  // top right
-      glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f)   // top left
-  };
-
-  // compute near corners of the frustum
-  std::vector<glm::vec3> frustumCornersViewSpace;
-  for (auto& cornerClipSpace : frustumNearCornersClipSpace) {
-    auto corner = invProj * cornerClipSpace;
-    frustumCornersViewSpace.push_back(glm::vec3(corner) / corner.w);
-  }
-
+  m_light_grid.update(
+      m_camera.projectionMatrix(),
+      glm::uvec2(m_swap_chain.extent().width, m_swap_chain.extent().height));
+  std::cerr << glm::to_string(m_light_grid.dimensions()) << std::endl;
   // update light colume data
-  for (uint32_t z = 0; z < RES_LIGHT_VOL.z; ++z) {
-    // compute depth range for this slice
-    float nearZ = zFromFrustumSlice(z);
-    float farZ = zFromFrustumSlice(z + 1);
-    for (uint32_t x = 0; x < RES_LIGHT_VOL.x; ++x) {
-      for (uint32_t y = 0; y < RES_LIGHT_VOL.y; ++y) {
-        // compute froxel corners
-        auto topLeftNear = froxelCorner(x, y, nearZ, frustumCornersViewSpace);
-        auto bottomRightNear =
-            froxelCorner(x + 1, y + 1, nearZ, frustumCornersViewSpace);
-        auto topLeftFar = froxelCorner(x, y, farZ, frustumCornersViewSpace);
-        auto bottomRightFar =
-            froxelCorner(x + 1, y + 1, farZ, frustumCornersViewSpace);
-        auto center = (topLeftNear + bottomRightFar) * 0.5f;
-
+  for (uint32_t z = 0; z < m_light_grid.dimensions().z; ++z)
+    for (uint32_t x = 0; x < m_light_grid.dimensions().x; ++x)
+      for (uint32_t y = 0; y < m_light_grid.dimensions().y; ++y)
         for (unsigned int i = 0; i < NUM_LIGHTS; ++i) {
           auto lightPos = glm::vec4(buff_l.lights[i].position, 1.0f);
           auto lightPosViewSpaceVec4 = m_camera.viewMatrix() * lightPos;
           auto lightPosViewSpace =
               glm::vec3(lightPosViewSpaceVec4) / lightPosViewSpaceVec4.w;
-          glm::vec3 planeNormal = glm::normalize(center - lightPosViewSpace);
-          if (pointFroxelDistance(topLeftNear, bottomRightNear, topLeftFar,
-                                  bottomRightFar, center, planeNormal,
-                                  lightPosViewSpace) < buff_l.lights[i].radius)
-            m_data_light_volume[z * RES_LIGHT_VOL.y * RES_LIGHT_VOL.x +
-                                y * RES_LIGHT_VOL.x + x] |= 1 << i;
+          if (m_light_grid.pointFroxelDistance(x, y, z, lightPosViewSpace) <
+              buff_l.lights[i].radius)
+            m_data_light_volume.at(
+                z * m_light_grid.dimensions().y * m_light_grid.dimensions().x +
+                y * m_light_grid.dimensions().x + x) |= 1 << i;
         }
-      }
-    }
-  }
 
   m_device.uploadImageData(m_data_light_volume.data(),
                            m_images.at("light_vol"));

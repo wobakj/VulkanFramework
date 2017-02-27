@@ -4,6 +4,7 @@
 #include "application_single.hpp"
 
 #include "deleter.hpp"
+#include "light_grid.hpp"
 #include "model.hpp"
 #include "render_pass.hpp"
 #include "frame_buffer.hpp"
@@ -77,6 +78,7 @@ class ApplicationClustered : public ApplicationSingle {
   Deleter<VkSampler> m_volumeSampler;
   std::thread m_thread_load;
 
+  LightGrid m_light_grid;
   std::vector<uint32_t> m_data_light_volume;
 };
 
