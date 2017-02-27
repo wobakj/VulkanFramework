@@ -70,6 +70,7 @@ FrameResource ApplicationVulkan::createFrameResource() {
 }
 
 void ApplicationVulkan::updateModel() {
+  emptyDrawQueue();
   m_sphere = false;
   updateResourceCommandBuffers(m_frame_resource);
   m_model_dirty = false;
@@ -83,27 +84,15 @@ void ApplicationVulkan::updateModel() {
   #endif
 }
 
-void ApplicationVulkan::render() { 
-  // make sure image was acquired
-  m_frame_resource.fence("acquire").wait();
-  acquireImage(m_frame_resource);
-  // make sure no command buffer is in use
-  m_frame_resource.fence("draw").wait();
-
+void ApplicationVulkan::update() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();
     }
   }
-
   if (m_camera.changed()) {
     updateView();
   }
-  recordDrawBuffer(m_frame_resource);
-  
-  submitDraw(m_frame_resource);
-
-  presentFrame(m_frame_resource);
 }
 
 void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {

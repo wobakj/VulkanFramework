@@ -14,7 +14,6 @@
 #include "fence.hpp"
 #include "frame_resource.hpp"
 #include "semaphore.hpp"
-#include "statistics.hpp"
 
 #include "averager.hpp"
 #include "timer.hpp"

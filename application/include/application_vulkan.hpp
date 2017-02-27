@@ -21,7 +21,8 @@ class ApplicationVulkan : public ApplicationSingle {
   static const uint32_t imageCount;
   
  private:
-  void render() override;
+  void update() override;
+  // void render() override;
   void recordDrawBuffer(FrameResource& res) override;
   FrameResource createFrameResource() override;
   void updatePipelines() override;

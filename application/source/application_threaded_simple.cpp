@@ -78,8 +78,8 @@ FrameResource ApplicationThreadedSimple::createFrameResource() {
 }
 
 void ApplicationThreadedSimple::updateModel() {
-  m_sphere = false;
   emptyDrawQueue();
+  m_sphere = false;
   for (auto& res : m_frame_resources) {
     updateResourceCommandBuffers(res);
   }
