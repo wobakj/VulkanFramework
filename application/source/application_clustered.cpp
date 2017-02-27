@@ -235,14 +235,10 @@ void ApplicationClustered::createPipelines() {
 void ApplicationClustered::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("simple"));
-  info_pipe.setPass(m_render_pass, 0);
-  info_pipe.setResolution(m_swap_chain.extent());
   m_pipelines.at("scene").recreate(info_pipe);
 
   auto info_pipe2 = m_pipelines.at("quad").info();
   info_pipe2.setShader(m_shaders.at("quad"));
-  info_pipe2.setPass(m_render_pass, 1);
-  info_pipe2.setResolution(m_swap_chain.extent());
   m_pipelines.at("quad").recreate(info_pipe2);
 }
 

@@ -45,8 +45,6 @@ class Application {
  protected:
   // call at construction
   void createRenderResources();
-  // call at construction and resize
-  void createRenderTargets();
   // call at shader reload/pipeline config change
   virtual void recreatePipeline();
   virtual void createDescriptorPools() {};

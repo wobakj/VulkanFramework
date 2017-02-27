@@ -118,8 +118,6 @@ void ApplicationThreadedMin::createPipelines() {
 void ApplicationThreadedMin::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("scene"));
-  info_pipe.setPass(m_render_pass, 0);
-  info_pipe.setResolution(m_swap_chain.extent());
   m_pipelines.at("scene").recreate(info_pipe);
 }
 
