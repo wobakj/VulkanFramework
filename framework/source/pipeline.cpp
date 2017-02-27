@@ -47,3 +47,7 @@ void Pipeline::swap(Pipeline& Pipeline) {
   std::swap(m_device, Pipeline.m_device);
   std::swap(m_cache, Pipeline.m_cache);
 }
+
+vk::PipelineLayout const& Pipeline::layout() const {
+  return info().layout();
+}

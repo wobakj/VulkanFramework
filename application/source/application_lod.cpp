@@ -125,7 +125,7 @@ void ApplicationLod::updateResourceCommandBuffers(FrameResource& res) {
 
   res.commandBuffer("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
 
-  res.commandBuffer("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lod").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.commandBuffer("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
 

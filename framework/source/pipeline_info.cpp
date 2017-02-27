@@ -161,3 +161,15 @@ void PipelineInfo::setRoot(vk::Pipeline const& root) {
 PipelineInfo::operator vk::GraphicsPipelineCreateInfo const&() const {
   return info;
 }
+
+vk::PipelineLayout const& PipelineInfo::layout() const {
+  return info.layout;
+}
+
+vk::PipelineRasterizationStateCreateInfo const& PipelineInfo::rasterizer() const {
+  return info_raster;
+}
+
+vk::PipelineDepthStencilStateCreateInfo const& PipelineInfo::depthStencil() const {
+  return info_ds;
+}

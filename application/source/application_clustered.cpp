@@ -118,8 +118,8 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").get());
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
 
@@ -134,8 +134,8 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").reset({});
   res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").get());
-  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad"));
+  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("lighting").setScissor(0, {m_swap_chain.asRect()});
 

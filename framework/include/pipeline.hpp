@@ -23,6 +23,8 @@ class Pipeline : public WrapperPipeline {
   void swap(Pipeline& rhs);
 
   void recreate(PipelineInfo const& info);
+  // forward info method to prevent trainwreck
+  vk::PipelineLayout const& layout() const;
 
  private:
   void destroy() override;
