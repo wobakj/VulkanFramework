@@ -51,6 +51,7 @@ include_directories(SYSTEM external/gli-0.8.2.0)
 # add tinyobjloader
 include_directories(external/tinyobjloader-aa07206)
 # just one file so it can be directly compiled into main exe
+# file(GLOB TINYOBJLOADER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader-1.0.5/*.cc)
 file(GLOB TINYOBJLOADER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader-aa07206/*.cc)
 # bvh loading files
 add_sublibrary(bvh ${CMAKE_CURRENT_SOURCE_DIR}/external/bvh "")

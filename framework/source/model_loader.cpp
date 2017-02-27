@@ -1,12 +1,38 @@
 #include "model_loader.hpp"
+
 #include "bvh.h"
 #include "lod_stream.h"
+
+#include "tiny_obj_loader.h"
 
 // use floats and med precision operations
 #include <glm/gtc/type_precision.hpp>
 #include <glm/geometric.hpp>
 
 #include <iostream>
+
+
+// struct Vertex {
+//   Vertex(glm::vec3 const& position,
+//          glm::vec3 const& normal,
+//          glm::vec2 const& texCoord,
+//          int materialId = -1)
+//       : position(position),
+//         normal(normal),
+//         texCoord(texCoord),
+//         materialId(materialId) {}
+
+//   glm::vec3 position;
+//   glm::vec3 normal;
+//   glm::vec2 texCoord;
+// };
+
+// struct Shape {
+//   std::string name;
+//   unsigned int indexOffset;
+//   unsigned int numIndices;
+//   int materialId = -1;
+// };
 
 namespace model_loader {
 
@@ -104,6 +130,82 @@ model_t obj(std::string const& name, model_t::attrib_flag_t import_attribs){
   return model_t{vertex_data, attributes, triangles};
 }
 
+// model_t obj(std::string const& name, model_t::attrib_flag_t import_attribs) {
+//   tinyobj::attrib_t attrib;
+//   std::vector<tinyobj::shape_t> shapes;
+//   std::string err;
+
+//   bool ret =
+//       tinyobj::LoadObj(&attrib, &shapes, &m_materials, &err, filename.c_str());
+//   if (!ret)
+//     throw std::runtime_error("Failed to load mesh from '" + filename + "'");
+//   else if (!err.empty())
+//     throw std::runtime_error("Failed to load mesh from '" + filename + "'");
+
+//   std::map<tinyobj::index_t, uint32_t> vertexToIndexMap;
+//   std::vector<Vertex> vertices;
+//   std::vector<uint32_t> indices;
+
+//   // iterate over shapes
+//   for (size_t s = 0; s < shapes.size(); s++) {
+//     Shape shape;
+//     shape.indexOffset = indices.size();
+//     // use first material used in this mesh instead of materials per face
+//     shape.materialId = shapes[s].mesh.material_ids[0];
+//     // iterate over faces
+//     size_t index_offset = 0;
+//     for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+//       int fv = shapes[s].mesh.num_face_vertices[f];
+//       // int material = shapes[s].mesh.material_ids[f];
+
+//       // iterate over the face's vertices
+//       for (size_t v = 0; v < fv; v++) {
+//         tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+//         // check if we already have such a vertex
+//         auto it = vertexToIndexMap.find(idx);
+//         if (it == vertexToIndexMap.end()) {
+//           glm::vec3 pos = glm::vec3(attrib.vertices[3 * idx.vertex_index + 0],
+//                           attrib.vertices[3 * idx.vertex_index + 1],
+//                           attrib.vertices[3 * idx.vertex_index + 2]);
+//           glm::vec3 normal;
+//           if (idx.normal_index >= 0)
+//             normal = glm::vec3(attrib.normals[3 * idx.normal_index + 0],
+//                                attrib.normals[3 * idx.normal_index + 1],
+//                                attrib.normals[3 * idx.normal_index + 2]);
+//           glm::vec2 texcoord;
+//           if (idx.texcoord_index >= 0)
+//             texcoord =
+//                 glm::vec2(attrib.texcoords[2 * idx.texcoord_index + 0],
+//                           1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]);
+          
+//           uint32_t index = vertices.size();
+//           vertexToIndexMap.emplace(idx, index);
+//           vertices.push_back(Vertex(pos, normal, texcoord, material));
+//           indices.push_back(index);
+//         } 
+//         else {
+//           indices.push_back(it->second);
+//         }
+//       }
+//       index_offset += fv;
+//     }
+//     shape.numIndices = indices.size() - shape.indexOffset;
+//     m_shapes.push_back(shape);
+//   }
+
+//   auto verticesSize = sizeof(vertices[0]) * vertices.size();
+//   auto indicesSize = sizeof(indices[0]) * indices.size();
+//   // m_buffer =
+//   //     std::make_unique<Buffer>(m_log, m_device, verticesSize + indicesSize,
+//   //                              vk::BufferUsageFlagBits::eVertexBuffer |
+//   //                                  vk::BufferUsageFlagBits::eIndexBuffer,
+//   //                              vk::MemoryPropertyFlagBits::eDeviceLocal);
+//   // m_buffer->upload(vertices.data(), verticesSize, 0);
+//   // m_buffer->upload(indices.data(), indicesSize, verticesSize);
+
+//   m_numIndices = indices.size();
+//   m_indexOffset = verticesSize;
+// }
 void generate_normals(tinyobj::mesh_t& model) {
   std::vector<glm::fvec3> positions(model.positions.size() / 3);
 

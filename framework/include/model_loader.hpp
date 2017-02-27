@@ -5,6 +5,19 @@
 
 #include "tiny_obj_loader.h"
 
+// namespace tinyobj {
+// bool operator<(tinyobj::index_t const& lhs,
+//                       tinyobj::index_t const& rhs) {
+//   if (lhs.vertex_index == rhs.vertex_index) {
+//     if (lhs.normal_index == rhs.normal_index) {
+//       return lhs.texcoord_index < rhs.texcoord_index;
+//     } else
+//       return lhs.normal_index < rhs.normal_index;
+//   } else
+//     return lhs.vertex_index < rhs.vertex_index;
+// }
+// };
+
 namespace vklod {
   class bvh;
 }
