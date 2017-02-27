@@ -20,6 +20,8 @@ class Camera {
   glm::fmat4 const& projectionMatrix() const;
   glm::fvec3 position() const;
   glm::fvec2 const& fov() const;
+  float near() const;
+  float far() const;
   Frustum const& frustum() const;
   bool changed() const;
 

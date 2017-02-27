@@ -88,6 +88,14 @@ glm::fvec2 const& Camera::fov() const {
   return fov_;
 }
 
+float Camera::near() const {
+  return z_near_;
+}
+
+float Camera::far() const {
+  return z_far_;
+}
+
 Frustum const& Camera::frustum() const {
   return m_frustum;
 }
