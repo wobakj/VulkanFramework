@@ -43,16 +43,17 @@ class Application {
   static const uint32_t imageCount;
 
  protected:
-  virtual void createRenderResources() = 0;
+  void createRenderResources();
   virtual void createMemoryPools() = 0;
   virtual void createPipelines() = 0;
   virtual void updatePipelines();
-  virtual void updatePipelineUsage() = 0;
+  virtual void updateFrameResources() = 0;
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;
   virtual void createRenderPasses() = 0;
   virtual void createDescriptorPools() {};
   virtual void createRenderTargets();
+  virtual void createFrameResources() = 0;
 
   virtual void update() {};
   virtual void render() = 0;

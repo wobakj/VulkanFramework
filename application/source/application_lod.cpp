@@ -273,6 +273,7 @@ void ApplicationLod::createPipelines() {
   }
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
+  info_pipe.setDepthStencil(depthStencil);
 
   info_pipe.setShader(m_shaders.at("lod"));
   info_pipe.setVertexInput(m_model_lod);
@@ -321,6 +322,7 @@ void ApplicationLod::updatePipelines() {
   }
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
+  info_pipe.setDepthStencil(depthStencil);
 
   info_pipe.setShader(m_shaders.at("lod"));
   info_pipe.setPass(m_render_pass, 0);

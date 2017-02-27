@@ -67,15 +67,7 @@ void ApplicationThreaded::createFrameResources() {
   }
 }
 
-void ApplicationThreaded::createRenderResources() {
-  createFrameResources();
-  createRenderTargets();
-  createPipelines();
-  updatePipelineUsage();
-}
-
-void ApplicationThreaded::updatePipelineUsage() {
-  createDescriptorPools();
+void ApplicationThreaded::updateFrameResources() {
   for (auto& res : m_frame_resources) {
     updateFrameResource(res);
   }

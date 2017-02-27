@@ -104,8 +104,8 @@ void Application::resize(std::size_t width, std::size_t height) {
   m_camera.setAspect(width, height);
   // draw queue is emptied in launcher::resize
   createRenderTargets();
-  updatePipelines();
-  updatePipelineUsage();
+  // updatePipelines();
+  updateFrameResources();
 }
 
 void Application::updatePipelines() {
@@ -128,5 +128,14 @@ void Application::recreatePipeline() {
   emptyDrawQueue();
   // update pipeline and descriptors
   updatePipelines();
-  updatePipelineUsage();
+  createDescriptorPools();
+  updateFrameResources();
+}
+
+void Application::createRenderResources() {
+  createFrameResources();
+  createRenderTargets();
+  createPipelines();
+  createDescriptorPools();
+  updateFrameResources();
 }

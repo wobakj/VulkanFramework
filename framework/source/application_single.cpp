@@ -26,16 +26,11 @@ ApplicationSingle::~ApplicationSingle() {
   std::cout << "Average draw fence time: " << m_statistics.get("fence_draw") << " milliseconds" << std::endl;
 }
 
-void ApplicationSingle::createRenderResources() {
+void ApplicationSingle::createFrameResources() {
   m_frame_resource = createFrameResource();
-  
-  createRenderTargets();
-  createPipelines();
-  updatePipelineUsage();
 }
 
-void ApplicationSingle::updatePipelineUsage() {
-  createDescriptorPools();
+void ApplicationSingle::updateFrameResources() {
   updateFrameResource(m_frame_resource);
 }
 
