@@ -13,6 +13,11 @@
 
 #include <vulkan/vulkan.hpp>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 #include <thread>
 
 class ApplicationClustered : public ApplicationSingle {
@@ -36,6 +41,19 @@ class ApplicationClustered : public ApplicationSingle {
   void createVertexBuffer();
   void createTextureImages();
   void createTextureSamplers();
+
+  float zFromFrustumSlice(unsigned int slice) const;
+  glm::vec3 froxelCorner(unsigned int tileX,
+                         unsigned int tileY,
+                         float z,
+                         std::vector<glm::vec3> const& frustumCorners) const;
+  float pointFroxelDistance(glm::vec3 const& froxelFrontBottomLeft,
+                            glm::vec3 const& froxelFrontTopRight,
+                            glm::vec3 const& froxelBackBottomLeft,
+                            glm::vec3 const& froxelBackTopRight,
+                            glm::vec3 const& froxelCenter,
+                            glm::vec3 const& planeNormal,
+                            glm::vec3 const& point) const;
   void updateLightVolume();
 
   void updateView() override;
