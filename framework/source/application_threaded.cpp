@@ -67,9 +67,14 @@ void ApplicationThreaded::createFrameResources() {
   }
 }
 
-void ApplicationThreaded::updateFrameResources() {
+void ApplicationThreaded::updateCommandBuffers() {
   for (auto& res : m_frame_resources) {
-    updateFrameResource(res);
+    updateResourceCommandBuffers(res);
+  }
+}
+void ApplicationThreaded::updateDescriptors() {
+  for (auto& res : m_frame_resources) {
+    updateResourceDescriptors(res);
   }
 }
 

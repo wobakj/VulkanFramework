@@ -33,8 +33,8 @@ class ApplicationLod : public ApplicationThreadedTransfer {
  private:
   void recordTransferBuffer(FrameResource& res) override;
   void recordDrawBuffer(FrameResource& res) override;
-  void updateCommandBuffers(FrameResource& res) override;
-  void updateDescriptors(FrameResource& resource) override;
+  void updateResourceCommandBuffers(FrameResource& res) override;
+  void updateResourceDescriptors(FrameResource& resource) override;
   FrameResource createFrameResource() override;
   void updatePipelines() override;
   

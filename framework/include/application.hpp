@@ -43,28 +43,30 @@ class Application {
   static const uint32_t imageCount;
 
  protected:
+  // call at construction
   void createRenderResources();
+  // call at construction and resize
+  void createRenderTargets();
+  // call at shader reload/pipeline config change
+  virtual void recreatePipeline();
+  virtual void createDescriptorPools() {};
   virtual void createMemoryPools() = 0;
   virtual void createPipelines() = 0;
-  virtual void updatePipelines();
-  virtual void updateFrameResources() = 0;
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;
   virtual void createRenderPasses() = 0;
-  virtual void createDescriptorPools() {};
-  virtual void createRenderTargets();
   virtual void createFrameResources() = 0;
+  virtual void updatePipelines() = 0;
+  virtual void updateCommandBuffers() = 0;
+  virtual void updateDescriptors() = 0;
 
   virtual void update() {};
   virtual void render() = 0;
   virtual void updateView() {};
-  // rebuild pipeline
-  virtual void recreatePipeline();
-  // called on resize
+
   virtual FrameResource createFrameResource();
-  virtual void updateDescriptors(FrameResource& resource) {};
-  virtual void updateCommandBuffers(FrameResource& res) = 0;
-  void updateFrameResource(FrameResource& res);
+  virtual void updateResourceDescriptors(FrameResource& resource) {};
+  virtual void updateResourceCommandBuffers(FrameResource& res) = 0;
   
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);

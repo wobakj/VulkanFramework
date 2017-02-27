@@ -81,7 +81,7 @@ void ApplicationThreadedSimple::updateModel() {
   m_sphere = false;
   emptyDrawQueue();
   for (auto& res : m_frame_resources) {
-    updateCommandBuffers(res);
+    updateResourceCommandBuffers(res);
   }
   m_model_dirty = false;
   #ifdef THREADING
@@ -102,12 +102,12 @@ void ApplicationThreadedSimple::update() {
   }
 }
 
-void ApplicationThreadedSimple::updateDescriptors(FrameResource& res) {
+void ApplicationThreadedSimple::updateResourceDescriptors(FrameResource& res) {
   res.descriptor_sets["matrix"] = m_shaders.at("scene").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
-void ApplicationThreadedSimple::updateCommandBuffers(FrameResource& res) {
+void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").reset({});
 

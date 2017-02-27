@@ -40,7 +40,7 @@ FrameResource ApplicationThreadedMin::createFrameResource() {
   return res;
 }
 
-void ApplicationThreadedMin::updateCommandBuffers(FrameResource& res) {
+void ApplicationThreadedMin::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};

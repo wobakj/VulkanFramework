@@ -24,10 +24,10 @@ class ApplicationThreaded : public Application {
 
  protected:
   void createFrameResources() override;
-  // virtual FrameResource createFrameResource() override;
   virtual void shutDown();
-  // void createRenderResources() override;
-  void updateFrameResources() override;
+  void updateCommandBuffers() override;
+  void updateDescriptors() override;
+
   void startRenderThread();
 
   void pushForDraw(uint32_t frame);

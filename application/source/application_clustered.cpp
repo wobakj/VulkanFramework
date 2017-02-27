@@ -74,11 +74,6 @@ FrameResource ApplicationClustered::createFrameResource() {
   return res;
 }
 
-void ApplicationClustered::updateDescriptors(FrameResource& res) {
-  // res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
-  // res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
-}
-
 void ApplicationClustered::render() { 
   // make sure image was acquired
   m_frame_resource.fence("acquire").wait();
@@ -112,7 +107,7 @@ void ApplicationClustered::updateLightVolume() {
   m_device.uploadImageData(m_data_light_volume.data(), m_images.at("light_vol"));
 }
 
-void ApplicationClustered::updateCommandBuffers(FrameResource& res) {
+void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};

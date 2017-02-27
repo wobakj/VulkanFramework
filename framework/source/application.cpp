@@ -104,12 +104,7 @@ void Application::resize(std::size_t width, std::size_t height) {
   m_camera.setAspect(width, height);
   // draw queue is emptied in launcher::resize
   createRenderTargets();
-  // updatePipelines();
-  updateFrameResources();
-}
-
-void Application::updatePipelines() {
-  createPipelines();
+  updateCommandBuffers();
 }
 
 void Application::createRenderTargets() {
@@ -118,18 +113,14 @@ void Application::createRenderTargets() {
   createFramebuffers();
 }
 
-void Application::updateFrameResource(FrameResource& res) {
-  updateDescriptors(res);
-  updateCommandBuffers(res);
-}
-
 void Application::recreatePipeline() {
   // wait for avaiability of resources
   emptyDrawQueue();
   // update pipeline and descriptors
   updatePipelines();
   createDescriptorPools();
-  updateFrameResources();
+  updateDescriptors();
+  updateCommandBuffers();
 }
 
 void Application::createRenderResources() {
@@ -137,5 +128,6 @@ void Application::createRenderResources() {
   createRenderTargets();
   createPipelines();
   createDescriptorPools();
-  updateFrameResources();
+  updateDescriptors();
+  updateCommandBuffers();
 }

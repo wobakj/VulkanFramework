@@ -107,12 +107,12 @@ FrameResource ApplicationLod::createFrameResource() {
   return res;
 }
 
-void ApplicationLod::updateDescriptors(FrameResource& res) {
+void ApplicationLod::updateResourceDescriptors(FrameResource& res) {
   res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
-void ApplicationLod::updateCommandBuffers(FrameResource& res) {
+void ApplicationLod::updateResourceCommandBuffers(FrameResource& res) {
   res.commandBuffer("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};

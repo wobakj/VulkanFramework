@@ -71,7 +71,7 @@ FrameResource ApplicationVulkan::createFrameResource() {
 
 void ApplicationVulkan::updateModel() {
   m_sphere = false;
-  updateCommandBuffers(m_frame_resource);
+  updateResourceCommandBuffers(m_frame_resource);
   m_model_dirty = false;
   #ifdef THREADING
   if(m_thread_load.joinable()) {
@@ -106,7 +106,7 @@ void ApplicationVulkan::render() {
   presentFrame(m_frame_resource);
 }
 
-void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
+void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
