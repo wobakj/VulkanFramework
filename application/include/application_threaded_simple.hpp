@@ -1,16 +1,12 @@
 #ifndef APPLICATION_THREADED_SIMPLE_HPP
 #define APPLICATION_THREADED_SIMPLE_HPP
 
-#include <vulkan/vulkan.hpp>
-
 #include "application_threaded.hpp"
+
 #include "deleter.hpp"
 #include "model.hpp"
-#include "buffer.hpp"
 #include "render_pass.hpp"
-#include "memory.hpp"
 #include "frame_buffer.hpp"
-#include "fence.hpp"
 
 #include <vector>
 #include <atomic>
@@ -22,10 +18,11 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   static const uint32_t imageCount;
 
  private:
-  void update() override;
+  void logic() override;
   void recordDrawBuffer(FrameResource& res) override;
-  void updateCommandBuffers(FrameResource& res) override;
-  void updateDescriptors(FrameResource& resource) override;
+  void updateResourceCommandBuffers(FrameResource& res) override;
+  void updateResourceDescriptors(FrameResource& resource) override;
+  FrameResource createFrameResource() override;
   void updatePipelines() override;
   
   void createLights();
@@ -45,7 +42,6 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   void createDescriptorPools() override;
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
-  FrameResource createFrameResource() override;
   void updateModel();
 
   // path to the resource folders

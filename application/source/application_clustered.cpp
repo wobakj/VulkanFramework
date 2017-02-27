@@ -74,29 +74,11 @@ FrameResource ApplicationClustered::createFrameResource() {
   return res;
 }
 
-void ApplicationClustered::updateDescriptors(FrameResource& res) {
-  // res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
-  // res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
-}
-
-void ApplicationClustered::render() { 
-  // make sure image was acquired
-  m_frame_resource.fence("acquire").wait();
-  acquireImage(m_frame_resource);
-  // make sure no command buffer is in use
-  m_frame_resource.fence("draw").wait();
-
+void ApplicationClustered::logic() { 
   if (m_camera.changed()) {
     updateView();
+    updateLightVolume();
   }
-
-  updateLightVolume();
-
-  recordDrawBuffer(m_frame_resource);
-  
-  submitDraw(m_frame_resource);
-
-  presentFrame(m_frame_resource);
 }
 
 void ApplicationClustered::updateLightVolume() {
@@ -124,7 +106,7 @@ void ApplicationClustered::updateLightVolume() {
                            m_images.at("light_vol"));
 }
 
-void ApplicationClustered::updateCommandBuffers(FrameResource& res) {
+void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -135,8 +117,8 @@ void ApplicationClustered::updateCommandBuffers(FrameResource& res) {
   // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").get());
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("simple").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
 
@@ -151,8 +133,8 @@ void ApplicationClustered::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").reset({});
   res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").get());
-  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("quad").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad"));
+  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("lighting").setScissor(0, {m_swap_chain.asRect()});
 
@@ -252,14 +234,10 @@ void ApplicationClustered::createPipelines() {
 void ApplicationClustered::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("simple"));
-  info_pipe.setPass(m_render_pass, 0);
-  info_pipe.setResolution(m_swap_chain.extent());
   m_pipelines.at("scene").recreate(info_pipe);
 
   auto info_pipe2 = m_pipelines.at("quad").info();
   info_pipe2.setShader(m_shaders.at("quad"));
-  info_pipe2.setPass(m_render_pass, 1);
-  info_pipe2.setResolution(m_swap_chain.extent());
   m_pipelines.at("quad").recreate(info_pipe2);
 }
 

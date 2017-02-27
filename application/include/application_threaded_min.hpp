@@ -23,7 +23,7 @@ class ApplicationThreadedMin : public ApplicationThreaded {
 
  private:
   void recordDrawBuffer(FrameResource& res) override;
-  void updateCommandBuffers(FrameResource& res) override;
+  void updateResourceCommandBuffers(FrameResource& res) override;
   void updatePipelines() override;
   
   void createFramebuffers() override;

@@ -34,7 +34,7 @@ void Application::frame() {
   // update buffers
   m_camera.update(time_delta);
   // do logic
-  update();
+  logic();
   // do actual rendering
   render();
 }
@@ -103,24 +103,9 @@ void Application::updateShaderPrograms() {
 void Application::resize(std::size_t width, std::size_t height) {
   m_camera.setAspect(width, height);
   // draw queue is emptied in launcher::resize
-  createRenderTargets();
-  updatePipelines();
-  updatePipelineUsage();
-}
-
-void Application::updatePipelines() {
-  createPipelines();
-}
-
-void Application::createRenderTargets() {
   createFramebufferAttachments();
-  createRenderPasses();
   createFramebuffers();
-}
-
-void Application::updateFrameResource(FrameResource& res) {
-  updateDescriptors(res);
-  updateCommandBuffers(res);
+  updateCommandBuffers();
 }
 
 void Application::recreatePipeline() {
@@ -128,5 +113,18 @@ void Application::recreatePipeline() {
   emptyDrawQueue();
   // update pipeline and descriptors
   updatePipelines();
-  updatePipelineUsage();
+  createDescriptorPools();
+  updateDescriptors();
+  updateCommandBuffers();
+}
+
+void Application::createRenderResources() {
+  createFrameResources();
+  createFramebufferAttachments();
+  createRenderPasses();
+  createFramebuffers();
+  createPipelines();
+  createDescriptorPools();
+  updateDescriptors();
+  updateCommandBuffers();
 }

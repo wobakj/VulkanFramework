@@ -70,8 +70,9 @@ FrameResource ApplicationVulkan::createFrameResource() {
 }
 
 void ApplicationVulkan::updateModel() {
+  emptyDrawQueue();
   m_sphere = false;
-  updateCommandBuffers(m_frame_resource);
+  updateResourceCommandBuffers(m_frame_resource);
   m_model_dirty = false;
   #ifdef THREADING
   if(m_thread_load.joinable()) {
@@ -83,30 +84,18 @@ void ApplicationVulkan::updateModel() {
   #endif
 }
 
-void ApplicationVulkan::render() { 
-  // make sure image was acquired
-  m_frame_resource.fence("acquire").wait();
-  acquireImage(m_frame_resource);
-  // make sure no command buffer is in use
-  m_frame_resource.fence("draw").wait();
-
+void ApplicationVulkan::logic() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();
     }
   }
-
   if (m_camera.changed()) {
     updateView();
   }
-  recordDrawBuffer(m_frame_resource);
-  
-  submitDraw(m_frame_resource);
-
-  presentFrame(m_frame_resource);
 }
 
-void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
+void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -118,7 +107,7 @@ void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("scene").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
   // choose between sphere and house
@@ -142,7 +131,7 @@ void ApplicationVulkan::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights"));
-  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lights").pipelineLayout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("lighting").setScissor(0, {m_swap_chain.asRect()});
 
@@ -261,14 +250,10 @@ void ApplicationVulkan::createPipelines() {
 void ApplicationVulkan::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("scene"));
-  info_pipe.setPass(m_render_pass, 0);
-  info_pipe.setResolution(m_swap_chain.extent());
   m_pipelines.at("scene").recreate(info_pipe);
 
   auto info_pipe2 = m_pipelines.at("lights").info();
   info_pipe2.setShader(m_shaders.at("lights"));
-  info_pipe2.setPass(m_render_pass, 1);
-  info_pipe2.setResolution(m_swap_chain.extent());
   m_pipelines.at("lights").recreate(info_pipe2);
 }
 

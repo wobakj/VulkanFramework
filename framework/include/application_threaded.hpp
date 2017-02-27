@@ -23,11 +23,11 @@ class ApplicationThreaded : public Application {
   void emptyDrawQueue() override;
 
  protected:
-  void createFrameResources();
-  // virtual FrameResource createFrameResource() override;
+  void createFrameResources() override;
   virtual void shutDown();
-  void createRenderResources() override;
-  void updatePipelineUsage() override;
+  void updateCommandBuffers() override;
+  void updateDescriptors() override;
+
   void startRenderThread();
 
   void pushForDraw(uint32_t frame);

@@ -50,8 +50,6 @@ const uint32_t ApplicationLodSingle::imageCount = 2;
 
 ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_pipeline{m_device, vkDestroyPipeline}
- ,m_pipeline_2{m_device, vkDestroyPipeline}
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
@@ -111,12 +109,12 @@ FrameResource ApplicationLodSingle::createFrameResource() {
   return res;
 }
 
-void ApplicationLodSingle::updateDescriptors(FrameResource& res) {
+void ApplicationLodSingle::updateResourceDescriptors(FrameResource& res) {
   res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
-void ApplicationLodSingle::updateCommandBuffers(FrameResource& res) {
+void ApplicationLodSingle::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -127,9 +125,11 @@ void ApplicationLodSingle::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
   // res.query_pools.at("timers").timestamp(res.command_buffers.at("gbuffer"), 1, vk::PipelineStageFlagBits::eTopOfPipe);
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipeline.get());
+  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
 
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lod").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
 
   res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
@@ -235,24 +235,60 @@ void ApplicationLodSingle::createRenderPasses() {
 }
 
 void ApplicationLodSingle::createPipelines() {
+  PipelineInfo info_pipe;
+  PipelineInfo info_pipe2;
+
+  info_pipe.setResolution(m_swap_chain.extent());
+  info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
-  vk::PipelineInputAssemblyStateCreateInfo inputAssembly{};
-  inputAssembly.topology = vk::PrimitiveTopology::eTriangleList;
+  vk::PipelineRasterizationStateCreateInfo rasterizer{};
+  if (m_setting_wire) {
+    rasterizer.lineWidth = 0.5f;
+    rasterizer.cullMode = vk::CullModeFlagBits::eNone;
+    rasterizer.polygonMode = vk::PolygonMode::eLine;
+  }
+  else {
+    rasterizer.lineWidth = 1.0f;
+    if (!m_setting_transparent) {
+      rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+    }
+  }
+  info_pipe.setRasterizer(rasterizer);
 
-  vk::Viewport viewport{};
-  viewport.width = (float) m_swap_chain.extent().width;
-  viewport.height = (float) m_swap_chain.extent().height;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
+  vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
+  colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  colorBlendAttachment.blendEnable = VK_TRUE;
+  colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
+  colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
 
-  vk::Rect2D scissor{};
-  scissor.extent = m_swap_chain.extent();
+  if (!m_setting_transparent) {
+    colorBlendAttachment.blendEnable = VK_FALSE;
+  }
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
 
-  vk::PipelineViewportStateCreateInfo viewportState{};
-  viewportState.viewportCount = 1;
-  viewportState.pViewports = &viewport;
-  viewportState.scissorCount = 1;
-  viewportState.pScissors = &scissor;
+  vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+  if (!m_setting_transparent) {
+    depthStencil.depthTestEnable = VK_TRUE;
+  }
+  depthStencil.depthWriteEnable = VK_TRUE;
+  depthStencil.depthCompareOp = vk::CompareOp::eLess;
+  info_pipe.setDepthStencil(depthStencil);
+
+  info_pipe.setShader(m_shaders.at("lod"));
+  info_pipe.setVertexInput(m_model_lod);
+  info_pipe.setPass(m_render_pass, 0);
+  info_pipe.addDynamic(vk::DynamicState::eViewport);
+  info_pipe.addDynamic(vk::DynamicState::eScissor);
+
+  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe, m_pipeline_cache});
+}
+
+void ApplicationLodSingle::updatePipelines() {
+  auto info_pipe = m_pipelines.at("scene").info();
 
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   if (m_setting_wire) {
@@ -266,33 +302,22 @@ void ApplicationLodSingle::createPipelines() {
       rasterizer.cullMode = vk::CullModeFlagBits::eBack;
     }
   }
-
-  vk::PipelineMultisampleStateCreateInfo multisampling{};
-  // rgba additive blending
-  vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
-  colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment2.blendEnable = VK_TRUE;
-  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
+  info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment.blendEnable = VK_FALSE;
-  std::vector<vk::PipelineColorBlendAttachmentState> states{};
-  if (m_setting_transparent) {
-    states = {colorBlendAttachment2};
-  }
-  else {
-    states = {colorBlendAttachment};
-  }
+  colorBlendAttachment.blendEnable = VK_TRUE;
+  colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
+  colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
 
-  vk::PipelineColorBlendStateCreateInfo colorBlending{};
-  colorBlending.attachmentCount = uint32_t(states.size());
-  colorBlending.pAttachments = states.data();
+  if (!m_setting_transparent) {
+    colorBlendAttachment.blendEnable = VK_FALSE;
+  }
+  info_pipe.setAttachmentBlending(colorBlendAttachment, 0);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   if (!m_setting_transparent) {
@@ -300,43 +325,10 @@ void ApplicationLodSingle::createPipelines() {
   }
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
-  // VkDynamicState dynamicStates[] = {
-  //   VK_DYNAMIC_STATE_VIEWPORT,
-  //   VK_DYNAMIC_STATE_LINE_WIDTH
-  // };
+  info_pipe.setDepthStencil(depthStencil);
 
-  // VkPipelineDynamicStateCreateInfo dynamicState = {};
-  // dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  // dynamicState.dynamicStateCount = 2;
-  // dynamicState.pDynamicStates = dynamicStates;
-  auto pipelineInfo = m_shaders.at("lod").startPipelineInfo();
-  // if (m_setting_levels) {
-  //   pipelineInfo = m_shaders.at("simple").startPipelineInfo();
-  // }
-
-  auto vert_info = m_model_lod.inputInfo();
-  pipelineInfo.pVertexInputState = &vert_info;
-  pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;  
-  pipelineInfo.pRasterizationState = &rasterizer;
-  pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = nullptr; // Optional
-  pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = nullptr; // Optional
-  pipelineInfo.pDepthStencilState = &depthStencil;
-  
-  pipelineInfo.renderPass = m_render_pass;
-  pipelineInfo.subpass = 0;
-
-  pipelineInfo.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  if (m_pipeline && m_pipeline_2) {
-    pipelineInfo.flags |= vk::PipelineCreateFlagBits::eDerivative;
-    // insert previously created pipeline here to derive this one from
-    pipelineInfo.basePipelineHandle = m_pipeline.get();
-    pipelineInfo.basePipelineIndex = -1; // Optional
-  }
-  auto pipelines = m_device->createGraphicsPipelines(vk::PipelineCache{}, {pipelineInfo});
-  m_pipeline = pipelines[0];
+  info_pipe.setShader(m_shaders.at("lod"));
+  m_pipelines.at("scene").recreate(info_pipe);
 }
 
 void ApplicationLodSingle::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {

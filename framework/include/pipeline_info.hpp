@@ -36,6 +36,10 @@ class PipelineInfo {
 
   operator vk::GraphicsPipelineCreateInfo const&() const;
 
+  vk::PipelineLayout const& layout() const;
+  vk::PipelineRasterizationStateCreateInfo const& rasterizer() const;
+  vk::PipelineDepthStencilStateCreateInfo const& depthStencil() const;
+
  private:
   void setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes);
   void setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages);

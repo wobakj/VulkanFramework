@@ -29,11 +29,10 @@ class ApplicationClustered : public ApplicationSingle {
   static const uint32_t imageCount;
   
  private:
-  void render() override;
+  void logic() override;
   void recordDrawBuffer(FrameResource& res) override;
   FrameResource createFrameResource() override;
-  void updateCommandBuffers(FrameResource& res) override;
-  void updateDescriptors(FrameResource& resource) override;
+  void updateResourceCommandBuffers(FrameResource& res) override;
   void updatePipelines() override;
   
   void createLights();

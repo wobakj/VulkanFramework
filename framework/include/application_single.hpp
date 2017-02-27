@@ -14,8 +14,9 @@ class ApplicationSingle : public Application {
   void emptyDrawQueue() override;
 
  protected:
-  void createRenderResources() override;
-  void updatePipelineUsage() override;
+  void createFrameResources() override;
+  void updateCommandBuffers() override;
+  void updateDescriptors() override;
 
   void shutDown();
 

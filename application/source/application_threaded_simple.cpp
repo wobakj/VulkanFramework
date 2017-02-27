@@ -78,10 +78,10 @@ FrameResource ApplicationThreadedSimple::createFrameResource() {
 }
 
 void ApplicationThreadedSimple::updateModel() {
-  m_sphere = false;
   emptyDrawQueue();
+  m_sphere = false;
   for (auto& res : m_frame_resources) {
-    updateCommandBuffers(res);
+    updateResourceCommandBuffers(res);
   }
   m_model_dirty = false;
   #ifdef THREADING
@@ -94,7 +94,7 @@ void ApplicationThreadedSimple::updateModel() {
   #endif
 }
 
-void ApplicationThreadedSimple::update() {
+void ApplicationThreadedSimple::logic() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();
@@ -102,12 +102,12 @@ void ApplicationThreadedSimple::update() {
   }
 }
 
-void ApplicationThreadedSimple::updateDescriptors(FrameResource& res) {
+void ApplicationThreadedSimple::updateResourceDescriptors(FrameResource& res) {
   res.descriptor_sets["matrix"] = m_shaders.at("scene").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
-void ApplicationThreadedSimple::updateCommandBuffers(FrameResource& res) {
+void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").reset({});
 
@@ -120,7 +120,7 @@ void ApplicationThreadedSimple::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("scene").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
   // choose between sphere and house
@@ -144,7 +144,7 @@ void ApplicationThreadedSimple::updateCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights"));
-  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lights").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("lighting").setScissor(0, {m_swap_chain.asRect()});
 
@@ -283,14 +283,10 @@ void ApplicationThreadedSimple::createPipelines() {
 void ApplicationThreadedSimple::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("scene"));
-  info_pipe.setPass(m_render_pass, 0);
-  info_pipe.setResolution(m_swap_chain.extent());
   m_pipelines.at("scene").recreate(info_pipe);
 
   auto info_pipe2 = m_pipelines.at("lights").info();
   info_pipe2.setShader(m_shaders.at("lights"));
-  info_pipe2.setPass(m_render_pass, 1);
-  info_pipe2.setResolution(m_swap_chain.extent());
   m_pipelines.at("lights").recreate(info_pipe2);
 }
 

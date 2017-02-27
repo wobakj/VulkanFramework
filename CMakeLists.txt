@@ -40,10 +40,13 @@ include_directories(${VULKAN_INCLUDE_DIR})
 include_directories(SYSTEM external/cmdline-e4cd007)
 
 # include glm, as system header to suppress warnings
-include_directories(SYSTEM external/glm-0.9.6.3)
+include_directories(SYSTEM external/glm-0.9.8.4)
 
 # include stb_image, as system header to suppress warnings
 include_directories(SYSTEM external/stb_image-2.0.6)
+
+# include gli, as system header to suppress warnings
+include_directories(SYSTEM external/gli-0.8.2.0)
 
 # add tinyobjloader
 include_directories(external/tinyobjloader-aa07206)

@@ -107,12 +107,12 @@ FrameResource ApplicationLod::createFrameResource() {
   return res;
 }
 
-void ApplicationLod::updateDescriptors(FrameResource& res) {
+void ApplicationLod::updateResourceDescriptors(FrameResource& res) {
   res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
-void ApplicationLod::updateCommandBuffers(FrameResource& res) {
+void ApplicationLod::updateResourceCommandBuffers(FrameResource& res) {
   res.commandBuffer("gbuffer").reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -125,7 +125,7 @@ void ApplicationLod::updateCommandBuffers(FrameResource& res) {
 
   res.commandBuffer("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
 
-  res.commandBuffer("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_shaders.at("lod").pipelineLayout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.commandBuffer("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
 
@@ -273,6 +273,7 @@ void ApplicationLod::createPipelines() {
   }
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
+  info_pipe.setDepthStencil(depthStencil);
 
   info_pipe.setShader(m_shaders.at("lod"));
   info_pipe.setVertexInput(m_model_lod);
@@ -321,10 +322,9 @@ void ApplicationLod::updatePipelines() {
   }
   depthStencil.depthWriteEnable = VK_TRUE;
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
+  info_pipe.setDepthStencil(depthStencil);
 
   info_pipe.setShader(m_shaders.at("lod"));
-  info_pipe.setPass(m_render_pass, 0);
-  info_pipe.setResolution(m_swap_chain.extent());
   m_pipelines.at("scene").recreate(info_pipe);
 }
 
