@@ -84,7 +84,7 @@ void ApplicationVulkan::updateModel() {
   #endif
 }
 
-void ApplicationVulkan::update() {
+void ApplicationVulkan::logic() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();

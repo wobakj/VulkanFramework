@@ -7,9 +7,6 @@
 #include "model.hpp"
 #include "render_pass.hpp"
 #include "frame_buffer.hpp"
-#include "frame_resource.hpp"
-
-#include <vulkan/vulkan.hpp>
 
 #include <atomic>
 #include <thread>
@@ -21,9 +18,9 @@ class ApplicationVulkan : public ApplicationSingle {
   static const uint32_t imageCount;
   
  private:
-  void update() override;
-  // void render() override;
+  void logic() override;
   void recordDrawBuffer(FrameResource& res) override;
+  void updateResourceCommandBuffers(FrameResource& res);
   FrameResource createFrameResource() override;
   void updatePipelines() override;
   
@@ -35,7 +32,6 @@ class ApplicationVulkan : public ApplicationSingle {
   void createTextureSampler();
 
   void updateView() override;
-  void updateResourceCommandBuffers(FrameResource& res);
   void createFramebuffers();
   void createRenderPasses();
   void createMemoryPools();

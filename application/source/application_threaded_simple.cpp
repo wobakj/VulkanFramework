@@ -94,7 +94,7 @@ void ApplicationThreadedSimple::updateModel() {
   #endif
 }
 
-void ApplicationThreadedSimple::update() {
+void ApplicationThreadedSimple::logic() {
   if(m_model_dirty.is_lock_free()) {
     if(m_model_dirty) {
       updateModel();

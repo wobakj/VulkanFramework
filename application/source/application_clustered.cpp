@@ -74,24 +74,11 @@ FrameResource ApplicationClustered::createFrameResource() {
   return res;
 }
 
-void ApplicationClustered::render() { 
-  // make sure image was acquired
-  m_frame_resource.fence("acquire").wait();
-  acquireImage(m_frame_resource);
-  // make sure no command buffer is in use
-  m_frame_resource.fence("draw").wait();
-
+void ApplicationClustered::logic() { 
   if (m_camera.changed()) {
     updateView();
+    updateLightVolume();
   }
-
-  updateLightVolume();
-
-  recordDrawBuffer(m_frame_resource);
-  
-  submitDraw(m_frame_resource);
-
-  presentFrame(m_frame_resource);
 }
 
 void ApplicationClustered::updateLightVolume() {
