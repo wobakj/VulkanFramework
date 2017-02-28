@@ -21,7 +21,12 @@ LightGrid::~LightGrid() {}
 
 void LightGrid::update(glm::mat4 const& projection,
                        glm::uvec2 const& resolution) {
+  if ((projection == m_projection) && (resolution == m_resolution))
+    return;
+
+  // store params as members
   m_resolution = resolution;
+  m_projection = projection;
 
   // recompute number of tiles
   m_tileNum.x = (resolution.x + m_tileSize.x - 1) / m_tileSize.x;
