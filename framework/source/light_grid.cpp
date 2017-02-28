@@ -31,7 +31,7 @@ void LightGrid::update(glm::mat4 const& projection,
   // recompute number of tiles
   m_tileNum.x = (resolution.x + m_tileSize.x - 1) / m_tileSize.x;
   m_tileNum.y = (resolution.y + m_tileSize.y - 1) / m_tileSize.y;
-  m_tileNum.z = m_depthSlices.size() - 1;
+  m_tileNum.z = static_cast<unsigned int>(m_depthSlices.size() - 1);
 
   // compute near corners of the frustum in view space
   auto invProj = glm::inverse(projection);
