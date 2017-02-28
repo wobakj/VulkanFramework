@@ -19,11 +19,12 @@ LightGrid::LightGrid(float near,
 
 LightGrid::~LightGrid() {}
 
-void LightGrid::update(glm::mat4 const& projection,
+// returns true if the light grid was actually updated
+bool LightGrid::update(glm::mat4 const& projection,
                        glm::uvec2 const& resolution) {
   // no need to rebuild froxels if the parameters did not actually change
   if ((projection == m_projection) && (resolution == m_resolution))
-    return;
+    return false;
 
   // store params as members
   m_resolution = resolution;
@@ -54,10 +55,15 @@ void LightGrid::update(glm::mat4 const& projection,
         m_froxelCorners.at(index) = ray * (z / ray.z);
       }
     }
+  return true;
 }
 
 glm::uvec3 LightGrid::dimensions() const {
   return m_tileNum;
+}
+
+vk::Extent3D LightGrid::extent() const {
+  return vk::Extent3D{m_tileNum.x, m_tileNum.y, m_tileNum.z};
 }
 
 // from Oculus' Clustered Renderer using Unreal Engine
