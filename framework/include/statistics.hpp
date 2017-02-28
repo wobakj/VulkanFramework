@@ -2,7 +2,7 @@
 #define STATISTICS_HPP
 
 #include "averager.hpp"
-#include "timer.hpp"
+#include "wrap/timer.hpp"
 
 #include <map>
 

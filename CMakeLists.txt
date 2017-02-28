@@ -69,7 +69,7 @@ option(GLFW_INSTALL        OFF)
 add_subdirectory(external/glfw-3.2.1)
 
 # create framework helper library 
-file(GLOB FRAMEWORK_SOURCES framework/source/*.cpp)
+file(GLOB_RECURSE FRAMEWORK_SOURCES framework/source/*.cpp)
 add_library(framework STATIC ${FRAMEWORK_SOURCES} ${TINYOBJLOADER_SOURCES})
 target_include_directories(framework PUBLIC framework/include)
 target_link_libraries(framework glfw ${GLFW_LIBRARIES} ${VULKAN_LIBRARY} spirv-cross-core bvh)

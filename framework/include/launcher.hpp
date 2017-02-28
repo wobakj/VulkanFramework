@@ -1,9 +1,9 @@
 #ifndef LAUNCHER_HPP
 #define LAUNCHER_HPP
 
-#include "device.hpp"
-#include "instance.hpp"
-#include "swap_chain.hpp"
+#include "wrap/device.hpp"
+#include "wrap/instance.hpp"
+#include "wrap/swap_chain.hpp"
 
 #include "cmdline.h"
 

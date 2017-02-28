@@ -1,7 +1,7 @@
 #ifndef TEXTURE_LOADER_HPP
 #define TEXTURE_LOADER_HPP
 
-#include "pixel_data.hpp"
+#include "wrap/pixel_data.hpp"
 
 #include <string>
 

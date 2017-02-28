@@ -5,12 +5,12 @@
 
 #include "application_threaded.hpp"
 #include "deleter.hpp"
-#include "model.hpp"
-#include "buffer.hpp"
-#include "render_pass.hpp"
-#include "memory.hpp"
-#include "frame_buffer.hpp"
-#include "fence.hpp"
+#include "wrap/model.hpp"
+#include "wrap/buffer.hpp"
+#include "wrap/render_pass.hpp"
+#include "wrap/memory.hpp"
+#include "wrap/frame_buffer.hpp"
+#include "wrap/fence.hpp"
 
 #include <vector>
 #include <atomic>

@@ -1,15 +1,15 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-#include "shader.hpp"
-#include "image.hpp"
-#include "pipeline.hpp"
-#include "pipeline_cache.hpp"
-#include "buffer.hpp"
-#include "buffer_view.hpp"
+#include "wrap/shader.hpp"
+#include "wrap/image.hpp"
+#include "wrap/pipeline.hpp"
+#include "wrap/pipeline_cache.hpp"
+#include "wrap/buffer.hpp"
+#include "wrap/buffer_view.hpp"
+#include "wrap/device.hpp"
+#include "wrap/swap_chain.hpp"
 #include "camera.hpp"
-#include "device.hpp"
-#include "swap_chain.hpp"
 #include "cmdline.h"
 
 #include <map>

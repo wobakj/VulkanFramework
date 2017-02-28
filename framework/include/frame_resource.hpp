@@ -3,10 +3,10 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "fence.hpp"
-#include "buffer.hpp"
-#include "buffer_view.hpp"
-#include "query_pool.hpp"
+#include "wrap/fence.hpp"
+#include "wrap/buffer.hpp"
+#include "wrap/buffer_view.hpp"
+#include "wrap/query_pool.hpp"
 
 #include <vector>
 

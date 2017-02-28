@@ -5,12 +5,12 @@
 
 #include "deleter.hpp"
 #include "light_grid.hpp"
-#include "model.hpp"
-#include "render_pass.hpp"
-#include "frame_buffer.hpp"
 #include "frame_resource.hpp"
-#include "pipeline_info.hpp"
-#include "pipeline.hpp"
+#include "wrap/model.hpp"
+#include "wrap/render_pass.hpp"
+#include "wrap/frame_buffer.hpp"
+#include "wrap/pipeline_info.hpp"
+#include "wrap/pipeline.hpp"
 
 #include <vulkan/vulkan.hpp>
 

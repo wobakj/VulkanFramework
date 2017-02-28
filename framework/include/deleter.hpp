@@ -4,8 +4,8 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <functional>
-#include <wrapper.hpp>
-#include <device.hpp>
+#include <wrap/wrapper.hpp>
+#include <wrap/device.hpp>
 
 template <typename T>
 class Deleter {

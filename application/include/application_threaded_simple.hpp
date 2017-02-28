@@ -4,9 +4,9 @@
 #include "application_threaded.hpp"
 
 #include "deleter.hpp"
-#include "model.hpp"
-#include "render_pass.hpp"
-#include "frame_buffer.hpp"
+#include "wrap/model.hpp"
+#include "wrap/render_pass.hpp"
+#include "wrap/frame_buffer.hpp"
 
 #include <vector>
 #include <atomic>
