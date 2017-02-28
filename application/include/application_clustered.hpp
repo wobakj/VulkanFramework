@@ -6,7 +6,7 @@
 #include "deleter.hpp"
 #include "light_grid.hpp"
 #include "frame_resource.hpp"
-#include "wrap/model.hpp"
+#include "geometry.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
 #include "wrap/pipeline_info.hpp"
@@ -70,7 +70,7 @@ class ApplicationClustered : public ApplicationSingle {
   // path to the resource folders
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
-  Model m_model;
+  Geometry m_model;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
   Deleter<VkSampler> m_textureSampler;

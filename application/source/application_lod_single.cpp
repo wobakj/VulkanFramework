@@ -329,10 +329,10 @@ void ApplicationLodSingle::updatePipelines() {
 }
 
 void ApplicationLodSingle::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {
-  m_model_lod = ModelLod{m_device, lod_path, cut_budget, upload_budget};
+  m_model_lod = GeometryLod{m_device, lod_path, cut_budget, upload_budget};
 
   vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_model_light = Model{m_device, tri};
+  m_model_light = Geometry{m_device, tri};
 }
 
 void ApplicationLodSingle::createLights() {

@@ -9,17 +9,17 @@
 
 class Device;
 
-class Model {
+class Geometry {
  public:  
-  Model();
-  Model(Device& device, vertex_data const& model);
-  Model(Model && dev);
-  Model(Model const&) = delete;
+  Geometry();
+  Geometry(Device& device, vertex_data const& model);
+  Geometry(Geometry && dev);
+  Geometry(Geometry const&) = delete;
 
-  Model& operator=(Model const&) = delete;
-  Model& operator=(Model&& dev);
+  Geometry& operator=(Geometry const&) = delete;
+  Geometry& operator=(Geometry&& dev);
 
-  void swap(Model& dev);
+  void swap(Geometry& dev);
 
   vk::Buffer const& buffer() const;
   vk::DeviceSize indexOffset() const;

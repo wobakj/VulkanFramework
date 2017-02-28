@@ -1,4 +1,4 @@
-#include "wrap/model_lod.hpp"
+#include "geometry_lod.hpp"
 
 #include "wrap/device.hpp"
 #include "camera.hpp"
@@ -41,7 +41,7 @@ static std::vector<vk::VertexInputAttributeDescription> vertex_datao_attr(vertex
   return attributeDescriptions;  
 }
 
-ModelLod::ModelLod()
+GeometryLod::GeometryLod()
  :m_model{}
  ,m_device{nullptr}
  ,m_bind_info{}
@@ -49,13 +49,13 @@ ModelLod::ModelLod()
  ,m_ptr_mem_stage{nullptr}
 {}
 
-ModelLod::ModelLod(ModelLod && dev)
- :ModelLod{}
+GeometryLod::GeometryLod(GeometryLod && dev)
+ :GeometryLod{}
 {
   swap(dev);
 }
 
-ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget)
+GeometryLod::GeometryLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget)
  :m_model{}
  ,m_device{&device}
  ,m_bind_info{}
@@ -115,14 +115,14 @@ ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budg
   setFirstCut();
 }
 
-ModelLod::~ModelLod() {
+GeometryLod::~GeometryLod() {
   // only unmap if buffer was mapped
   if (m_ptr_mem_stage) {
     m_buffer_stage.unmap();
   }
 }
 
-void ModelLod::createStagingBuffers() {
+void GeometryLod::createStagingBuffers() {
   m_buffer_stage = m_device->createBuffer(m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc);
   auto requirements_stage = m_buffer_stage.requirements();
   // per-buffer offset
@@ -145,7 +145,7 @@ void ModelLod::createStagingBuffers() {
   m_ptr_mem_stage = (uint8_t*)(m_buffer_stage.map());
 }
 
-void ModelLod::createDrawingBuffers() {
+void GeometryLod::createDrawingBuffers() {
   m_buffer = m_device->createBuffer(m_size_node * m_num_slots, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
   auto requirements_draw = m_buffer.requirements();
   // per-buffer offset
@@ -173,7 +173,7 @@ void ModelLod::createDrawingBuffers() {
   m_view_levels.bindTo(m_buffer);
 }
 
-void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
+void GeometryLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   // get next staging slot
   // m_db_views_stage.back()[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
   std::memcpy(m_ptr_mem_stage + m_db_views_stage.back()[0].offset(), m_nodes[idx_node].data(), m_size_node);
@@ -182,21 +182,21 @@ void ModelLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   m_slots[idx_slot] = idx_node;
 }
 
-void ModelLod::nodeToSlot(std::size_t idx_node, std::size_t idx_slot) {
+void GeometryLod::nodeToSlot(std::size_t idx_node, std::size_t idx_slot) {
   m_node_uploads.emplace_back(idx_node, idx_slot);
   // update slot occupation
   m_slots[idx_slot] = idx_node;
 }
 
-std::size_t ModelLod::numUploads() const {
+std::size_t GeometryLod::numUploads() const {
   return m_node_uploads.size();
 }
 
-std::size_t ModelLod::sizeNode() const {
+std::size_t GeometryLod::sizeNode() const {
   return m_size_node;
 }
 
-void ModelLod::performUploads() {
+void GeometryLod::performUploads() {
   // auto start = std::chrono::steady_clock::now();
   for(std::size_t i = 0; i < m_node_uploads.size(); ++i) {
     std::size_t idx_node = m_node_uploads[i].first;
@@ -212,7 +212,7 @@ void ModelLod::performUploads() {
   // std::cout << std::endl;
 }
 
-void ModelLod::performCopies() {
+void GeometryLod::performCopies() {
   vk::CommandBuffer const& commandBuffer = m_device->beginSingleTimeCommands();
   performCopiesCommand(commandBuffer);
   m_device->endSingleTimeCommands();
@@ -220,7 +220,7 @@ void ModelLod::performCopies() {
   m_node_uploads.clear();
 }
 
-void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
+void GeometryLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
   if (m_node_uploads.empty()) return;
   // memory transfer to staging is finished
   m_db_views_stage.swap();
@@ -286,7 +286,7 @@ void ModelLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) {
   m_node_uploads.clear();
 }
 
-void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
+void GeometryLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
   // upload draw instructions
   command_buffer.updateBuffer(
     m_view_draw_commands.buffer(),
@@ -312,7 +312,7 @@ void ModelLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
   );
 }
 
-void ModelLod::updateDrawCommands() {
+void GeometryLod::updateDrawCommands() {
   // std::cout << "drawing slots (";
   for(std::size_t i = 0; i < m_num_nodes; ++i) {
     if (i < m_active_slots.size()) {
@@ -341,12 +341,12 @@ void ModelLod::updateDrawCommands() {
   // std::cout << ")" << std::endl;
 }
 
- ModelLod& ModelLod::operator=(ModelLod&& dev) {
+ GeometryLod& GeometryLod::operator=(GeometryLod&& dev) {
   swap(dev);
   return *this;
  }
 
- void ModelLod::swap(ModelLod& dev) {
+ void GeometryLod::swap(GeometryLod& dev) {
   std::swap(m_model, dev.m_model);
   std::swap(m_device, dev.m_device);
   std::swap(m_bind_info, dev.m_bind_info);
@@ -383,7 +383,7 @@ void ModelLod::updateDrawCommands() {
   dev.updateResourcePointers();
 }
 
-void ModelLod::updateResourcePointers() {
+void GeometryLod::updateResourcePointers() {
   // correct parent resource pointers
   m_buffer.setMemory(m_memory);
   m_buffer_stage.setMemory(m_memory_stage);
@@ -403,47 +403,47 @@ void ModelLod::updateResourcePointers() {
   }
 }
 
-BufferView const& ModelLod::bufferView(std::size_t i) const {
+BufferView const& GeometryLod::bufferView(std::size_t i) const {
   return m_buffer_views[i];
 }
 
-BufferView const& ModelLod::viewDrawCommands() const {
+BufferView const& GeometryLod::viewDrawCommands() const {
   return m_view_draw_commands;
 }
 
-BufferView const& ModelLod::viewNodeLevels() const {
+BufferView const& GeometryLod::viewNodeLevels() const {
   return m_view_levels;
 }
 
-vk::Buffer const& ModelLod::buffer() const {
+vk::Buffer const& GeometryLod::buffer() const {
   return m_buffer;
 }
 
-std::size_t ModelLod::numNodes() const {
+std::size_t GeometryLod::numNodes() const {
   return m_num_nodes;
 }
 
-std::vector<vk::VertexInputBindingDescription> const& ModelLod::bindInfos() const {
+std::vector<vk::VertexInputBindingDescription> const& GeometryLod::bindInfos() const {
   return m_bind_info;
 }
 
-std::vector<vk::VertexInputAttributeDescription> const& ModelLod::attributeInfos() const {
+std::vector<vk::VertexInputAttributeDescription> const& GeometryLod::attributeInfos() const {
   return m_attrib_info;
 }
 
-std::vector<std::size_t> const& ModelLod::cut() const {
+std::vector<std::size_t> const& GeometryLod::cut() const {
   return m_cut;
 }
 
-std::vector<std::size_t> const& ModelLod::activeBuffers() const {
+std::vector<std::size_t> const& GeometryLod::activeBuffers() const {
   return m_active_slots;
 }
 
-std::vector<vk::DrawIndirectCommand> const& ModelLod::drawCommands() const {
+std::vector<vk::DrawIndirectCommand> const& GeometryLod::drawCommands() const {
   return m_commands_draw;
 }
 
-vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {
+vk::PipelineVertexInputStateCreateInfo GeometryLod::inputInfo() const {
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.vertexBindingDescriptionCount = 1;
   vertexInputInfo.vertexAttributeDescriptionCount = std::uint32_t(m_attrib_info.size());
@@ -452,11 +452,11 @@ vk::PipelineVertexInputStateCreateInfo ModelLod::inputInfo() const {
   return vertexInputInfo;
 }
 
-std::uint32_t ModelLod::numVertices() const {
+std::uint32_t GeometryLod::numVertices() const {
   return m_model.vertex_num;
 }
 
-float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
+float GeometryLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
   // auto centroid = m_bvh.get_centroid(node);
   auto const& bbox = m_bvh.get_bounding_box(node);
   // (glm::distance(pos_view, glm::fvec3{centroid[0], centroid[1], centroid[2]});
@@ -471,11 +471,11 @@ float ModelLod::nodeError(glm::fvec3 const& pos_view, std::size_t node) {
   // return glm::length(bbox_dims) / glm::length(min_dist); 
 }
 
-bool ModelLod::nodeSplitable(std::size_t idx_node) {
+bool GeometryLod::nodeSplitable(std::size_t idx_node) {
   return m_bvh.get_depth_of_node(idx_node) < m_bvh.get_depth() - 1;
 }
 
-bool ModelLod::nodeCollapsible(std::size_t idx_node) {
+bool GeometryLod::nodeCollapsible(std::size_t idx_node) {
   return idx_node > 0;
 }
 
@@ -495,7 +495,7 @@ struct pri_node {
   }
 };
 
-void ModelLod::update(Camera const& cam) {
+void GeometryLod::update(Camera const& cam) {
   // collapse to node with lowest error first
   std::priority_queue<pri_node, std::vector<pri_node>, std::less<pri_node>> queue_collapse{};
   // split node with highest error first
@@ -666,7 +666,7 @@ void ModelLod::update(Camera const& cam) {
   setCut(cut_new);
 }
 
-float ModelLod::collapseError(uint64_t idx_node) {
+float GeometryLod::collapseError(uint64_t idx_node) {
   float child_extent = 0.0f;
   if (nodeSplitable(idx_node)) {
     for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
@@ -678,11 +678,11 @@ float ModelLod::collapseError(uint64_t idx_node) {
   else return 1.0f;
 }
 
-bool ModelLod::inCore(std::size_t idx_node) {
+bool GeometryLod::inCore(std::size_t idx_node) {
   return contains(m_slots, idx_node);
 }
 
-void ModelLod::setCut(std::vector<std::size_t> const& cut) {
+void GeometryLod::setCut(std::vector<std::size_t> const& cut) {
   auto m_slots_prev = m_slots;
   std::vector<std::size_t> slots_active_new{};
   // collect nodes that were already in previous cut
@@ -751,7 +751,7 @@ void ModelLod::setCut(std::vector<std::size_t> const& cut) {
   // printSlots();
 }
 
-void ModelLod::printCut() const {
+void GeometryLod::printCut() const {
   std::cout << "cut is (";
   for (auto const& node : m_cut) {
     std::cout << node << ", ";
@@ -764,7 +764,7 @@ void ModelLod::printCut() const {
   // std::cout << ")" << std::endl;
 }
 
-void ModelLod::printSlots() const {
+void GeometryLod::printSlots() const {
   std::cout << "slots are (";
   for (auto const& node : m_slots) {
     std::cout << node << ", ";
@@ -772,7 +772,7 @@ void ModelLod::printSlots() const {
   std::cout << ")" << std::endl;
 }
 
-void ModelLod::setFirstCut() {
+void GeometryLod::setFirstCut() {
   uint32_t level = 0;
   while(m_num_nodes >= m_bvh.get_length_of_depth(level) && level < m_bvh.get_depth()) {
     ++level;

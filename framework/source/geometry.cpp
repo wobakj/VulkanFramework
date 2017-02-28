@@ -1,4 +1,4 @@
-#include "wrap/model.hpp"
+#include "geometry.hpp"
 
 #include "wrap/device.hpp"
 
@@ -30,7 +30,7 @@ std::vector<vk::VertexInputAttributeDescription> model_to_attr(vertex_data const
   return attributeDescriptions;  
 }
 
-Model::Model()
+Geometry::Geometry()
  :m_model{}
  ,m_device{nullptr}
  ,m_bind_info{}
@@ -38,13 +38,13 @@ Model::Model()
  ,m_buffer{}
 {}
 
-Model::Model(Model && dev)
- :Model{}
+Geometry::Geometry(Geometry && dev)
+ :Geometry{}
 {
   swap(dev);
 }
 
-Model::Model(Device& device, vertex_data const& model)
+Geometry::Geometry(Device& device, vertex_data const& model)
  :m_model{model}
  ,m_device{&device}
  ,m_bind_info{}
@@ -69,12 +69,12 @@ Model::Model(Device& device, vertex_data const& model)
   }
 }
 
- Model& Model::operator=(Model&& dev) {
+ Geometry& Geometry::operator=(Geometry&& dev) {
   swap(dev);
   return *this;
  }
 
- void Model::swap(Model& dev) {
+ void Geometry::swap(Geometry& dev) {
   std::swap(m_model, dev.m_model);
   std::swap(m_device, dev.m_device);
   std::swap(m_bind_info, dev.m_bind_info);
@@ -83,19 +83,19 @@ Model::Model(Device& device, vertex_data const& model)
   std::swap(m_memory, dev.m_memory);
  }
 
-vk::Buffer const& Model::buffer() const {
+vk::Buffer const& Geometry::buffer() const {
   return m_buffer;
 }
 
-std::vector<vk::VertexInputBindingDescription> const& Model::bindInfos() const {
+std::vector<vk::VertexInputBindingDescription> const& Geometry::bindInfos() const {
   return m_bind_info;
 }
 
-std::vector<vk::VertexInputAttributeDescription> const& Model::attributeInfos() const {
+std::vector<vk::VertexInputAttributeDescription> const& Geometry::attributeInfos() const {
   return m_attrib_info;
 }
 
-vk::PipelineVertexInputStateCreateInfo Model::inputInfo() const {
+vk::PipelineVertexInputStateCreateInfo Geometry::inputInfo() const {
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
   vertexInputInfo.vertexBindingDescriptionCount = std::uint32_t(m_bind_info.size());
   vertexInputInfo.pVertexBindingDescriptions = m_bind_info.data();
@@ -104,14 +104,14 @@ vk::PipelineVertexInputStateCreateInfo Model::inputInfo() const {
   return vertexInputInfo;
 }
 
-std::uint32_t Model::numIndices() const {
+std::uint32_t Geometry::numIndices() const {
   return std::uint32_t(m_model.indices.size());
 }
 
-std::uint32_t Model::numVertices() const {
+std::uint32_t Geometry::numVertices() const {
   return m_model.vertex_num;
 }
 
-vk::DeviceSize Model::indexOffset() const {
+vk::DeviceSize Geometry::indexOffset() const {
   return m_model.vertex_num * m_model.vertex_bytes;
 }

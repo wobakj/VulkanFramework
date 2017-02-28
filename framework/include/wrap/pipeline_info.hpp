@@ -5,8 +5,8 @@
 #include <vector>
 
 class Shader;
-class Model;
-class ModelLod;
+class Geometry;
+class GeometryLod;
 
 class PipelineInfo {
  public:
@@ -15,8 +15,8 @@ class PipelineInfo {
 
   void setShader(Shader const& shader);
 
-  void setVertexInput(Model const& model);
-  void setVertexInput(ModelLod const& model);
+  void setVertexInput(Geometry const& model);
+  void setVertexInput(GeometryLod const& model);
 
   void setTopology(vk::PrimitiveTopology const& topo);
 

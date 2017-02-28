@@ -5,7 +5,7 @@
 
 #include "application_threaded.hpp"
 #include "deleter.hpp"
-#include "wrap/model.hpp"
+#include "geometry.hpp"
 #include "wrap/buffer.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/memory.hpp"

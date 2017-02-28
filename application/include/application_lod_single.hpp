@@ -4,8 +4,8 @@
 #include <vulkan/vulkan.hpp>
 
 #include "application_single.hpp"
-#include "wrap/model.hpp"
-#include "wrap/model_lod.hpp"
+#include "geometry.hpp"
+#include "geometry_lod.hpp"
 #include "wrap/buffer.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/memory.hpp"
@@ -60,8 +60,8 @@ class ApplicationLodSingle : public ApplicationSingle {
   // path to the resource folders
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
-  Model m_model_light;
-  ModelLod m_model_lod;
+  Geometry m_model_light;
+  GeometryLod m_model_lod;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
   vk::DescriptorSet m_descriptorSet;

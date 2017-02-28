@@ -1,8 +1,8 @@
 #include "wrap/pipeline_info.hpp"
 
 #include "wrap/shader.hpp"
-#include "wrap/model.hpp"
-#include "wrap/model_lod.hpp"
+#include "geometry.hpp"
+#include "geometry_lod.hpp"
 
 PipelineInfo::PipelineInfo()
  :info{}
@@ -81,12 +81,12 @@ void PipelineInfo::setShader(Shader const& shader) {
   setShaderStages(shader.shaderStages());
 }
 
-void PipelineInfo::setVertexInput(Model const& model) {
+void PipelineInfo::setVertexInput(Geometry const& model) {
   setVertexBindings(model.bindInfos());
   setVertexAttributes(model.attributeInfos());
 }
 
-void PipelineInfo::setVertexInput(ModelLod const& model) {
+void PipelineInfo::setVertexInput(GeometryLod const& model) {
   setVertexBindings(model.bindInfos());
   setVertexAttributes(model.attributeInfos());
 }

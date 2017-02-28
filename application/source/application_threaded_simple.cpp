@@ -121,7 +121,7 @@ void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res)
   res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
   // choose between sphere and house
-  Model const* model = nullptr;
+  Geometry const* model = nullptr;
   if (m_sphere) {
     model = &m_model;
   }
@@ -290,12 +290,12 @@ void ApplicationThreadedSimple::updatePipelines() {
 void ApplicationThreadedSimple::createVertexBuffer() {
   vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
 
-  m_model = Model{m_device, tri};
+  m_model = Geometry{m_device, tri};
 }
 void ApplicationThreadedSimple::loadModel() {
   try {
     vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-    m_model_2 = Model{m_device, tri};
+    m_model_2 = Geometry{m_device, tri};
     m_model_dirty = true;
   }
   catch (std::exception& e) {

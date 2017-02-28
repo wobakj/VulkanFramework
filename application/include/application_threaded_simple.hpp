@@ -4,7 +4,7 @@
 #include "application_threaded.hpp"
 
 #include "deleter.hpp"
-#include "wrap/model.hpp"
+#include "geometry.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
 
@@ -47,8 +47,8 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   // path to the resource folders
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
-  Model m_model;
-  Model m_model_2;
+  Geometry m_model;
+  Geometry m_model_2;
   Deleter<VkDescriptorPool> m_descriptorPool;
   Deleter<VkDescriptorPool> m_descriptorPool_2;
   Deleter<VkSampler> m_textureSampler;

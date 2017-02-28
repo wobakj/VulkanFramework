@@ -25,19 +25,19 @@ struct serialized_vertex {
   float c0_x_, c0_y_;          //texcoord 0
 };
 
-class ModelLod {
+class GeometryLod {
  public:  
-  ModelLod();
-  ModelLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget);
-  // ModelLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads);
-  ModelLod(ModelLod && dev);
-  ModelLod(ModelLod const&) = delete;
-  ~ModelLod();
+  GeometryLod();
+  GeometryLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget);
+  // GeometryLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads);
+  GeometryLod(GeometryLod && dev);
+  GeometryLod(GeometryLod const&) = delete;
+  ~GeometryLod();
 
-  ModelLod& operator=(ModelLod const&) = delete;
-  ModelLod& operator=(ModelLod&& dev);
+  GeometryLod& operator=(GeometryLod const&) = delete;
+  GeometryLod& operator=(GeometryLod&& dev);
 
-  void swap(ModelLod& dev);
+  void swap(GeometryLod& dev);
 
   std::vector<std::size_t> const& cut() const;
   std::vector<std::size_t> const& activeBuffers() const;
