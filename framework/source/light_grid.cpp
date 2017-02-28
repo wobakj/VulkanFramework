@@ -21,6 +21,7 @@ LightGrid::~LightGrid() {}
 
 void LightGrid::update(glm::mat4 const& projection,
                        glm::uvec2 const& resolution) {
+  // no need to rebuild froxels if the parameters did not actually change
   if ((projection == m_projection) && (resolution == m_resolution))
     return;
 
