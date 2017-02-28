@@ -4,7 +4,7 @@
 #include "buffer.hpp"
 #include "buffer_view.hpp"
 #include "memory.hpp"
-#include "model_t.hpp"
+#include "vertex_data.hpp"
 #include "double_buffer.hpp"
 
 #include "bvh.h"
@@ -84,7 +84,7 @@ class ModelLod {
   Memory m_memory;
   Memory m_memory_stage;
 
-  model_t m_model;
+  vertex_data m_model;
   Device const* m_device;
   std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;

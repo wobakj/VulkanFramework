@@ -15,7 +15,7 @@ bool contains(T const& container, U const& element) {
   return std::find(container.begin(), container.end(), element) != container.end();
 }
 
-static vk::VertexInputBindingDescription model_to_bind(model_t const& m) {
+static vk::VertexInputBindingDescription vertex_datao_bind(vertex_data const& m) {
   vk::VertexInputBindingDescription bindingDescription{};
   bindingDescription.binding = 0;
   bindingDescription.stride = m.vertex_bytes;
@@ -23,11 +23,11 @@ static vk::VertexInputBindingDescription model_to_bind(model_t const& m) {
   return bindingDescription;  
 }
 
-static std::vector<vk::VertexInputAttributeDescription> model_to_attr(model_t const& model_) {
+static std::vector<vk::VertexInputAttributeDescription> vertex_datao_attr(vertex_data const& model_) {
   std::vector<vk::VertexInputAttributeDescription> attributeDescriptions{};
 
   int attrib_index = 0;
-  for(model_t::attribute const& attribute : model_t::VERTEX_ATTRIBS) {
+  for(vertex_data::attribute const& attribute : vertex_data::VERTEX_ATTRIBS) {
     if(model_.offsets.find(attribute) != model_.offsets.end()) {
       vk::VertexInputAttributeDescription desc{};
       desc.binding = 0;
@@ -78,9 +78,9 @@ ModelLod::ModelLod(Device& device, std::string const& path, std::size_t cut_budg
     lod_stream.read((char*)m_nodes[i].data(), offset_in_bytes, m_size_node);
   }
   // store model for easier descriptor generation
-  m_model = model_t{m_nodes.front(), model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
-  m_bind_info.emplace_back(model_to_bind(m_model));
-  m_attrib_info = model_to_attr(m_model);
+  m_model = vertex_data{m_nodes.front(), vertex_data::POSITION | vertex_data::NORMAL | vertex_data::TEXCOORD};
+  m_bind_info.emplace_back(vertex_datao_bind(m_model));
+  m_attrib_info = vertex_datao_attr(m_model);
 
   std::cout << "Bvh has depth " << m_bvh.get_depth() << ", with " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
 // set node buffer sizes

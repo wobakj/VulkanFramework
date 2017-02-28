@@ -242,7 +242,7 @@ void ApplicationClustered::updatePipelines() {
 }
 
 void ApplicationClustered::createVertexBuffer() {
-  model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
+  vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Model{m_device, tri};
 }
 

@@ -3,7 +3,7 @@
 
 #include "buffer.hpp"
 #include "memory.hpp"
-#include "model_t.hpp"
+#include "vertex_data.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -12,7 +12,7 @@ class Device;
 class Model {
  public:  
   Model();
-  Model(Device& device, model_t const& model);
+  Model(Device& device, vertex_data const& model);
   Model(Model && dev);
   Model(Model const&) = delete;
 
@@ -30,7 +30,7 @@ class Model {
   std::uint32_t numVertices() const;
 
  private:
-  model_t m_model;
+  vertex_data m_model;
   Device const* m_device;
   std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;

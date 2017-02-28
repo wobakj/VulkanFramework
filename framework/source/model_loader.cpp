@@ -40,9 +40,9 @@ namespace model_loader {
 // void generate_normals(tinyobj::mesh_t& model);
 void generate_normals(tinyobj::attrib_t& attribs, tinyobj::mesh_t& mesh);
 
-// std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model_t);
+// std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& vertex_data);
 
-model_t obj(std::string const& file_path, model_t::attrib_flag_t import_attribs) {
+vertex_data obj(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
 // import
   tinyobj::attrib_t attribs;
   std::vector<tinyobj::shape_t> shapes;
@@ -57,33 +57,33 @@ model_t obj(std::string const& file_path, model_t::attrib_flag_t import_attribs)
     throw std::runtime_error("tinyobjloader: '" + file_path + "' - " + err);
   }
 // parameter handling
-  model_t::attrib_flag_t attributes{model_t::POSITION | import_attribs};
+  vertex_data::attrib_flag_t attributes{vertex_data::POSITION | import_attribs};
 
-  bool has_normals = (import_attribs & model_t::NORMAL) != 0;
+  bool has_normals = (import_attribs & vertex_data::NORMAL) != 0;
   if(has_normals) {
     // generate normals if necessary
     if (attribs.normals.empty()) {
       // generate_normals(curr_mesh);
-      std::cerr << "Shape has no normals" << std::endl;
-      attributes ^= model_t::NORMAL;
+      std::cerr << "Shapes has no normals" << std::endl;
+      // attributes ^= vertex_data::NORMAL;
     }
   }
 
-  bool has_uvs = (import_attribs & model_t::TEXCOORD) != 0;
+  bool has_uvs = (import_attribs & vertex_data::TEXCOORD) != 0;
   if(has_uvs) {
     if (attribs.texcoords.empty()) {
       has_uvs = false;
-      attributes ^= model_t::TEXCOORD;
+      attributes ^= vertex_data::TEXCOORD;
       std::cerr << "Shape has no texcoords" << std::endl;
     }
   }
 
-  bool has_tangents = import_attribs & model_t::TANGENT;
+  bool has_tangents = import_attribs & vertex_data::TANGENT;
   std::vector<glm::fvec3> tangents;
   if (has_tangents) {
     if (!has_uvs) {
       has_tangents = false;
-      attributes ^= model_t::TANGENT;
+      attributes ^= vertex_data::TANGENT;
       std::cerr << "Shape has no texcoords" << std::endl;
     }
     else {
@@ -94,13 +94,13 @@ model_t obj(std::string const& file_path, model_t::attrib_flag_t import_attribs)
 
 // data transfer
   std::map<tinyobj::index_t, uint32_t> vertexToIndexMap;
-  std::vector<float> vertex_data{};
+  std::vector<float> vertices{};
   std::vector<uint32_t> indices{};
   
   // iterate over shapes
   uint32_t num_vertices = 0;
   for (auto& shape : shapes) {
-    if (shape.mesh.indices.front().normal_index < 0) {
+    if (has_normals && shape.mesh.indices.front().normal_index < 0) {
       std::cout << "generating normals for shape " << shape.name << std::endl;
       generate_normals(attribs, shape.mesh);
     }
@@ -118,20 +118,20 @@ model_t obj(std::string const& file_path, model_t::attrib_flag_t import_attribs)
         // check if we already have such a vertex
         auto it = vertexToIndexMap.find(vert_properties);
         if (it == vertexToIndexMap.end()) {
-          vertex_data.push_back(attribs.vertices[3 * vert_properties.vertex_index + 0]);
-          vertex_data.push_back(attribs.vertices[3 * vert_properties.vertex_index + 1]);
-          vertex_data.push_back(attribs.vertices[3 * vert_properties.vertex_index + 2]);
+          vertices.push_back(attribs.vertices[3 * vert_properties.vertex_index + 0]);
+          vertices.push_back(attribs.vertices[3 * vert_properties.vertex_index + 1]);
+          vertices.push_back(attribs.vertices[3 * vert_properties.vertex_index + 2]);
           
           if (has_normals) { 
             assert(vert_properties.normal_index >= 0);
-            vertex_data.push_back(attribs.normals[3 * vert_properties.normal_index + 0]);
-            vertex_data.push_back(attribs.normals[3 * vert_properties.normal_index + 1]);
-            vertex_data.push_back(attribs.normals[3 * vert_properties.normal_index + 2]);
+            vertices.push_back(attribs.normals[3 * vert_properties.normal_index + 0]);
+            vertices.push_back(attribs.normals[3 * vert_properties.normal_index + 1]);
+            vertices.push_back(attribs.normals[3 * vert_properties.normal_index + 2]);
           }
           if (has_uvs) {
             assert(vert_properties.texcoord_index >= 0);
-            vertex_data.push_back(attribs.texcoords[2 * vert_properties.texcoord_index + 0]);
-            vertex_data.push_back(attribs.texcoords[2 * vert_properties.texcoord_index + 1]);
+            vertices.push_back(attribs.texcoords[2 * vert_properties.texcoord_index + 0]);
+            vertices.push_back(attribs.texcoords[2 * vert_properties.texcoord_index + 1]);
           }
           uint32_t index = num_vertices;
           vertexToIndexMap.emplace(vert_properties, index);
@@ -145,7 +145,7 @@ model_t obj(std::string const& file_path, model_t::attrib_flag_t import_attribs)
       offset_face += num_face_verts;
     }
   }
-  return model_t{vertex_data, attributes, indices};
+  return vertex_data{vertices, attributes, indices};
 }
 
 void generate_normals(tinyobj::attrib_t& attribs, tinyobj::mesh_t& mesh) {
@@ -248,7 +248,7 @@ struct serialized_triangle {
   float c2_x_, c2_y_;
 };
 
-model_t bvh(std::string const& path, std::size_t idx_node) {
+vertex_data bvh(std::string const& path, std::size_t idx_node) {
 
   vklod::bvh bvh(path);
   std::cout << "bvh has " << bvh.get_num_nodes() << " nodes" << std::endl;
@@ -270,7 +270,7 @@ model_t bvh(std::string const& path, std::size_t idx_node) {
   access.open(path_lod);
   access.read((char*)tri_data.data(), stride_in_bytes * idx_node, stride_in_bytes);
   access.close();
-  return model_t{tri_data, model_t::POSITION | model_t::NORMAL | model_t::TEXCOORD};
+  return vertex_data{tri_data, vertex_data::POSITION | vertex_data::NORMAL | vertex_data::TEXCOORD};
 }
 
 vklod::bvh bvh(std::string const& path) {

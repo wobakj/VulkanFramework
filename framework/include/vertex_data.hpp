@@ -1,5 +1,5 @@
-#ifndef MODEL_T_HPP
-#define MODEL_T_HPP
+#ifndef VERTEX_DATA_HPP
+#define VERTEX_DATA_HPP
 
 #include <vulkan/vulkan.hpp>
 
@@ -7,7 +7,7 @@
 #include <vector>
 
 // holds vertex information and triangle indices
-struct model_t {
+struct vertex_data {
 
   //flag type to combine attributes
   typedef int attrib_flag_t;
@@ -46,8 +46,8 @@ struct model_t {
   // is not a vertex attribute, so not stored in VERTEX_ATTRIBS
   static attribute const  INDEX;
   
-  model_t();
-  model_t(std::vector<float> const& databuff, attrib_flag_t attribs, std::vector<std::uint32_t> const& trianglebuff = std::vector<std::uint32_t>{});
+  vertex_data();
+  vertex_data(std::vector<float> const& databuff, attrib_flag_t attribs, std::vector<std::uint32_t> const& trianglebuff = std::vector<std::uint32_t>{});
 
   std::vector<float> data;
   std::vector<std::uint32_t> indices;

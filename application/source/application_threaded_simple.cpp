@@ -291,23 +291,13 @@ void ApplicationThreadedSimple::updatePipelines() {
 }
 
 void ApplicationThreadedSimple::createVertexBuffer() {
-  std::vector<float> vertex_data{
-    0.0f, -0.5f, 0.5f,  1.0f, 0.0f, 0.0f,
-    0.5f, 0.5f, 0.5f,   0.0f, 1.0f, 0.0f,
-    -0.5f, 0.5f, 0.5f,  0.0f, 0.0f, 1.0
-  };
-  std::vector<std::uint32_t> indices {
-    0, 1, 2
-  };
-  // model_t tri = model_t{vertex_data, model_t::POSITION | model_t::NORMAL, indices};
-
-  model_t tri = model_loader::obj(m_resource_path + "models/sphere.obj", model_t::NORMAL | model_t::TEXCOORD);
+  vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
 
   m_model = Model{m_device, tri};
 }
 void ApplicationThreadedSimple::loadModel() {
   try {
-    model_t tri = model_loader::obj(m_resource_path + "models/house.obj", model_t::NORMAL | model_t::TEXCOORD);
+    vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
     m_model_2 = Model{m_device, tri};
     m_model_dirty = true;
   }
