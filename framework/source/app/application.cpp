@@ -107,8 +107,11 @@ void Application::resize(std::size_t width, std::size_t height) {
   // draw queue is emptied in launcher::resize
   createFramebufferAttachments();
   createFramebuffers();
+  onResize(width, height);
   updateCommandBuffers();
 }
+
+void Application::onResize(std::size_t width, std::size_t height) {}
 
 void Application::recreatePipeline() {
   // wait for avaiability of resources
