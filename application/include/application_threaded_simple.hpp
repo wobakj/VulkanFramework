@@ -1,7 +1,7 @@
 #ifndef APPLICATION_THREADED_SIMPLE_HPP
 #define APPLICATION_THREADED_SIMPLE_HPP
 
-#include "application_threaded.hpp"
+#include "app/application_threaded.hpp"
 
 #include "deleter.hpp"
 #include "geometry.hpp"

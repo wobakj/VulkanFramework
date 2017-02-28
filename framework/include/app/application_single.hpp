@@ -1,7 +1,7 @@
 #ifndef APPLICATION_SINGLE_HPP
 #define APPLICATION_SINGLE_HPP
 
-#include "application.hpp"
+#include "app/application.hpp"
 #include "frame_resource.hpp"
 #include "statistics.hpp"
 

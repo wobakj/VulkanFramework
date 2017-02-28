@@ -1,10 +1,10 @@
-#include "launcher.hpp"
+#include "app/launcher.hpp"
 
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include "application.hpp"
+#include "app/application.hpp"
 
 #include <cstdlib>
 #include <functional>

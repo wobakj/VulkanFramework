@@ -1,6 +1,6 @@
 #include "wrap/shader.hpp"
 
-#include "wrap/shader_loader.hpp"
+#include "shader_loader.hpp"
 #include "wrap/device.hpp"
 
 #include <spirv_cross.hpp>

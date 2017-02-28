@@ -1,6 +1,6 @@
 #include "application_lod.hpp"
 
-#include "launcher.hpp"
+#include "app/launcher.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
 #include "cmdline.h"

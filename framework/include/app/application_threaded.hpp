@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "application.hpp"
+#include "app/application.hpp"
 #include "semaphore.hpp"
 #include "frame_resource.hpp"
 #include "statistics.hpp"

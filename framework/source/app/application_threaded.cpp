@@ -1,4 +1,4 @@
-#include "application_threaded.hpp"
+#include "app/application_threaded.hpp"
 
 // child classes must overwrite
 const uint32_t ApplicationThreaded::imageCount = 3;

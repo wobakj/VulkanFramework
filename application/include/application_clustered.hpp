@@ -1,7 +1,7 @@
 #ifndef APPLICATION_CLUSTERED_HPP
 #define APPLICATION_CLUSTERED_HPP
 
-#include "application_single.hpp"
+#include "app/application_single.hpp"
 
 #include "deleter.hpp"
 #include "light_grid.hpp"

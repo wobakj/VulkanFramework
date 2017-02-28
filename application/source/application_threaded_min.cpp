@@ -1,6 +1,6 @@
 #include "application_threaded_min.hpp"
 
-#include "launcher.hpp"
+#include "app/launcher.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
 
