@@ -11,264 +11,230 @@
 
 #include <iostream>
 
+namespace tinyobj {
+bool operator<(tinyobj::index_t const& lhs,
+                      tinyobj::index_t const& rhs) {
+  if (lhs.vertex_index == rhs.vertex_index) {
+    if (lhs.normal_index == rhs.normal_index) {
+      return lhs.texcoord_index < rhs.texcoord_index;
+    } else
+      return lhs.normal_index < rhs.normal_index;
+  } else
+    return lhs.vertex_index < rhs.vertex_index;
+}
 
-// struct Vertex {
-//   Vertex(glm::vec3 const& position,
-//          glm::vec3 const& normal,
-//          glm::vec2 const& texCoord,
-//          int materialId = -1)
-//       : position(position),
-//         normal(normal),
-//         texCoord(texCoord),
-//         materialId(materialId) {}
-
-//   glm::vec3 position;
-//   glm::vec3 normal;
-//   glm::vec2 texCoord;
-// };
-
-// struct Shape {
-//   std::string name;
-//   unsigned int indexOffset;
-//   unsigned int numIndices;
-//   int materialId = -1;
-// };
+bool operator==(tinyobj::index_t const& lhs,
+                      tinyobj::index_t const& rhs) {
+  if (lhs.vertex_index == rhs.vertex_index) {
+    if (lhs.normal_index == rhs.normal_index) {
+      return lhs.texcoord_index == rhs.texcoord_index;
+    } else
+      return false;
+  } else
+    return false;
+}
+};
 
 namespace model_loader {
 
-void generate_normals(tinyobj::mesh_t& model);
+// void generate_normals(tinyobj::mesh_t& model);
+void generate_normals(tinyobj::attrib_t& attribs, tinyobj::mesh_t& mesh);
 
-std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model_t);
+// std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model_t);
 
-model_t obj(std::string const& name, model_t::attrib_flag_t import_attribs){
+model_t obj(std::string const& file_path, model_t::attrib_flag_t import_attribs) {
+// import
+  tinyobj::attrib_t attribs;
   std::vector<tinyobj::shape_t> shapes;
-  std::vector<tinyobj::material_t> materials;
-
-  std::string err = tinyobj::LoadObj(shapes, materials, name.c_str());
-
-  if (!err.empty()) {
-    if (err[0] == 'W' && err[1] == 'A' && err[2] == 'R') {
-      std::cerr << "tinyobjloader: " << err << std::endl;    
-    }
-    else {
-      throw std::logic_error("tinyobjloader: " + err);    
-    }
+  std::string err;
+  std::vector<tinyobj::material_t> m_materials;
+  // load obj and triangulate by default
+  bool success = tinyobj::LoadObj(&attribs, &shapes, &m_materials, &err, file_path.c_str());
+  if (!success) {
+    throw std::runtime_error("tinyobjloader: '" + file_path + "' - failed to load");
   }
-
+  else if (!err.empty()) {
+    throw std::runtime_error("tinyobjloader: '" + file_path + "' - " + err);
+  }
+// parameter handling
   model_t::attrib_flag_t attributes{model_t::POSITION | import_attribs};
 
-  std::vector<float> vertex_data;
-  std::vector<unsigned> triangles;
-
-  unsigned vertex_offset = 0;
-
-  for (auto& shape : shapes) {
-    tinyobj::mesh_t& curr_mesh = shape.mesh;
-    // prevent MSVC warning due to Win BOOL implementation
-    bool has_normals = (import_attribs & model_t::NORMAL) != 0;
-    if(has_normals) {
-      // generate normals if necessary
-      if (curr_mesh.normals.empty()) {
-        generate_normals(curr_mesh);
-      }
+  bool has_normals = (import_attribs & model_t::NORMAL) != 0;
+  if(has_normals) {
+    // generate normals if necessary
+    if (attribs.normals.empty()) {
+      // generate_normals(curr_mesh);
+      std::cerr << "Shape has no normals" << std::endl;
+      attributes ^= model_t::NORMAL;
     }
-
-    bool has_uvs = (import_attribs & model_t::TEXCOORD) != 0;
-    if(has_uvs) {
-      if (curr_mesh.texcoords.empty()) {
-        has_uvs = false;
-        attributes ^= model_t::TEXCOORD;
-        std::cerr << "Shape has no texcoords" << std::endl;
-      }
-    }
-
-    bool has_tangents = import_attribs & model_t::TANGENT;
-    std::vector<glm::fvec3> tangents;
-    if (has_tangents) {
-      if (!has_uvs) {
-        has_tangents = false;
-        attributes ^= model_t::TANGENT;
-        std::cerr << "Shape has no texcoords" << std::endl;
-      }
-      else {
-        tangents = generate_tangents(curr_mesh);
-      }
-    }
-
-    // push back vertex attributes
-    for (unsigned i = 0; i < curr_mesh.positions.size() / 3; ++i) {
-      vertex_data.push_back(curr_mesh.positions[i * 3]);
-      vertex_data.push_back(curr_mesh.positions[i * 3 + 1]);
-      vertex_data.push_back(curr_mesh.positions[i * 3 + 2]);
-
-      if (has_normals) {
-        vertex_data.push_back(curr_mesh.normals[i * 3]);
-        vertex_data.push_back(curr_mesh.normals[i * 3 + 1]);
-        vertex_data.push_back(curr_mesh.normals[i * 3 + 2]);
-      }
-
-      if (has_uvs) {
-        vertex_data.push_back(curr_mesh.texcoords[i * 2]);
-        vertex_data.push_back(curr_mesh.texcoords[i * 2 + 1]);
-      }
-
-      if (has_tangents) {
-        vertex_data.push_back(tangents[i].x);
-        vertex_data.push_back(tangents[i].y);
-        vertex_data.push_back(tangents[i].z);
-      }
-    }
-
-    // add triangles
-    for (unsigned i = 0; i < curr_mesh.indices.size(); ++i) {
-      triangles.push_back(vertex_offset + curr_mesh.indices[i]);
-    }
-
-    vertex_offset += unsigned(curr_mesh.positions.size() / 3);
   }
-  if(vertex_data.empty()) throw std::exception();
-  return model_t{vertex_data, attributes, triangles};
+
+  bool has_uvs = (import_attribs & model_t::TEXCOORD) != 0;
+  if(has_uvs) {
+    if (attribs.texcoords.empty()) {
+      has_uvs = false;
+      attributes ^= model_t::TEXCOORD;
+      std::cerr << "Shape has no texcoords" << std::endl;
+    }
+  }
+
+  bool has_tangents = import_attribs & model_t::TANGENT;
+  std::vector<glm::fvec3> tangents;
+  if (has_tangents) {
+    if (!has_uvs) {
+      has_tangents = false;
+      attributes ^= model_t::TANGENT;
+      std::cerr << "Shape has no texcoords" << std::endl;
+    }
+    else {
+      throw std::runtime_error("tangent generation not supported");
+      // tangents = generate_tangents(curr_mesh);
+    }
+  }
+
+// data transfer
+  std::map<tinyobj::index_t, uint32_t> vertexToIndexMap;
+  std::vector<float> vertex_data{};
+  std::vector<uint32_t> indices{};
+  
+  // iterate over shapes
+  uint32_t num_vertices = 0;
+  for (auto& shape : shapes) {
+    if (shape.mesh.indices.front().normal_index < 0) {
+      std::cout << "generating normals for shape " << shape.name << std::endl;
+      generate_normals(attribs, shape.mesh);
+    }
+    // use first material used in this mesh instead of materials per face
+    // shape.materialId = shape.mesh.material_ids[0];
+    // iterate over faces
+    size_t offset_face = 0;
+    for (auto const& num_face_verts : shape.mesh.num_face_vertices) {
+      // get face and material
+      // uint8_t num_face_verts = shape.mesh.num_face_vertices[idx_face];
+      // int material = shape.mesh.material_ids[idx_face];
+      // iterate over the face vertices
+      for (uint8_t idx_vert = 0; idx_vert < num_face_verts; ++idx_vert) {
+        tinyobj::index_t const& vert_properties = shape.mesh.indices[offset_face + idx_vert];
+        // check if we already have such a vertex
+        auto it = vertexToIndexMap.find(vert_properties);
+        if (it == vertexToIndexMap.end()) {
+          vertex_data.push_back(attribs.vertices[3 * vert_properties.vertex_index + 0]);
+          vertex_data.push_back(attribs.vertices[3 * vert_properties.vertex_index + 1]);
+          vertex_data.push_back(attribs.vertices[3 * vert_properties.vertex_index + 2]);
+          
+          if (has_normals) { 
+            assert(vert_properties.normal_index >= 0);
+            vertex_data.push_back(attribs.normals[3 * vert_properties.normal_index + 0]);
+            vertex_data.push_back(attribs.normals[3 * vert_properties.normal_index + 1]);
+            vertex_data.push_back(attribs.normals[3 * vert_properties.normal_index + 2]);
+          }
+          if (has_uvs) {
+            assert(vert_properties.texcoord_index >= 0);
+            vertex_data.push_back(attribs.texcoords[2 * vert_properties.texcoord_index + 0]);
+            vertex_data.push_back(attribs.texcoords[2 * vert_properties.texcoord_index + 1]);
+          }
+          uint32_t index = num_vertices;
+          vertexToIndexMap.emplace(vert_properties, index);
+          indices.push_back(index);
+          ++num_vertices;
+        } 
+        else {
+          indices.push_back(it->second);
+        }
+      }
+      offset_face += num_face_verts;
+    }
+  }
+  return model_t{vertex_data, attributes, indices};
 }
 
-// model_t obj(std::string const& name, model_t::attrib_flag_t import_attribs) {
-//   tinyobj::attrib_t attrib;
-//   std::vector<tinyobj::shape_t> shapes;
-//   std::string err;
+void generate_normals(tinyobj::attrib_t& attribs, tinyobj::mesh_t& mesh) {
+  std::vector<uint32_t> indices;
+  std::map<tinyobj::index_t, uint32_t> vertexToIndexMap;
+  // save vertex positions as glm vectors
+  std::vector<glm::fvec3> positions(mesh.indices.size());
+  uint32_t index = 0;
+  for (auto const& vert_properties : mesh.indices) {
+    auto it = vertexToIndexMap.find(vert_properties);
+    if (it == vertexToIndexMap.end()) {
+        indices.push_back(index);
+    }
+    else {
+      indices.push_back(it->second);
+    }
+    positions[index] = glm::fvec3{attribs.vertices[3 * vert_properties.vertex_index + 0]
+                             ,attribs.vertices[3 * vert_properties.vertex_index + 1]
+                             ,attribs.vertices[3 * vert_properties.vertex_index + 2]
+                           };
+    ++index;
+  }
+  // calculate triangle normal 
+  std::vector<glm::fvec3> normals(mesh.num_face_vertices.size(), glm::fvec3{0.0f});
+  // size_t index_offset = 0;
+  for (unsigned i = 0; i < mesh.num_face_vertices.size(); i+=3) {
+    assert(mesh.num_face_vertices[i].size() == 3);
+    glm::fvec3 normal = glm::cross(positions[i+1] - positions[i], positions[i+2] - positions[i]);
+    // accumulate vertex normals
+    normals[i] += normal;
+    normals[i+1] += normal;
+    normals[i+2] += normal;
+  }
 
-//   bool ret =
-//       tinyobj::LoadObj(&attrib, &shapes, &m_materials, &err, filename.c_str());
-//   if (!ret)
-//     throw std::runtime_error("Failed to load mesh from '" + filename + "'");
-//   else if (!err.empty())
-//     throw std::runtime_error("Failed to load mesh from '" + filename + "'");
+  for (unsigned i = 0; i < mesh.indices.size(); ++i) {
+    tinyobj::index_t& vert_properties = mesh.indices[i];
+    // not a duplicate
+    auto unique_idx = indices.at(i);
+    if (unique_idx == i) {
+      vert_properties.normal_index = uint32_t(attribs.normals.size() / 3); 
+      glm::fvec3 normal = glm::normalize(normals[i]);
+      attribs.normals.emplace_back(normal[0]);
+      attribs.normals.emplace_back(normal[1]);
+      attribs.normals.emplace_back(normal[2]);
+    }
+    else {
+      vert_properties.normal_index = mesh.indices.at(unique_idx).normal_index; 
+    }
+  }
+}
 
-//   std::map<tinyobj::index_t, uint32_t> vertexToIndexMap;
-//   std::vector<Vertex> vertices;
-//   std::vector<uint32_t> indices;
+// std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model) {
+//   // containers for vetex attributes
+//   std::vector<glm::fvec3> positions(model.positions.size() / 3);
+//   std::vector<glm::fvec3> normals(model.positions.size() / 3);
+//   std::vector<glm::fvec2> texcoords(model.positions.size() / 3);
+//   std::vector<glm::fvec3> tangents(model.positions.size() / 3, glm::fvec3{0.0f});
 
-//   // iterate over shapes
-//   for (size_t s = 0; s < shapes.size(); s++) {
-//     Shape shape;
-//     shape.indexOffset = indices.size();
-//     // use first material used in this mesh instead of materials per face
-//     shape.materialId = shapes[s].mesh.material_ids[0];
-//     // iterate over faces
-//     size_t index_offset = 0;
-//     for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-//       int fv = shapes[s].mesh.num_face_vertices[f];
-//       // int material = shapes[s].mesh.material_ids[f];
-
-//       // iterate over the face's vertices
-//       for (size_t v = 0; v < fv; v++) {
-//         tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
-//         // check if we already have such a vertex
-//         auto it = vertexToIndexMap.find(idx);
-//         if (it == vertexToIndexMap.end()) {
-//           glm::vec3 pos = glm::vec3(attrib.vertices[3 * idx.vertex_index + 0],
-//                           attrib.vertices[3 * idx.vertex_index + 1],
-//                           attrib.vertices[3 * idx.vertex_index + 2]);
-//           glm::vec3 normal;
-//           if (idx.normal_index >= 0)
-//             normal = glm::vec3(attrib.normals[3 * idx.normal_index + 0],
-//                                attrib.normals[3 * idx.normal_index + 1],
-//                                attrib.normals[3 * idx.normal_index + 2]);
-//           glm::vec2 texcoord;
-//           if (idx.texcoord_index >= 0)
-//             texcoord =
-//                 glm::vec2(attrib.texcoords[2 * idx.texcoord_index + 0],
-//                           1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]);
-          
-//           uint32_t index = vertices.size();
-//           vertexToIndexMap.emplace(idx, index);
-//           vertices.push_back(Vertex(pos, normal, texcoord, material));
-//           indices.push_back(index);
-//         } 
-//         else {
-//           indices.push_back(it->second);
-//         }
-//       }
-//       index_offset += fv;
-//     }
-//     shape.numIndices = indices.size() - shape.indexOffset;
-//     m_shapes.push_back(shape);
+//   // get vertex positions and texture coordinates from mesh_t
+//   for (unsigned i = 0; i < model.positions.size(); i+=3) {
+//     positions[i / 3] = glm::fvec3{model.positions[i],
+//                                  model.positions[i + 1],
+//                                  model.positions[i + 2]};
+//     normals[i / 3] = glm::fvec3{model.normals[i],
+//                                  model.normals[i + 1],
+//                                  model.normals[i + 2]};
+//   }
+//   for (unsigned i = 0; i < model.texcoords.size(); i+=2) {
+//     texcoords[i / 2] = glm::fvec2{model.texcoords[i], model.texcoords[i + 1]};
 //   }
 
-//   auto verticesSize = sizeof(vertices[0]) * vertices.size();
-//   auto indicesSize = sizeof(indices[0]) * indices.size();
-//   // m_buffer =
-//   //     std::make_unique<Buffer>(m_log, m_device, verticesSize + indicesSize,
-//   //                              vk::BufferUsageFlagBits::eVertexBuffer |
-//   //                                  vk::BufferUsageFlagBits::eIndexBuffer,
-//   //                              vk::MemoryPropertyFlagBits::eDeviceLocal);
-//   // m_buffer->upload(vertices.data(), verticesSize, 0);
-//   // m_buffer->upload(indices.data(), indicesSize, verticesSize);
-
-//   m_numIndices = indices.size();
-//   m_indexOffset = verticesSize;
-// }
-void generate_normals(tinyobj::mesh_t& model) {
-  std::vector<glm::fvec3> positions(model.positions.size() / 3);
-
-  for (unsigned i = 0; i < model.positions.size(); i+=3) {
-    positions[i / 3] = glm::fvec3{model.positions[i], model.positions[i + 1], model.positions[i + 2]};
-  }
-
-  std::vector<glm::fvec3> normals(model.positions.size() / 3, glm::fvec3{0.0f});
-  for (unsigned i = 0; i < model.indices.size(); i+=3) {
-    glm::fvec3 normal = glm::cross(positions[model.indices[i+1]] - positions[model.indices[i]], positions[model.indices[i+2]] - positions[model.indices[i]]);
-
-    normals[model.indices[i]] += normal;
-    normals[model.indices[i+1]] += normal;
-    normals[model.indices[i+2]] += normal;
-  }
-
-  model.normals.reserve(model.positions.size());
-  for (unsigned i = 0; i < normals.size(); ++i) {
-    glm::fvec3 normal = glm::normalize(normals[i]);
-    model.normals[i * 3] = normal[0];
-    model.normals[i * 3 + 1] = normal[1];
-    model.normals[i * 3 + 2] = normal[2];
-  }
-}
-
-std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& model) {
-  // containers for vetex attributes
-  std::vector<glm::fvec3> positions(model.positions.size() / 3);
-  std::vector<glm::fvec3> normals(model.positions.size() / 3);
-  std::vector<glm::fvec2> texcoords(model.positions.size() / 3);
-  std::vector<glm::fvec3> tangents(model.positions.size() / 3, glm::fvec3{0.0f});
-
-  // get vertex positions and texture coordinates from mesh_t
-  for (unsigned i = 0; i < model.positions.size(); i+=3) {
-    positions[i / 3] = glm::fvec3{model.positions[i],
-                                 model.positions[i + 1],
-                                 model.positions[i + 2]};
-    normals[i / 3] = glm::fvec3{model.normals[i],
-                                 model.normals[i + 1],
-                                 model.normals[i + 2]};
-  }
-  for (unsigned i = 0; i < model.texcoords.size(); i+=2) {
-    texcoords[i / 2] = glm::fvec2{model.texcoords[i], model.texcoords[i + 1]};
-  }
-
-  // calculate tangent for triangles
-  for (unsigned i = 0; i < model.indices.size() / 3; i++) {
-    // indices of vertices of this triangle, access any attribute of first vert with "attribute[indices[0]]"
-    unsigned indices[3] = {model.indices[i * 3],
-                           model.indices[i * 3 + 1],
-                           model.indices[i * 3 + 2]};
+//   // calculate tangent for triangles
+//   for (unsigned i = 0; i < model.indices.size() / 3; i++) {
+//     // indices of vertices of this triangle, access any attribute of first vert with "attribute[indices[0]]"
+//     unsigned indices[3] = {model.indices[i * 3],
+//                            model.indices[i * 3 + 1],
+//                            model.indices[i * 3 + 2]};
     
-    // implement tangent calculation here
-  }
+//     // implement tangent calculation here
+//   }
 
-  for (unsigned i = 0; i < tangents.size(); ++i) {
-    // implement orthogonalization and normalization here
-  }
+//   for (unsigned i = 0; i < tangents.size(); ++i) {
+//     // implement orthogonalization and normalization here
+//   }
 
-  throw std::logic_error("Tangent creation not implemented yet");
+//   throw std::logic_error("Tangent creation not implemented yet");
 
-  return tangents;
-}
+//   return tangents;
+// }
 
 struct serialized_triangle {
   float v0_x_, v0_y_, v0_z_;   //vertex 0

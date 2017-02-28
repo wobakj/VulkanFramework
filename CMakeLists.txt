@@ -4,7 +4,7 @@ project (VulkanFramework)
 
 #set the build type if its not set
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE )
+  set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE )
 endif()
 
 #if user didnt set install dir, override it and write it to the cache -> Type and description necessary,
@@ -49,10 +49,9 @@ include_directories(SYSTEM external/stb_image-2.0.6)
 include_directories(SYSTEM external/gli-0.8.2.0)
 
 # add tinyobjloader
-include_directories(external/tinyobjloader-aa07206)
+include_directories(external/tinyobjloader-1.0.5)
 # just one file so it can be directly compiled into main exe
-# file(GLOB TINYOBJLOADER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader-1.0.5/*.cc)
-file(GLOB TINYOBJLOADER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader-aa07206/*.cc)
+file(GLOB TINYOBJLOADER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader-1.0.5/*.cc)
 # bvh loading files
 add_sublibrary(bvh ${CMAKE_CURRENT_SOURCE_DIR}/external/bvh "")
 
