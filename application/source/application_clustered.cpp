@@ -29,8 +29,6 @@ struct BufferLights {
 };
 BufferLights buff_l;
 
-const glm::uvec3 RES_LIGHT_VOL{32, 32, 16};
-
 
 cmdline::parser ApplicationClustered::getParser() {
   cmdline::parser cmd_parse{};
@@ -45,7 +43,7 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_light_grid{m_camera.near(), m_camera.far(), m_camera.projectionMatrix(), glm::uvec2(chain.extent().width, chain.extent().height)}
- ,m_data_light_volume(RES_LIGHT_VOL.x * RES_LIGHT_VOL.y * RES_LIGHT_VOL.z, -1)
+ ,m_data_light_volume(m_light_grid.dimensions().x * m_light_grid.dimensions().y * m_light_grid.dimensions().z, -1)
 {
 
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
@@ -79,10 +77,6 @@ void ApplicationClustered::logic() {
 }
 
 void ApplicationClustered::updateLightVolume() {
-  m_light_grid.update(
-      m_camera.projectionMatrix(),
-      glm::uvec2(m_swap_chain.extent().width, m_swap_chain.extent().height));
-  std::cerr << glm::to_string(m_light_grid.dimensions()) << std::endl;
   // update light colume data
   for (uint32_t z = 0; z < m_light_grid.dimensions().z; ++z)
     for (uint32_t x = 0; x < m_light_grid.dimensions().x; ++x)
@@ -352,6 +346,11 @@ void ApplicationClustered::updateView() {
   ubo.proj = m_camera.projectionMatrix();
 
   m_device.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
+}
+
+void ApplicationClustered::onResize(std::size_t width, std::size_t height) {
+  // recompute froxels
+  m_light_grid.update(m_camera.projectionMatrix(), glm::uvec2(width, height));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

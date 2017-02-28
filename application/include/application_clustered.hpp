@@ -63,6 +63,9 @@ class ApplicationClustered : public ApplicationSingle {
   void createPipelines() override;
   void createDescriptorPools() override;
   void createFramebufferAttachments() override;
+
+  void onResize(std::size_t width, std::size_t height) override;
+
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
 
