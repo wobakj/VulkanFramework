@@ -107,6 +107,10 @@ class BlockAllocator {
   template<typename T, typename U>
   void allocate(MemoryResource<T, U>& resource) {
     auto const& requirements = resource.requirements();
+    // check if block supports requirements
+    if (!index_matches_filter(m_type_index, requirements.memoryTypeBits)) {
+      throw std::runtime_error{"allocator memory type not suitable for object"};
+    }
 
     if (requirements.size > m_block_bytes) {
       throw std::runtime_error{"resource size of " + std::to_string(requirements.size) + " larger than block size of " + std::to_string(m_block_bytes)};
@@ -208,6 +212,8 @@ class BlockAllocator {
     m_used_ranges.erase(iter_object);
   }
 
+
+ private:
   iterator_t findMatchingRange(vk::MemoryRequirements const& requirements) {
     for(auto iter_range = m_free_ranges.begin(); iter_range != m_free_ranges.end(); ++iter_range) {
       // round offset to alignment
@@ -219,7 +225,6 @@ class BlockAllocator {
     return m_free_ranges.end();
   }
 
- private:
   Device const* m_device;
   uint32_t m_type_index;
   uint32_t m_block_bytes;

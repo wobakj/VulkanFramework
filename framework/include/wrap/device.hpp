@@ -35,8 +35,11 @@ class Device : public WrapperDevice {
 
   void swap(Device& dev);
   // get memory types for usages
-  uint32_t suitableMemoryTypes(vk::Format const& format, vk::ImageTiling const& tiling);
-  uint32_t suitableMemoryTypes(vk::BufferUsageFlags const& usage);
+  uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) const;
+  uint32_t suitableMemoryTypes(vk::Format const& format, vk::ImageTiling const& tiling) const;
+  uint32_t suitableMemoryTypes(vk::BufferUsageFlags const& usage) const;
+  uint32_t suitableMemoryType(vk::Format const& format, vk::ImageTiling const& tiling, vk::MemoryPropertyFlags const& properties) const;
+  uint32_t suitableMemoryType(vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& properties) const;
   // buffer functions
   void uploadBufferData(void const* data_ptr, BufferView& buffer);
   void uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& offset = 0);

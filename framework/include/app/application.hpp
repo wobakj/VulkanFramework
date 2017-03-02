@@ -49,7 +49,7 @@ class Application {
   // call at shader reload/pipeline config change
   virtual void recreatePipeline();
   virtual void createDescriptorPools() {};
-  virtual void createMemoryPools() {};
+  virtual void createMemoryPools();
   virtual void createPipelines() = 0;
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;

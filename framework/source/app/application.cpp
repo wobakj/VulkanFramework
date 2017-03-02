@@ -13,7 +13,9 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
  ,m_device(device)
  ,m_swap_chain(chain)
  ,m_pipeline_cache{m_device}
-{}
+{
+  createMemoryPools();
+}
 
 FrameResource Application::createFrameResource() {
   auto res = FrameResource{m_device};
@@ -127,4 +129,17 @@ void Application::createRenderResources() {
   createDescriptorPools();
   updateDescriptors();
   updateCommandBuffers();
+}
+
+void Application::createMemoryPools() {
+  // find memory type which supports optimal image and specific depth format
+  auto type_img = m_device.suitableMemoryType(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal, vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_allocators.emplace("images", BlockAllocator{m_device, type_img, 4 * 3840 * 2160});
+  // separate allocator for buffers to not deal with buffer-image-granularity
+  auto type_nuffer = m_device.suitableMemoryType(vk::BufferUsageFlagBits::eStorageBuffer
+                                               | vk::BufferUsageFlagBits::eTransferDst 
+                                               | vk::BufferUsageFlagBits::eTransferSrc 
+                                               | vk::BufferUsageFlagBits::eUniformBuffer
+                                               , vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_allocators.emplace("buffers", BlockAllocator{m_device, type_nuffer, 4 * 16 * 128});
 }

@@ -80,7 +80,6 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
 
   m_statistics.addTimer("update");
 
-  createMemoryPools();
   createRenderResources();
 }
 
@@ -348,10 +347,6 @@ void ApplicationLodSingle::createLights() {
   m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
-void ApplicationLodSingle::createMemoryPools() {
-  m_allocators.emplace("framebuffer", BlockAllocator{m_device, findMemoryType(m_device.physical(), m_device.suitableMemoryTypes(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal), vk::MemoryPropertyFlagBits::eDeviceLocal), 4 * 3840 * 2160});
-}
-
 void ApplicationLodSingle::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
@@ -367,17 +362,15 @@ void ApplicationLodSingle::createFramebufferAttachments() {
   m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
   
-  m_allocators.at("framebuffer").allocate(m_images.at("depth"));
-  m_allocators.at("framebuffer").allocate(m_images.at("color"));
+  m_allocators.at("images").allocate(m_images.at("depth"));
+  m_allocators.at("images").allocate(m_images.at("color"));
 }
 
 void ApplicationLodSingle::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  // space for 14 8x3 1028 textures
-  m_device.allocateMemoryPool("textures", m_images.at("texture").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("texture").size() * 16);
-  m_images.at("texture").bindTo(m_device.memoryPool("textures"));
+  m_allocators.at("images").allocate(m_images.at("texture"));
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
@@ -403,7 +396,8 @@ void ApplicationLodSingle::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // allocate memory pool for uniforms
   m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size() * 2);
-  m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
+  // m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
+  m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));

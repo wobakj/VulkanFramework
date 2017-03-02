@@ -7,10 +7,14 @@
 #include <iostream>
 #include <cmath>
 
+// bool index_matches_filter(uint32_t index, uint32_t type_filter) {
+//   return (type_filter & (1u << index)) != (1u << index);
+// }
+
 uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
   auto memProperties = device.getMemoryProperties();
   for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+    if (index_matches_filter(i, typeFilter) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
       return i;
     }
   }

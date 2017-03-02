@@ -171,7 +171,7 @@ uint32_t Device::getQueueIndex(std::string const& name) const {
   return m_queue_indices.at(name);
 }
 
-uint32_t Device::suitableMemoryTypes(vk::BufferUsageFlags const& usage) {
+uint32_t Device::suitableMemoryTypes(vk::BufferUsageFlags const& usage) const {
   vk::BufferCreateInfo info;
   info.size = 1;
   info.usage = usage;
@@ -181,7 +181,7 @@ uint32_t Device::suitableMemoryTypes(vk::BufferUsageFlags const& usage) {
   return bits;
 }
 
-uint32_t Device::suitableMemoryTypes(vk::Format const& format, vk::ImageTiling const& tiling) {
+uint32_t Device::suitableMemoryTypes(vk::Format const& format, vk::ImageTiling const& tiling) const {
   vk::ImageCreateInfo info;
   info.extent = vk::Extent3D{1, 1, 1};
   info.mipLevels = 1;
@@ -193,6 +193,25 @@ uint32_t Device::suitableMemoryTypes(vk::Format const& format, vk::ImageTiling c
   auto bits = get().getImageMemoryRequirements(image).memoryTypeBits;
   get().destroyImage(image);
   return bits;
+}
+
+uint32_t Device::findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) const {
+  auto memProperties = physical().getMemoryProperties();
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+    if (index_matches_filter(i, typeFilter) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+      return i;
+    }
+  }
+  throw std::runtime_error("failed to find suitable memory type!");
+  return 0;
+}
+
+uint32_t Device::suitableMemoryType(vk::BufferUsageFlags const& usage, vk::MemoryPropertyFlags const& properties) const {
+  return findMemoryType(suitableMemoryTypes(usage), properties);
+}
+
+uint32_t Device::suitableMemoryType(vk::Format const& format, vk::ImageTiling const& tiling, vk::MemoryPropertyFlags const& properties) const {
+  return findMemoryType(suitableMemoryTypes(format, tiling), properties);
 }
 
 void Device::adjustStagingPool(vk::DeviceSize const& size) {
@@ -401,11 +420,11 @@ Memory& Device::memoryPool(std::string const& name) {
 
 void Device::allocateMemoryPool(std::string const& name, uint32_t type_bits, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size) {
   // std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
-  m_pools_memory.emplace(name, Memory{*this, findMemoryType(physical(), type_bits, mem_flags), size});
+  m_pools_memory.emplace(name, Memory{*this, findMemoryType(type_bits, mem_flags), size});
 }
 
 void Device::reallocateMemoryPool(std::string const& name, uint32_t type_bits, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size) {
   // std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
-  m_pools_memory[name] = Memory{*this, findMemoryType(physical(), type_bits, mem_flags), size};
+  m_pools_memory[name] = Memory{*this, findMemoryType(type_bits, mem_flags), size};
 }
 

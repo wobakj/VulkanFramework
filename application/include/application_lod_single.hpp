@@ -49,7 +49,6 @@ class ApplicationLodSingle : public ApplicationSingle {
 
   void createFramebuffers() override;
   void createRenderPasses() override;
-  void createMemoryPools() override;
   void createPipelines() override;
   void createDescriptorPools() override;
   void createFramebufferAttachments() override;

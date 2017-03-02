@@ -12,7 +12,20 @@ class Buffer;
 class Image;
 class Device;
 
-uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties);
+inline bool index_matches_filter(uint32_t index, uint32_t type_filter) {
+  return (type_filter & (1u << index)) == (1u << index);
+}
+
+// inline uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
+//   auto memProperties = device.getMemoryProperties();
+//   for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+//     if (index_matches_filter(i, typeFilter) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+//       return i;
+//     }
+//   }
+//   throw std::runtime_error("failed to find suitable memory type!");
+//   return 0;
+// }
 
 using WrapperMemory = Wrapper<vk::DeviceMemory, vk::MemoryAllocateInfo>;
 class Memory : public WrapperMemory {
