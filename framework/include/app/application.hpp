@@ -9,6 +9,7 @@
 #include "wrap/buffer_view.hpp"
 #include "wrap/device.hpp"
 #include "wrap/swap_chain.hpp"
+#include "block_allocator.hpp"
 #include "camera.hpp"
 #include "cmdline.h"
 
@@ -48,7 +49,7 @@ class Application {
   // call at shader reload/pipeline config change
   virtual void recreatePipeline();
   virtual void createDescriptorPools() {};
-  virtual void createMemoryPools() = 0;
+  virtual void createMemoryPools() {};
   virtual void createPipelines() = 0;
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;
@@ -83,6 +84,7 @@ class Application {
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
   std::map<std::string, Shader> m_shaders;
   std::map<std::string, Pipeline> m_pipelines;
+  std::map<std::string, BlockAllocator> m_allocators;
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
   std::map<std::string, BufferView> m_buffer_views;

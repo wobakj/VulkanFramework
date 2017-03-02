@@ -14,7 +14,6 @@
 #include "frame_resource.hpp"
 #include "semaphore.hpp"
 #include "averager.hpp"
-#include "block_allocator.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -69,7 +68,6 @@ class ApplicationLodSingle : public ApplicationSingle {
   vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
-  BlockAllocator m_allocator;
 
   bool m_setting_wire;
   bool m_setting_transparent;

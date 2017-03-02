@@ -69,12 +69,16 @@ class BlockAllocator {
    :m_device{nullptr}
    ,m_type_index{0}
    ,m_block_bytes{0}
+   ,m_free_ranges{}
+   ,m_used_ranges{}
   {}
 
 	BlockAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes)
    :m_device{&device}
    ,m_type_index{type_index}
    ,m_block_bytes{block_bytes}
+   ,m_free_ranges{}
+   ,m_used_ranges{}
   {}
 
   BlockAllocator(BlockAllocator && rhs)
@@ -118,7 +122,7 @@ class BlockAllocator {
       resource.bindTo(*this);
       m_used_ranges.emplace(res_handle_t{resource.get()}, range_t{iter_range->block, offset_align, requirements.size});
       // object ends at end of range
-      if (requirements.size + offset_align == iter_range->size + offset_align - iter_range->offset) {
+      if (requirements.size + offset_align == iter_range->size + iter_range->offset) {
         // offset matches exactly, no more free space
         if (offset_align == iter_range->offset) {
           m_free_ranges.erase(iter_range);
@@ -139,7 +143,7 @@ class BlockAllocator {
         // new offset
         iter_range->offset = offset_align + requirements.size;
       }
-      std::cout << resource.get() << " allocating range " << iter_range->block << ": " << offset_align << " - " << requirements.size << std::endl;
+      // std::cout << resource.get() << " allocating range " << iter_range->block << ": " << offset_align << " - " << requirements.size << std::endl;
     }
     else {
       addBlock();
@@ -149,7 +153,7 @@ class BlockAllocator {
       // update newly added free range
       m_free_ranges.back().offset = requirements.size;
       m_free_ranges.back().size -= requirements.size;
-      std::cout << resource.get() << " allocating range " << m_blocks.size() - 1 << ": " << 0 << " - " << requirements.size << std::endl;
+      // std::cout << resource.get() << " allocating new range " << m_blocks.size() - 1 << ": " << 0 << " - " << requirements.size << std::endl;
     }
   }
 
@@ -167,6 +171,8 @@ class BlockAllocator {
     }
     auto const& range_object = iter_object->second;
     auto object_end = range_object.offset + range_object.size;
+    // remove object form used list
+    // std::cout << resource.get() << " freeing range " << range_object.block << ": " << range_object.offset << " - " << range_object.size << std::endl;
     // find free ranges left and right of object
     iterator_t iter_range_l = m_free_ranges.end();
     iterator_t iter_range_r = m_free_ranges.end();
@@ -199,8 +205,6 @@ class BlockAllocator {
     else {
       m_free_ranges.emplace_back(range_object);
     }
-    // remove object form used list
-    std::cout << resource.get() << " freeing range " << range_object.block << ": " << range_object.offset << " - " << range_object.size << std::endl;
     m_used_ranges.erase(iter_object);
   }
 

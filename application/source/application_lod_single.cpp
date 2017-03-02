@@ -50,7 +50,6 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_allocator{m_device, findMemoryType(m_device.physical(), m_device.suitableMemoryTypes(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal), vk::MemoryPropertyFlagBits::eDeviceLocal), 32 * 1280 * 1024}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
@@ -81,6 +80,7 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
 
   m_statistics.addTimer("update");
 
+  createMemoryPools();
   createRenderResources();
 }
 
@@ -349,15 +349,7 @@ void ApplicationLodSingle::createLights() {
 }
 
 void ApplicationLodSingle::createMemoryPools() {
-  m_device->waitIdle();
-
-  // allocate pool for 5 32x4 fb attachments
-  m_device.reallocateMemoryPool("framebuffer", m_images.at("color").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("color").size() * 5);
-  
-
-  m_allocator.allocate(m_images.at("depth"));
-  // m_images.at("depth").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("color").bindTo(m_device.memoryPool("framebuffer"));
+  m_allocators.emplace("framebuffer", BlockAllocator{m_device, findMemoryType(m_device.physical(), m_device.suitableMemoryTypes(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal), vk::MemoryPropertyFlagBits::eDeviceLocal), 4 * 3840 * 2160});
 }
 
 void ApplicationLodSingle::createFramebufferAttachments() {
@@ -374,8 +366,9 @@ void ApplicationLodSingle::createFramebufferAttachments() {
 
   m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-
-  createMemoryPools();
+  
+  m_allocators.at("framebuffer").allocate(m_images.at("depth"));
+  m_allocators.at("framebuffer").allocate(m_images.at("color"));
 }
 
 void ApplicationLodSingle::createTextureImage() {
