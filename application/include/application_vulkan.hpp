@@ -34,7 +34,6 @@ class ApplicationVulkan : public ApplicationSingle {
   void updateView() override;
   void createFramebuffers();
   void createRenderPasses();
-  void createMemoryPools();
   void createPipelines();
   void createDescriptorPools();
   void createFramebufferAttachments();

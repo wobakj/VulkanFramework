@@ -365,8 +365,6 @@ void ApplicationLod::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  // space for 14 8x3 1028 textures
-  m_device.allocateMemoryPool("textures", m_images.at("texture").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("texture").size() * 16);
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   m_allocators.at("images").allocate(m_images.at("texture"));
   
@@ -391,9 +389,6 @@ void ApplicationLod::createDescriptorPools() {
 
 void ApplicationLod::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size() * 2);
-  // m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};

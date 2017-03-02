@@ -277,17 +277,6 @@ void ApplicationVulkan::createLights() {
   m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
-void ApplicationVulkan::createMemoryPools() {
-  // allocate pool for 5 32x4 fb attachments
-  m_device.reallocateMemoryPool("framebuffer", m_images.at("pos").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("pos").size() * 5);
-  
-  m_images.at("depth").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("color").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("pos").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("normal").bindTo(m_device.memoryPool("framebuffer"));
-  m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
-}
-
 void ApplicationVulkan::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
@@ -298,29 +287,30 @@ void ApplicationVulkan::createFramebufferAttachments() {
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
   m_images["depth"] = Image{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_images.at("depth").transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  m_allocators.at("images").allocate(m_images.at("depth"));
 
   m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_images.at("color").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_allocators.at("images").allocate(m_images.at("color"));
 
   m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_images.at("pos").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_allocators.at("images").allocate(m_images.at("pos"));
 
   m_images["normal"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_images.at("normal").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_allocators.at("images").allocate(m_images.at("normal"));
 
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-
-  createMemoryPools();
+  m_allocators.at("images").allocate(m_images.at("color_2"));
 }
 
 void ApplicationVulkan::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  // space for 14 8x3 1028 textures
-  m_device.allocateMemoryPool("textures", m_images.at("texture").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("texture").size() * 16);
-  m_images.at("texture").bindTo(m_device.memoryPool("textures"));
+  m_allocators.at("images").allocate(m_images.at("texture"));
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
@@ -360,12 +350,10 @@ void ApplicationVulkan::createDescriptorPools() {
 
 void ApplicationVulkan::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
 
-  m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
+  m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
   m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));

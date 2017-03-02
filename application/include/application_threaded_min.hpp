@@ -29,7 +29,6 @@ class ApplicationThreadedMin : public ApplicationThreaded {
   void createFramebuffers() override;
   void createFramebufferAttachments() override;
   void createRenderPasses() override;
-  void createMemoryPools() override;
   void createPipelines() override;
   // handle key input
   // void keyCallback(int key, int scancode, int action, int mods) override;

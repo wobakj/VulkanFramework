@@ -118,21 +118,12 @@ void ApplicationThreadedMin::updatePipelines() {
   m_pipelines.at("scene").recreate(info_pipe);
 }
 
-void ApplicationThreadedMin::createMemoryPools() {
-  m_device->waitIdle();
-  // allocate pool for 5 32x4 fb attachments
-  m_device.reallocateMemoryPool("framebuffer", m_images.at("color_2").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("color_2").size() * 5);
-  
-  m_images.at("color_2").bindTo(m_device.memoryPool("framebuffer"));
-}
-
 void ApplicationThreadedMin::createFramebufferAttachments() {
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
  
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-
-  createMemoryPools();
+  m_allocators.at("images").allocate(m_images.at("color_2"));
 }
 ///////////////////////////// misc functions ////////////////////////////////
 

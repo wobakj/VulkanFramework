@@ -37,7 +37,6 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   void createFramebuffers() override;
   void createFramebufferAttachments() override;
   void createRenderPasses() override;
-  void createMemoryPools() override;
   void createPipelines() override;
   void createDescriptorPools() override;
   // handle key input
