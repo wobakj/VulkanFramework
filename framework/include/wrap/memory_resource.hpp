@@ -20,8 +20,10 @@ class MemoryResource : public Wrapper<T, U> {
    ,m_alloc{nullptr}
   {}
 
-  virtual ~MemoryResource();
+  virtual ~MemoryResource() {};
 
+  void cleanup() override;
+  
   virtual void bindTo(BlockAllocator& memory);
   virtual void bindTo(Memory& memory);
   virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
@@ -61,10 +63,11 @@ class MemoryResource : public Wrapper<T, U> {
 #include "block_allocator.hpp"
 
 template<typename T, typename U>
-MemoryResource<T, U>::~MemoryResource() {
+void MemoryResource<T, U>::cleanup() {
   if (m_alloc) {
     m_alloc->free(*this);
   }
+  WrapperMemoryResource::cleanup();
 }
 
 template<typename T, typename U>

@@ -172,7 +172,7 @@ void generate_normals(tinyobj::attrib_t& attribs, tinyobj::mesh_t& mesh) {
   std::vector<glm::fvec3> normals(mesh.num_face_vertices.size(), glm::fvec3{0.0f});
   // size_t index_offset = 0;
   for (unsigned i = 0; i < mesh.num_face_vertices.size(); i+=3) {
-    assert(mesh.num_face_vertices[i].size() == 3);
+    assert(mesh.num_face_vertices[i] == 3);
     glm::fvec3 normal = glm::cross(positions[i+1] - positions[i], positions[i+2] - positions[i]);
     // accumulate vertex normals
     normals[i] += normal;

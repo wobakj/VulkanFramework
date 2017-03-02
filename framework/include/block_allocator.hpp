@@ -39,14 +39,13 @@ struct res_handle_t {
   union handle {
     VkBuffer buf;
     VkImage img;
-    uint64_t i;
   } handle;
 };
 
 static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
   if (a.i) {
     if (b.i) {
-      return a.handle.i < b.handle.i;
+      return a.handle.img < b.handle.img;
     }
     else {
       return false;
@@ -57,7 +56,7 @@ static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
       return true;
     }
     else {
-      return a.handle.i < b.handle.i;
+      return a.handle.buf < b.handle.buf;
     }
   }
 }
@@ -83,7 +82,9 @@ class BlockAllocator {
   {
     swap(rhs);
   }
+
   BlockAllocator(BlockAllocator const&) = delete;
+  BlockAllocator& operator=(BlockAllocator const&) = delete;
 
   BlockAllocator& operator=(BlockAllocator&& rhs) {
     swap(rhs);
@@ -150,7 +151,6 @@ class BlockAllocator {
       m_free_ranges.back().size -= requirements.size;
       std::cout << resource.get() << " allocating range " << m_blocks.size() - 1 << ": " << 0 << " - " << requirements.size << std::endl;
     }
-
   }
 
   void addBlock() {
@@ -168,8 +168,8 @@ class BlockAllocator {
     auto const& range_object = iter_object->second;
     auto object_end = range_object.offset + range_object.size;
     // find free ranges left and right of object
-    iterator_t iter_range_l{};
-    iterator_t iter_range_r{};
+    iterator_t iter_range_l = m_free_ranges.end();
+    iterator_t iter_range_r = m_free_ranges.end();
     for (auto iter_range = m_free_ranges.begin(); iter_range != m_free_ranges.end(); ++iter_range) {
       if (iter_range->offset == object_end) {
         iter_range_r = iter_range;

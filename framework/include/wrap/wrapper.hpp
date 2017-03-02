@@ -52,7 +52,7 @@ public:
     std::swap(m_info, rhs.m_info);
   }
   // must be called in destructor of derived class
-  void cleanup() {
+  virtual void cleanup() {
     if (m_object) {
       destroy();
     }
