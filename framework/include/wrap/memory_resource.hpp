@@ -7,6 +7,7 @@
 
 class Device;
 class Memory;
+class BlockAllocator;
 
 template<typename T, typename U>
 class MemoryResource : public Wrapper<T, U> {
@@ -16,8 +17,12 @@ class MemoryResource : public Wrapper<T, U> {
    :WrapperMemoryResource{}
    ,m_device{nullptr}
    ,m_memory{nullptr}
+   ,m_alloc{nullptr}
   {}
 
+  virtual ~MemoryResource();
+
+  virtual void bindTo(BlockAllocator& memory);
   virtual void bindTo(Memory& memory);
   virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
@@ -44,15 +49,25 @@ class MemoryResource : public Wrapper<T, U> {
     return requirements().memoryTypeBits;
   }
 
-  // virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const = 0;
-
  protected:
   Device const* m_device;
   Memory* m_memory;
+  BlockAllocator* m_alloc;
   vk::DeviceSize m_offset;
 };
 
 #include "wrap/memory.hpp"
+#include "block_allocator.hpp"
+
+template<typename T, typename U>
+MemoryResource<T, U>::~MemoryResource() {
+  m_alloc->free(*this);
+}
+
+template<typename T, typename U>
+void MemoryResource<T, U>::bindTo(BlockAllocator& alloc) {
+  m_alloc = &alloc;
+}
 
 template<typename T, typename U>
 void MemoryResource<T, U>::bindTo(Memory& memory) {
