@@ -129,7 +129,7 @@ void ApplicationThreadedMin::createMemoryPools() {
 void ApplicationThreadedMin::createFramebufferAttachments() {
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
  
-  m_images["color_2"] = m_device.createImage(extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc);
+  m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
 
   createMemoryPools();

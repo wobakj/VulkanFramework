@@ -56,7 +56,7 @@ Geometry::Geometry(Device& device, vertex_data const& model)
   m_attrib_info = model_to_attr(model);
   // create one buffer to store all data
   vk::DeviceSize combined_size = m_model.vertex_num * m_model.vertex_bytes + uint32_t(m_model.indices.size() * vertex_data::INDEX.size);
-  m_buffer = device.createBuffer(combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst);
+  m_buffer = Buffer{device, combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
   m_memory = Memory{device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   m_buffer.bindTo(m_memory);

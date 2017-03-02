@@ -36,16 +36,12 @@ class Device : public WrapperDevice {
   void swap(Device& dev);
   // buffer functions
   void uploadBufferData(void const* data_ptr, BufferView& buffer);
-  
-  Buffer createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const;
   void uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& offset = 0);
   void uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& offset = 0);
   void copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
 
   // image functions
-  Image createImage(vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) const; 
   void uploadImageData(void const* data_ptr, Image& image);
-
   void copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height) const;
   void copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const;
   void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const;
@@ -53,9 +49,6 @@ class Device : public WrapperDevice {
   // helper functions to create commandbuffer for staging an formating
   vk::CommandBuffer const& beginSingleTimeCommands() const;
   void endSingleTimeCommands() const;
-
-  void waitFence(vk::Fence const& fence) const;
-  void waitFences(std::vector<vk::Fence> const& fences) const;
 
   // getter
   vk::PhysicalDevice const& physical() const;

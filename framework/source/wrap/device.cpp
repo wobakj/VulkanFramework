@@ -171,10 +171,6 @@ uint32_t Device::getQueueIndex(std::string const& name) const {
   return m_queue_indices.at(name);
 }
 
-Buffer Device::createBuffer(vk::DeviceSize const& size, vk::BufferUsageFlags const& usage) const {
-  return Buffer{*this, size, usage};
-}
-
 void Device::adjustStagingPool(vk::DeviceSize const& size) {
   if (m_pools_memory.find("stage") == m_pools_memory.end() || memoryPool("stage").size() < size) {
     // create new staging buffer
@@ -182,10 +178,6 @@ void Device::adjustStagingPool(vk::DeviceSize const& size) {
     reallocateMemoryPool("stage", m_buffer_stage->memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffer_stage->size());
     m_buffer_stage->bindTo(memoryPool("stage"), 0);
   }
-}
-
-Image Device::createImage(vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) const {
-  return Image{*this, extent, format, tiling, usage};
 }
 
 void Device::uploadImageData(void const* data_ptr, Image& image) {
@@ -364,24 +356,6 @@ vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
   return m_command_buffer_help;
 }
 
-void Device::waitFence(vk::Fence const& fence) const {
-  if (fence) {
-    // only try to wait if fence is actually in use
-    // if (get().getFenceStatus(fence) == vk::Result::eNotReady) {
-      if (get().waitForFences({fence}, VK_TRUE, 100000000) != vk::Result::eSuccess) {
-        assert(0);
-        throw std::runtime_error{"waited too long for fence"};
-      }
-      // get().resetFences({fence});
-    // }
-  }
-}
-
-void Device::waitFences(std::vector<vk::Fence> const& fences) const {
-  if (get().waitForFences(fences, VK_TRUE, 100000000) != vk::Result::eSuccess) {
-    throw std::runtime_error{"waited too long for fence"};
-  }
-}
 
 void Device::endSingleTimeCommands() const {
   m_command_buffer_help.end();

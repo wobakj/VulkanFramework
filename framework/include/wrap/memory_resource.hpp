@@ -33,6 +33,7 @@ class MemoryResource : public Wrapper<T, U> {
     std::swap(m_memory, rhs.m_memory);
     std::swap(m_device, rhs.m_device);
     std::swap(m_offset, rhs.m_offset);
+    std::swap(m_alloc, rhs.m_alloc);
   }
 
   vk::DeviceSize size() const {
@@ -61,7 +62,9 @@ class MemoryResource : public Wrapper<T, U> {
 
 template<typename T, typename U>
 MemoryResource<T, U>::~MemoryResource() {
-  m_alloc->free(*this);
+  if (m_alloc) {
+    m_alloc->free(*this);
+  }
 }
 
 template<typename T, typename U>

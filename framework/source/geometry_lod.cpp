@@ -123,13 +123,13 @@ GeometryLod::~GeometryLod() {
 }
 
 void GeometryLod::createStagingBuffers() {
-  m_buffer_stage = m_device->createBuffer(m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc);
+  m_buffer_stage = Buffer{*m_device, m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc};
   auto requirements_stage = m_buffer_stage.requirements();
   // per-buffer offset
   auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_stage.alignment)));
   requirements_stage.size = m_size_node + offset_stage * ((m_num_uploads - 1) * 2 + 1);
   std::cout << "LOD staging buffer size is " << requirements_stage.size / 1024 / 1024 << " MB for " << m_num_uploads << " nodes" << std::endl;
-  m_buffer_stage = m_device->createBuffer(requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc);
+  m_buffer_stage = Buffer{*m_device, requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc};
   m_memory_stage = Memory{*m_device, m_buffer_stage.requirements(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
   // recreate buffer with correct size, should be calculated beforehand
   m_buffer_stage.bindTo(m_memory_stage);
@@ -146,7 +146,7 @@ void GeometryLod::createStagingBuffers() {
 }
 
 void GeometryLod::createDrawingBuffers() {
-  m_buffer = m_device->createBuffer(m_size_node * m_num_slots, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst);
+  m_buffer = Buffer{*m_device, m_size_node * m_num_slots, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst};
   auto requirements_draw = m_buffer.requirements();
   // per-buffer offset
   auto offset_draw = requirements_draw.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_draw.alignment)));
@@ -157,7 +157,7 @@ void GeometryLod::createDrawingBuffers() {
   // total buffer size
   requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff * 2;
   std::cout << "LOD drawing buffer size is " << requirements_draw.size / 1024 / 1024 << " MB for " << m_num_nodes << " nodes" << std::endl;
-  m_buffer = m_device->createBuffer(requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer);
+  m_buffer = Buffer{*m_device, requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer};
   m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   // ugly, recreate buffer with size for correct alignment
   m_buffer.bindTo(m_memory);

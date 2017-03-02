@@ -24,21 +24,41 @@ struct range_t {
   uint32_t size;
 }; 
 // to store any vulkan handle in a map
-union res_handle_t {
+struct res_handle_t {
   res_handle_t(VkBuffer const& buf) {
-    b = buf;
+    handle.buf = buf;
+    i = false;
   }
   res_handle_t(VkImage const& img) {
-    i = img;
+    handle.img = img;
+    i = true;
   }
 
-  VkBuffer b;
-  VkImage i;
-  uint64_t handle;
+  bool i;
+  union handle {
+    VkBuffer buf;
+    VkImage img;
+    uint64_t i;
+  } handle;
 };
 
 static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
-  return a.handle < b.handle;
+  if (a.i) {
+    if (b.i) {
+      return a.handle.i < b.handle.i;
+    }
+    else {
+      return true;
+    }
+  }
+  else {
+    if (b.i) {
+      return false;
+    }
+    else {
+      return a.handle.i < b.handle.i;
+    }
+  }
 }
 
 using iterator_t = std::list<range_t>::iterator;
@@ -68,7 +88,6 @@ class BlockAllocator {
     swap(rhs);
     return *this;
   }
-
 
   void swap(BlockAllocator& rhs) {
     std::swap(m_device, rhs.m_device);

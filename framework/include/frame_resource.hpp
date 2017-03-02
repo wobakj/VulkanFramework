@@ -76,7 +76,10 @@ class FrameResource {
       wait_fences.emplace_back(pair_fence.second);
     }
     if (!wait_fences.empty()) {
-      m_device->waitFences(wait_fences);
+      // m_device->waitFences(wait_fences);
+      if ((*m_device)->waitForFences(wait_fences, VK_TRUE, 100000000) != vk::Result::eSuccess) {
+        throw std::runtime_error{"waited too long for fence"};
+      }
     }
   }
 

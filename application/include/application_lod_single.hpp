@@ -1,9 +1,8 @@
 #ifndef APPLICATION_LOD_HPP
 #define APPLICATION_LOD_HPP
 
-#include <vulkan/vulkan.hpp>
-
 #include "app/application_single.hpp"
+
 #include "geometry.hpp"
 #include "geometry_lod.hpp"
 #include "wrap/buffer.hpp"
@@ -14,8 +13,10 @@
 #include "deleter.hpp"
 #include "frame_resource.hpp"
 #include "semaphore.hpp"
-
 #include "averager.hpp"
+#include "block_allocator.hpp"
+
+#include <vulkan/vulkan.hpp>
 
 #include <vector>
 #include <atomic>
@@ -68,6 +69,7 @@ class ApplicationLodSingle : public ApplicationSingle {
   vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
   Deleter<VkSampler> m_textureSampler;
+  BlockAllocator m_allocator;
 
   bool m_setting_wire;
   bool m_setting_transparent;
