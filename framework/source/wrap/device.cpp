@@ -171,6 +171,30 @@ uint32_t Device::getQueueIndex(std::string const& name) const {
   return m_queue_indices.at(name);
 }
 
+uint32_t Device::suitableMemoryTypes(vk::BufferUsageFlags const& usage) {
+  vk::BufferCreateInfo info;
+  info.size = 1;
+  info.usage = usage;
+  auto buffer = get().createBuffer(info);
+  auto bits = get().getBufferMemoryRequirements(buffer).memoryTypeBits;
+  get().destroyBuffer(buffer);
+  return bits;
+}
+
+uint32_t Device::suitableMemoryTypes(vk::Format const& format, vk::ImageTiling const& tiling) {
+  vk::ImageCreateInfo info;
+  info.extent = vk::Extent3D{1, 1, 1};
+  info.mipLevels = 1;
+  info.arrayLayers = 1;
+  info.usage = vk::ImageUsageFlagBits::eTransferSrc;
+  info.format = format;
+  info.tiling = tiling;
+  auto image = get().createImage(info);
+  auto bits = get().getImageMemoryRequirements(image).memoryTypeBits;
+  get().destroyImage(image);
+  return bits;
+}
+
 void Device::adjustStagingPool(vk::DeviceSize const& size) {
   if (m_pools_memory.find("stage") == m_pools_memory.end() || memoryPool("stage").size() < size) {
     // create new staging buffer

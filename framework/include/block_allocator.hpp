@@ -11,17 +11,18 @@
 #include <map>
 #include <list>
 #include <cmath>
+#include <iostream>
 
 struct range_t {
-  range_t(uint32_t b, uint32_t o, uint32_t s)
+  range_t(uint32_t b, vk::DeviceSize o, vk::DeviceSize s)
    :block{b}
    ,offset{o}
    ,size{s}
   {}
 
   uint32_t block;
-  uint32_t offset;
-  uint32_t size;
+  vk::DeviceSize offset;
+  vk::DeviceSize size;
 }; 
 // to store any vulkan handle in a map
 struct res_handle_t {
@@ -48,12 +49,12 @@ static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
       return a.handle.i < b.handle.i;
     }
     else {
-      return true;
+      return false;
     }
   }
   else {
     if (b.i) {
-      return false;
+      return true;
     }
     else {
       return a.handle.i < b.handle.i;
@@ -99,15 +100,22 @@ class BlockAllocator {
   }
 
   template<typename T, typename U>
-  void back(MemoryResource<T, U>& resource) {
+  void allocate(MemoryResource<T, U>& resource) {
     auto const& requirements = resource.requirements();
+
+    if (requirements.size > m_block_bytes) {
+      throw std::runtime_error{"resource size of " + std::to_string(requirements.size) + " larger than block size of " + std::to_string(m_block_bytes)};
+    }
     auto iter_range = findMatchingRange(resource.requirements());
     
     // found matching range
     if (iter_range != m_free_ranges.end()) {
       auto offset_align = requirements.alignment * vk::DeviceSize(std::ceil(float(iter_range->offset) / float(requirements.alignment)));
-      m_blocks[iter_range.block].bindResourceMemory(resource.get(), offset_align);
-      m_used_ranges.emplace(resource.get(), range_t{iter_range.block, offset_align, requirements.size});
+      auto iter_block = m_blocks.begin();
+      std::advance(iter_block, iter_range->block);
+      resource.bindTo(*iter_block, offset_align);
+      resource.bindTo(*this);
+      m_used_ranges.emplace(res_handle_t{resource.get()}, range_t{iter_range->block, offset_align, requirements.size});
       // object ends at end of range
       if (requirements.size + offset_align == iter_range->size + offset_align - iter_range->offset) {
         // offset matches exactly, no more free space
@@ -130,15 +138,19 @@ class BlockAllocator {
         // new offset
         iter_range->offset = offset_align + requirements.size;
       }
+      std::cout << resource.get() << " allocating range " << iter_range->block << ": " << offset_align << " - " << requirements.size << std::endl;
     }
     else {
       addBlock();
-      m_blocks.back().bindResourceMemory(resource.get(), 0);
-      m_used_ranges.emplace(resource.get(), range_t{m_blocks.size() - 1, 0, requirements.size});
+      resource.bindTo(*this);
+      resource.bindTo(m_blocks.back(), 0);
+      m_used_ranges.emplace(res_handle_t{resource.get()}, range_t{uint32_t(m_blocks.size()) - 1, 0, requirements.size});
       // update newly added free range
       m_free_ranges.back().offset = requirements.size;
       m_free_ranges.back().size -= requirements.size;
+      std::cout << resource.get() << " allocating range " << m_blocks.size() - 1 << ": " << 0 << " - " << requirements.size << std::endl;
     }
+
   }
 
   void addBlock() {
@@ -148,7 +160,8 @@ class BlockAllocator {
 
   template<typename T, typename U>
   void free(MemoryResource<T, U>& resource) {
-    auto iter_object = m_used_ranges.find(res_handle_t{resource.get()});
+    auto handle = res_handle_t{resource.get()};
+    auto iter_object = m_used_ranges.find(handle);
     if (iter_object == m_used_ranges.end()) {
       throw std::runtime_error{"resource not found"};
     }
@@ -187,6 +200,7 @@ class BlockAllocator {
       m_free_ranges.emplace_back(range_object);
     }
     // remove object form used list
+    std::cout << resource.get() << " freeing range " << range_object.block << ": " << range_object.offset << " - " << range_object.size << std::endl;
     m_used_ranges.erase(iter_object);
   }
 
@@ -198,7 +212,7 @@ class BlockAllocator {
         return iter_range;
       }
     }
-    return iterator_t{};
+    return m_free_ranges.end();
   }
 
  private:
@@ -206,7 +220,7 @@ class BlockAllocator {
   uint32_t m_type_index;
   uint32_t m_block_bytes;
 
-  std::vector<Memory> m_blocks;
+  std::list<Memory> m_blocks;
   // list of per-block free ranges with offset and size
   std::list<range_t> m_free_ranges;
   std::map<res_handle_t, range_t> m_used_ranges;

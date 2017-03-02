@@ -20,6 +20,7 @@ class Memory : public WrapperMemory {
   
   Memory();
   Memory(Device const& dev, uint32_t type_index, vk::DeviceSize const& size);
+  Memory(Device const& device, uint32_t type_bits, vk::MemoryPropertyFlags const& properties, vk::DeviceSize const& size);
   Memory(Device const& dev, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& memProperties);
   Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& memProperties);
   Memory(Memory && dev);

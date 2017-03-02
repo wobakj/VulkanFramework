@@ -39,11 +39,13 @@ Memory::Memory(Device const& device, uint32_t type_index, vk::DeviceSize const& 
   m_object = device->allocateMemory(info());
 }
 
+Memory::Memory(Device const& device, uint32_t type_bits, vk::MemoryPropertyFlags const& properties, vk::DeviceSize const& size)
+ :Memory{device, findMemoryType(device.physical(), type_bits, properties), size}
+{}
+
 Memory::Memory(Device const& device, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties)
  :Memory{device, findMemoryType(device.physical(), requirements.memoryTypeBits, properties), requirements.size}
-{
-  // std::cout << "use memory type " << m_info.memoryTypeIndex << " for " << requirements.memoryTypeBits << " and " << to_string(properties) << std::endl;
-}
+{}
 
 Memory::Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties) 
  :Memory{device, requirements, properties}

@@ -50,6 +50,7 @@ ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Dev
  ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
+ ,m_allocator{m_device, findMemoryType(m_device.physical(), m_device.suitableMemoryTypes(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal), vk::MemoryPropertyFlagBits::eDeviceLocal), 32 * 1280 * 1024}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
@@ -353,14 +354,17 @@ void ApplicationLodSingle::createMemoryPools() {
   // allocate pool for 5 32x4 fb attachments
   m_device.reallocateMemoryPool("framebuffer", m_images.at("color").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("color").size() * 5);
   
-  m_images.at("depth").bindTo(m_device.memoryPool("framebuffer"));
+
+  m_allocator.allocate(m_images.at("depth"));
+  // m_images.at("depth").bindTo(m_device.memoryPool("framebuffer"));
   m_images.at("color").bindTo(m_device.memoryPool("framebuffer"));
 }
 
 void ApplicationLodSingle::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
-    {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+    {vk::Format::eD32Sfloat},
+    // {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
