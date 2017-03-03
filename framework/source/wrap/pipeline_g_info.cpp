@@ -1,11 +1,11 @@
-#include "wrap/pipeline_info.hpp"
+#include "wrap/pipeline_g_info.hpp"
 
 #include "wrap/shader.hpp"
 #include "geometry.hpp"
 #include "geometry_lod.hpp"
 
-PipelineInfo::PipelineInfo()
- :info{}
+GraphicsPipelineInfo::GraphicsPipelineInfo()
+ :PipelineInfo{}
  ,info_vert{}
  ,info_assembly{}
  ,info_viewports{}
@@ -43,12 +43,12 @@ PipelineInfo::PipelineInfo()
 
   info.pDynamicState = nullptr; // Optional
 
-  info.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
-  info.basePipelineIndex = -1; // Optional
+  // info.flags = vk::PipelineCreateFlagBits::eAllowDerivatives;
+  // info.basePipelineIndex = -1; // Optional
 } 
 
-PipelineInfo::PipelineInfo(PipelineInfo const& rhs)
- :PipelineInfo{}
+GraphicsPipelineInfo::GraphicsPipelineInfo(GraphicsPipelineInfo const& rhs)
+ :GraphicsPipelineInfo{}
 {
   info.layout = rhs.info.layout;
   setShaderStages(rhs.info_stages);
@@ -76,59 +76,59 @@ PipelineInfo::PipelineInfo(PipelineInfo const& rhs)
   }
 }
 
-void PipelineInfo::setShader(Shader const& shader) {
+void GraphicsPipelineInfo::setShader(Shader const& shader) {
   info.layout = shader.get();
   setShaderStages(shader.shaderStages());
 }
 
-void PipelineInfo::setVertexInput(Geometry const& model) {
+void GraphicsPipelineInfo::setVertexInput(Geometry const& model) {
   setVertexBindings(model.bindInfos());
   setVertexAttributes(model.attributeInfos());
 }
 
-void PipelineInfo::setVertexInput(GeometryLod const& model) {
+void GraphicsPipelineInfo::setVertexInput(GeometryLod const& model) {
   setVertexBindings(model.bindInfos());
   setVertexAttributes(model.attributeInfos());
 }
 
-void PipelineInfo::setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages) {
+void GraphicsPipelineInfo::setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages) {
   info_stages = stages;
   info.stageCount = uint32_t(info_stages.size());
   info.pStages = info_stages.data();
 }
 
-void PipelineInfo::setVertexBindings(std::vector<vk::VertexInputBindingDescription> const& bindings) {
+void GraphicsPipelineInfo::setVertexBindings(std::vector<vk::VertexInputBindingDescription> const& bindings) {
   info_bindings = bindings;
   info_vert.vertexBindingDescriptionCount = std::uint32_t(info_bindings.size());
   info_vert.pVertexBindingDescriptions = info_bindings.data();
 }
 
-void PipelineInfo::setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes) {
+void GraphicsPipelineInfo::setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes) {
   info_attributes = attributes;
   info_vert.vertexAttributeDescriptionCount = std::uint32_t(info_attributes.size());
   info_vert.pVertexAttributeDescriptions = info_attributes.data();
 }
 
-void PipelineInfo::setTopology(vk::PrimitiveTopology const& topo) {
+void GraphicsPipelineInfo::setTopology(vk::PrimitiveTopology const& topo) {
   info_assembly.topology = topo;
 }
 
-void PipelineInfo::setResolution(vk::Extent2D const& res) {
+void GraphicsPipelineInfo::setResolution(vk::Extent2D const& res) {
   info_viewport.width = float(res.width);
   info_viewport.height = float(res.height); 
 
   info_scissor.extent = res;   
 }
 
-void PipelineInfo::setDepthStencil(vk::PipelineDepthStencilStateCreateInfo const& ds) {
+void GraphicsPipelineInfo::setDepthStencil(vk::PipelineDepthStencilStateCreateInfo const& ds) {
   info_ds = ds;
 }
 
-void PipelineInfo::setRasterizer(vk::PipelineRasterizationStateCreateInfo const& raster) {
+void GraphicsPipelineInfo::setRasterizer(vk::PipelineRasterizationStateCreateInfo const& raster) {
   info_raster = raster;
 }
 
-void PipelineInfo::setAttachmentBlending(vk::PipelineColorBlendAttachmentState const& attachment, uint32_t i) {
+void GraphicsPipelineInfo::setAttachmentBlending(vk::PipelineColorBlendAttachmentState const& attachment, uint32_t i) {
   if (i >= attachment_blendings.size()) {
     attachment_blendings.resize(i + 1);
   }
@@ -139,12 +139,12 @@ void PipelineInfo::setAttachmentBlending(vk::PipelineColorBlendAttachmentState c
   info_blending.pAttachments = attachment_blendings.data();
 }
 
-void PipelineInfo::setPass(vk::RenderPass const& pass, uint32_t subpass) {
+void GraphicsPipelineInfo::setPass(vk::RenderPass const& pass, uint32_t subpass) {
   info.renderPass = pass;
   info.subpass = subpass;
 }
 
-void PipelineInfo::addDynamic(vk::DynamicState const& state) {
+void GraphicsPipelineInfo::addDynamic(vk::DynamicState const& state) {
   info.pDynamicState = &info_dynamic;
   
   info_dynamics.emplace_back(state);
@@ -152,24 +152,10 @@ void PipelineInfo::addDynamic(vk::DynamicState const& state) {
   info_dynamic.pDynamicStates = info_dynamics.data();
 }
 
-void PipelineInfo::setRoot(vk::Pipeline const& root) {
-  info.flags |= vk::PipelineCreateFlagBits::eDerivative;
-  // insert previously created pipeline here to derive this one from
-  info.basePipelineHandle = root;
-}
-
-PipelineInfo::operator vk::GraphicsPipelineCreateInfo const&() const {
-  return info;
-}
-
-vk::PipelineLayout const& PipelineInfo::layout() const {
-  return info.layout;
-}
-
-vk::PipelineRasterizationStateCreateInfo const& PipelineInfo::rasterizer() const {
+vk::PipelineRasterizationStateCreateInfo const& GraphicsPipelineInfo::rasterizer() const {
   return info_raster;
 }
 
-vk::PipelineDepthStencilStateCreateInfo const& PipelineInfo::depthStencil() const {
+vk::PipelineDepthStencilStateCreateInfo const& GraphicsPipelineInfo::depthStencil() const {
   return info_ds;
 }

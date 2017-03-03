@@ -210,8 +210,8 @@ void ApplicationThreadedSimple::createRenderPasses() {
 }
 
 void ApplicationThreadedSimple::createPipelines() {
-  PipelineInfo info_pipe;
-  PipelineInfo info_pipe2;
+  GraphicsPipelineInfo info_pipe;
+  GraphicsPipelineInfo info_pipe2;
 
   info_pipe.setResolution(m_swap_chain.extent());
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
@@ -270,8 +270,8 @@ void ApplicationThreadedSimple::createPipelines() {
   depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
   info_pipe2.setDepthStencil(depthStencil2);
 
-  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe, m_pipeline_cache});
-  m_pipelines.emplace("lights", Pipeline{m_device, info_pipe2, m_pipeline_cache});
+  m_pipelines.emplace("scene", GraphicsPipeline{m_device, info_pipe, m_pipeline_cache});
+  m_pipelines.emplace("lights", GraphicsPipeline{m_device, info_pipe2, m_pipeline_cache});
 }
 
 void ApplicationThreadedSimple::updatePipelines() {

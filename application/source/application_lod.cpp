@@ -228,8 +228,8 @@ void ApplicationLod::createRenderPasses() {
 
 
 void ApplicationLod::createPipelines() {
-  PipelineInfo info_pipe;
-  PipelineInfo info_pipe2;
+  GraphicsPipelineInfo info_pipe;
+  GraphicsPipelineInfo info_pipe2;
 
   info_pipe.setResolution(m_swap_chain.extent());
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
@@ -277,7 +277,7 @@ void ApplicationLod::createPipelines() {
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
-  m_pipelines.emplace("scene", Pipeline{m_device, info_pipe, m_pipeline_cache});
+  m_pipelines.emplace("scene", GraphicsPipeline{m_device, info_pipe, m_pipeline_cache});
 }
 
 void ApplicationLod::updatePipelines() {

@@ -85,7 +85,7 @@ class Application {
 
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
   std::map<std::string, Shader> m_shaders;
-  std::map<std::string, Pipeline> m_pipelines;
+  std::map<std::string, GraphicsPipeline> m_pipelines;
   std::map<std::string, BlockAllocator> m_allocators;
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
