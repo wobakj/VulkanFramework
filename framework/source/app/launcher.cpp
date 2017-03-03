@@ -151,7 +151,7 @@ void Launcher::show_fps() {
   ++m_frames_per_second;
   double current_time = glfwGetTime();
   if (current_time - m_last_second_time >= 1.0) {
-    std::string title{"OpenGL Framework - "};
+    std::string title{"Vulkan Framework - "};
     title += std::to_string(m_frames_per_second) + " fps";
 
     glfwSetWindowTitle(m_window, title.c_str());

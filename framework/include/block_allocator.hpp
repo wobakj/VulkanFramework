@@ -42,6 +42,23 @@ struct res_handle_t {
   } handle;
 };
 
+static inline bool operator==(res_handle_t const& a, res_handle_t const& b) {
+  if (a.i) {
+    if (b.i) {
+      return a.handle.img == b.handle.img;
+    }
+  }
+  else {
+    if (!b.i) {
+      return a.handle.buf == b.handle.buf;
+    }
+  }
+  return false;
+}
+static inline bool operator!=(res_handle_t const& a, res_handle_t const& b) {
+  return !(a == b);
+}
+
 static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
   if (a.i) {
     if (b.i) {
@@ -136,14 +153,14 @@ class BlockAllocator {
         // free space in front of object
         if (offset_align != iter_range->offset) {
           // store free front space
-          m_free_ranges.emplace_back(iter_range->block, iter_range->offset, iter_range->size = offset_align - iter_range->offset);
+          m_free_ranges.emplace_back(iter_range->block, iter_range->offset, offset_align - iter_range->offset);
         }
         // remaining size
         iter_range->size = (iter_range->size + iter_range->offset) - (offset_align + requirements.size);
         // new offset
         iter_range->offset = offset_align + requirements.size;
       }
-      // std::cout << resource.get() << " allocating range " << iter_range->block << ": " << offset_align << " - " << requirements.size << std::endl;
+      std::cout << resource.get() << " allocating range " << iter_range->block << ": " << offset_align << " - " << offset_align + requirements.size << std::endl;
     }
     else {
       addBlock();
@@ -151,7 +168,18 @@ class BlockAllocator {
       // update newly added free range
       m_free_ranges.back().offset = requirements.size;
       m_free_ranges.back().size -= requirements.size;
-      // std::cout << resource.get() << " allocating new range " << m_blocks.size() - 1 << ": " << 0 << " - " << requirements.size << std::endl;
+      std::cout << resource.get() << " allocating new range " << m_blocks.size() - 1 << ": " << 0 << " - " << requirements.size << std::endl;
+    }
+    // sanity check
+    for(auto const& range : m_used_ranges) {
+      for(auto const& range2 : m_used_ranges) {
+        if (range.first != range2.first) {
+          assert((range.second.offset >= range2.second.offset + range2.second.size) || (range.second.offset + range.second.size <= range2.second.offset));
+        }
+      }
+      for(auto const& range2 :m_free_ranges) {
+        assert((range.second.offset >= range2.offset + range2.size) || (range.second.offset + range.second.size <= range2.offset));
+      }
     }
   }
 
@@ -168,14 +196,12 @@ class BlockAllocator {
       throw std::runtime_error{"resource not found"};
     }
     auto const& range_object = iter_object->second;
-    auto object_end = range_object.offset + range_object.size;
-    // remove object form used list
-    // std::cout << resource.get() << " freeing range " << range_object.block << ": " << range_object.offset << " - " << range_object.size << std::endl;
+    std::cout << resource.get() << " freeing range " << range_object.block << ": " << range_object.offset << " - " << range_object.offset + range_object.size << std::endl;
     // find free ranges left and right of object
     iterator_t iter_range_l = m_free_ranges.end();
     iterator_t iter_range_r = m_free_ranges.end();
     for (auto iter_range = m_free_ranges.begin(); iter_range != m_free_ranges.end(); ++iter_range) {
-      if (iter_range->offset == object_end) {
+      if (iter_range->offset == range_object.offset + range_object.size) {
         iter_range_r = iter_range;
         if (iter_range_l != m_free_ranges.end()) break;
       } 
@@ -190,6 +216,7 @@ class BlockAllocator {
       if (iter_range_l != m_free_ranges.end()) {
         iter_range_r->size = iter_range_r->offset + iter_range_r->size - iter_range_l->offset;
         iter_range_r->offset = iter_range_l->offset;
+        m_free_ranges.erase(iter_range_l);
       }
       else {
         iter_range_r->size = iter_range_r->offset + iter_range_r->size - range_object.offset;
@@ -203,6 +230,7 @@ class BlockAllocator {
     else {
       m_free_ranges.emplace_back(range_object);
     }
+    // remove object from used list
     m_used_ranges.erase(iter_object);
   }
 
