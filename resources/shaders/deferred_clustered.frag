@@ -27,17 +27,16 @@ struct light_t {
 layout(set = 1, binding = 4) uniform usampler3D volumeLight;
 
 layout(set = 1, binding = 3) buffer LightBuffer {
+  uvec3 lightGridSize;
   light_t[] Lights;
 };
-
-const uvec3 RES_VOL = uvec3(32, 32, 16);
 
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
 
 ivec3 calculateFragCell(const in vec3 pos_view) {
-  ivec3 index_cell = ivec3(frag_positionNdc.x * RES_VOL.x, frag_positionNdc.y * RES_VOL.y, 0);
+  ivec3 index_cell = ivec3(frag_positionNdc.x * lightGridSize.x, frag_positionNdc.y * lightGridSize.y, 0);
   return index_cell;
 }
 

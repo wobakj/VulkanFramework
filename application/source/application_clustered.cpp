@@ -25,6 +25,7 @@ struct light_t {
 };
 const std::size_t NUM_LIGHTS = 32;
 struct BufferLights {
+  glm::uvec3 lightGridSize;
   light_t lights[NUM_LIGHTS];
 };
 BufferLights buff_l;
@@ -95,6 +96,9 @@ void ApplicationClustered::updateLightVolume() {
 
   m_device.uploadImageData(m_data_light_volume.data(),
                            m_images.at("light_vol"));
+
+  buff_l.lightGridSize = m_light_grid.dimensions();
+  m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
@@ -246,7 +250,7 @@ void ApplicationClustered::createLights() {
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
-  m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
+  // m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationClustered::createFramebufferAttachments() {
