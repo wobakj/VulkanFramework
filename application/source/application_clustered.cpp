@@ -78,6 +78,9 @@ void ApplicationClustered::logic() {
 }
 
 void ApplicationClustered::updateLightVolume() {
+  m_data_light_volume.resize(m_light_grid.dimensions().x *
+                             m_light_grid.dimensions().y *
+                             m_light_grid.dimensions().z);
   // update light colume data
   for (uint32_t z = 0; z < m_light_grid.dimensions().z; ++z)
     for (uint32_t x = 0; x < m_light_grid.dimensions().x; ++x)
@@ -280,6 +283,11 @@ void ApplicationClustered::createFramebufferAttachments() {
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
+
+  // light volume
+  m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  m_allocators.at("images").allocate(m_images.at("light_vol"));
+  m_images.at("light_vol").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void ApplicationClustered::createTextureImages() {
@@ -290,10 +298,6 @@ void ApplicationClustered::createTextureImages() {
   m_allocators.at("images").allocate(m_images.at("texture"));
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
-  // light volume
-  m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  m_allocators.at("images").allocate(m_images.at("light_vol"));
-  m_images.at("light_vol").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void ApplicationClustered::createTextureSamplers() {
