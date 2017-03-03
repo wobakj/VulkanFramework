@@ -107,6 +107,7 @@ void Application::resize(std::size_t width, std::size_t height) {
   // draw queue is emptied in launcher::resize
   createFramebufferAttachments();
   createFramebuffers();
+  createDescriptorPools();
   onResize(width, height);
   updateCommandBuffers();
 }
