@@ -63,15 +63,17 @@ ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device,
     }
     exit(0);
   }
+  
+  m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/lod_vert.spv", m_resource_path + "shaders/forward_lod_frag.spv"}});
+
+  createDescriptorPools();
 
   createVertexBuffer(cmd_parse.rest()[0], cmd_parse.get<int>("cut"), cmd_parse.get<int>("upload"));
 
-  m_shaders.emplace("lod", Shader{m_device, {m_resource_path + "shaders/lod_vert.spv", m_resource_path + "shaders/forward_lod_frag.spv"}});
-
   createUniformBuffers();
   createLights();  
-  createTextureImage();
   createTextureSampler();
+  createTextureImage();
 
   createRenderResources();
 
@@ -327,6 +329,7 @@ void ApplicationLod::updatePipelines() {
 
 void ApplicationLod::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {
   m_model_lod = GeometryLod{m_device, lod_path, cut_budget, upload_budget};
+  m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1);
 
   vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_light = Geometry{m_device, tri};
@@ -365,8 +368,9 @@ void ApplicationLod::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   m_allocators.at("images").allocate(m_images.at("texture"));
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_textureSampler.get());
+  m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
@@ -381,10 +385,6 @@ void ApplicationLod::createDescriptorPools() {
   // global descriptor sets
   m_descriptorPool_2 = m_shaders.at("lod").createPool(1);
   m_descriptor_sets["lighting"] = m_shaders.at("lod").allocateSet(m_descriptorPool_2.get(), 1);
-
-  m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1);
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_textureSampler.get());
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 void ApplicationLod::createUniformBuffers() {
@@ -393,6 +393,7 @@ void ApplicationLod::createUniformBuffers() {
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 ///////////////////////////// update functions ////////////////////////////////

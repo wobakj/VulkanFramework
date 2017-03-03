@@ -49,11 +49,13 @@ ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
+  createDescriptorPools();
+
   createVertexBuffer();
   createUniformBuffers();
   createLights();  
-  createTextureImage();
   createTextureSampler();
+  createTextureImage();
 
   createRenderResources();
   startRenderThread();
@@ -340,17 +342,19 @@ void ApplicationThreadedSimple::createFramebufferAttachments() {
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
+
+  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
+  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
 }
 
 void ApplicationThreadedSimple::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  // space for 14 8x3 1028 textures
-  m_device.allocateMemoryPool("textures", m_images.at("texture").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_images.at("texture").size() * 16);
-  // m_images.at("texture").bindTo(m_device.memoryPool("textures"));
-  m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   m_allocators.at("images").allocate(m_images.at("texture"));
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
@@ -364,15 +368,8 @@ void ApplicationThreadedSimple::createDescriptorPools() {
   m_descriptorPool = m_shaders.at("scene").createPool(m_swap_chain.numImages() - 1);
   m_descriptor_sets["textures"] = m_shaders.at("scene").allocateSet(m_descriptorPool.get(), 1);
 
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
-
   m_descriptorPool_2 = m_shaders.at("lights").createPool(1);
   m_descriptor_sets["lighting"] = m_shaders.at("lights").allocateSet(m_descriptorPool_2.get(), 1);
-
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 void ApplicationThreadedSimple::createUniformBuffers() {
@@ -384,6 +381,7 @@ void ApplicationThreadedSimple::createUniformBuffers() {
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 ///////////////////////////// update functions ////////////////////////////////
