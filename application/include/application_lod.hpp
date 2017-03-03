@@ -36,6 +36,7 @@ class ApplicationLod : public ApplicationThreadedTransfer {
   void updateResourceDescriptors(FrameResource& resource) override;
   FrameResource createFrameResource() override;
   void updatePipelines() override;
+  void updateDescriptors() override;
   
   void createLights();
   void loadModel();

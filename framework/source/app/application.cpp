@@ -108,6 +108,8 @@ void Application::resize(std::size_t width, std::size_t height) {
   createFramebufferAttachments();
   createFramebuffers();
   onResize(width, height);
+  updateDescriptors();
+  updateResourcesDescriptors();
   updateCommandBuffers();
 }
 
@@ -120,6 +122,7 @@ void Application::recreatePipeline() {
   updatePipelines();
   createDescriptorPools();
   updateDescriptors();
+  updateResourcesDescriptors();
   updateCommandBuffers();
 }
 
@@ -129,7 +132,9 @@ void Application::createRenderResources() {
   createRenderPasses();
   createFramebuffers();
   createPipelines();
+  createDescriptorPools();
   updateDescriptors();
+  updateResourcesDescriptors();
   updateCommandBuffers();
 }
 

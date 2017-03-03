@@ -23,6 +23,7 @@ class ApplicationVulkan : public ApplicationSingle {
   void updateResourceCommandBuffers(FrameResource& res);
   FrameResource createFrameResource() override;
   void updatePipelines() override;
+  void updateDescriptors() override;
   
   void createLights();
   void loadModel();

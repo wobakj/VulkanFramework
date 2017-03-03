@@ -72,7 +72,7 @@ void ApplicationThreaded::updateCommandBuffers() {
     updateResourceCommandBuffers(res);
   }
 }
-void ApplicationThreaded::updateDescriptors() {
+void ApplicationThreaded::updateResourcesDescriptors() {
   for (auto& res : m_frame_resources) {
     updateResourceDescriptors(res);
   }

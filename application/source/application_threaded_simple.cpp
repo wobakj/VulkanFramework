@@ -49,13 +49,11 @@ ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
-  createDescriptorPools();
-
   createVertexBuffer();
   createUniformBuffers();
   createLights();  
-  createTextureSampler();
   createTextureImage();
+  createTextureSampler();
 
   createRenderResources();
   startRenderThread();
@@ -100,7 +98,6 @@ void ApplicationThreadedSimple::logic() {
 }
 
 void ApplicationThreadedSimple::updateResourceDescriptors(FrameResource& res) {
-  res.descriptor_sets["matrix"] = m_shaders.at("scene").allocateSet(m_descriptorPool.get(), 0);
   res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
 }
 
@@ -342,10 +339,6 @@ void ApplicationThreadedSimple::createFramebufferAttachments() {
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
-
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
 }
 
 void ApplicationThreadedSimple::createTextureImage() {
@@ -353,7 +346,6 @@ void ApplicationThreadedSimple::createTextureImage() {
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("texture"));
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
@@ -363,6 +355,15 @@ void ApplicationThreadedSimple::createTextureSampler() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
 }
 
+void ApplicationThreadedSimple::updateDescriptors() {
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+
+  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
+  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+}
+
 void ApplicationThreadedSimple::createDescriptorPools() {
   // descriptor sets can be allocated for each frame resource
   m_descriptorPool = m_shaders.at("scene").createPool(m_swap_chain.numImages() - 1);
@@ -370,6 +371,10 @@ void ApplicationThreadedSimple::createDescriptorPools() {
 
   m_descriptorPool_2 = m_shaders.at("lights").createPool(1);
   m_descriptor_sets["lighting"] = m_shaders.at("lights").allocateSet(m_descriptorPool_2.get(), 1);
+  
+  for(auto& res : m_frame_resources) {
+    res.descriptor_sets["matrix"] = m_shaders.at("scene").allocateSet(m_descriptorPool.get(), 0);
+  }
 }
 
 void ApplicationThreadedSimple::createUniformBuffers() {
@@ -381,7 +386,6 @@ void ApplicationThreadedSimple::createUniformBuffers() {
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 }
 
 ///////////////////////////// update functions ////////////////////////////////

@@ -46,13 +46,11 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
-  createDescriptorPools();
-
   createVertexBuffer();
   createUniformBuffers();
   createLights();  
-  createTextureSampler();
   createTextureImage();
+  createTextureSampler();
 
   createRenderResources();
 }
@@ -306,10 +304,6 @@ void ApplicationVulkan::createFramebufferAttachments() {
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
-
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
 }
 
 void ApplicationVulkan::createTextureImage() {
@@ -317,7 +311,6 @@ void ApplicationVulkan::createTextureImage() {
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("texture"));
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
@@ -325,6 +318,16 @@ void ApplicationVulkan::createTextureImage() {
 
 void ApplicationVulkan::createTextureSampler() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+}
+
+void ApplicationVulkan::updateDescriptors() {
+  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
+  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 }
 
 void ApplicationVulkan::createDescriptorPools() {
@@ -349,16 +352,13 @@ void ApplicationVulkan::createDescriptorPools() {
 
 void ApplicationVulkan::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
+  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
-
-  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
-  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
-
-  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////

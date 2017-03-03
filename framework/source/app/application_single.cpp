@@ -34,7 +34,7 @@ void ApplicationSingle::updateCommandBuffers() {
   updateResourceCommandBuffers(m_frame_resource);
 }
 
-void ApplicationSingle::updateDescriptors() {
+void ApplicationSingle::updateResourcesDescriptors() {
   updateResourceDescriptors(m_frame_resource);
 }
 

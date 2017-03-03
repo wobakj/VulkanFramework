@@ -50,13 +50,11 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_frag.spv"}});
 
-  createDescriptorPools();
-
   createVertexBuffer();
   createUniformBuffers();
   createLights();  
-  createTextureSamplers();
   createTextureImages();
+  createTextureSamplers();
 
   createRenderResources();
 }
@@ -286,16 +284,10 @@ void ApplicationClustered::createFramebufferAttachments() {
   m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
 
-
   // light volume
   m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
   m_images.at("light_vol").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
-  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
 }
 
 void ApplicationClustered::createTextureImages() {
@@ -305,13 +297,24 @@ void ApplicationClustered::createTextureImages() {
   // bind and upload test texture data
   m_allocators.at("images").allocate(m_images.at("texture"));
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
 void ApplicationClustered::createTextureSamplers() {
   m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
   m_volumeSampler = m_device->createSampler({{}, vk::Filter::eNearest, vk::Filter::eNearest});
+}
+
+void ApplicationClustered::updateDescriptors() {
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
+  
+  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
+  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
 }
 
 void ApplicationClustered::createDescriptorPools() {
@@ -336,15 +339,13 @@ void ApplicationClustered::createDescriptorPools() {
 
 void ApplicationClustered::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
+  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
-  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
-  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
-
-  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////

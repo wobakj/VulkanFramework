@@ -58,13 +58,14 @@ class Application {
   virtual void createFrameResources() = 0;
   virtual void updatePipelines() = 0;
   virtual void updateCommandBuffers() = 0;
-  virtual void updateDescriptors() = 0;
 
   virtual void logic() {};
   virtual void render() = 0;
   virtual void updateView() {};
 
   virtual FrameResource createFrameResource();
+  virtual void updateDescriptors() {};
+  virtual void updateResourcesDescriptors() = 0;
   virtual void updateResourceDescriptors(FrameResource& resource) {};
   virtual void updateResourceCommandBuffers(FrameResource& res) = 0;
   

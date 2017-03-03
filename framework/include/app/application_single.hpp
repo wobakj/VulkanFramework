@@ -16,7 +16,7 @@ class ApplicationSingle : public Application {
  protected:
   void createFrameResources() override;
   void updateCommandBuffers() override;
-  void updateDescriptors() override;
+  void updateResourcesDescriptors() override;
 
   void shutDown();
 
