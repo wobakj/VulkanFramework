@@ -120,11 +120,7 @@ class BlockAllocator {
     // found matching range
     if (iter_range != m_free_ranges.end()) {
       auto offset_align = requirements.alignment * vk::DeviceSize(std::ceil(float(iter_range->offset) / float(requirements.alignment)));
-      auto iter_block = m_blocks.begin();
-      std::advance(iter_block, iter_range->block);
-      resource.bindTo(*iter_block, offset_align);
-      resource.bindTo(*this);
-      m_used_ranges.emplace(res_handle_t{resource.get()}, range_t{iter_range->block, offset_align, requirements.size});
+      addResource(resource, range_t{iter_range->block, offset_align, requirements.size});
       // object ends at end of range
       if (requirements.size + offset_align == iter_range->size + iter_range->offset) {
         // offset matches exactly, no more free space
@@ -151,9 +147,7 @@ class BlockAllocator {
     }
     else {
       addBlock();
-      resource.bindTo(*this);
-      resource.bindTo(m_blocks.back(), 0);
-      m_used_ranges.emplace(res_handle_t{resource.get()}, range_t{uint32_t(m_blocks.size()) - 1, 0, requirements.size});
+      addResource(resource, range_t{uint32_t(m_blocks.size()) - 1, 0, requirements.size});
       // update newly added free range
       m_free_ranges.back().offset = requirements.size;
       m_free_ranges.back().size -= requirements.size;
@@ -223,6 +217,16 @@ class BlockAllocator {
       }
     }
     return m_free_ranges.end();
+  }
+
+
+  template<typename T, typename U>
+  void addResource(MemoryResource<T, U>& resource, range_t const& range) {
+    auto iter_block = m_blocks.begin(); 
+    std::advance(iter_block, range.block);
+    resource.bindTo(*iter_block, range.offset);
+    resource.bindTo(*this);
+    m_used_ranges.emplace(res_handle_t{resource.get()}, range);
   }
 
   Device const* m_device;
