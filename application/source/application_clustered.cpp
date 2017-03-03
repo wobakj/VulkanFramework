@@ -287,7 +287,7 @@ void ApplicationClustered::createTextureImages() {
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
   // light volume
-  m_images["light_vol"] = Image{m_device, vk::Extent3D{RES_LIGHT_VOL.x, RES_LIGHT_VOL.y, RES_LIGHT_VOL.z}, vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
   m_images.at("light_vol").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
 }
