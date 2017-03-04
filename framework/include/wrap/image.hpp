@@ -44,6 +44,7 @@ class Image : public ResourceImage {
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
   vk::ImageView const& view() const;
+  vk::Extent3D const& extent() const;
   // write as combined sampler
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
   // write as input attachment

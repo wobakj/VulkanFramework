@@ -98,6 +98,21 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   else if (layout == vk::ImageLayout::ePresentSrcKHR) {
     return vk::AccessFlagBits::eMemoryRead;
   } 
+  else if (layout == vk::ImageLayout::eGeneral) {
+    return vk::AccessFlagBits::eInputAttachmentRead
+         | vk::AccessFlagBits::eShaderRead
+         | vk::AccessFlagBits::eShaderWrite
+         | vk::AccessFlagBits::eColorAttachmentRead
+         | vk::AccessFlagBits::eColorAttachmentWrite
+         | vk::AccessFlagBits::eDepthStencilAttachmentRead
+         | vk::AccessFlagBits::eDepthStencilAttachmentWrite
+         | vk::AccessFlagBits::eTransferRead
+         | vk::AccessFlagBits::eTransferWrite
+         | vk::AccessFlagBits::eHostRead
+         | vk::AccessFlagBits::eHostWrite
+         | vk::AccessFlagBits::eMemoryRead
+         | vk::AccessFlagBits::eMemoryWrite;
+  } 
   else {
     throw std::invalid_argument("unsupported layout for access mask!");
     return vk::AccessFlags{};
@@ -232,6 +247,10 @@ vk::Format const& Image::format() const {
   return m_info.format;
 }
 
+vk::Extent3D const& Image::extent() const {
+  return m_info.extent;
+}
+
 vk::AttachmentDescription Image::toAttachment(bool clear) const {
   return img_to_attachment(info(), clear);
 }
@@ -243,7 +262,8 @@ void Image::createView() {
 
 void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  imageInfo.imageLayout = m_info.initialLayout;
+  // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
   imageInfo.imageView = m_view;
   imageInfo.sampler = sampler;
 
@@ -260,7 +280,16 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sample
 
 void Image::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  imageInfo.imageLayout = m_info.initialLayout;
+  // if (type == vk::DescriptorType::eSampledImage) {
+    // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  // }
+  // else if (type == vk::DescriptorType::eStorageImage) {
+  //   imageInfo.imageLayout = vk::ImageLayout::eGeneral;
+  // }
+  // else {
+  //   throw std::runtime_error{"descriptor type not supported"};
+  // }
   imageInfo.imageView = m_view;
 
   vk::WriteDescriptorSet descriptorWrite{};

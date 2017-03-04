@@ -88,6 +88,16 @@ layout_module_t::layout_module_t(spirv_cross::Compiler const& comp)
   for (auto const& resource : resources.subpass_inputs) {
     add_func(resource, vk::DescriptorType::eInputAttachment);
   }
+  for (auto const& resource : resources.storage_images) {
+    add_func(resource, vk::DescriptorType::eStorageImage);
+  }
+  for (auto const& resource : resources.separate_images) {
+    add_func(resource, vk::DescriptorType::eSampledImage);
+  }
+  for (auto const& resource : resources.separate_samplers) {
+    add_func(resource, vk::DescriptorType::eSampler);
+  }
+  // TODO: implement support for dynamic buffer offsets and texel buffers
 }
 // check if descriptor is contained
 bool layout_module_t::has_descriptor(std::string const& name) {

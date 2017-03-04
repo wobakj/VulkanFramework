@@ -24,6 +24,7 @@ ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device&
  ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
 {  
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/transfer_frag.spv"}});
+  m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
 
   createTextureImages();
   createTextureSamplers();
@@ -40,19 +41,50 @@ ApplicationCompute::~ApplicationCompute() {
 FrameResource ApplicationCompute::createFrameResource() {
   auto res = ApplicationSingle::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("compute", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
   return res;
 }
 
 void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer").reset({});
-
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
+  res.command_buffers.at("compute").reset({});
+  res.command_buffers.at("compute").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("compute").bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
+  res.command_buffers.at("compute").bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("storage")}, {});
+
+  glm::uvec3 dims{m_images.at("texture").extent().width, m_images.at("texture").extent().height, m_images.at("texture").extent().depth};
+  glm::uvec3 workers{16, 16, 1};
+  // 512^2 threads in blocks of 16^2
+  res.command_buffers.at("compute").dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
+
+  res.command_buffers.at("compute").end();
+
+  res.command_buffers.at("gbuffer").reset({});
   inheritanceInfo.renderPass = m_render_pass;
   inheritanceInfo.framebuffer = m_framebuffer;
   inheritanceInfo.subpass = 0;
 
   // first pass
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  // barrier to make image data visible to vertex shader
+  vk::ImageMemoryBarrier barrier_image{};
+  barrier_image.image = m_images.at("texture");
+  barrier_image.subresourceRange = img_to_resource_range(m_images.at("texture").info());
+  barrier_image.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
+  barrier_image.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  barrier_image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_image.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_image.oldLayout = vk::ImageLayout::eGeneral;
+  barrier_image.newLayout = vk::ImageLayout::eGeneral;
+
+  res.commandBuffer("gbuffer").pipelineBarrier(
+    vk::PipelineStageFlagBits::eComputeShader,
+    vk::PipelineStageFlagBits::eFragmentShader,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier_image}
+  );
 
   res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 2, {m_descriptor_sets.at("texture")}, {});
@@ -69,6 +101,8 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw").reset({});
 
   res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("compute")});
+
   res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
   res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
@@ -117,12 +151,21 @@ void ApplicationCompute::createPipelines() {
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
   m_pipelines.emplace("scene", GraphicsPipeline{m_device, info_pipe, m_pipeline_cache});
+
+  ComputePipelineInfo info_pipe_comp;
+  info_pipe_comp.setShader(m_shaders.at("compute"));
+  m_pipeline_compute = ComputePipeline{m_device, info_pipe_comp, m_pipeline_cache};
+  // m_pipelines.emplace("compute", ComputePipeline{m_device, info_pipe_comp, m_pipeline_cache});
 }
 
 void ApplicationCompute::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("scene"));
   m_pipelines.at("scene").recreate(info_pipe);
+
+  auto info_pipe_comp = m_pipeline_compute.info();
+  info_pipe_comp.setShader(m_shaders.at("compute"));
+  m_pipeline_compute.recreate(info_pipe_comp);
 }
 
 void ApplicationCompute::createFramebufferAttachments() {
@@ -134,12 +177,13 @@ void ApplicationCompute::createFramebufferAttachments() {
 }
 
 void ApplicationCompute::createTextureImages() {
-  pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
+  // pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
-  m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  m_images["texture"] = Image{m_device, vk::Extent3D{512, 512, 1}, vk::Format::eR32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage};
+  // m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("texture"));
-  m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
+  m_images.at("texture").transitionToLayout(vk::ImageLayout::eGeneral);
+  // m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
 void ApplicationCompute::createTextureSamplers() {
@@ -148,6 +192,7 @@ void ApplicationCompute::createTextureSamplers() {
 
 void ApplicationCompute::updateDescriptors() { 
   m_images.at("texture").writeToSet(m_descriptor_sets.at("texture"), 0, m_textureSampler.get());
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
 }
 
 void ApplicationCompute::createDescriptorPools() {
@@ -160,12 +205,12 @@ void ApplicationCompute::createDescriptorPools() {
 
   m_descriptor_sets["texture"] = m_device->allocateDescriptorSets(allocInfo)[2];
 
-  // m_descriptorPool_2 = m_shaders.at("quad").createPool(2);
-  // allocInfo.descriptorPool = m_descriptorPool_2;
-  // allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
-  // allocInfo.pSetLayouts = m_shaders.at("quad").setLayouts().data();
+  m_descriptorPool_2 = m_shaders.at("compute").createPool(1);
+  allocInfo.descriptorPool = m_descriptorPool_2;
+  allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("compute").setLayouts().size());
+  allocInfo.pSetLayouts = m_shaders.at("compute").setLayouts().data();
 
-  // m_descriptor_sets["lighting"] = m_device->allocateDescriptorSets(allocInfo)[1];
+  m_descriptor_sets["storage"] = m_device->allocateDescriptorSets(allocInfo)[0];
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

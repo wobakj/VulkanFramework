@@ -88,6 +88,12 @@ void Device::createCommandPools() {
   poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 
   m_pools.emplace("transfer", get().createCommandPool(poolInfo));
+
+  poolInfo.queueFamilyIndex = getQueueIndex("graphics");
+  poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+
+  m_pools.emplace("compute", get().createCommandPool(poolInfo));
+
   // create buffer for onetime commands
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
