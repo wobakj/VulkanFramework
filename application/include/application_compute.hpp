@@ -30,6 +30,8 @@ class ApplicationCompute : public ApplicationSingle {
   
   void createTextureImages();
   void createTextureSamplers();
+  void createUniformBuffers();
+  void updateUniformBuffers();
 
   void createDescriptorPools() override;
   void createFramebuffers() override;

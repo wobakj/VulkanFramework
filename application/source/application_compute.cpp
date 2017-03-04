@@ -28,6 +28,7 @@ ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device&
 
   createTextureImages();
   createTextureSamplers();
+  createUniformBuffers();
 
   createRenderResources();
 
@@ -97,6 +98,7 @@ void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
 }
 
 void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
+  updateUniformBuffers();
 
   res.command_buffers.at("draw").reset({});
 
@@ -193,6 +195,8 @@ void ApplicationCompute::createTextureSamplers() {
 void ApplicationCompute::updateDescriptors() { 
   m_images.at("texture").writeToSet(m_descriptor_sets.at("texture"), 0, m_textureSampler.get());
   m_images.at("texture").writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
+  
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("storage"), 1);
 }
 
 void ApplicationCompute::createDescriptorPools() {
@@ -213,6 +217,21 @@ void ApplicationCompute::createDescriptorPools() {
   m_descriptor_sets["storage"] = m_device->allocateDescriptorSets(allocInfo)[0];
 }
 
+void ApplicationCompute::createUniformBuffers() {
+  m_buffers["uniforms"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  // m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
+  m_buffer_views["uniform"] = BufferView{sizeof(float)};
+
+  m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
+
+  // m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
+  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
+}
+
+void ApplicationCompute::updateUniformBuffers() {
+  float time = float(glfwGetTime()) * 2.0f;
+  m_device.uploadBufferData(&time, m_buffer_views.at("uniform"));
+}
 ///////////////////////////// misc functions ////////////////////////////////
 
 // exe entry point
