@@ -101,6 +101,10 @@ add_executable(vulkan_clustered application/source/application_clustered.cpp)
 target_link_libraries(vulkan_clustered framework)
 install(TARGETS vulkan_clustered DESTINATION .)
 
+add_executable(vulkan_compute application/source/application_compute.cpp)
+target_link_libraries(vulkan_compute framework)
+install(TARGETS vulkan_compute DESTINATION .)
+
 # set build type dependent flags
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
