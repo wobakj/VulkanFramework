@@ -12,6 +12,8 @@
 #include "wrap/descriptor_pool.hpp"
 #include "block_allocator.hpp"
 #include "camera.hpp"
+#include "transferrer.hpp"
+
 #include "cmdline.h"
 
 #include <map>
@@ -84,6 +86,7 @@ class Application {
   SwapChain const& m_swap_chain;
   PipelineCache m_pipeline_cache;
   DescriptorPool m_descriptor_pool;
+  Transferrer m_transferrer;
 
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
   std::map<std::string, Shader> m_shaders;
@@ -92,8 +95,6 @@ class Application {
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
   std::map<std::string, BufferView> m_buffer_views;
-
- private:
 };
 
 #endif

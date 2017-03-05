@@ -273,7 +273,7 @@ void ApplicationVulkan::createLights() {
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
-  m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
+  m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationVulkan::createFramebufferAttachments() {
@@ -312,7 +312,7 @@ void ApplicationVulkan::createTextureImage() {
   m_allocators.at("images").allocate(m_images.at("texture"));
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
   
-  m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
+  m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
 void ApplicationVulkan::createTextureSampler() {

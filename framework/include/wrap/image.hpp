@@ -56,6 +56,8 @@ class Image : public ResourceImage {
   void createView();
 
   vk::ImageView m_view;
+
+  friend class Transferrer;
 };
 
 #endif
