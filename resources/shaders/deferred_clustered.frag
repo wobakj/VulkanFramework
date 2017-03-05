@@ -31,15 +31,23 @@ layout(set = 1, binding = 3) buffer LightBuffer {
   light_t[] Lights;
 };
 
+<<<<<<< HEAD
+=======
+const uint NUM_DEPTH_SLICES = 16;
+
+>>>>>>> Change line endings to unix
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
 
+<<<<<<< HEAD
 ivec3 calculateFragCell(const in vec3 pos_view) {
   ivec3 index_cell = ivec3(frag_positionNdc.x * lightGridSize.x, frag_positionNdc.y * lightGridSize.y, 0);
   return index_cell;
 }
 
+=======
+>>>>>>> Change line endings to unix
 // phong diff and spec coefficient calculation in viewspace
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos) {
   vec3 toLight = normalize(lightPos - position);
@@ -73,24 +81,28 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  uint mask_lights = texelFetch(volumeLight, calculateFragCell(frag_Position), 0).r;
-
   out_Color = vec4(0.0);
-  for (uint i = 0u; i < Lights.length(); ++i) {
-    uint flag_curr = 1 << i;
-    // skip if lgiht is not in mask
-    if ((mask_lights & flag_curr) != flag_curr) continue;
-    // else do lighting
-    vec3 pos_light = (ubo.view * vec4(Lights[i].position, 1.0)).xyz;
-    float dist = distance(frag_Position, pos_light);
-    float radius = Lights[i].radius;
+  for (uint slice = 0; slice < NUM_DEPTH_SLICES; ++slice) {
+    ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
+                             frag_positionNdc.y * lightGridSize.y,
+                             slice);
+    uint mask_lights = texelFetch(volumeLight, cell_index, 0).r;
+    for (uint i = 0u; i < Lights.length(); ++i) {
+      uint flag_curr = 1 << i;
+      // skip if lgiht is not in mask
+      if ((mask_lights & flag_curr) != flag_curr) continue;
+      // else do lighting
+      vec3 pos_light = (ubo.view * vec4(Lights[i].position, 1.0)).xyz;
+      float dist = distance(frag_Position, pos_light);
+      float radius = Lights[i].radius;
 
-    vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
-    vec3 color = Lights[i].color.rgb;
+      vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
+      vec3 color = Lights[i].color.rgb;
 
-    out_Color += vec4(color * 0.005 * diffuseColor 
-                    + color * diffuseColor * diffSpec.x
-                    + color * ks * diffSpec.y, 1.0) * (1.0 - dist / radius);
+      out_Color += vec4(color * 0.005 * diffuseColor 
+                      + color * diffuseColor * diffSpec.x
+                      + color * ks * diffSpec.y, 1.0) * (1.0 - dist / radius);
+    }
   }
 
   out_Color.rgb = out_Color.rgb / out_Color.w;
