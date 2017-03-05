@@ -185,7 +185,7 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
   m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
   // transition images to present in case no render pass is applied
   m_layout = vk::ImageLayout::eUndefined;
-  transitionToLayout(vk::ImageLayout::ePresentSrcKHR);
+  // transitionToLayout(vk::ImageLayout::ePresentSrcKHR);
 
   auto image_info = chain_to_img(*this);
 
@@ -195,14 +195,33 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
     m_views_swap[i] = createImageView(*m_device, m_images_swap[i], image_info);
   }
 }
-// TODO images need to be transferred to present every frame  after they are acquired
-void SwapChain::transitionToLayout(vk::ImageLayout const& newLayout) {
-  for(auto const& image : m_images_swap) {
-    auto info = imgInfo();
-    info.initialLayout = m_layout;
-    m_device->transitionToLayout(image, info, newLayout);
-  }
-  m_layout = newLayout;
+
+void SwapChain::layoutTransitionCommand(vk::CommandBuffer& command_buffer, uint32_t index, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
+  vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = layout_old;
+  barrier.newLayout = layout_new;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  barrier.image = m_images_swap.at(index);
+  barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = imgInfo().mipLevels;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = imgInfo().arrayLayers;
+
+  barrier.srcAccessMask = layout_to_access(layout_old);
+  barrier.dstAccessMask = layout_to_access(layout_new);
+
+  command_buffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier}
+  );
 }
 
 std::vector<Deleter<VkImageView>> const& SwapChain::views() const {
@@ -211,6 +230,10 @@ std::vector<Deleter<VkImageView>> const& SwapChain::views() const {
 
 std::vector<vk::Image> const& SwapChain::images() const {
   return  m_images_swap;
+}
+
+vk::Image const& SwapChain::image(uint32_t index) const {
+  return  m_images_swap.at(index);
 }
 
 VkImageView const& SwapChain::view(std::size_t i) const {

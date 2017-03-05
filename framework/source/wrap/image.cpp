@@ -305,3 +305,41 @@ void Image::swap(Image& dev) {
   ResourceImage::swap(dev);
   std::swap(m_view, dev.m_view);
  }
+
+void Image::layoutTransitionCommand(vk::CommandBuffer& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) {
+  vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = layout_old;
+  barrier.newLayout = layout_new;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  barrier.image = get();
+
+  if (is_depth(format())) {
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+
+    if (has_stencil(format())) {
+      barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  } 
+  else {
+    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
+
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = info().mipLevels;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = info().arrayLayers;
+
+  barrier.srcAccessMask = layout_to_access(layout_old);
+  barrier.dstAccessMask = layout_to_access(layout_new);
+
+  command_buffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier}
+  );
+}

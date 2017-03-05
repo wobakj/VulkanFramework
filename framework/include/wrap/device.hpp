@@ -46,12 +46,6 @@ class Device : public WrapperDevice {
   void uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& offset = 0);
   void copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
 
-  // image functions
-  void uploadImageData(void const* data_ptr, Image& image);
-  void copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height) const;
-  void copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const;
-  void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const;
-
   // helper functions to create commandbuffer for staging an formating
   vk::CommandBuffer const& beginSingleTimeCommands() const;
   void endSingleTimeCommands() const;

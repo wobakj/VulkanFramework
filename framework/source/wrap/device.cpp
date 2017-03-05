@@ -229,18 +229,6 @@ void Device::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-// void Device::uploadImageData(void const* data_ptr, Image& image) {
-//   auto prev_layout = image.layout();
-//   { //lock staging memory
-//     std::lock_guard<std::mutex> lock{m_mutex_staging};
-//     adjustStagingPool(image.size());
-//     m_buffer_stage->setData(data_ptr, image.size(), 0);
-//     image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
-//     copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height);
-//   }
-
-//   image.transitionToLayout(prev_layout);
-// }
 
 void Device::uploadBufferData(void const* data_ptr, BufferView& buffer_view) {
   { //lock staging memory and buffer
@@ -276,123 +264,6 @@ void Device::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer
   commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
 
   endSingleTimeCommands();
-}
-
-void Device::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const {
-  vk::ImageSubresourceLayers subResource{};
-  if (is_depth(srcImage.format())) {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
-
-    if (has_stencil(srcImage.format())) {
-      subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-  subResource.baseArrayLayer = 0;
-  subResource.mipLevel = 0;
-  subResource.layerCount = srcImage.info().arrayLayers;
-
-
-  vk::ImageCopy region{};
-  region.srcSubresource = subResource;
-  region.dstSubresource = subResource;
-  region.srcOffset = vk::Offset3D{0, 0, 0};
-  region.dstOffset = vk::Offset3D{0, 0, 0};
-  region.extent.width = width;
-  region.extent.height = height;
-  region.extent.depth = 1;
-
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-  commandBuffer.copyImage(
-    srcImage, vk::ImageLayout::eTransferSrcOptimal,
-    dstImage, vk::ImageLayout::eTransferDstOptimal,
-    1, &region
-  );
-  endSingleTimeCommands();
-}
-
-
-void Device::copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height) const {
-  vk::ImageSubresourceLayers subResource{};
-  if (is_depth(dstImage.format())) {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
-
-    if (has_stencil(dstImage.format())) {
-      subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-  subResource.baseArrayLayer = 0;
-  subResource.mipLevel = 0;
-  subResource.layerCount = dstImage.info().arrayLayers;
-
-
-  vk::BufferImageCopy region{};
-  region.bufferOffset = 0;
-  region.bufferRowLength = width;
-  region.bufferImageHeight = height;
-  region.imageSubresource = subResource;
-  region.imageOffset = vk::Offset3D{0, 0, 0};
-  region.imageExtent.width = width;
-  region.imageExtent.height = height;
-  region.imageExtent.depth = 1;
-
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-  commandBuffer.copyBufferToImage(
-    srcBuffer,
-    dstImage, vk::ImageLayout::eTransferDstOptimal,
-    1, &region
-  );
-  endSingleTimeCommands();
-}
-
-void Device::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const {
-  // get current layout form creation info
-  vk::ImageLayout const& oldLayout = info.initialLayout;
-  
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-  vk::ImageMemoryBarrier barrier{};
-  barrier.oldLayout = oldLayout;
-  barrier.newLayout = newLayout;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  barrier.image = img;
-
-  if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-
-    if (has_stencil(info.format)) {
-      barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = info.mipLevels;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = info.arrayLayers;
-
-  barrier.srcAccessMask = layout_to_access(oldLayout);
-  barrier.dstAccessMask = layout_to_access(newLayout);
-// todo: use image memory barrier instead of pipeline
-  commandBuffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier}
-  );
-  endSingleTimeCommands();
-  // store new layout
-  // m_info.initialLayout = newLayout;
 }
 
 vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
@@ -433,4 +304,3 @@ void Device::reallocateMemoryPool(std::string const& name, uint32_t type_bits, v
   // std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
   m_pools_memory[name] = Memory{*this, findMemoryType(type_bits, mem_flags), size};
 }
-
