@@ -31,8 +31,6 @@ layout(set = 1, binding = 3) buffer LightBuffer {
   light_t[] Lights;
 };
 
-const uint NUM_DEPTH_SLICES = 16;
-
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
@@ -73,7 +71,7 @@ void main() {
   uint mask_lights;
   // iterate over all depth slices of the light grid and write all relevant
   // light indices into the mask
-  for (uint slice = 0; slice < NUM_DEPTH_SLICES; ++slice) {
+  for (uint slice = 0; slice < lightGridSize.z; ++slice) {
     ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
                              frag_positionNdc.y * lightGridSize.y,
                              slice);
