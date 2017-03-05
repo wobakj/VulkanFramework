@@ -1,6 +1,7 @@
 #include "geometry.hpp"
 
 #include "wrap/device.hpp"
+#include "transferrer.hpp"
 
 #include <iostream>
 
@@ -32,7 +33,6 @@ std::vector<vk::VertexInputAttributeDescription> model_to_attr(vertex_data const
 
 Geometry::Geometry()
  :m_model{}
- ,m_device{nullptr}
  ,m_bind_info{}
  ,m_attrib_info{}
  ,m_buffer{}
@@ -44,9 +44,8 @@ Geometry::Geometry(Geometry && dev)
   swap(dev);
 }
 
-Geometry::Geometry(Device& device, vertex_data const& model)
+Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
  :m_model{model}
- ,m_device{&device}
  ,m_bind_info{}
  ,m_attrib_info{}
  ,m_buffer{}
@@ -56,16 +55,16 @@ Geometry::Geometry(Device& device, vertex_data const& model)
   m_attrib_info = model_to_attr(model);
   // create one buffer to store all data
   vk::DeviceSize combined_size = m_model.vertex_num * m_model.vertex_bytes + uint32_t(m_model.indices.size() * vertex_data::INDEX.size);
-  m_buffer = Buffer{device, combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffer = Buffer{transferrer.device(), combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
-  m_memory = Memory{device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
+  m_memory = Memory{transferrer.device(), m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   m_buffer.bindTo(m_memory);
 
   // upload vertex data
-  device.uploadBufferData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes, m_buffer);
+  transferrer.uploadBufferData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes, m_buffer);
   // upload index data if existant
   if(!model.indices.empty()) {
-    device.uploadBufferData(m_model.indices.data(), m_model.indices.size() * vertex_data::INDEX.size, m_buffer, m_model.vertex_num * m_model.vertex_bytes);
+    transferrer.uploadBufferData(m_model.indices.data(), m_model.indices.size() * vertex_data::INDEX.size, m_buffer, m_model.vertex_num * m_model.vertex_bytes);
   }
 }
 
@@ -76,11 +75,12 @@ Geometry::Geometry(Device& device, vertex_data const& model)
 
  void Geometry::swap(Geometry& dev) {
   std::swap(m_model, dev.m_model);
-  std::swap(m_device, dev.m_device);
   std::swap(m_bind_info, dev.m_bind_info);
   std::swap(m_attrib_info, dev.m_attrib_info);
-  std::swap(m_buffer, dev.m_buffer);
   std::swap(m_memory, dev.m_memory);
+  std::swap(m_buffer, dev.m_buffer);
+  m_buffer.setMemory(m_memory);
+  dev.m_buffer.setMemory(dev.m_memory);
  }
 
 vk::Buffer const& Geometry::buffer() const {

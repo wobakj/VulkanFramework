@@ -45,6 +45,8 @@ class Transferrer {
 
   void deallocate();
 
+  Device const& device() const;
+
  private:
   void adjustStagingPool(vk::DeviceSize const& size);
   // void destroy() override;

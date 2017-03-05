@@ -8,11 +8,12 @@
 #include <vulkan/vulkan.hpp>
 
 class Device;
+class Transferrer;
 
 class Geometry {
  public:  
   Geometry();
-  Geometry(Device& device, vertex_data const& model);
+  Geometry(Transferrer& transferrer, vertex_data const& model);
   Geometry(Geometry && dev);
   Geometry(Geometry const&) = delete;
 
@@ -31,7 +32,6 @@ class Geometry {
 
  private:
   vertex_data m_model;
-  Device const* m_device;
   std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer;

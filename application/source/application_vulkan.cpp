@@ -259,11 +259,11 @@ void ApplicationVulkan::updatePipelines() {
 void ApplicationVulkan::createVertexBuffer() {
   vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
 
-  m_model = Geometry{m_device, tri};
+  m_model = Geometry{m_transferrer, tri};
 }
 void ApplicationVulkan::loadModel() {
   vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_model_2 = Geometry{m_device, tri};
+  m_model_2 = Geometry{m_transferrer, tri};
   m_model_dirty = true;
 }
 

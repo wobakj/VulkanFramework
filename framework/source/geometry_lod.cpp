@@ -387,7 +387,7 @@ void GeometryLod::updateResourcePointers() {
   // correct parent resource pointers
   m_buffer.setMemory(m_memory);
   m_buffer_stage.setMemory(m_memory_stage);
-  
+  // TODO: correctly set pointers of RHS
   for (auto& buffer : m_buffer_views_stage) {
     buffer.setBuffer(m_buffer_stage);
   }

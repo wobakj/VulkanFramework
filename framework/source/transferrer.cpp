@@ -259,3 +259,7 @@ void Transferrer::deallocate() {
   m_buffer_stage.reset();
   m_memory_stage.reset();
 }
+
+Device const& Transferrer::device() const {
+  return *m_device;
+}

@@ -243,7 +243,7 @@ void ApplicationClustered::updatePipelines() {
 
 void ApplicationClustered::createVertexBuffer() {
   vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_model = Geometry{m_device, tri};
+  m_model = Geometry{m_transferrer, tri};
 }
 
 void ApplicationClustered::createLights() {
