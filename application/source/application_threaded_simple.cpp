@@ -1,6 +1,7 @@
 #include "application_threaded_simple.hpp"
 
 #include "app/launcher.hpp"
+#include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
 
@@ -40,8 +41,6 @@ const uint32_t ApplicationThreadedSimple::imageCount = 3;
 
 ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded{resource_path, device, chain, window, cmd_parse}
- ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
- ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_sphere{true}
  ,m_model_dirty{false}
@@ -365,15 +364,17 @@ void ApplicationThreadedSimple::updateDescriptors() {
 }
 
 void ApplicationThreadedSimple::createDescriptorPools() {
-  // descriptor sets can be allocated for each frame resource
-  m_descriptorPool = m_shaders.at("scene").createPool(m_swap_chain.numImages() - 1);
-  m_descriptor_sets["textures"] = m_shaders.at("scene").allocateSet(m_descriptorPool.get(), 1);
+  DescriptorPoolInfo info_pool{};
+  info_pool.reserve(m_shaders.at("scene"), 0, m_swap_chain.numImages() - 1);
+  info_pool.reserve(m_shaders.at("scene"), 1, 1);
+  info_pool.reserve(m_shaders.at("lights"), 1, 1);
 
-  m_descriptorPool_2 = m_shaders.at("lights").createPool(1);
-  m_descriptor_sets["lighting"] = m_shaders.at("lights").allocateSet(m_descriptorPool_2.get(), 1);
+  m_descriptor_pool = DescriptorPool{m_device, info_pool};
+  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 1);
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
   
   for(auto& res : m_frame_resources) {
-    res.descriptor_sets["matrix"] = m_shaders.at("scene").allocateSet(m_descriptorPool.get(), 0);
+    res.descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
   }
 }
 

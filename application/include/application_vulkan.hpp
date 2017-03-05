@@ -47,8 +47,6 @@ class ApplicationVulkan : public ApplicationSingle {
   FrameBuffer m_framebuffer;
   Geometry m_model;
   Geometry m_model_2;
-  Deleter<VkDescriptorPool> m_descriptorPool;
-  Deleter<VkDescriptorPool> m_descriptorPool_2;
   Deleter<VkSampler> m_textureSampler;
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;

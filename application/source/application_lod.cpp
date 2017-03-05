@@ -1,6 +1,7 @@
 #include "application_lod.hpp"
 
 #include "app/launcher.hpp"
+#include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
 #include "cmdline.h"
@@ -46,8 +47,6 @@ const uint32_t ApplicationLod::imageCount = 4;
 
 ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreadedTransfer{resource_path, device, chain, window, cmd_parse}
- ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
- ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
@@ -381,14 +380,15 @@ void ApplicationLod::updateDescriptors() {
 }
 
 void ApplicationLod::createDescriptorPools() {
-  // descriptor sets can be allocated for each frame resource
-  m_descriptorPool = m_shaders.at("lod").createPool(m_swap_chain.numImages() - 1);
-  // global descriptor sets
-  m_descriptorPool_2 = m_shaders.at("lod").createPool(1);
-  m_descriptor_sets["lighting"] = m_shaders.at("lod").allocateSet(m_descriptorPool_2.get(), 1);
+  DescriptorPoolInfo info_pool{};
+  info_pool.reserve(m_shaders.at("lod"), 0, m_swap_chain.numImages() - 1);
+  info_pool.reserve(m_shaders.at("lod"), 1, 1);
 
+  m_descriptor_pool = DescriptorPool{m_device, info_pool};
+
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lod"), 1);
   for(auto& res : m_frame_resources) {
-    res.descriptor_sets["matrix"] = m_shaders.at("lod").allocateSet(m_descriptorPool.get(), 0);
+    res.descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lod"), 0);
   }
 }
 

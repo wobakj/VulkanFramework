@@ -62,8 +62,6 @@ class ApplicationClustered : public ApplicationSingle {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   Geometry m_model;
-  Deleter<VkDescriptorPool> m_descriptorPool;
-  Deleter<VkDescriptorPool> m_descriptorPool_2;
   Deleter<VkSampler> m_textureSampler;
   Deleter<VkSampler> m_volumeSampler;
   std::thread m_thread_load;

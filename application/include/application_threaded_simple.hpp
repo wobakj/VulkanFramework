@@ -49,8 +49,6 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   FrameBuffer m_framebuffer;
   Geometry m_model;
   Geometry m_model_2;
-  Deleter<VkDescriptorPool> m_descriptorPool;
-  Deleter<VkDescriptorPool> m_descriptorPool_2;
   Deleter<VkSampler> m_textureSampler;
 
   bool m_sphere;

@@ -1,6 +1,7 @@
 #include "application_clustered.hpp"
 
 #include "app/launcher.hpp"
+#include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "model_loader.hpp"
 
@@ -40,8 +41,6 @@ const uint32_t ApplicationClustered::imageCount = 2;
 
 ApplicationClustered::ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
- ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_light_grid{m_camera.near(), m_camera.far(), m_camera.projectionMatrix(), glm::uvec2(chain.extent().width, chain.extent().height)}
  ,m_data_light_volume(m_light_grid.dimensions().x * m_light_grid.dimensions().y * m_light_grid.dimensions().z, -1)
@@ -318,23 +317,14 @@ void ApplicationClustered::updateDescriptors() {
 }
 
 void ApplicationClustered::createDescriptorPools() {
-  m_descriptorPool = m_shaders.at("simple").createPool(2);
+  DescriptorPoolInfo info_pool{};
+  info_pool.reserve(m_shaders.at("simple"), 2);
+  info_pool.reserve(m_shaders.at("quad"), 1, 2);
 
-  vk::DescriptorSetAllocateInfo allocInfo{};
-  allocInfo.descriptorPool = m_descriptorPool;
-  allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("simple").setLayouts().size());
-  allocInfo.pSetLayouts = m_shaders.at("simple").setLayouts().data();
-
-  auto sets = m_device->allocateDescriptorSets(allocInfo);
-  m_descriptor_sets["matrix"] = sets[0];
-  m_descriptor_sets["textures"] = sets[1];
-
-  m_descriptorPool_2 = m_shaders.at("quad").createPool(2);
-  allocInfo.descriptorPool = m_descriptorPool_2;
-  allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("quad").setLayouts().size());
-  allocInfo.pSetLayouts = m_shaders.at("quad").setLayouts().data();
-
-  m_descriptor_sets["lighting"] = m_device->allocateDescriptorSets(allocInfo)[1];
+  m_descriptor_pool = DescriptorPool{m_device, info_pool};
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 0);
+  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 1);
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("quad"), 1);
 }
 
 void ApplicationClustered::createUniformBuffers() {

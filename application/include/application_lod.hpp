@@ -62,8 +62,6 @@ class ApplicationLod : public ApplicationThreadedTransfer {
   FrameBuffer m_framebuffer;
   Geometry m_model_light;
   GeometryLod m_model_lod;
-  Deleter<VkDescriptorPool> m_descriptorPool;
-  Deleter<VkDescriptorPool> m_descriptorPool_2;
   vk::DescriptorSet m_descriptorSet;
   vk::DescriptorSet m_descriptorSet_3;
   vk::DescriptorSet m_descriptorSet_2;
