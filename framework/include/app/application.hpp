@@ -9,6 +9,7 @@
 #include "wrap/buffer_view.hpp"
 #include "wrap/device.hpp"
 #include "wrap/swap_chain.hpp"
+#include "wrap/descriptor_pool.hpp"
 #include "block_allocator.hpp"
 #include "camera.hpp"
 #include "cmdline.h"
@@ -82,6 +83,7 @@ class Application {
   Device& m_device;
   SwapChain const& m_swap_chain;
   PipelineCache m_pipeline_cache;
+  DescriptorPool m_descriptor_pool;
 
   std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
   std::map<std::string, Shader> m_shaders;

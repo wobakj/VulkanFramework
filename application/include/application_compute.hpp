@@ -46,10 +46,7 @@ class ApplicationCompute : public ApplicationSingle {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;
-
   Deleter<VkSampler> m_textureSampler;
-  Deleter<VkDescriptorPool> m_descriptorPool;
-  Deleter<VkDescriptorPool> m_descriptorPool_2;
 };
 
 #endif

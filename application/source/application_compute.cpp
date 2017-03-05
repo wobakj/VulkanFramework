@@ -2,6 +2,7 @@
 
 #include "app/launcher.hpp"
 #include "texture_loader.hpp"
+#include "wrap/descriptor_pool_info.hpp"
 #include "model_loader.hpp"
 
 // c++ warpper
@@ -20,8 +21,6 @@ const uint32_t ApplicationCompute::imageCount = 2;
 ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_descriptorPool{m_device, vkDestroyDescriptorPool}
- ,m_descriptorPool_2{m_device, vkDestroyDescriptorPool}
 {  
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/transfer_frag.spv"}});
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
@@ -31,8 +30,6 @@ ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device&
   createUniformBuffers();
 
   createRenderResources();
-
-  // startRenderThread();
 }
 
 ApplicationCompute::~ApplicationCompute() {
@@ -157,7 +154,6 @@ void ApplicationCompute::createPipelines() {
   ComputePipelineInfo info_pipe_comp;
   info_pipe_comp.setShader(m_shaders.at("compute"));
   m_pipeline_compute = ComputePipeline{m_device, info_pipe_comp, m_pipeline_cache};
-  // m_pipelines.emplace("compute", ComputePipeline{m_device, info_pipe_comp, m_pipeline_cache});
 }
 
 void ApplicationCompute::updatePipelines() {
@@ -179,13 +175,11 @@ void ApplicationCompute::createFramebufferAttachments() {
 }
 
 void ApplicationCompute::createTextureImages() {
-  // pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
-
-  m_images["texture"] = Image{m_device, vk::Extent3D{512, 512, 1}, vk::Format::eR32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage};
-  // m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eStorage};
+  m_images["texture"] = Image{m_device, vk::Extent3D{512, 512, 1}, vk::Format::eR32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled
+                                                                                                                   | vk::ImageUsageFlagBits::eTransferDst
+                                                                                                                   | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("texture"));
   m_images.at("texture").transitionToLayout(vk::ImageLayout::eGeneral);
-  // m_device.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
 void ApplicationCompute::createTextureSamplers() {
@@ -196,41 +190,27 @@ void ApplicationCompute::updateDescriptors() {
   m_images.at("texture").writeToSet(m_descriptor_sets.at("texture"), 0, m_textureSampler.get());
   m_images.at("texture").writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
   
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("storage"), 1);
+  m_buffers.at("uniforms").writeToSet(m_descriptor_sets.at("storage"), 1);
 }
 
 void ApplicationCompute::createDescriptorPools() {
-  m_descriptorPool = m_shaders.at("scene").createPool(1);
+  DescriptorPoolInfo info_pool{};
+  info_pool.reserve(m_shaders.at("scene"), 2, 1);
+  info_pool.reserve(m_shaders.at("compute"), 0, 1);
 
-  vk::DescriptorSetAllocateInfo allocInfo{};
-  allocInfo.descriptorPool = m_descriptorPool;
-  allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("scene").setLayouts().size());
-  allocInfo.pSetLayouts = m_shaders.at("scene").setLayouts().data();
-
-  m_descriptor_sets["texture"] = m_device->allocateDescriptorSets(allocInfo)[2];
-
-  m_descriptorPool_2 = m_shaders.at("compute").createPool(1);
-  allocInfo.descriptorPool = m_descriptorPool_2;
-  allocInfo.descriptorSetCount = std::uint32_t(m_shaders.at("compute").setLayouts().size());
-  allocInfo.pSetLayouts = m_shaders.at("compute").setLayouts().data();
-
-  m_descriptor_sets["storage"] = m_device->allocateDescriptorSets(allocInfo)[0];
+  m_descriptor_pool = DescriptorPool{m_device, info_pool};
+  m_descriptor_sets["texture"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 2);
+  m_descriptor_sets["storage"] = m_descriptor_pool.allocate(m_shaders.at("compute"), 0);
 }
 
 void ApplicationCompute::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  // m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
-  m_buffer_views["uniform"] = BufferView{sizeof(float)};
-
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
-
-  // m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 
 void ApplicationCompute::updateUniformBuffers() {
   float time = float(glfwGetTime()) * 2.0f;
-  m_device.uploadBufferData(&time, m_buffer_views.at("uniform"));
+  m_device.uploadBufferData(&time, m_buffers.at("uniforms"));
 }
 ///////////////////////////// misc functions ////////////////////////////////
 

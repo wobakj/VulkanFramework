@@ -37,6 +37,8 @@ struct layout_shader_t {
 
 // std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader);
 // vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<vk::DescriptorSetLayout> const& set_layouts);
+std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_layout, uint32_t num);
+std::vector<vk::DescriptorPoolSize> to_pool_sizes(std::map<std::string, vk::DescriptorSetLayoutBinding> const& set, uint32_t num);
 
 using WrapperShader = Wrapper<vk::PipelineLayout, layout_shader_t>;
 class Shader : public WrapperShader {
