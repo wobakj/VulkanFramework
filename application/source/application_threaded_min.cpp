@@ -73,22 +73,22 @@ void ApplicationThreadedMin::recordDrawBuffer(FrameResource& res) {
   // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
-  blit.srcSubresource = img_to_resource_layer(m_images.at("color_2").info());
+  blit.srcSubresource = img_to_resource_layer(m_images.at("color").info());
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  res.command_buffers.at("draw").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw").blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.images().at(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
 
   res.command_buffers.at("draw").end();
 }
 
 void ApplicationThreadedMin::createFramebuffers() {
-  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color_2")}, m_render_pass};
+  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color")}, m_render_pass};
 }
 
 void ApplicationThreadedMin::createRenderPasses() {
   sub_pass_t pass_1({0},{});
-  m_render_pass = RenderPass{m_device, {m_images.at("color_2").info()}, {pass_1}};
+  m_render_pass = RenderPass{m_device, {m_images.at("color").info()}, {pass_1}};
 }
 
 void ApplicationThreadedMin::createPipelines() {
@@ -123,9 +123,9 @@ void ApplicationThreadedMin::updatePipelines() {
 void ApplicationThreadedMin::createFramebufferAttachments() {
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
  
-  m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
-  m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
-  m_allocators.at("images").allocate(m_images.at("color_2"));
+  m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_allocators.at("images").allocate(m_images.at("color"));
+  m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
 }
 ///////////////////////////// misc functions ////////////////////////////////
 

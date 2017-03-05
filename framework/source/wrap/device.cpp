@@ -229,18 +229,18 @@ void Device::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-void Device::uploadImageData(void const* data_ptr, Image& image) {
-  auto prev_layout = image.layout();
-  { //lock staging memory
-    std::lock_guard<std::mutex> lock{m_mutex_staging};
-    adjustStagingPool(image.size());
-    m_buffer_stage->setData(data_ptr, image.size(), 0);
-    image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
-    copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height);
-  }
+// void Device::uploadImageData(void const* data_ptr, Image& image) {
+//   auto prev_layout = image.layout();
+//   { //lock staging memory
+//     std::lock_guard<std::mutex> lock{m_mutex_staging};
+//     adjustStagingPool(image.size());
+//     m_buffer_stage->setData(data_ptr, image.size(), 0);
+//     image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
+//     copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height);
+//   }
 
-  image.transitionToLayout(prev_layout);
-}
+//   image.transitionToLayout(prev_layout);
+// }
 
 void Device::uploadBufferData(void const* data_ptr, BufferView& buffer_view) {
   { //lock staging memory and buffer

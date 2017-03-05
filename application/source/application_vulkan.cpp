@@ -285,23 +285,23 @@ void ApplicationVulkan::createFramebufferAttachments() {
   );
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
   m_images["depth"] = Image{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
-  m_images.at("depth").transitionToLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
 
   m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
-  m_images.at("color").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 
   m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
-  m_images.at("pos").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_transferrer.transitionToLayout(m_images.at("pos"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("pos"));
 
   m_images["normal"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
-  m_images.at("normal").transitionToLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  m_transferrer.transitionToLayout(m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("normal"));
 
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
-  m_images.at("color_2").transitionToLayout(vk::ImageLayout::eTransferSrcOptimal);
+  m_transferrer.transitionToLayout(m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
 }
 
@@ -310,8 +310,8 @@ void ApplicationVulkan::createTextureImage() {
 
   m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("texture"));
-  m_images.at("texture").transitionToLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-  
+ 
+  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
   m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
@@ -359,7 +359,7 @@ void ApplicationVulkan::updateView() {
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
 
-  m_device.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
+  m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

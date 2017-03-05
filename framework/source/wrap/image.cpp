@@ -217,12 +217,6 @@ void Image::bindTo(Memory& memory, vk::DeviceSize const& offset) {
   }
 }
 
-void Image::transitionToLayout(vk::ImageLayout const& newLayout) {
-  m_device->transitionToLayout(get(), info(), newLayout);
-  // store new layout
-  m_info.initialLayout = newLayout;
-}
-
 void Image::destroy() {
   if (m_view) {
     (*m_device)->destroyImageView(m_view);

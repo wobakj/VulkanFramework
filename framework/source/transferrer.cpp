@@ -64,11 +64,11 @@ void Transferrer::uploadImageData(void const* data_ptr, Image& image) {
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(image.size());
     m_buffer_stage->setData(data_ptr, image.size(), 0);
-    image.transitionToLayout(vk::ImageLayout::eTransferDstOptimal);
+    transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal);
     copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height);
   }
 
-  image.transitionToLayout(prev_layout);
+  transitionToLayout(image, prev_layout);
 }
 
 void Transferrer::uploadBufferData(void const* data_ptr, BufferView& buffer_view) {
