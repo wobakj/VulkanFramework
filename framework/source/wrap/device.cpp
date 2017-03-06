@@ -1,12 +1,9 @@
 #include "wrap/device.hpp"
 
-#include "wrap/buffer.hpp"
-#include "wrap/buffer_view.hpp"
-#include "wrap/image.hpp"
-#include "wrap/pixel_data.hpp"
-#include "wrap/swap_chain.hpp"
+#include "wrap/device.hpp"
 
 #include <vulkan/vulkan.hpp>
+
 #include <iostream>
 #include <vector>
 #include <set>
@@ -15,7 +12,6 @@ Device::Device()
  :WrapperDevice{}
  ,m_queue_indices{}
  ,m_queues{}
- ,m_pools{}
  ,m_extensions{}
 {}
 
@@ -98,9 +94,6 @@ Device::~Device() {
 }
 
 void Device::destroy() {
-  for(auto& pool : m_pools) {
-    get().destroyCommandPool(pool.second);
-  }
   get().destroy();
 }
 
@@ -114,7 +107,6 @@ void Device::destroy() {
   std::swap(m_phys_device, dev.m_phys_device);
   std::swap(m_queues, dev.m_queues);
   std::swap(m_queue_indices, dev.m_queue_indices);
-  std::swap(m_pools, dev.m_pools);
   std::swap(m_extensions, dev.m_extensions);
 }
 

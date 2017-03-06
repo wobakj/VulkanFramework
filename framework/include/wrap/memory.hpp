@@ -12,9 +12,6 @@ class Buffer;
 class Image;
 class Device;
 
-inline bool index_matches_filter(uint32_t index, uint32_t type_filter) {
-  return (type_filter & (1u << index)) == (1u << index);
-}
 
 // inline uint32_t findMemoryType(vk::PhysicalDevice const& device, uint32_t typeFilter, vk::MemoryPropertyFlags const& properties) {
 //   auto memProperties = device.getMemoryProperties();

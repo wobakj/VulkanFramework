@@ -18,7 +18,7 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
   createMemoryPools();
   createCommandPools();
 
-  m_transferrer = Transferrer{m_device, m_command_pools.at("transfer")};
+  m_transferrer = Transferrer{m_command_pools.at("transfer")};
 }
 
 FrameResource Application::createFrameResource() {

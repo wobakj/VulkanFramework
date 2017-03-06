@@ -1,6 +1,8 @@
 #ifndef TRANSFERRER_HPP
 #define TRANSFERRER_HPP
 
+#include "wrap/command_buffer.hpp"
+
 #include <vulkan/vulkan.hpp>
 
 #include <mutex>
@@ -12,16 +14,15 @@ class Device;
 class BufferView;
 class Image;
 class CommandPool;
+class CommandBuffer;
 
 class Transferrer {
  public:
   Transferrer();
-  Transferrer(Device const& device, CommandPool& pool);
+  Transferrer(CommandPool& pool);
   Transferrer(Transferrer && dev);
   Transferrer(Transferrer const&) = delete;
 
-  ~Transferrer();
-  
   Transferrer& operator=(Transferrer&& dev);
   Transferrer& operator=(Transferrer const&) = delete;
 
@@ -50,11 +51,9 @@ class Transferrer {
 
  private:
   void adjustStagingPool(vk::DeviceSize const& size);
-  // void destroy() override;
 
   Device const* m_device;
-  CommandPool const* m_pool;
-  vk::CommandBuffer m_command_buffer_help;
+  CommandBuffer m_command_buffer_help;
   std::unique_ptr<Buffer> m_buffer_stage;
   std::unique_ptr<Memory> m_memory_stage;
   mutable std::mutex m_mutex_single_command;

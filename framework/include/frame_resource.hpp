@@ -30,10 +30,6 @@ class FrameResource {
    }
 
   ~FrameResource() {
-    // free resources
-    // for(auto const& command_buffer : command_buffers) {
-    //   (*m_device)->freeCommandBuffers(m_device->pool("graphics"), {command_buffer.second});    
-    // }
     for(auto const& semaphore : semaphores) {
       (*m_device)->destroySemaphore(semaphore.second);    
     }

@@ -2,7 +2,6 @@
 #define DEVICE_HPP
 
 #include "wrap/wrapper.hpp"
-#include "wrap/memory.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -11,12 +10,18 @@
 #include <mutex>
 #include <memory>
 
-class SwapChain;
-class Buffer;
-class BufferView;
-class Image;
-struct pixel_data;
-class QueueFamilyIndices;
+struct QueueFamilyIndices {
+    int graphicsFamily = -1;
+    int presentFamily = -1;
+
+    bool isComplete() {
+      return graphicsFamily >= 0 && presentFamily >= 0;
+    }
+};
+
+inline bool index_matches_filter(uint32_t index, uint32_t type_filter) {
+  return (type_filter & (1u << index)) == (1u << index);
+}
 
 using WrapperDevice = Wrapper<vk::Device, vk::DeviceCreateInfo>;
 class Device : public WrapperDevice {
@@ -55,7 +60,6 @@ class Device : public WrapperDevice {
   vk::PhysicalDevice m_phys_device;
   std::map<std::string, uint32_t> m_queue_indices;
   std::map<std::string, vk::Queue> m_queues;
-  std::map<std::string, vk::CommandPool> m_pools;
   std::vector<const char*> m_extensions;
 };
 

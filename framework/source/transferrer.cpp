@@ -6,26 +6,20 @@
 #include "wrap/image.hpp"
 #include "wrap/buffer_view.hpp"
 #include "wrap/command_pool.hpp"
+#include "wrap/command_buffer.hpp"
 
 #include <iostream>
 
 Transferrer::Transferrer()
  :m_device{nullptr}
- ,m_pool{nullptr}
 {}
 
-Transferrer::Transferrer(Device const& device, CommandPool& pool)
+Transferrer::Transferrer(CommandPool& pool)
  :Transferrer{}
  {
-  m_device = &device;
-  m_pool = &pool;
+  m_device = &pool.device();
   // create buffer for onetime commands
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = (m_pool->get());
-  allocInfo.commandBufferCount = 1;
-
-  m_command_buffer_help = (*m_device)->allocateCommandBuffers(allocInfo)[0];
+  m_command_buffer_help = pool.createBuffer(vk::CommandBufferLevel::ePrimary);
  }
 
 Transferrer::Transferrer(Transferrer && dev)
@@ -33,12 +27,6 @@ Transferrer::Transferrer(Transferrer && dev)
  {
   swap(dev);
  }
-
-Transferrer::~Transferrer() {
-  // if (m_device) {
-  //   (*m_device)->freeCommandBuffers((m_pool->get()), {m_command_buffer_help});
-  // }
-}
 
 Transferrer& Transferrer::operator=(Transferrer&& dev) {
   swap(dev);
@@ -50,7 +38,6 @@ void Transferrer::swap(Transferrer& dev) {
   std::swap(m_device, dev.m_device);
   std::swap(m_command_buffer_help, dev.m_command_buffer_help);
   std::swap(m_buffer_stage, dev.m_buffer_stage);
-  std::swap(m_pool, dev.m_pool);
 }
 
 void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
@@ -239,22 +226,22 @@ vk::CommandBuffer const& Transferrer::beginSingleTimeCommands() const {
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
-  m_command_buffer_help.begin(beginInfo);
+  m_command_buffer_help->begin(beginInfo);
 
   return m_command_buffer_help;
 }
 
 
 void Transferrer::endSingleTimeCommands() const {
-  m_command_buffer_help.end();
+  m_command_buffer_help->end();
 
   vk::SubmitInfo submitInfo{};
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &m_command_buffer_help;
+  submitInfo.pCommandBuffers = &m_command_buffer_help.get();
 
   m_device->getQueue("transfer").submit({submitInfo}, VK_NULL_HANDLE);
   m_device->getQueue("transfer").waitIdle();
-  m_command_buffer_help.reset({});
+  m_command_buffer_help->reset({});
 
   m_mutex_single_command.unlock();
 }
