@@ -99,7 +99,7 @@ void ApplicationClustered::updateLightVolume() {
                            m_images.at("light_vol"));
 
   buff_l.lightGridSize = glm::vec4(m_light_grid.dimensions(), 1.0f);
-  m_device.uploadBufferData(&buff_l, m_buffer_views.at("light"));
+  m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
