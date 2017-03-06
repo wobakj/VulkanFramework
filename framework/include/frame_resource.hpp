@@ -7,6 +7,7 @@
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"
 #include "wrap/query_pool.hpp"
+#include "wrap/command_buffer.hpp"
 
 #include <vector>
 
@@ -54,8 +55,8 @@ class FrameResource {
    fences.emplace(name, Fence{(*m_device), vk::FenceCreateFlagBits::eSignaled});
   }
 
-  void addCommandBuffer(std::string const& name, vk::CommandBuffer && buffer) {
-    command_buffers.emplace(name, buffer);
+  void addCommandBuffer(std::string const& name, CommandBuffer&& buffer) {
+    command_buffers.emplace(name, std::move(buffer));
   }
 
   vk::Semaphore const& semaphore(std::string const& name) {
@@ -66,7 +67,7 @@ class FrameResource {
     return fences.at(name);
   }
 
-  vk::CommandBuffer& commandBuffer(std::string const& name) {
+  CommandBuffer& commandBuffer(std::string const& name) {
     return command_buffers.at(name);
   }
 
@@ -97,7 +98,7 @@ class FrameResource {
   }
 
   uint32_t image;
-  std::map<std::string, vk::CommandBuffer> command_buffers;
+  std::map<std::string, CommandBuffer> command_buffers;
   std::map<std::string, vk::Semaphore> semaphores;
   std::map<std::string, Fence> fences;
   std::map<std::string, vk::DescriptorSet> descriptor_sets;

@@ -45,25 +45,25 @@ FrameResource ApplicationCompute::createFrameResource() {
 
 void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
-  res.command_buffers.at("compute").reset({});
-  res.command_buffers.at("compute").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
-  res.command_buffers.at("compute").bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
-  res.command_buffers.at("compute").bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("storage")}, {});
+  res.command_buffers.at("compute")->reset({});
+  res.command_buffers.at("compute")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
+  res.command_buffers.at("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("storage")}, {});
 
   glm::uvec3 dims{m_images.at("texture").extent().width, m_images.at("texture").extent().height, m_images.at("texture").extent().depth};
   glm::uvec3 workers{16, 16, 1};
   // 512^2 threads in blocks of 16^2
-  res.command_buffers.at("compute").dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
+  res.command_buffers.at("compute")->dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
 
-  res.command_buffers.at("compute").end();
+  res.command_buffers.at("compute")->end();
 
-  res.command_buffers.at("gbuffer").reset({});
+  res.command_buffers.at("gbuffer")->reset({});
   inheritanceInfo.renderPass = m_render_pass;
   inheritanceInfo.framebuffer = m_framebuffer;
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
   // barrier to make image data visible to vertex shader
   vk::ImageMemoryBarrier barrier_image{};
   barrier_image.image = m_images.at("texture");
@@ -75,7 +75,7 @@ void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
   barrier_image.oldLayout = vk::ImageLayout::eGeneral;
   barrier_image.newLayout = vk::ImageLayout::eGeneral;
 
-  res.commandBuffer("gbuffer").pipelineBarrier(
+  res.commandBuffer("gbuffer")->pipelineBarrier(
     vk::PipelineStageFlagBits::eComputeShader,
     vk::PipelineStageFlagBits::eFragmentShader,
     vk::DependencyFlags{},
@@ -84,29 +84,29 @@ void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
     {barrier_image}
   );
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 2, {m_descriptor_sets.at("texture")}, {});
-  res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
+  res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
+  res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 2, {m_descriptor_sets.at("texture")}, {});
+  res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("gbuffer").draw(4, 1, 0, 0);
+  res.command_buffers.at("gbuffer")->draw(4, 1, 0, 0);
 
-  res.command_buffers.at("gbuffer").end();
+  res.command_buffers.at("gbuffer")->end();
 }
 
 void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   updateUniformBuffers();
 
-  res.command_buffers.at("draw").reset({});
+  res.command_buffers.at("draw")->reset({});
 
-  res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("compute")});
+  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("compute")});
 
-  res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
   
-  res.command_buffers.at("draw").endRenderPass();
+  res.command_buffers.at("draw")->endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -116,11 +116,11 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
-  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw"), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
-  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw"), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw")->blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-  res.command_buffers.at("draw").end();
+  res.command_buffers.at("draw")->end();
 }
 
 void ApplicationCompute::createFramebuffers() {

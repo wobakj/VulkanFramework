@@ -8,6 +8,7 @@
 #include <vector>
 
 class Device;
+class CommandBuffer;
 
 using WrapperCommandPool = Wrapper<vk::CommandPool, vk::CommandPoolCreateInfo>;
 class CommandPool : public WrapperCommandPool {
@@ -23,8 +24,10 @@ class CommandPool : public WrapperCommandPool {
 
   void swap(CommandPool& dev);
   
-  std::vector<vk::CommandBuffer> createBuffers(vk::CommandBufferLevel const& level, uint32_t num) const;
-  vk::CommandBuffer createBuffer(vk::CommandBufferLevel const& level) const;
+  std::vector<CommandBuffer> createBuffers(vk::CommandBufferLevel const& level, uint32_t num) const;
+  CommandBuffer createBuffer(vk::CommandBufferLevel const& level) const;
+
+  Device const& device() const;
 
  private:
   void destroy() override;

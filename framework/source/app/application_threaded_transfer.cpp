@@ -130,7 +130,7 @@ void ApplicationThreadedTransfer::submitTransfer(FrameResource& res) {
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
 
   submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("transfer"));
+  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("transfer").get());
 
   vk::Semaphore signalSemaphores[]{res.semaphores.at("transfer")};
   submitInfos[0].signalSemaphoreCount = 1;
@@ -150,7 +150,7 @@ void ApplicationThreadedTransfer::submitDraw(FrameResource& res) {
   submitInfos[0].setPWaitDstStageMask(waitStages);
 
   submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw"));
+  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw").get());
 
   vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
   submitInfos[0].signalSemaphoreCount = 1;

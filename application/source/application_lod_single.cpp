@@ -110,27 +110,27 @@ void ApplicationLodSingle::updateResourceDescriptors(FrameResource& res) {
 }
 
 void ApplicationLodSingle::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer").reset({});
+  res.command_buffers.at("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
   inheritanceInfo.framebuffer = m_framebuffer;
   inheritanceInfo.subpass = 0;
 
-  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
   // res.query_pools.at("timers").timestamp(res.command_buffers.at("gbuffer"), 1, vk::PipelineStageFlagBits::eTopOfPipe);
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
+  res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
 
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
+  res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
+  res.command_buffers.at("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
-  res.command_buffers.at("gbuffer").drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
+  res.command_buffers.at("gbuffer")->drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
 
-  res.command_buffers.at("gbuffer").end();
+  res.command_buffers.at("gbuffer")->end();
 }
 
 void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
@@ -153,9 +153,9 @@ void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
   res.num_uploads = double(curr_uploads);
 
   // write transfer command buffer
-  res.command_buffers.at("draw").reset({});
+  res.command_buffers.at("draw")->reset({});
 
-  res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
 
@@ -164,17 +164,17 @@ void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
   m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
   
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
-  // res.command_buffers.at("draw").end();
+  // res.command_buffers.at("draw")->end();
 }
 
 void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
   recordTransferBuffer(res);
-  // res.command_buffers.at("draw").reset({});
+  // res.command_buffers.at("draw")->reset({});
 
-  // res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  // res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // always update, because last update could have been to other frame
   updateView();
-  res.command_buffers.at("draw").updateBuffer(
+  res.command_buffers.at("draw")->updateBuffer(
     res.buffer_views.at("uniform").buffer(),
     res.buffer_views.at("uniform").offset(),
     sizeof(ubo_cam),
@@ -188,7 +188,7 @@ void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
   barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  res.command_buffers.at("draw").pipelineBarrier(
+  res.command_buffers.at("draw")->pipelineBarrier(
     vk::PipelineStageFlagBits::eTransfer,
     vk::PipelineStageFlagBits::eVertexShader,
     vk::DependencyFlags{},
@@ -201,11 +201,11 @@ void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
   // res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
 
-  res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
 
-  res.command_buffers.at("draw").endRenderPass();
+  res.command_buffers.at("draw")->endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -215,12 +215,12 @@ void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
-  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw"), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
-  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw"), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw")->blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 3, vk::PipelineStageFlagBits::eColorAttachmentOutput);
-  res.command_buffers.at("draw").end();
+  res.command_buffers.at("draw")->end();
 }
 
 void ApplicationLodSingle::createFramebuffers() {

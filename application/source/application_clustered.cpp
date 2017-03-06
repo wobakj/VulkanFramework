@@ -104,7 +104,7 @@ void ApplicationClustered::updateLightVolume() {
 }
 
 void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer").reset({});
+  res.command_buffers.at("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
@@ -112,48 +112,48 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
-  res.command_buffers.at("gbuffer").setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer").setScissor(0, {m_swap_chain.asRect()});
+  res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
+  res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("gbuffer").bindVertexBuffers(0, {m_model.buffer()}, {0});
-  res.command_buffers.at("gbuffer").bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("gbuffer")->bindVertexBuffers(0, {m_model.buffer()}, {0});
+  res.command_buffers.at("gbuffer")->bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
 
-  res.command_buffers.at("gbuffer").drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
+  res.command_buffers.at("gbuffer")->drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
 
-  res.command_buffers.at("gbuffer").end();
+  res.command_buffers.at("gbuffer")->end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
-  res.command_buffers.at("lighting").reset({});
-  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("lighting")->reset({});
+  res.command_buffers.at("lighting")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting").bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad"));
-  res.command_buffers.at("lighting").bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("lighting").setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("lighting").setScissor(0, {m_swap_chain.asRect()});
+  res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad"));
+  res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.command_buffers.at("lighting")->setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("lighting")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("lighting").draw(4, 1, 0, 0);
+  res.command_buffers.at("lighting")->draw(4, 1, 0, 0);
 
-  res.command_buffers.at("lighting").end();
+  res.command_buffers.at("lighting")->end();
 }
 
 void ApplicationClustered::recordDrawBuffer(FrameResource& res) {
-  res.command_buffers.at("draw").reset({});
+  res.command_buffers.at("draw")->reset({});
 
-  res.command_buffers.at("draw").begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.command_buffers.at("draw").beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("gbuffer")});
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
   
-  res.command_buffers.at("draw").nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.command_buffers.at("draw")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  res.command_buffers.at("draw").executeCommands({res.command_buffers.at("lighting")});
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("lighting")});
 
-  res.command_buffers.at("draw").endRenderPass();
+  res.command_buffers.at("draw")->endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
@@ -163,11 +163,11 @@ void ApplicationClustered::recordDrawBuffer(FrameResource& res) {
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
-  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw"), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
-  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw"), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw")->blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-  res.command_buffers.at("draw").end();
+  res.command_buffers.at("draw")->end();
 }
 
 void ApplicationClustered::createFramebuffers() {

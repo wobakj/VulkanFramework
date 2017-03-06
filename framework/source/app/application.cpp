@@ -27,7 +27,7 @@ FrameResource Application::createFrameResource() {
   res.addSemaphore("draw");
   res.addFence("draw");
   res.addFence("acquire");
-  res.addCommandBuffer("draw", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary));
+  res.addCommandBuffer("draw", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
   return res;
 }
 
@@ -89,7 +89,7 @@ void Application::submitDraw(FrameResource& res) {
   submitInfos[0].setPWaitDstStageMask(waitStages);
 
   submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw"));
+  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw").get());
 
   vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
   submitInfos[0].signalSemaphoreCount = 1;

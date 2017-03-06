@@ -196,7 +196,7 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
   }
 }
 
-void SwapChain::layoutTransitionCommand(vk::CommandBuffer& command_buffer, uint32_t index, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
+void SwapChain::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, uint32_t index, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
   vk::ImageMemoryBarrier barrier{};
   barrier.oldLayout = layout_old;
   barrier.newLayout = layout_new;
