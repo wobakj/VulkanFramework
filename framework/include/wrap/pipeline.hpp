@@ -7,20 +7,32 @@
 
 class Device;
 
+class Pipeline {
+ public:
+  virtual ~Pipeline() {};
+
+  virtual operator vk::Pipeline const&() const = 0;
+    // forward info method to prevent trainwreck
+  virtual vk::PipelineLayout const& layout() const = 0;
+  virtual vk::PipelineBindPoint bindPoint() const = 0;
+};
+
 template<typename T>
-class Pipeline : public Wrapper<vk::Pipeline, T>{
+class PipelineT : public Wrapper<vk::Pipeline, T>, public Pipeline {
 using WrapperPipeline = Wrapper<vk::Pipeline, T>;
  public:
-  Pipeline();
-  Pipeline(Device const& rhs, T const& info, vk::PipelineCache const& cache = VK_NULL_HANDLE);
-  Pipeline(Pipeline && rhs);
-  Pipeline(Pipeline const&) = delete;
-  ~Pipeline();
+  PipelineT();
+  PipelineT(Device const& rhs, T const& info, vk::PipelineCache const& cache = VK_NULL_HANDLE);
+  PipelineT(PipelineT && rhs);
+  PipelineT(PipelineT const&) = delete;
+  ~PipelineT();
   
-  Pipeline& operator=(Pipeline const&) = delete;
-  Pipeline& operator=(Pipeline&& rhs);
+  PipelineT& operator=(PipelineT const&) = delete;
+  PipelineT& operator=(PipelineT&& rhs);
 
-  void swap(Pipeline& rhs);
+  void swap(PipelineT& rhs);
+
+  operator vk::Pipeline const&() const;
 
   virtual void recreate(T const& info);
   // forward info method to prevent trainwreck
@@ -37,50 +49,50 @@ using WrapperPipeline = Wrapper<vk::Pipeline, T>;
 #include "wrap/device.hpp"
 
 template<typename T>
-Pipeline<T>::Pipeline()
+PipelineT<T>::PipelineT()
  :WrapperPipeline{}
  ,m_device{nullptr}
  ,m_cache{VK_NULL_HANDLE}
 {}
 
 template<typename T>
-Pipeline<T>::Pipeline(Pipeline<T> && rhs)
+PipelineT<T>::PipelineT(PipelineT<T> && rhs)
  :WrapperPipeline{}
 {
   swap(rhs);
 }
 
 template<typename T>
-Pipeline<T>::~Pipeline() {
+PipelineT<T>::~PipelineT() {
   WrapperPipeline::cleanup();
 }
 
 template<typename T>
-void Pipeline<T>::destroy() {
+void PipelineT<T>::destroy() {
   (*m_device)->destroyPipeline(WrapperPipeline::get());
 }
 
 template<typename T>
-Pipeline<T> & Pipeline<T>::operator=(Pipeline<T>&& pipeline) {
+PipelineT<T> & PipelineT<T>::operator=(PipelineT<T>&& pipeline) {
   swap(pipeline);
   return *this;
 }
 
 template<typename T>
-void Pipeline<T>::swap(Pipeline<T>& rhs) {
+void PipelineT<T>::swap(PipelineT<T>& rhs) {
   WrapperPipeline::swap(rhs);
   std::swap(m_device, rhs.m_device);
   std::swap(m_cache, rhs.m_cache);
 }
 
 template<typename T>
-vk::PipelineLayout const& Pipeline<T>::layout() const {
+vk::PipelineLayout const& PipelineT<T>::layout() const {
   return WrapperPipeline::info().layout();
 }
 
 // specialisations
 #include "wrap/pipeline_g_info.hpp"
-using GraphicsPipeline = Pipeline<GraphicsPipelineInfo>;
+using GraphicsPipeline = PipelineT<GraphicsPipelineInfo>;
 
 template<>
 inline void GraphicsPipeline::recreate(GraphicsPipelineInfo const& info) {
@@ -95,8 +107,8 @@ inline vk::PipelineBindPoint GraphicsPipeline::bindPoint() const {
 }
 
 template<>
-inline GraphicsPipeline::Pipeline(Device const& device, GraphicsPipelineInfo const& info, vk::PipelineCache const& cache)
- :Pipeline{}
+inline GraphicsPipeline::PipelineT(Device const& device, GraphicsPipelineInfo const& info, vk::PipelineCache const& cache)
+ :PipelineT{}
 {
   m_device = &device;
   m_cache = cache;
@@ -104,8 +116,13 @@ inline GraphicsPipeline::Pipeline(Device const& device, GraphicsPipelineInfo con
   m_object = (*m_device)->createGraphicsPipelines(m_cache, {m_info})[0];
 }
 
+template<>
+inline GraphicsPipeline::operator vk::Pipeline const&() const {
+  return get();
+}
+
 #include "wrap/pipeline_c_info.hpp"
-using ComputePipeline = Pipeline<ComputePipelineInfo>;
+using ComputePipeline = PipelineT<ComputePipelineInfo>;
 template<>
 inline void ComputePipeline::recreate(ComputePipelineInfo const& info) {
   m_info = info;
@@ -119,13 +136,18 @@ inline vk::PipelineBindPoint ComputePipeline::bindPoint() const {
 }
 
 template<>
-inline ComputePipeline::Pipeline(Device const& device, ComputePipelineInfo const& info, vk::PipelineCache const& cache)
- :Pipeline{}
+inline ComputePipeline::PipelineT(Device const& device, ComputePipelineInfo const& info, vk::PipelineCache const& cache)
+ :PipelineT{}
 {
   m_device = &device;
   m_cache = cache;
   m_info = info;
   m_object = (*m_device)->createComputePipelines(m_cache, {m_info})[0];
+}
+
+template<>
+inline ComputePipeline::operator vk::Pipeline const&() const {
+  return get();
 }
 
 #endif
