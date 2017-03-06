@@ -96,7 +96,7 @@ ApplicationLod::~ApplicationLod() {
 
 FrameResource ApplicationLod::createFrameResource() {
   auto res = ApplicationThreadedTransfer::createFrameResource();
-  res.addCommandBuffer("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  res.addCommandBuffer("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
   res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
   res.query_pools["timers"] = QueryPool{m_device, vk::QueryType::eTimestamp, 4};

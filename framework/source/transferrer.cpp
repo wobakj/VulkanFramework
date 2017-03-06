@@ -5,21 +5,24 @@
 #include "wrap/buffer.hpp"
 #include "wrap/image.hpp"
 #include "wrap/buffer_view.hpp"
+#include "wrap/command_pool.hpp"
 
 #include <iostream>
 
 Transferrer::Transferrer()
  :m_device{nullptr}
+ ,m_pool{nullptr}
 {}
 
-Transferrer::Transferrer(Device const& device)
+Transferrer::Transferrer(Device const& device, CommandPool& pool)
  :Transferrer{}
  {
   m_device = &device;
+  m_pool = &pool;
   // create buffer for onetime commands
   vk::CommandBufferAllocateInfo allocInfo{};
   allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = m_device->pool("transfer");
+  allocInfo.commandPool = (m_pool->get());
   allocInfo.commandBufferCount = 1;
 
   m_command_buffer_help = (*m_device)->allocateCommandBuffers(allocInfo)[0];
@@ -32,9 +35,9 @@ Transferrer::Transferrer(Transferrer && dev)
  }
 
 Transferrer::~Transferrer() {
-  if (m_device) {
-    (*m_device)->freeCommandBuffers(m_device->pool("transfer"), {m_command_buffer_help});
-  }
+  // if (m_device) {
+  //   (*m_device)->freeCommandBuffers((m_pool->get()), {m_command_buffer_help});
+  // }
 }
 
 Transferrer& Transferrer::operator=(Transferrer&& dev) {
@@ -47,6 +50,7 @@ void Transferrer::swap(Transferrer& dev) {
   std::swap(m_device, dev.m_device);
   std::swap(m_command_buffer_help, dev.m_command_buffer_help);
   std::swap(m_buffer_stage, dev.m_buffer_stage);
+  std::swap(m_pool, dev.m_pool);
 }
 
 void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {

@@ -10,6 +10,7 @@
 #include "wrap/device.hpp"
 #include "wrap/swap_chain.hpp"
 #include "wrap/descriptor_pool.hpp"
+#include "wrap/command_pool.hpp"
 #include "block_allocator.hpp"
 #include "camera.hpp"
 #include "transferrer.hpp"
@@ -30,12 +31,11 @@ class Application {
 
   // react to key input
   inline virtual void keyCallback(int key, int scancode, int action, int mods) {};
-  // 
+  // reload shader source and recreate pipeline
   void updateShaderPrograms();
   // draw all objects
   void frame();
   void resize(std::size_t width, std::size_t height);
-  virtual void onResize(std::size_t width, std::size_t height);
 
   // render remaining recorded frames before pipeline rebuild
   // required for multithreaded rendering
@@ -50,10 +50,11 @@ class Application {
  protected:
   // call at construction
   void createRenderResources();
+  void recreatePipeline();
   // call at shader reload/pipeline config change
-  virtual void recreatePipeline();
-  virtual void createDescriptorPools() {};
   virtual void createMemoryPools();
+  virtual void createCommandPools();
+  virtual void createDescriptorPools() {};
   virtual void createPipelines() = 0;
   virtual void createFramebuffers() = 0;
   virtual void createFramebufferAttachments() = 0;
@@ -61,6 +62,7 @@ class Application {
   virtual void createFrameResources() = 0;
   virtual void updatePipelines() = 0;
   virtual void updateCommandBuffers() = 0;
+  virtual void onResize(std::size_t width, std::size_t height);
 
   virtual void logic() {};
   virtual void render() = 0;
@@ -95,6 +97,7 @@ class Application {
   std::map<std::string, Image> m_images;
   std::map<std::string, Buffer> m_buffers;
   std::map<std::string, BufferView> m_buffer_views;
+  std::map<std::string, CommandPool> m_command_pools;
 };
 
 #endif

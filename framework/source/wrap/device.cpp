@@ -72,26 +72,6 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
     m_queues.emplace(index.first, get().getQueue(index.second, num_used.at(index.second)));
     ++num_used.at(index.second);
   }
-
-  createCommandPools();
-}
-
-void Device::createCommandPools() {
-  vk::CommandPoolCreateInfo poolInfo{};
-  poolInfo.queueFamilyIndex = getQueueIndex("graphics");
-  poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-
-  m_pools.emplace("graphics", get().createCommandPool(poolInfo));
-  // allocate pool for one-time commands, reset when beginning buffer
-  poolInfo.queueFamilyIndex = getQueueIndex("transfer");
-  poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-
-  m_pools.emplace("transfer", get().createCommandPool(poolInfo));
-
-  poolInfo.queueFamilyIndex = getQueueIndex("graphics");
-  poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-
-  m_pools.emplace("compute", get().createCommandPool(poolInfo));
 }
 
 std::vector<uint32_t> Device::ownerIndices() const {
@@ -138,24 +118,8 @@ void Device::destroy() {
   std::swap(m_extensions, dev.m_extensions);
 }
 
- vk::PhysicalDevice const& Device::physical() const {
+vk::PhysicalDevice const& Device::physical() const {
   return m_phys_device;
- }
-
-vk::CommandPool const& Device::pool(std::string const& name) const {
-  return m_pools.at(name);
-}
-
-std::vector<vk::CommandBuffer> Device::createCommandBuffers(std::string const& name_pool, vk::CommandBufferLevel const& level, uint32_t num) const {
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.setCommandPool(pool(name_pool));
-  allocInfo.setLevel(level);
-  allocInfo.setCommandBufferCount(num);
-  return get().allocateCommandBuffers(allocInfo);
-}
-
-vk::CommandBuffer Device::createCommandBuffer(std::string const& name_pool, vk::CommandBufferLevel const& level) const {
-  return createCommandBuffers(name_pool, level, 1)[0];
 }
 
 vk::Queue const& Device::getQueue(std::string const& name) const {

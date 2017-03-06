@@ -47,15 +47,10 @@ class Device : public WrapperDevice {
   vk::Queue const& getQueue(std::string const& name) const;
   uint32_t getQueueIndex(std::string const& name) const;
 
-  vk::CommandPool const& pool(std::string const&) const;
-  std::vector<vk::CommandBuffer> createCommandBuffers(std::string const& name_pool, vk::CommandBufferLevel const& level = vk::CommandBufferLevel::ePrimary, uint32_t num = 1) const;
-  vk::CommandBuffer createCommandBuffer(std::string const& name_pool, vk::CommandBufferLevel const& level = vk::CommandBufferLevel::ePrimary) const;
-
   std::vector<uint32_t> ownerIndices() const;
 
  private:
   void destroy() override;
-  void createCommandPools();
 
   vk::PhysicalDevice m_phys_device;
   std::map<std::string, uint32_t> m_queue_indices;

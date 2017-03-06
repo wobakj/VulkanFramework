@@ -13,9 +13,12 @@ Application::Application(std::string const& resource_path, Device& device, SwapC
  ,m_device(device)
  ,m_swap_chain(chain)
  ,m_pipeline_cache{m_device}
- ,m_transferrer{m_device}
+ // ,m_transferrer{m_device}
 {
   createMemoryPools();
+  createCommandPools();
+
+  m_transferrer = Transferrer{m_device, m_command_pools.at("transfer")};
 }
 
 FrameResource Application::createFrameResource() {
@@ -24,7 +27,7 @@ FrameResource Application::createFrameResource() {
   res.addSemaphore("draw");
   res.addFence("draw");
   res.addFence("acquire");
-  res.addCommandBuffer("draw", m_device.createCommandBuffer("graphics"));
+  res.addCommandBuffer("draw", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary));
   return res;
 }
 
@@ -150,4 +153,9 @@ void Application::createMemoryPools() {
                                                | vk::BufferUsageFlagBits::eUniformBuffer
                                                , vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocators.emplace("buffers", BlockAllocator{m_device, type_nuffer, 4 * 16 * 128});
+}
+
+void Application::createCommandPools() {
+  m_command_pools.emplace("graphics", CommandPool{m_device, m_device.getQueueIndex("graphics"), vk::CommandPoolCreateFlagBits::eResetCommandBuffer});
+  m_command_pools.emplace("transfer", CommandPool{m_device, m_device.getQueueIndex("transfer"), vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer});
 }

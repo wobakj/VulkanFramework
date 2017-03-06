@@ -64,8 +64,8 @@ ApplicationThreadedSimple::~ApplicationThreadedSimple() {
 
 FrameResource ApplicationThreadedSimple::createFrameResource() {
   auto res = ApplicationThreaded::createFrameResource();
-  res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  res.command_buffers.emplace("lighting", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("lighting", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
   res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
   return res;

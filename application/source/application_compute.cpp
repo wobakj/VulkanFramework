@@ -38,8 +38,8 @@ ApplicationCompute::~ApplicationCompute() {
 
 FrameResource ApplicationCompute::createFrameResource() {
   auto res = ApplicationSingle::createFrameResource();
-  res.command_buffers.emplace("gbuffer", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
-  res.command_buffers.emplace("compute", m_device.createCommandBuffer("graphics", vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("compute", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   return res;
 }
 

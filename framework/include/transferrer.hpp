@@ -11,11 +11,12 @@ class Memory;
 class Device;
 class BufferView;
 class Image;
+class CommandPool;
 
 class Transferrer {
  public:
   Transferrer();
-  Transferrer(Device const& device);
+  Transferrer(Device const& device, CommandPool& pool);
   Transferrer(Transferrer && dev);
   Transferrer(Transferrer const&) = delete;
 
@@ -52,6 +53,7 @@ class Transferrer {
   // void destroy() override;
 
   Device const* m_device;
+  CommandPool const* m_pool;
   vk::CommandBuffer m_command_buffer_help;
   std::unique_ptr<Buffer> m_buffer_stage;
   std::unique_ptr<Memory> m_memory_stage;
