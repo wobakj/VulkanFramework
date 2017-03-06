@@ -27,7 +27,7 @@ struct light_t {
 layout(set = 1, binding = 4) uniform usampler3D volumeLight;
 
 layout(set = 1, binding = 3) buffer LightBuffer {
-  uvec3 lightGridSize;
+  uvec4 lightGridSize;
   light_t[] Lights;
 };
 
