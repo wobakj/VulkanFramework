@@ -383,9 +383,6 @@ void ApplicationThreadedSimple::createDescriptorPools() {
 
 void ApplicationThreadedSimple::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size());
-  // m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};

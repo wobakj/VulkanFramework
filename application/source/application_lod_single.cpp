@@ -330,7 +330,7 @@ void ApplicationLodSingle::updatePipelines() {
 }
 
 void ApplicationLodSingle::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {
-  m_model_lod = GeometryLod{m_device, lod_path, cut_budget, upload_budget};
+  m_model_lod = GeometryLod{m_transferrer, lod_path, cut_budget, upload_budget};
 
   vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_light = Geometry{m_transferrer, tri};
@@ -398,8 +398,6 @@ void ApplicationLodSingle::createDescriptorPools() {
 
 void ApplicationLodSingle::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  // allocate memory pool for uniforms
-  m_device.allocateMemoryPool("uniforms", m_buffers.at("uniforms").memoryTypeBits(), vk::MemoryPropertyFlagBits::eDeviceLocal, m_buffers.at("uniforms").size() * 2);
   // m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 

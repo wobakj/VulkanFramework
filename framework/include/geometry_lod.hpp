@@ -18,6 +18,7 @@
 
 class Device;
 class Camera;
+class Transferrer;
 
 struct serialized_vertex {
   float v0_x_, v0_y_, v0_z_;   //vertex 0
@@ -28,7 +29,7 @@ struct serialized_vertex {
 class GeometryLod {
  public:  
   GeometryLod();
-  GeometryLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget);
+  GeometryLod(Transferrer& transferrer, std::string const& path, std::size_t cut_budget, std::size_t upload_budget);
   // GeometryLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads);
   GeometryLod(GeometryLod && dev);
   GeometryLod(GeometryLod const&) = delete;
@@ -86,6 +87,7 @@ class GeometryLod {
 
   vertex_data m_model;
   Device const* m_device;
+  Transferrer const* m_transferrer;
   std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer;

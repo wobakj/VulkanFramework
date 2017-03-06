@@ -17,7 +17,6 @@ Device::Device()
  ,m_queues{}
  ,m_pools{}
  ,m_extensions{}
- ,m_command_buffer_help{VK_NULL_HANDLE}
 {}
 
 Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& queues, std::vector<const char*> const& deviceExtensions)
@@ -93,14 +92,6 @@ void Device::createCommandPools() {
   poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
 
   m_pools.emplace("compute", get().createCommandPool(poolInfo));
-
-  // create buffer for onetime commands
-  vk::CommandBufferAllocateInfo allocInfo{};
-  allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = pool("transfer");
-  allocInfo.commandBufferCount = 1;
-
-  m_command_buffer_help = get().allocateCommandBuffers(allocInfo)[0];
 }
 
 std::vector<uint32_t> Device::ownerIndices() const {
@@ -130,7 +121,6 @@ void Device::destroy() {
   for(auto& pool : m_pools) {
     get().destroyCommandPool(pool.second);
   }
-  get().freeCommandBuffers(pool("transfer"), {m_command_buffer_help});
   get().destroy();
 }
 
@@ -146,9 +136,7 @@ void Device::destroy() {
   std::swap(m_queue_indices, dev.m_queue_indices);
   std::swap(m_pools, dev.m_pools);
   std::swap(m_extensions, dev.m_extensions);
-  std::swap(m_command_buffer_help, dev.m_command_buffer_help);
-  // std::swap(m_mutex_single_command, dev.m_mutex_single_command);
- }
+}
 
  vk::PhysicalDevice const& Device::physical() const {
   return m_phys_device;
@@ -218,89 +206,4 @@ uint32_t Device::suitableMemoryType(vk::BufferUsageFlags const& usage, vk::Memor
 
 uint32_t Device::suitableMemoryType(vk::Format const& format, vk::ImageTiling const& tiling, vk::MemoryPropertyFlags const& properties) const {
   return findMemoryType(suitableMemoryTypes(format, tiling), properties);
-}
-
-void Device::adjustStagingPool(vk::DeviceSize const& size) {
-  if (m_pools_memory.find("stage") == m_pools_memory.end() || memoryPool("stage").size() < size) {
-    // create new staging buffer
-    m_buffer_stage = std::unique_ptr<Buffer>{new Buffer{*this, size, vk::BufferUsageFlagBits::eTransferSrc}};
-    reallocateMemoryPool("stage", m_buffer_stage->memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffer_stage->size());
-    m_buffer_stage->bindTo(memoryPool("stage"), 0);
-  }
-}
-
-
-void Device::uploadBufferData(void const* data_ptr, BufferView& buffer_view) {
-  { //lock staging memory and buffer
-    std::lock_guard<std::mutex> lock{m_mutex_staging};
-    adjustStagingPool(buffer_view.size());
-    m_buffer_stage->setData(data_ptr, buffer_view.size(), 0);
-
-    copyBuffer(m_buffer_stage->get(), buffer_view.buffer(), buffer_view.size(), 0, buffer_view.offset());
-  }
-}
-
-void Device::uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& dst_offset) {
-  uploadBufferData(data_ptr, buffer.size(), buffer, dst_offset);
-}
-
-void Device::uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& dst_offset) {
-  { //lock staging memory and buffer
-    std::lock_guard<std::mutex> lock{m_mutex_staging};
-    adjustStagingPool(size);
-    m_buffer_stage->setData(data_ptr, size, 0);
-
-    copyBuffer(m_buffer_stage->get(), buffer.get(), size, 0, dst_offset);
-  }
-}
-
-void Device::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-
-  vk::BufferCopy copyRegion{};
-  copyRegion.size = size;
-  copyRegion.srcOffset = src_offset;
-  copyRegion.dstOffset = dst_offset;
-  commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
-
-  endSingleTimeCommands();
-}
-
-vk::CommandBuffer const& Device::beginSingleTimeCommands() const {
-  m_mutex_single_command.lock();
-  vk::CommandBufferBeginInfo beginInfo{};
-  beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-
-  m_command_buffer_help.begin(beginInfo);
-
-  return m_command_buffer_help;
-}
-
-
-void Device::endSingleTimeCommands() const {
-  m_command_buffer_help.end();
-
-  vk::SubmitInfo submitInfo{};
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &m_command_buffer_help;
-
-  getQueue("transfer").submit({submitInfo}, VK_NULL_HANDLE);
-  getQueue("transfer").waitIdle();
-  m_command_buffer_help.reset({});
-
-  m_mutex_single_command.unlock();
-}
-
-Memory& Device::memoryPool(std::string const& name) {
-  return m_pools_memory.at(name);
-}
-
-void Device::allocateMemoryPool(std::string const& name, uint32_t type_bits, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size) {
-  // std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
-  m_pools_memory.emplace(name, Memory{*this, findMemoryType(type_bits, mem_flags), size});
-}
-
-void Device::reallocateMemoryPool(std::string const& name, uint32_t type_bits, vk::MemoryPropertyFlags const& mem_flags, vk::DeviceSize const& size) {
-  // std::cout << "allocating pool " << name << " type " << type << ", size " << size << std::endl;
-  m_pools_memory[name] = Memory{*this, findMemoryType(type_bits, mem_flags), size};
 }

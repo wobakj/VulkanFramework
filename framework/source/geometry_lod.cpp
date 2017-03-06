@@ -3,6 +3,7 @@
 #include "wrap/device.hpp"
 #include "camera.hpp"
 #include "model_loader.hpp"
+#include "transferrer.hpp"
 
 #include <iostream>
 #include <queue>
@@ -23,7 +24,7 @@ static vk::VertexInputBindingDescription vertex_datao_bind(vertex_data const& m)
   return bindingDescription;  
 }
 
-static std::vector<vk::VertexInputAttributeDescription> vertex_datao_attr(vertex_data const& model_) {
+static std::vector<vk::VertexInputAttributeDescription> vertex_data_to_attr(vertex_data const& model_) {
   std::vector<vk::VertexInputAttributeDescription> attributeDescriptions{};
 
   int attrib_index = 0;
@@ -55,9 +56,10 @@ GeometryLod::GeometryLod(GeometryLod && dev)
   swap(dev);
 }
 
-GeometryLod::GeometryLod(Device& device, std::string const& path, std::size_t cut_budget, std::size_t upload_budget)
+GeometryLod::GeometryLod(Transferrer& transferrer, std::string const& path, std::size_t cut_budget, std::size_t upload_budget)
  :m_model{}
- ,m_device{&device}
+ ,m_device{&transferrer.device()}
+ ,m_transferrer{&transferrer}
  ,m_bind_info{}
  ,m_attrib_info{}
  ,m_num_nodes{0}
@@ -80,7 +82,7 @@ GeometryLod::GeometryLod(Device& device, std::string const& path, std::size_t cu
   // store model for easier descriptor generation
   m_model = vertex_data{m_nodes.front(), vertex_data::POSITION | vertex_data::NORMAL | vertex_data::TEXCOORD};
   m_bind_info.emplace_back(vertex_datao_bind(m_model));
-  m_attrib_info = vertex_datao_attr(m_model);
+  m_attrib_info = vertex_data_to_attr(m_model);
 
   std::cout << "Bvh has depth " << m_bvh.get_depth() << ", with " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
 // set node buffer sizes
@@ -177,7 +179,7 @@ void GeometryLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot
   // get next staging slot
   // m_db_views_stage.back()[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
   std::memcpy(m_ptr_mem_stage + m_db_views_stage.back()[0].offset(), m_nodes[idx_node].data(), m_size_node);
-  m_device->copyBuffer(m_db_views_stage.back()[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_db_views_stage.back()[0].offset(), m_buffer_views[idx_slot].offset());
+  m_transferrer->copyBuffer(m_db_views_stage.back()[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_db_views_stage.back()[0].offset(), m_buffer_views[idx_slot].offset());
   // update slot occupation
   m_slots[idx_slot] = idx_node;
 }
@@ -213,9 +215,9 @@ void GeometryLod::performUploads() {
 }
 
 void GeometryLod::performCopies() {
-  vk::CommandBuffer const& commandBuffer = m_device->beginSingleTimeCommands();
+  vk::CommandBuffer const& commandBuffer = m_transferrer->beginSingleTimeCommands();
   performCopiesCommand(commandBuffer);
-  m_device->endSingleTimeCommands();
+  m_transferrer->endSingleTimeCommands();
 
   m_node_uploads.clear();
 }
@@ -349,6 +351,7 @@ void GeometryLod::updateDrawCommands() {
  void GeometryLod::swap(GeometryLod& dev) {
   std::swap(m_model, dev.m_model);
   std::swap(m_device, dev.m_device);
+  std::swap(m_transferrer, dev.m_transferrer);
   std::swap(m_bind_info, dev.m_bind_info);
   std::swap(m_attrib_info, dev.m_attrib_info);
   std::swap(m_ptr_mem_stage, dev.m_ptr_mem_stage);
