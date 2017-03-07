@@ -40,6 +40,7 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_textureSampler{m_device, vkDestroySampler}
  ,m_model_dirty{false}
  ,m_sphere{true}
+ ,m_database_tex{m_transferrer}
 {
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
@@ -316,6 +317,8 @@ void ApplicationVulkan::createTextureImage() {
  
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
   m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
+
+  m_database_tex.store(m_resource_path + "textures/test.tga");
 }
 
 void ApplicationVulkan::createTextureSampler() {
@@ -329,7 +332,8 @@ void ApplicationVulkan::updateDescriptors() {
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
 
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_database_tex.get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 }
 
 void ApplicationVulkan::createDescriptorPools() {

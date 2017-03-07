@@ -7,6 +7,8 @@
 #include "geometry.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
+#include "ren/texture_database.hpp"
+#include "ren/material_database.hpp"
 
 #include <atomic>
 #include <thread>
@@ -51,6 +53,8 @@ class ApplicationVulkan : public ApplicationSingle {
   std::thread m_thread_load;
   std::atomic<bool> m_model_dirty;
   bool m_sphere;
+  TextureDatabase m_database_tex;
+  MaterialDatabase m_database_mat;
 };
 
 #endif
