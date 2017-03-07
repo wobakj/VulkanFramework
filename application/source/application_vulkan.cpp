@@ -116,8 +116,7 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
     model = &m_model_2;
   }
 
-  res.command_buffers.at("gbuffer")->bindVertexBuffers(0, {model->buffer()}, {0});
-  res.command_buffers.at("gbuffer")->bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("gbuffer").bindGeometry(*model);
 
   res.command_buffers.at("gbuffer")->drawIndexed(model->numIndices(), 1, 0, 0, 0);
 
@@ -125,19 +124,18 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting")->reset({});
-  res.command_buffers.at("lighting")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights"));
+  res.command_buffers.at("lighting").bindPipeline(m_pipelines.at("lights"));
   res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("lighting")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("lighting")->bindVertexBuffers(0, {m_model.buffer()}, {0});
-  res.command_buffers.at("lighting")->bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("lighting").bindGeometry(m_model);
 
   res.command_buffers.at("lighting")->drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
 
-  res.command_buffers.at("lighting")->end();
+  res.command_buffers.at("lighting").end();
 }
 
 void ApplicationVulkan::recordDrawBuffer(FrameResource& res) {
@@ -310,13 +308,13 @@ void ApplicationVulkan::createFramebufferAttachments() {
 }
 
 void ApplicationVulkan::createTextureImage() {
-  pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
+  // pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
-  m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  m_allocators.at("images").allocate(m_images.at("texture"));
+  // m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  // m_allocators.at("images").allocate(m_images.at("texture"));
  
-  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
+  // m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
+  // m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 
   m_database_tex.store(m_resource_path + "textures/test.tga");
 }

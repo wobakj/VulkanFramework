@@ -2,6 +2,7 @@
 #define MODEL_HPP
 
 #include "wrap/buffer.hpp"
+#include "wrap/buffer_view.hpp"
 #include "wrap/memory.hpp"
 #include "wrap/vertex_data.hpp"
 
@@ -23,6 +24,9 @@ class Geometry {
   void swap(Geometry& dev);
 
   vk::Buffer const& buffer() const;
+  BufferView const& vertices() const;
+  BufferView const& indices() const;
+
   vk::DeviceSize indexOffset() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::vector<vk::VertexInputBindingDescription> const& bindInfos() const;
@@ -35,6 +39,8 @@ class Geometry {
   std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer;
+  BufferView m_view_vertices;
+  BufferView m_view_indices;
   Memory m_memory;
 };
 

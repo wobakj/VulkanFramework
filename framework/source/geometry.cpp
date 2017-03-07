@@ -54,17 +54,22 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
   m_bind_info.emplace_back(model_to_bind(model));
   m_attrib_info = model_to_attr(model);
   // create one buffer to store all data
-  vk::DeviceSize combined_size = m_model.vertex_num * m_model.vertex_bytes + uint32_t(m_model.indices.size() * vertex_data::INDEX.size);
+  m_view_vertices = BufferView{m_model.vertex_num * m_model.vertex_bytes};
+  m_view_indices = BufferView{uint32_t(m_model.indices.size() * vertex_data::INDEX.size)};
+  
+  vk::DeviceSize combined_size = m_view_vertices.size() + m_view_indices.size(  );
   m_buffer = Buffer{transferrer.device(), combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
   m_memory = Memory{transferrer.device(), m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
   m_buffer.bindTo(m_memory);
 
+  m_view_vertices.bindTo(m_buffer);
   // upload vertex data
-  transferrer.uploadBufferData(m_model.data.data(), m_model.vertex_num * m_model.vertex_bytes, m_buffer);
+  transferrer.uploadBufferData(m_model.data.data(), m_view_vertices);
   // upload index data if existant
   if(!model.indices.empty()) {
-    transferrer.uploadBufferData(m_model.indices.data(), m_model.indices.size() * vertex_data::INDEX.size, m_buffer, m_model.vertex_num * m_model.vertex_bytes);
+    m_view_indices.bindTo(m_buffer);
+    transferrer.uploadBufferData(m_model.indices.data(), m_view_indices);
   }
 }
 
@@ -79,12 +84,25 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
   std::swap(m_attrib_info, dev.m_attrib_info);
   std::swap(m_memory, dev.m_memory);
   std::swap(m_buffer, dev.m_buffer);
+  std::swap(m_view_vertices, dev.m_view_vertices);
   m_buffer.setMemory(m_memory);
   dev.m_buffer.setMemory(dev.m_memory);
+  std::swap(m_view_vertices, dev.m_view_vertices);
+  std::swap(m_view_indices, dev.m_view_indices);
+  m_view_vertices.setBuffer(m_buffer);
+  m_view_indices.setBuffer(m_buffer);
  }
 
 vk::Buffer const& Geometry::buffer() const {
   return m_buffer;
+}
+
+BufferView const& Geometry::vertices() const {
+  return m_view_vertices;
+}
+
+BufferView const& Geometry::indices() const {
+  return m_view_indices;
 }
 
 std::vector<vk::VertexInputBindingDescription> const& Geometry::bindInfos() const {
@@ -113,5 +131,5 @@ std::uint32_t Geometry::numVertices() const {
 }
 
 vk::DeviceSize Geometry::indexOffset() const {
-  return m_model.vertex_num * m_model.vertex_bytes;
+  return m_view_indices.offset();
 }

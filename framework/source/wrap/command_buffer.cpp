@@ -68,8 +68,10 @@ void CommandBuffer::bindPipeline(Pipeline const& pipeline) {
 
 void CommandBuffer::bindGeometry(Geometry const& geometry) {
   assert(m_recording);
-  get().bindVertexBuffers(0, {geometry.buffer()}, {0});
-  get().bindIndexBuffer(geometry.buffer(), geometry.indexOffset(), vk::IndexType::eUint32);
+  get().bindVertexBuffers(0, {geometry.vertices().buffer()}, {geometry.vertices().offset()});
+  if (geometry.numIndices() > 0) {
+    get().bindIndexBuffer(geometry.indices().buffer(), geometry.indices().offset(), vk::IndexType::eUint32);
+  }
 }
 
 void CommandBuffer::begin(vk::CommandBufferBeginInfo const& info) {
