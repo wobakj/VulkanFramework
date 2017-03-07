@@ -10,6 +10,7 @@
 
 namespace spirv_cross {
   class Compiler;
+  class BufferRange;
 }
 // vk::ShaderStageFlagBits execution_to_stage(spv::ExecutionModel const& model);
 
@@ -24,6 +25,7 @@ struct layout_module_t {
   bool has_descriptor(std::string const& name);
 
   std::vector<std::map<std::string, vk::DescriptorSetLayoutBinding>> sets;
+  vk::PushConstantRange push_constant;
   vk::ShaderStageFlagBits stage;
 };
 
@@ -32,6 +34,7 @@ struct layout_shader_t {
   layout_shader_t(std::vector<layout_module_t> const& mod);
 
   std::vector<std::map<std::string, vk::DescriptorSetLayoutBinding>> sets;
+  std::vector<vk::PushConstantRange> push_constants;
   std::vector<layout_module_t> modules;
 };
 

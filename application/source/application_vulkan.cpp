@@ -105,6 +105,8 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindPipeline(m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  glm::fvec3 test{0.0f, 1.0f, 0.0f};
+  res.command_buffers.at("gbuffer")->pushConstants(m_pipelines.at("scene").layout(), vk::ShaderStageFlagBits::eFragment, 0, sizeof(test), &test);
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
   // choose between sphere and house

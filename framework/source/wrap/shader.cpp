@@ -97,7 +97,17 @@ layout_module_t::layout_module_t(spirv_cross::Compiler const& comp)
   for (auto const& resource : resources.separate_samplers) {
     add_func(resource, vk::DescriptorType::eSampler);
   }
+  // spec allows only one push constant block per stage
+  if (!resources.push_constant_buffers.empty()) {
+    auto const& constants = comp.get_active_buffer_ranges(resources.push_constant_buffers.front().id);
+    // spirv stores for each block member individual range
+    // ranges are ordered by offset => compute total offset and size
+    push_constant.offset = uint32_t(constants.front().offset);
+    push_constant.size = uint32_t(constants.back().offset + constants.back().range);
+    push_constant.stageFlags = stage;
+  }
   // TODO: implement support for dynamic buffer offsets and texel buffers
+
 }
 // check if descriptor is contained
 bool layout_module_t::has_descriptor(std::string const& name) {
@@ -164,6 +174,24 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
         sets[idx_set].emplace(pair_desc.first, descriptor);
       }
     }
+    // module contains push constant -> add to list
+    if(modules[i].push_constant.size > 0) {
+      // check if shader already contains identical push constant -> merge
+      bool identical = false;
+      for (auto& range : push_constants) {
+        if (range.offset == modules[i].push_constant.offset
+          && range.size == modules[i].push_constant.size) {
+          range.stageFlags |= modules[i].push_constant.stageFlags;
+          identical = true; 
+          std::cout << "identical" << std::endl;
+          break;
+        }
+      }
+      // no identical range -> add new one
+      if (!identical) {
+        push_constants.emplace_back(modules[i].push_constant);
+      }
+    }
   }
 }
 
@@ -227,10 +255,12 @@ std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, la
   return set_layouts;
 }
 
-vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<vk::DescriptorSetLayout> const& set_layouts) {
+vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<vk::DescriptorSetLayout> const& set_layouts, std::vector<vk::PushConstantRange> const& push_constants) {
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.setLayoutCount = std::uint32_t(set_layouts.size());
   pipelineLayoutInfo.pSetLayouts = set_layouts.data();
+  pipelineLayoutInfo.pushConstantRangeCount = std::uint32_t(push_constants.size());
+  pipelineLayoutInfo.pPushConstantRanges = push_constants.data();
 
   return device.createPipelineLayout(pipelineLayoutInfo);
 }
@@ -258,7 +288,7 @@ Shader::Shader(Device const& device, std::vector<std::string> const& paths)
 
   m_info = layout_shader_t{module_layouts};
   m_set_layouts = to_set_layouts(device, info());
-  m_object = to_pipe_layout(device, m_set_layouts);
+  m_object = to_pipe_layout(device, m_set_layouts, m_info.push_constants);
  }
 
 void Shader::destroy() {

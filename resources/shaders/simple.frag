@@ -19,6 +19,10 @@ layout(set = 1, binding = 1) buffer LevelBuffer {
   float[] levels;
 };
 
+layout(push_constant) uniform Push1 {
+  vec3 diffuse;
+} color_override;
+
 layout(location = 0) out vec4 out_Color;
 layout(location = 1) out vec4 out_Position;
 layout(location = 2) out vec4 out_Normal;
@@ -27,4 +31,5 @@ void main() {
   out_Color = vec4(texture(texSampler, frag_Texcoord).rgb, 0.5);
   out_Position = vec4(frag_Position, 1.0);
   out_Normal = vec4(frag_Normal, 0.0);
+  out_Color.rgb = color_override.diffuse;
 }
