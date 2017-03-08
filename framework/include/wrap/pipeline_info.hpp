@@ -19,12 +19,23 @@ class SpecInfo {
       setSpecConstant(constant.constantID, constant.size, rhs.buffer_spec_constants.data() + constant.offset);
     }
   }
-  // TODO: implement or prevent moving
-  // SpecInfo& operator=(SpecInfo info) {
-  //   std::swap(*this, info);
-  // }
 
-  // SpecInfo(SpecInfo&& rhs) = delete;
+  SpecInfo(SpecInfo&& rhs)
+   :SpecInfo{}
+  {
+    swap(rhs);
+  }
+
+  void swap(SpecInfo& rhs) {
+    std::swap(buffer_spec_constants, rhs.buffer_spec_constants);
+    std::swap(info_spec, rhs.info_spec);
+    std::swap(info_spec_entries, rhs.info_spec_entries);
+  }
+
+  SpecInfo& operator=(SpecInfo info) {
+    std::swap(*this, info);
+    return *this;
+  }
 
   vk::SpecializationInfo const& get() const {
     return info_spec;

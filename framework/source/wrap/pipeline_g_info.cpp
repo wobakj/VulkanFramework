@@ -50,9 +50,17 @@ GraphicsPipelineInfo::GraphicsPipelineInfo()
 GraphicsPipelineInfo::GraphicsPipelineInfo(GraphicsPipelineInfo const& rhs)
  :GraphicsPipelineInfo{}
 {
+  *this = rhs;
+}
+
+GraphicsPipelineInfo::GraphicsPipelineInfo(GraphicsPipelineInfo&& rhs)
+ :GraphicsPipelineInfo{}
+{
+  *this = rhs;
+}
+
+GraphicsPipelineInfo& GraphicsPipelineInfo::operator=(GraphicsPipelineInfo const& rhs) {
   info.layout = rhs.info.layout;
-  // copy spec infos before shader stages so pointer to them gets set correctly
-  m_spec_infos = rhs.m_spec_infos;
   setShaderStages(rhs.info_stages);
 
   setVertexBindings(rhs.info_bindings);
@@ -76,6 +84,11 @@ GraphicsPipelineInfo::GraphicsPipelineInfo(GraphicsPipelineInfo const& rhs)
   if (rhs.info.basePipelineHandle) {
     setRoot(rhs.info.basePipelineHandle);
   }
+  return *this;
+}
+
+GraphicsPipelineInfo& GraphicsPipelineInfo::operator=(GraphicsPipelineInfo&& rhs) {
+  return operator=(rhs);
 }
 
 void GraphicsPipelineInfo::setShader(Shader const& shader) {
@@ -97,14 +110,6 @@ void GraphicsPipelineInfo::setShaderStages(std::vector<vk::PipelineShaderStageCr
   info_stages = stages;
   info.stageCount = uint32_t(info_stages.size());
   info.pStages = info_stages.data();
-  for(auto& stage_info : info_stages) {
-    auto iter = m_spec_infos.find(stage_info.stage);
-    if (iter == m_spec_infos.end()) {
-      m_spec_infos.emplace(stage_info.stage, SpecInfo{});
-    }
-    stage_info.pSpecializationInfo = &m_spec_infos.at(stage_info.stage).get();
-  }
-  // TODO: support for changing of featured stages on load
 }
 
 void GraphicsPipelineInfo::setVertexBindings(std::vector<vk::VertexInputBindingDescription> const& bindings) {

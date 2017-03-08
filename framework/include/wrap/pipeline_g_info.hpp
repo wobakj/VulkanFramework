@@ -15,6 +15,9 @@ class GraphicsPipelineInfo : public PipelineInfo<vk::GraphicsPipelineCreateInfo>
  public:
   GraphicsPipelineInfo();
   GraphicsPipelineInfo(GraphicsPipelineInfo const&);
+  GraphicsPipelineInfo(GraphicsPipelineInfo&&);
+  GraphicsPipelineInfo& operator=(GraphicsPipelineInfo const& rhs);
+  GraphicsPipelineInfo& operator=(GraphicsPipelineInfo&& rhs);
 
   void setShader(Shader const& shader) override;
 
