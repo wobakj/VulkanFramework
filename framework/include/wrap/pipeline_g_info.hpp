@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 #include <vector>
+#include <map>
+#include <stdexcept>
 
 class Geometry;
 class GeometryLod;
@@ -36,6 +38,21 @@ class GraphicsPipelineInfo : public PipelineInfo<vk::GraphicsPipelineCreateInfo>
   vk::PipelineRasterizationStateCreateInfo const& rasterizer() const;
   vk::PipelineDepthStencilStateCreateInfo const& depthStencil() const;
 
+  template<typename U>
+  void setSpecConstant(vk::ShaderStageFlagBits const& stage, uint32_t id, U const& value) {
+    setSpecConstant(stage, id, sizeof(value), std::addressof(value));
+  }
+  
+  void setSpecConstant(vk::ShaderStageFlagBits const& stage, uint32_t id, size_t size, void const* ptr) {
+    auto iter = m_spec_infos.find(stage);
+    if (iter != m_spec_infos.end()) {
+      iter->second.setSpecConstant(id, size, ptr);
+    }
+    else {
+      throw std::runtime_error{"spec constant shader stage" + to_string(stage) + "not existant"};
+    }
+  }
+
  private:
   void setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes);
   void setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages);
@@ -60,6 +77,8 @@ class GraphicsPipelineInfo : public PipelineInfo<vk::GraphicsPipelineCreateInfo>
   std::vector<vk::VertexInputAttributeDescription> info_attributes;
   
   std::vector<vk::DynamicState> info_dynamics;
+
+  std::map<vk::ShaderStageFlagBits, SpecInfo> m_spec_infos;
 };
 
 #endif

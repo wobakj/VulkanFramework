@@ -15,6 +15,14 @@ class ComputePipelineInfo : public PipelineInfo<vk::ComputePipelineCreateInfo> {
   ComputePipelineInfo(ComputePipelineInfo const&);
 
   void setShader(Shader const& shader) override;
+
+	template<typename U>
+  void setSpecConstant(uint32_t id, U const& value) {
+    m_spec_info.setSpecConstant(id, sizeof(value), std::addressof(value));
+  }
+
+ private:
+ 	SpecInfo m_spec_info;
 };
 
 #endif

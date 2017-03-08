@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include <vector>
+#include <iostream>
 
 class Shader;
 
@@ -18,10 +19,19 @@ class SpecInfo {
       setSpecConstant(constant.constantID, constant.size, rhs.buffer_spec_constants.data() + constant.offset);
     }
   }
+  // TODO: implement or prevent moving
+  // SpecInfo& operator=(SpecInfo info) {
+  //   std::swap(*this, info);
+  // }
 
-  template<typename U>
-  void setSpecConstant(uint32_t id, U const& value) {
-    setSpecConstant(id, sizeof(value), std::addressof(value));
+  // SpecInfo(SpecInfo&& rhs) = delete;
+
+  vk::SpecializationInfo const& get() const {
+    return info_spec;
+  }
+
+  operator vk::SpecializationInfo const&() const {
+    return info_spec;
   }
 
   void setSpecConstant(uint32_t id, size_t size, void const* ptr) {
@@ -51,7 +61,7 @@ class SpecInfo {
     // update reference to buffer
     info_spec.mapEntryCount = uint32_t(info_spec_entries.size());
     info_spec.pMapEntries = info_spec_entries.data();
-    info_spec.dataSize = uint32_t(info_spec_entries.size());
+    info_spec.dataSize = uint32_t(buffer_spec_constants.size());
     info_spec.pData = buffer_spec_constants.data();
   }
 

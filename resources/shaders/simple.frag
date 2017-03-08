@@ -23,6 +23,10 @@ layout(push_constant) uniform Push1 {
   vec3 diffuse;
 } color_override;
 
+layout(constant_id = 0) const float COLOR_R = 0.0;
+layout(constant_id = 1) const float COLOR_G = 1.0;
+layout(constant_id = 2) const float COLOR_B = 1.0;
+
 layout(location = 0) out vec4 out_Color;
 layout(location = 1) out vec4 out_Position;
 layout(location = 2) out vec4 out_Normal;
@@ -31,5 +35,6 @@ void main() {
   out_Color = vec4(texture(texSampler, frag_Texcoord).rgb, 0.5);
   out_Position = vec4(frag_Position, 1.0);
   out_Normal = vec4(frag_Normal, 0.0);
-  out_Color.rgb = color_override.diffuse;
+  // out_Color.rgb = color_override.diffuse;
+  // out_Color.rgb = vec3(COLOR_R, COLOR_G, COLOR_B);
 }
