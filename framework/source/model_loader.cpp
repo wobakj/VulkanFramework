@@ -55,11 +55,13 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
   if (!success) {
     throw std::runtime_error("tinyobjloader: '" + file_path + "' - failed to load");
   }
-  else if (!err.empty() && err.substr(0, 4) != "WARN") {
-    throw std::runtime_error("tinyobjloader: '" + file_path + "' - " + err);
-  }
-  else {
-    std::cerr << "tinyobjloader: '" << file_path << "' - " << err << std::endl;
+  else if (!err.empty()) {
+     if (err.substr(0, 4) != "WARN") {
+      throw std::runtime_error("tinyobjloader: '" + file_path + "' - " + err);
+    }
+    else {
+      std::cerr << "tinyobjloader: '" << file_path << "' - " << err << std::endl;
+    }
   }
 
   std::vector<vertex_data> geometries{};

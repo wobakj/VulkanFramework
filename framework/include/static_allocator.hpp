@@ -1,10 +1,9 @@
-#ifndef BLOCK_ALLOCATOR_HPP
-#define BLOCK_ALLOCATOR_HPP
+#ifndef STATIC_ALLOCATOR_HPP
+#define STATIC_ALLOCATOR_HPP
 
 #include "wrap/device.hpp"
 #include "wrap/memory.hpp"
 #include "wrap/memory_resource.hpp"
-#include "static_allocator.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -14,94 +13,93 @@
 #include <cmath>
 #include <iostream>
 
-struct range_t {
-  range_t(uint32_t b, vk::DeviceSize o, vk::DeviceSize s)
-   :block{b}
-   ,offset{o}
-   ,size{s}
-  {}
 
-  uint32_t block;
-  vk::DeviceSize offset;
-  vk::DeviceSize size;
-}; 
-// // to store any vulkan handle in a map
-// struct res_handle_t {
-//   res_handle_t(VkBuffer const& buf) {
-//     handle.buf = buf;
-//     i = false;
-//   }
-//   res_handle_t(VkImage const& img) {
-//     handle.img = img;
-//     i = true;
-//   }
+// to store any vulkan handle in a map
+struct res_handle_t {
+  res_handle_t(VkBuffer const& buf) {
+    handle.buf = buf;
+    i = false;
+  }
+  res_handle_t(VkImage const& img) {
+    handle.img = img;
+    i = true;
+  }
 
-//   bool i;
-//   union handle {
-//     VkBuffer buf;
-//     VkImage img;
-//   } handle;
-// };
+  bool i;
+  union handle {
+    VkBuffer buf;
+    VkImage img;
+  } handle;
+};
 
-// static inline bool operator==(res_handle_t const& a, res_handle_t const& b) {
-//   if (a.i) {
-//     if (b.i) {
-//       return a.handle.img == b.handle.img;
-//     }
-//   }
-//   else {
-//     if (!b.i) {
-//       return a.handle.buf == b.handle.buf;
-//     }
-//   }
-//   return false;
-// }
-// static inline bool operator!=(res_handle_t const& a, res_handle_t const& b) {
-//   return !(a == b);
-// }
+static inline bool operator==(res_handle_t const& a, res_handle_t const& b) {
+  if (a.i) {
+    if (b.i) {
+      return a.handle.img == b.handle.img;
+    }
+  }
+  else {
+    if (!b.i) {
+      return a.handle.buf == b.handle.buf;
+    }
+  }
+  return false;
+}
+static inline bool operator!=(res_handle_t const& a, res_handle_t const& b) {
+  return !(a == b);
+}
 
-// static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
-//   if (a.i) {
-//     if (b.i) {
-//       return a.handle.img < b.handle.img;
-//     }
-//     else {
-//       return false;
-//     }
-//   }
-//   else {
-//     if (b.i) {
-//       return true;
-//     }
-//     else {
-//       return a.handle.buf < b.handle.buf;
-//     }
-//   }
-// }
+static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
+  if (a.i) {
+    if (b.i) {
+      return a.handle.img < b.handle.img;
+    }
+    else {
+      return false;
+    }
+  }
+  else {
+    if (b.i) {
+      return true;
+    }
+    else {
+      return a.handle.buf < b.handle.buf;
+    }
+  }
+}
 
-using iterator_t = std::list<range_t>::iterator;
+class StaticAllocator {
+  struct range_t {
+    range_t(vk::DeviceSize o, vk::DeviceSize s)
+     :offset{o}
+     ,size{s}
+    {}
 
-class BlockAllocator {
+    vk::DeviceSize offset;
+    vk::DeviceSize size;
+  }; 
+
+  using iterator_t = std::list<range_t>::iterator;
  public: 
-  BlockAllocator();
-	BlockAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes);
-  BlockAllocator(BlockAllocator && rhs);
-  BlockAllocator(BlockAllocator const&) = delete;
+  StaticAllocator();
+	StaticAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes);
+  StaticAllocator(StaticAllocator && rhs);
+  StaticAllocator(StaticAllocator const&) = delete;
 
-  BlockAllocator& operator=(BlockAllocator&& rhs);
-  BlockAllocator& operator=(BlockAllocator const&) = delete;
+  StaticAllocator& operator=(StaticAllocator&& rhs);
+  StaticAllocator& operator=(StaticAllocator const&) = delete;
 
-  void swap(BlockAllocator& rhs);
+  void swap(StaticAllocator& rhs);
 
   template<typename T, typename U>
   void allocate(MemoryResource<T, U>& resource);
 
   template<typename T, typename U>
   void free(MemoryResource<T, U>& resource);
-
+  Memory const& mem() const {
+    return m_block;
+  }
  private:
-
-  void addBlock();
 
   iterator_t findMatchingRange(vk::MemoryRequirements const& requirements);
 
@@ -112,14 +110,14 @@ class BlockAllocator {
   uint32_t m_type_index;
   uint32_t m_block_bytes;
 
-  std::list<Memory> m_blocks;
+  Memory m_block;
   // list of per-block free ranges with offset and size
   std::list<range_t> m_free_ranges;
   std::map<res_handle_t, range_t> m_used_ranges;
 };
   
 
-inline BlockAllocator::BlockAllocator()
+inline StaticAllocator::StaticAllocator()
  :m_device{nullptr}
  ,m_type_index{0}
  ,m_block_bytes{0}
@@ -127,45 +125,43 @@ inline BlockAllocator::BlockAllocator()
  ,m_used_ranges{}
 {}
 
-inline BlockAllocator::BlockAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes)
+inline StaticAllocator::StaticAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes)
  :m_device{&device}
  ,m_type_index{type_index}
  ,m_block_bytes{block_bytes}
- ,m_free_ranges{}
+ ,m_block{*m_device, m_type_index, m_block_bytes}
+ ,m_free_ranges(1, range_t{0u, m_block_bytes})
  ,m_used_ranges{}
 {}
 
-inline BlockAllocator::BlockAllocator(BlockAllocator && rhs)
- :BlockAllocator{}
+inline StaticAllocator::StaticAllocator(StaticAllocator && rhs)
+ :StaticAllocator{}
 {
   swap(rhs);
 }
 
-
-inline BlockAllocator& BlockAllocator::operator=(BlockAllocator&& rhs) {
+inline StaticAllocator& StaticAllocator::operator=(StaticAllocator&& rhs) {
   swap(rhs);
   return *this;
 }
 
-void inline BlockAllocator::swap(BlockAllocator& rhs) {
+void inline StaticAllocator::swap(StaticAllocator& rhs) {
   std::swap(m_device, rhs.m_device);
   std::swap(m_type_index, rhs.m_type_index);
   std::swap(m_block_bytes, rhs.m_block_bytes);
-  std::swap(m_blocks, rhs.m_blocks);
+  std::swap(m_block, rhs.m_block);
   std::swap(m_free_ranges, rhs.m_free_ranges);
   std::swap(m_used_ranges, rhs.m_used_ranges);
 }
 
 template<typename T, typename U>
-inline void BlockAllocator::addResource(MemoryResource<T, U>& resource, range_t const& range) {
-  auto iter_block = m_blocks.begin(); 
-  std::advance(iter_block, range.block);
-  resource.bindTo(*iter_block, range.offset);
+inline void StaticAllocator::addResource(MemoryResource<T, U>& resource, range_t const& range) {
+  resource.bindTo(m_block, range.offset);
   resource.bindTo(*this);
   m_used_ranges.emplace(res_handle_t{resource.get()}, range);
 }
 
-inline iterator_t BlockAllocator::findMatchingRange(vk::MemoryRequirements const& requirements) {
+inline StaticAllocator::iterator_t StaticAllocator::findMatchingRange(vk::MemoryRequirements const& requirements) {
   for(auto iter_range = m_free_ranges.begin(); iter_range != m_free_ranges.end(); ++iter_range) {
     // round offset to alignment
     auto offset_align = requirements.alignment * vk::DeviceSize(std::ceil(float(iter_range->offset) / float(requirements.alignment)));
@@ -176,13 +172,8 @@ inline iterator_t BlockAllocator::findMatchingRange(vk::MemoryRequirements const
   return m_free_ranges.end();
 }
 
-inline void BlockAllocator::addBlock() {
-  m_free_ranges.emplace_back(range_t{uint32_t(m_blocks.size()), 0u, m_block_bytes});
-  m_blocks.emplace_back(Memory(*m_device, m_type_index, m_block_bytes));
-}
-
 template<typename T, typename U>
-void BlockAllocator::allocate(MemoryResource<T, U>& resource) {
+void StaticAllocator::allocate(MemoryResource<T, U>& resource) {
   auto const& requirements = resource.requirements();
   // check if block supports requirements
   if (!index_matches_filter(m_type_index, requirements.memoryTypeBits)) {
@@ -197,7 +188,7 @@ void BlockAllocator::allocate(MemoryResource<T, U>& resource) {
   // found matching range
   if (iter_range != m_free_ranges.end()) {
     auto offset_align = requirements.alignment * vk::DeviceSize(std::ceil(float(iter_range->offset) / float(requirements.alignment)));
-    addResource(resource, range_t{iter_range->block, offset_align, requirements.size});
+    addResource(resource, range_t{offset_align, requirements.size});
     // object ends at end of range
     if (requirements.size + offset_align == iter_range->size + iter_range->offset) {
       // offset matches exactly, no more free space
@@ -223,17 +214,12 @@ void BlockAllocator::allocate(MemoryResource<T, U>& resource) {
     // std::cout << resource.get() << " allocating range " << iter_range->block << ": " << offset_align << " - " << offset_align + requirements.size << std::endl;
   }
   else {
-    addBlock();
-    addResource(resource, range_t{uint32_t(m_blocks.size()) - 1, 0, requirements.size});
-    // update newly added free range
-    m_free_ranges.back().offset = requirements.size;
-    m_free_ranges.back().size -= requirements.size;
-    // std::cout << resource.get() << " allocating new range " << m_blocks.size() - 1 << ": " << 0 << " - " << requirements.size << std::endl;
+    throw std::length_error{"out of memory"};
   }
 }
 
 template<typename T, typename U>
-void BlockAllocator::free(MemoryResource<T, U>& resource) {
+void StaticAllocator::free(MemoryResource<T, U>& resource) {
   auto handle = res_handle_t{resource.get()};
   auto iter_object = m_used_ranges.find(handle);
   if (iter_object == m_used_ranges.end()) {

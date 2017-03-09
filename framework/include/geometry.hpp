@@ -5,6 +5,7 @@
 #include "wrap/buffer_view.hpp"
 #include "wrap/memory.hpp"
 #include "wrap/vertex_data.hpp"
+#include "static_allocator.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -42,6 +43,7 @@ class Geometry {
   BufferView m_view_vertices;
   BufferView m_view_indices;
   Memory m_memory;
+  StaticAllocator m_allocator;
 };
 
 #endif
