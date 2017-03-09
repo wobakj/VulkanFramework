@@ -11,7 +11,7 @@
 
 #include <iostream>
 
-#define THREADING
+// #define THREADING
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -105,8 +105,8 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindPipeline(m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
-  glm::fvec3 test{0.0f, 1.0f, 0.0f};
-  res.command_buffers.at("gbuffer")->pushConstants(m_pipelines.at("scene").layout(), vk::ShaderStageFlagBits::eFragment, 0, sizeof(test), &test);
+  // glm::fvec3 test{0.0f, 1.0f, 0.0f};
+  // res.command_buffers.at("gbuffer")->pushConstants(m_pipelines.at("scene").layout(), vk::ShaderStageFlagBits::eFragment, 0, sizeof(test), &test);
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
   // choose between sphere and house
@@ -227,7 +227,7 @@ void ApplicationVulkan::createPipelines() {
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment2.blendEnable = VK_TRUE;
+  // colorBlendAttachment2.blendEnable = VK_TRUE;
   colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
   colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
   colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
@@ -268,7 +268,8 @@ void ApplicationVulkan::createVertexBuffer() {
   m_model = Geometry{m_transferrer, tri};
 }
 void ApplicationVulkan::loadModel() {
-  vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = model_loader::obj("/opt/project_animation/vulkan/assets/sponza/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  // vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_2 = Geometry{m_transferrer, tri};
   m_model_dirty = true;
 }
@@ -279,7 +280,7 @@ void ApplicationVulkan::createLights() {
     light_t light;
     light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
-    light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
+    light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f * 100.0f;
     buff_l.lights[i] = light;
   }
   m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
@@ -366,7 +367,7 @@ void ApplicationVulkan::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationVulkan::updateView() {
   UniformBufferObject ubo{};
-  ubo.model = glm::mat4();
+  ubo.model = glm::scale(glm::fmat4{}, glm::fvec3{0.001f});
   ubo.view = m_camera.viewMatrix();
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();

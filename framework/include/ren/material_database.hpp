@@ -2,6 +2,7 @@
 #define MATERIAL_DATABASE_HPP
 
 #include "ren/database.hpp"
+#include "ren/material.hpp"
 
 #include "wrap/memory.hpp"
 #include "block_allocator.hpp"
@@ -16,14 +17,6 @@
 
 class Device;
 class Image;
-class Transferrer;
-
-struct material_t {
-  material_t(tinyobj::material_t const& mat);
-
-  glm::fvec3 vec_diffuse;
-  std::string tex_diffuse;
-};
 
 class MaterialDatabase : public Database<material_t> {
  public:
@@ -34,6 +27,8 @@ class MaterialDatabase : public Database<material_t> {
   
   MaterialDatabase& operator=(MaterialDatabase const&) = delete;
   MaterialDatabase& operator=(MaterialDatabase&& dev);
+
+  std::map<std::string, size_t> m_indices;
 };
 
 #endif

@@ -100,11 +100,14 @@ layout_module_t::layout_module_t(spirv_cross::Compiler const& comp)
   // spec allows only one push constant block per stage
   if (!resources.push_constant_buffers.empty()) {
     auto const& constants = comp.get_active_buffer_ranges(resources.push_constant_buffers.front().id);
-    // spirv stores for each block member individual range
-    // ranges are ordered by offset => compute total offset and size
-    push_constant.offset = uint32_t(constants.front().offset);
-    push_constant.size = uint32_t(constants.back().offset + constants.back().range);
-    push_constant.stageFlags = stage;
+    // push constant block variables may be unused -> empty active range
+    if (!constants.empty()) {
+      // spirv stores for each block member individual range
+      // ranges are ordered by offset => compute total offset and size
+      push_constant.offset = uint32_t(constants.front().offset);
+      push_constant.size = uint32_t(constants.back().offset + constants.back().range);
+      push_constant.stageFlags = stage;
+    }
   }
   // TODO: implement support for dynamic buffer offsets and texel buffers
 

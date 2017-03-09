@@ -39,23 +39,51 @@ namespace model_loader {
 
 // void generate_normals(tinyobj::mesh_t& model);
 void generate_normals(tinyobj::attrib_t& attribs, tinyobj::mesh_t& mesh);
+vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shapes, vertex_data::attrib_flag_t import_attribs, int idx_mat_store);
 
 // std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& vertex_data);
 
-vertex_data obj(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
+std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
 // import
   tinyobj::attrib_t attribs;
   std::vector<tinyobj::shape_t> shapes;
   std::string err;
-  std::vector<tinyobj::material_t> m_materials;
+  std::vector<tinyobj::material_t> obj_materials;
   // load obj and triangulate by default
-  bool success = tinyobj::LoadObj(&attribs, &shapes, &m_materials, &err, file_path.c_str());
+  auto obj_dir = file_path.substr(0, file_path.find_last_of("/\\") + 1);
+  bool success = tinyobj::LoadObj(&attribs, &shapes, &obj_materials, &err, file_path.c_str(), obj_dir.c_str());
   if (!success) {
     throw std::runtime_error("tinyobjloader: '" + file_path + "' - failed to load");
   }
-  else if (!err.empty()) {
+  else if (!err.empty() && err.substr(0, 4) != "WARN") {
     throw std::runtime_error("tinyobjloader: '" + file_path + "' - " + err);
   }
+  else {
+    std::cerr << "tinyobjloader: '" << file_path << "' - " << err << std::endl;
+  }
+
+  std::vector<vertex_data> geometries{};
+  std::vector<material_t> materials{};
+  for (auto const& obj_mat : obj_materials) {
+    materials.emplace_back(glm::fvec3{obj_mat.diffuse[0], obj_mat.diffuse[1], obj_mat.diffuse[2]}, obj_mat.diffuse_texname);
+  }
+
+  if (obj_materials.empty()) {
+    geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -1)));
+  }
+  else {
+    for (size_t i = 0; i < obj_materials.size(); ++i) {
+      geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, int(i))));
+    }
+  }
+  return make_pair(std::move(geometries), std::move(materials));
+}
+
+vertex_data obj(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
+  return objs(file_path, import_attribs).first[0];
+}
+
+vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shapes, vertex_data::attrib_flag_t import_attribs, int idx_mat_store) {
 // parameter handling
   vertex_data::attrib_flag_t attributes{vertex_data::POSITION | import_attribs};
 
@@ -104,14 +132,14 @@ vertex_data obj(std::string const& file_path, vertex_data::attrib_flag_t import_
       std::cout << "generating normals for shape " << shape.name << std::endl;
       generate_normals(attribs, shape.mesh);
     }
-    // use first material used in this mesh instead of materials per face
-    // shape.materialId = shape.mesh.material_ids[0];
     // iterate over faces
     size_t offset_face = 0;
-    for (auto const& num_face_verts : shape.mesh.num_face_vertices) {
+    for (uint32_t idx_face = 0; idx_face < shape.mesh.num_face_vertices.size(); ++idx_face) {
       // get face and material
-      // uint8_t num_face_verts = shape.mesh.num_face_vertices[idx_face];
-      // int material = shape.mesh.material_ids[idx_face];
+      uint8_t num_face_verts = shape.mesh.num_face_vertices[idx_face];
+      int idx_mat = shape.mesh.material_ids[idx_face];
+      // either store faces for all material or only for one
+      if (idx_mat_store >= 0 && idx_mat != idx_mat_store) continue;
       // iterate over the face vertices
       for (uint8_t idx_vert = 0; idx_vert < num_face_verts; ++idx_vert) {
         tinyobj::index_t const& vert_properties = shape.mesh.indices[offset_face + idx_vert];

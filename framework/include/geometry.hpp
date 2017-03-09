@@ -1,5 +1,5 @@
-#ifndef MODEL_HPP
-#define MODEL_HPP
+#ifndef GEOMETRY_HPP
+#define GEOMETRY_HPP
 
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"

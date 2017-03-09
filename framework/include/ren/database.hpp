@@ -26,7 +26,7 @@ class Database {
   virtual void swap(Database& dev);
 
   T const& get(std::string const& tex_path);
-  virtual void store(std::string const& path);
+  // virtual void store(std::string const& path);
   virtual void store(std::string const& name, T&& resource);
   bool contains(std::string const& tex_path);
 
@@ -89,8 +89,8 @@ void Database<T>::store(std::string const& name, T&& resource) {
   m_resources.emplace(name, std::move(resource));  
 }
 
-template<typename T>
-void Database<T>::store(std::string const& path) {
-  throw std::exception{};
-}
+// template<typename T>
+// void Database<T>::store(std::string const& path) {
+//   throw std::exception{};
+// }
 #endif

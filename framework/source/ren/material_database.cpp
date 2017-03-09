@@ -6,10 +6,10 @@
 #include "transferrer.hpp"
 
 
-material_t::material_t(tinyobj::material_t const& mat)
- :vec_diffuse{mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]}
- ,tex_diffuse{mat.diffuse_texname}
-{}
+// material_t::material_t(tinyobj::material_t const& mat)
+//  :vec_diffuse{mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]}
+//  ,tex_diffuse{mat.diffuse_texname}
+// {}
 
 MaterialDatabase::MaterialDatabase()
  :Database{}

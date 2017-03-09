@@ -24,7 +24,7 @@ class TextureDatabase : public Database<Image> {
   TextureDatabase& operator=(TextureDatabase&& dev);
 
   // void swap(TextureDatabase& dev);
-  void store(std::string const& tex_path) override;
+  void store(std::string const& tex_path);
 };
 
 #endif
