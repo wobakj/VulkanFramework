@@ -68,7 +68,41 @@ static inline bool operator<(res_handle_t const& a, res_handle_t const& b) {
   }
 }
 
-class StaticAllocator {
+class Allocator {
+ public: 
+  Allocator();
+  Allocator(Device const& device, uint32_t type_index);
+
+  void swap(Allocator& rhs);
+
+  template<typename T, typename U>
+  void allocate(MemoryResource<T, U>& resource);
+
+  template<typename T, typename U>
+  void free(MemoryResource<T, U>& resource);
+
+ protected:
+  Device const* m_device;
+  uint32_t m_type_index;
+};
+
+inline Allocator::Allocator()
+ :m_device{nullptr}
+ ,m_type_index{0}
+{}
+
+inline Allocator::Allocator(Device const& device, uint32_t type_index)
+ :m_device{&device}
+ ,m_type_index{type_index}
+{}
+
+void inline Allocator::swap(Allocator& rhs) {
+  std::swap(m_device, rhs.m_device);
+  std::swap(m_type_index, rhs.m_type_index);
+}
+
+
+class StaticAllocator : public Allocator {
   struct range_t {
     range_t(vk::DeviceSize o, vk::DeviceSize s)
      :offset{o}
@@ -82,7 +116,7 @@ class StaticAllocator {
   using iterator_t = std::list<range_t>::iterator;
  public: 
   StaticAllocator();
-	StaticAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes);
+	StaticAllocator(Device const& device, uint32_t type_index, size_t block_bytes);
   StaticAllocator(StaticAllocator && rhs);
   StaticAllocator(StaticAllocator const&) = delete;
 
@@ -108,7 +142,7 @@ class StaticAllocator {
 
   Device const* m_device;
   uint32_t m_type_index;
-  uint32_t m_block_bytes;
+  size_t m_block_bytes;
 
   Memory m_block;
   // list of per-block free ranges with offset and size
@@ -118,16 +152,14 @@ class StaticAllocator {
   
 
 inline StaticAllocator::StaticAllocator()
- :m_device{nullptr}
- ,m_type_index{0}
+ :Allocator{}
  ,m_block_bytes{0}
  ,m_free_ranges{}
  ,m_used_ranges{}
 {}
 
-inline StaticAllocator::StaticAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes)
- :m_device{&device}
- ,m_type_index{type_index}
+inline StaticAllocator::StaticAllocator(Device const& device, uint32_t type_index, size_t block_bytes)
+ :Allocator{device, type_index}
  ,m_block_bytes{block_bytes}
  ,m_block{*m_device, m_type_index, m_block_bytes}
  ,m_free_ranges(1, range_t{0u, m_block_bytes})
@@ -146,8 +178,7 @@ inline StaticAllocator& StaticAllocator::operator=(StaticAllocator&& rhs) {
 }
 
 void inline StaticAllocator::swap(StaticAllocator& rhs) {
-  std::swap(m_device, rhs.m_device);
-  std::swap(m_type_index, rhs.m_type_index);
+  Allocator::swap(rhs);
   std::swap(m_block_bytes, rhs.m_block_bytes);
   std::swap(m_block, rhs.m_block);
   std::swap(m_free_ranges, rhs.m_free_ranges);

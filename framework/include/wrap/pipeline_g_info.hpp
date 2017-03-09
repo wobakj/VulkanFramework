@@ -52,7 +52,7 @@ class GraphicsPipelineInfo : public PipelineInfo<vk::GraphicsPipelineCreateInfo>
       iter->second.setSpecConstant(id, size, ptr);
     }
     else {
-      throw std::runtime_error{"spec constant shader stage" + to_string(stage) + "not existant"};
+      throw std::runtime_error{"spec constant shader stage '" + to_string(stage) + "' not existant"};
     }
   }
 

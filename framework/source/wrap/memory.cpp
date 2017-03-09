@@ -75,16 +75,6 @@ void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSiz
   unmap();
 }
 
-void Memory::bindResourceMemory(vk::Buffer const& buffer, vk::DeviceSize offset) {
-  assert(get());
-  (*m_device)->bindBufferMemory(buffer, get(), offset);
-}
-
-void Memory::bindResourceMemory(vk::Image const& image, vk::DeviceSize offset) {
-  assert(get());
-  (*m_device)->bindImageMemory(image, get(), offset);
-}
-
 void Memory::destroy() {
   (*m_device)->freeMemory(get());
 }
@@ -109,4 +99,21 @@ vk::DeviceSize Memory::space() const {
 
 uint32_t Memory::memoryType() const {
   return m_info.memoryTypeIndex;
+}
+
+vk::DeviceSize Memory::bindOffset(vk::MemoryRequirements const& requirements) {
+  return bindOffset(requirements, m_offset);
+}
+
+vk::DeviceSize Memory::bindOffset(vk::MemoryRequirements const& requirements, vk::DeviceSize offset) {
+  if (offset + requirements.size > size()) {
+    throw std::out_of_range{"Resource size " + std::to_string(requirements.size) + " with offset " + std::to_string(offset) + " too large for free memory " + std::to_string(space()) + " from " + std::to_string(size())};
+  }
+  // fulfill allignment requirements of object
+  auto alignment = requirements.alignment;
+  offset = alignment * vk::DeviceSize(std::ceil(float(offset) / float(alignment)));
+  // bindOffsetMemory(requirements.get, offset);
+  // store new offset
+  m_offset = std::max(m_offset, offset + requirements.size);
+  return offset;
 }

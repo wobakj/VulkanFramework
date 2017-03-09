@@ -39,6 +39,9 @@ class Buffer : public ResourceBuffer {
   void* map();
   void unmap();
 
+  void bindTo(Memory& memory);
+  void bindTo(Memory& memory, vk::DeviceSize const& offset);
+
  private:
   void destroy() override;
 

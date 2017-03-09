@@ -119,3 +119,13 @@ void* Buffer::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
 void Buffer::unmap() {
   m_memory->unmap();
 }
+
+void Buffer::bindTo(Memory& memory) {
+  ResourceBuffer::bindTo(memory);
+  (*m_device)->bindBufferMemory(get(), memory, m_offset);
+}
+
+void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+  ResourceBuffer::bindTo(memory, offset);
+  (*m_device)->bindBufferMemory(get(), memory, m_offset);
+}

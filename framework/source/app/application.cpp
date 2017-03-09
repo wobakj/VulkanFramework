@@ -147,12 +147,12 @@ void Application::createMemoryPools() {
   auto type_img = m_device.suitableMemoryType(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocators.emplace("images", BlockAllocator{m_device, type_img, 4 * 4 * 3840 * 2160});
   // separate allocator for buffers to not deal with buffer-image-granularity
-  auto type_nuffer = m_device.suitableMemoryType(vk::BufferUsageFlagBits::eStorageBuffer
+  auto type_buffer = m_device.suitableMemoryType(vk::BufferUsageFlagBits::eStorageBuffer
                                                | vk::BufferUsageFlagBits::eTransferDst 
                                                | vk::BufferUsageFlagBits::eTransferSrc 
                                                | vk::BufferUsageFlagBits::eUniformBuffer
                                                , vk::MemoryPropertyFlagBits::eDeviceLocal);
-  m_allocators.emplace("buffers", BlockAllocator{m_device, type_nuffer, 4 * 16 * 128});
+  m_allocators.emplace("buffers", BlockAllocator{m_device, type_buffer, 4 * 16 * 128});
 }
 
 void Application::createCommandPools() {

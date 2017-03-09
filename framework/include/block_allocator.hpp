@@ -81,7 +81,7 @@ struct range_t {
 
 using iterator_t = std::list<range_t>::iterator;
 
-class BlockAllocator {
+class BlockAllocator : public Allocator {
  public: 
   BlockAllocator();
 	BlockAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes);
@@ -100,7 +100,6 @@ class BlockAllocator {
   void free(MemoryResource<T, U>& resource);
 
  private:
-
   void addBlock();
 
   iterator_t findMatchingRange(vk::MemoryRequirements const& requirements);
@@ -108,8 +107,6 @@ class BlockAllocator {
   template<typename T, typename U>
   void addResource(MemoryResource<T, U>& resource, range_t const& range);
 
-  Device const* m_device;
-  uint32_t m_type_index;
   uint32_t m_block_bytes;
 
   std::list<Memory> m_blocks;
@@ -120,16 +117,14 @@ class BlockAllocator {
   
 
 inline BlockAllocator::BlockAllocator()
- :m_device{nullptr}
- ,m_type_index{0}
+ :Allocator{}
  ,m_block_bytes{0}
  ,m_free_ranges{}
  ,m_used_ranges{}
 {}
 
 inline BlockAllocator::BlockAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes)
- :m_device{&device}
- ,m_type_index{type_index}
+ :Allocator{device, type_index}
  ,m_block_bytes{block_bytes}
  ,m_free_ranges{}
  ,m_used_ranges{}
@@ -148,8 +143,7 @@ inline BlockAllocator& BlockAllocator::operator=(BlockAllocator&& rhs) {
 }
 
 void inline BlockAllocator::swap(BlockAllocator& rhs) {
-  std::swap(m_device, rhs.m_device);
-  std::swap(m_type_index, rhs.m_type_index);
+  Allocator::swap(rhs);
   std::swap(m_block_bytes, rhs.m_block_bytes);
   std::swap(m_blocks, rhs.m_blocks);
   std::swap(m_free_ranges, rhs.m_free_ranges);

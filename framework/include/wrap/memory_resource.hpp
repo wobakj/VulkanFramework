@@ -25,8 +25,6 @@ class MemoryResource : public Wrapper<T, U> {
   void cleanup() override;
   
   virtual void bindTo(BlockAllocator& memory);
-  virtual void bindTo(Memory& memory);
-  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
 
@@ -52,7 +50,10 @@ class MemoryResource : public Wrapper<T, U> {
     return requirements().memoryTypeBits;
   }
 
+  virtual void bindTo(Memory& memory);
+  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
  protected:
+
   Device const* m_device;
   Memory* m_memory;
   BlockAllocator* m_alloc;
@@ -77,13 +78,13 @@ void MemoryResource<T, U>::bindTo(BlockAllocator& alloc) {
 
 template<typename T, typename U>
 void MemoryResource<T, U>::bindTo(Memory& memory) {
-  m_offset = memory.bindResource(*this);
+  m_offset = memory.bindOffset(requirements());
   m_memory = &memory;
 }
 
 template<typename T, typename U>
 void MemoryResource<T, U>::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = memory.bindResource(*this, offset);
+  m_offset = memory.bindOffset(requirements(), offset);
   m_memory = &memory;
 }
 
