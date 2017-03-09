@@ -11,7 +11,7 @@
 #include "wrap/swap_chain.hpp"
 #include "wrap/descriptor_pool.hpp"
 #include "wrap/command_pool.hpp"
-#include "block_allocator.hpp"
+#include "allocator_block.hpp"
 #include "camera.hpp"
 #include "transferrer.hpp"
 

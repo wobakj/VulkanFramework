@@ -2,7 +2,7 @@
 #define DATABASE_HPP
 
 #include "wrap/memory.hpp"
-#include "block_allocator.hpp"
+#include "allocator_block.hpp"
 
 #include <vulkan/vulkan.hpp>
 

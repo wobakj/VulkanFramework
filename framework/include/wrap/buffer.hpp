@@ -11,7 +11,7 @@ class Device;
 class Memory;
 class BufferView;
 
-using ResourceBuffer = MemoryResource<vk::Buffer, vk::BufferCreateInfo>;
+using ResourceBuffer = MemoryResourceT<vk::Buffer, vk::BufferCreateInfo>;
 class Buffer : public ResourceBuffer {
  public:
   
@@ -42,6 +42,10 @@ class Buffer : public ResourceBuffer {
   void bindTo(Memory& memory);
   void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
+  // void cleanup() override;
+  virtual res_handle_t handle() const override {
+    return res_handle_t{m_object};
+  }
  private:
   void destroy() override;
 

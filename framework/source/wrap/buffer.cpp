@@ -5,6 +5,7 @@
 #include "wrap/buffer_view.hpp"
 
 #include <iostream>
+#include <cmath>
 
 Buffer::Buffer()
  :ResourceBuffer{}

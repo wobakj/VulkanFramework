@@ -19,7 +19,7 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 
-using ResourceImage = MemoryResource<vk::Image, vk::ImageCreateInfo>;
+using ResourceImage = MemoryResourceT<vk::Image, vk::ImageCreateInfo>;
 class Image : public ResourceImage {
  public:
   
@@ -38,6 +38,10 @@ class Image : public ResourceImage {
   void bindTo(Memory& memory) override;
   void bindTo(Memory& memory, vk::DeviceSize const& offset) override;
 
+  // void cleanup() override;
+  virtual res_handle_t handle() const override {
+    return res_handle_t{m_object};
+  }
   void swap(Image& dev);
 
   vk::ImageLayout const& layout() const;

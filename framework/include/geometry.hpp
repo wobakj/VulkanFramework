@@ -5,7 +5,7 @@
 #include "wrap/buffer_view.hpp"
 #include "wrap/memory.hpp"
 #include "wrap/vertex_data.hpp"
-#include "static_allocator.hpp"
+#include "allocator_static.hpp"
 
 #include <vulkan/vulkan.hpp>
 

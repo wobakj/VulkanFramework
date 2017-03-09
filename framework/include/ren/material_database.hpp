@@ -5,7 +5,6 @@
 #include "ren/material.hpp"
 
 #include "wrap/memory.hpp"
-#include "block_allocator.hpp"
 
 #include <vulkan/vulkan.hpp>
 // use floats and med precision operations

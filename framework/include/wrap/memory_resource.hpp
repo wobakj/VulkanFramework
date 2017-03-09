@@ -7,29 +7,49 @@
 
 class Device;
 class Memory;
-class BlockAllocator;
+class Allocator;
 
-template<typename T, typename U>
-class MemoryResource : public Wrapper<T, U> {
-  using WrapperMemoryResource = Wrapper<T, U>;
+// to store any vulkan handle in a map
+struct res_handle_t {
+  res_handle_t(VkBuffer const& buf) {
+    handle.buf = buf;
+    i = false;
+  }
+  res_handle_t(VkImage const& img) {
+    handle.img = img;
+    i = true;
+  }
+
+  bool i;
+  union handle {
+    VkBuffer buf;
+    VkImage img;
+  } handle;
+};
+
+bool operator==(res_handle_t const& a, res_handle_t const& b);
+bool operator!=(res_handle_t const& a, res_handle_t const& b);
+bool operator<(res_handle_t const& a, res_handle_t const& b);
+
+class MemoryResource {
  public:
   MemoryResource()
-   :WrapperMemoryResource{}
-   ,m_device{nullptr}
+   :m_device{nullptr}
    ,m_memory{nullptr}
    ,m_alloc{nullptr}
   {}
 
   virtual ~MemoryResource() {};
 
-  void cleanup() override;
+  void free();
   
-  virtual void bindTo(BlockAllocator& memory);
+  virtual void bindTo(Allocator& memory);
+  virtual void bindTo(Memory& memory);
+  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
 
   void swap(MemoryResource& rhs) {
-    WrapperMemoryResource::swap(rhs);
     std::swap(m_memory, rhs.m_memory);
     std::swap(m_device, rhs.m_device);
     std::swap(m_offset, rhs.m_offset);
@@ -50,47 +70,37 @@ class MemoryResource : public Wrapper<T, U> {
     return requirements().memoryTypeBits;
   }
 
-  virtual void bindTo(Memory& memory);
-  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
+  virtual res_handle_t handle() const = 0;
+
  protected:
 
   Device const* m_device;
   Memory* m_memory;
-  BlockAllocator* m_alloc;
+  Allocator* m_alloc;
   vk::DeviceSize m_offset;
 };
 
-#include "wrap/memory.hpp"
-#include "block_allocator.hpp"
-
 template<typename T, typename U>
-void MemoryResource<T, U>::cleanup() {
-  if (m_alloc) {
-    m_alloc->free(*this);
+class MemoryResourceT : public Wrapper<T, U>, public MemoryResource {
+  using WrapperMemoryResource = Wrapper<T, U>;
+ public:
+  MemoryResourceT()
+   :WrapperMemoryResource{}
+   ,MemoryResource{}
+  {}
+
+  void cleanup() override {
+    MemoryResource::free();
+    WrapperMemoryResource::cleanup();
   }
-  WrapperMemoryResource::cleanup();
-}
 
-template<typename T, typename U>
-void MemoryResource<T, U>::bindTo(BlockAllocator& alloc) {
-  m_alloc = &alloc;
-}
+  virtual ~MemoryResourceT() {};
 
-template<typename T, typename U>
-void MemoryResource<T, U>::bindTo(Memory& memory) {
-  m_offset = memory.bindOffset(requirements());
-  m_memory = &memory;
-}
+  void swap(MemoryResourceT& rhs) {
+    WrapperMemoryResource::swap(rhs);
+    MemoryResource::swap(rhs);
+  }
 
-template<typename T, typename U>
-void MemoryResource<T, U>::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = memory.bindOffset(requirements(), offset);
-  m_memory = &memory;
-}
-
-template<typename T, typename U>
-void MemoryResource<T, U>::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  m_memory->setData(data, size, m_offset + offset);
-}
+};
 
 #endif

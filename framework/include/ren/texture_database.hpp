@@ -3,7 +3,6 @@
 
 #include "ren/database.hpp"
 #include "wrap/memory.hpp"
-#include "block_allocator.hpp"
 
 #include <vulkan/vulkan.hpp>
 
