@@ -117,13 +117,6 @@ GeometryLod::GeometryLod(Transferrer& transferrer, std::string const& path, std:
   setFirstCut();
 }
 
-GeometryLod::~GeometryLod() {
-  // only unmap if buffer was mapped
-  if (m_ptr_mem_stage) {
-    m_buffer_stage.unmap();
-  }
-}
-
 void GeometryLod::createStagingBuffers() {
   m_buffer_stage = Buffer{*m_device, m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc};
   auto requirements_stage = m_buffer_stage.requirements();
@@ -132,9 +125,11 @@ void GeometryLod::createStagingBuffers() {
   requirements_stage.size = m_size_node + offset_stage * ((m_num_uploads - 1) * 2 + 1);
   std::cout << "LOD staging buffer size is " << requirements_stage.size / 1024 / 1024 << " MB for " << m_num_uploads << " nodes" << std::endl;
   m_buffer_stage = Buffer{*m_device, requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc};
-  m_memory_stage = Memory{*m_device, m_buffer_stage.requirements(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent};
-  // recreate buffer with correct size, should be calculated beforehand
-  m_buffer_stage.bindTo(m_memory_stage);
+  
+  auto mem_type = m_device->findMemoryType(m_buffer_stage.requirements().memoryTypeBits 
+                                           , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  m_allocator_stage = StaticAllocator{*m_device, mem_type, m_buffer_stage.size()};
+  m_allocator_stage.allocate(m_buffer_stage);
 
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
     m_db_views_stage.front().emplace_back(BufferView{m_size_node});
@@ -160,9 +155,11 @@ void GeometryLod::createDrawingBuffers() {
   requirements_draw.size = m_size_node + offset_draw * (m_num_slots - 1) + size_drawbuff + size_levelbuff * 2;
   std::cout << "LOD drawing buffer size is " << requirements_draw.size / 1024 / 1024 << " MB for " << m_num_nodes << " nodes" << std::endl;
   m_buffer = Buffer{*m_device, requirements_draw.size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer};
-  m_memory = Memory{*m_device, m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
-  // ugly, recreate buffer with size for correct alignment
-  m_buffer.bindTo(m_memory);
+
+  auto mem_type = m_device->findMemoryType(m_buffer.requirements().memoryTypeBits 
+                                           , vk::MemoryPropertyFlagBits::eDeviceLocal);
+  m_allocator_draw = StaticAllocator{*m_device, mem_type, m_buffer.size()};
+  m_allocator_draw.allocate(m_buffer);
 
   for(std::size_t i = 0; i < m_num_slots; ++i) {
     m_buffer_views.emplace_back(BufferView{m_size_node});
@@ -356,8 +353,9 @@ void GeometryLod::updateDrawCommands() {
   std::swap(m_attrib_info, dev.m_attrib_info);
   std::swap(m_ptr_mem_stage, dev.m_ptr_mem_stage);
 
-  std::swap(m_memory, dev.m_memory);
-  std::swap(m_memory_stage, dev.m_memory_stage);
+  std::swap(m_allocator_stage, dev.m_allocator_stage);
+  std::swap(m_allocator_draw, dev.m_allocator_draw);
+
   std::swap(m_buffer, dev.m_buffer);
   std::swap(m_buffer_stage, dev.m_buffer_stage);
   std::swap(m_buffer_views, dev.m_buffer_views);
@@ -388,8 +386,9 @@ void GeometryLod::updateDrawCommands() {
 
 void GeometryLod::updateResourcePointers() {
   // correct parent resource pointers
-  m_buffer.setMemory(m_memory);
-  m_buffer_stage.setMemory(m_memory_stage);
+  // m_buffer.setMemory(m_memory);
+  m_buffer.setAllocator(m_allocator_draw);
+  m_buffer_stage.setAllocator(m_allocator_stage);
   // TODO: correctly set pointers of RHS
   for (auto& buffer : m_buffer_views_stage) {
     buffer.setBuffer(m_buffer_stage);

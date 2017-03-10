@@ -34,7 +34,6 @@ class GeometryLod {
   // GeometryLod(Device& device, vklod::bvh const& bvh, lamure::ren::lod_stream&& stream, std::size_t num_nodes, std::size_t num_uploads);
   GeometryLod(GeometryLod && dev);
   GeometryLod(GeometryLod const&) = delete;
-  ~GeometryLod();
 
   GeometryLod& operator=(GeometryLod const&) = delete;
   GeometryLod& operator=(GeometryLod&& dev);
@@ -83,8 +82,6 @@ class GeometryLod {
   void printSlots() const;
   void updateResourcePointers();
 
-  Memory m_memory;
-  Memory m_memory_stage;
   StaticAllocator m_allocator_draw;
   StaticAllocator m_allocator_stage;
 

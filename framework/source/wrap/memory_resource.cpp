@@ -66,14 +66,18 @@ void MemoryResource::setMemory(Memory& memory) {
 }
 
 void* MemoryResource::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  assert(!m_mapped);
+  m_mapped = true;
   return (*m_device)->mapMemory(m_memory, m_offset + offset, size);
 }
 
 void* MemoryResource::map() {
-  return (*m_device)->mapMemory(m_memory, m_offset, size());
+  return map(size(), 0);
 }
 
 void MemoryResource::unmap() {
+  assert(m_mapped);
+  m_mapped = false;
   (*m_device)->unmapMemory(m_memory);
 }
 

@@ -38,9 +38,14 @@ class MemoryResource {
    ,m_alloc{nullptr}
    ,m_memory{}
    ,m_offset{0}
+   ,m_mapped{false}
   {}
 
-  virtual ~MemoryResource() {};
+  virtual ~MemoryResource() {
+    if (m_mapped) {
+      unmap();
+    }
+  };
 
   void free();
   
@@ -54,6 +59,7 @@ class MemoryResource {
     std::swap(m_alloc, rhs.m_alloc);
     std::swap(m_memory, rhs.m_memory);
     std::swap(m_offset, rhs.m_offset);
+    std::swap(m_mapped, rhs.m_mapped);
   }
 
   vk::DeviceSize size() const {
@@ -84,6 +90,7 @@ class MemoryResource {
   Allocator* m_alloc;
   vk::DeviceMemory m_memory;
   vk::DeviceSize m_offset;
+  bool m_mapped;
 };
 
 template<typename T, typename U>
