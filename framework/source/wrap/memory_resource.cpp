@@ -41,6 +41,40 @@ bool operator<(res_handle_t const& a, res_handle_t const& b) {
   }
 }
 
+void MappableResource::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+  m_offset = offset;
+  m_memory = memory.get();
+}
+
+void* MappableResource::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  assert(!m_mapped);
+  m_mapped = true;
+  return (*m_device)->mapMemory(m_memory, m_offset + offset, size);
+}
+
+void* MappableResource::map() {
+  return map(size(), 0);
+}
+
+void MappableResource::unmap() {
+  assert(m_mapped);
+  m_mapped = false;
+  (*m_device)->unmapMemory(m_memory);
+}
+
+void MappableResource::setData(void const* data) {
+  void* ptr = map();
+  std::memcpy(ptr, data, size_t(size()));
+  unmap();
+}
+
+void MappableResource::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  void* ptr = map(size, offset);
+  std::memcpy(ptr, data, size_t(size));
+  unmap();
+}
+
+
 void MemoryResource::free() {
   if (m_alloc) {
     m_alloc->free(*this);
@@ -51,39 +85,23 @@ void MemoryResource::setAllocator(Allocator& alloc) {
   m_alloc = &alloc;
 }
 
-void MemoryResource::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = offset;
-  m_memory = memory.get();
-}
-
 void MemoryResource::setMemory(Memory& memory) {
   m_memory = memory.get();
 }
 
-void* MemoryResource::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  assert(!m_mapped);
-  m_mapped = true;
-  return (*m_device)->mapMemory(m_memory, m_offset + offset, size);
+void MemoryResource::swap(MemoryResource& rhs) {
+  MappableResource::swap(rhs);
+  std::swap(m_alloc, rhs.m_alloc);
 }
 
-void* MemoryResource::map() {
-  return map(size(), 0);
+vk::DeviceSize MemoryResource::size() const {
+  return requirements().size;
 }
 
-void MemoryResource::unmap() {
-  assert(m_mapped);
-  m_mapped = false;
-  (*m_device)->unmapMemory(m_memory);
+vk::DeviceSize MemoryResource::alignment() const {
+  return requirements().alignment;
 }
 
-void MemoryResource::setData(void const* data) {
-  void* ptr = map();
-  std::memcpy(ptr, data, size_t(size()));
-  unmap();
-}
-
-void MemoryResource::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  void* ptr = map(size, offset);
-  std::memcpy(ptr, data, size_t(size));
-  unmap();
+uint32_t MemoryResource::memoryTypeBits() const {
+  return requirements().memoryTypeBits;
 }

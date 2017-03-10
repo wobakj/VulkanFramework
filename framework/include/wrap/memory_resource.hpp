@@ -9,7 +9,7 @@ class Device;
 class Memory;
 class Allocator;
 
-// to store any vulkan handle in a map
+// to store buffer and image handles in a map
 struct res_handle_t {
   res_handle_t(VkBuffer const& buf) {
     handle.buf = buf;
@@ -31,14 +31,51 @@ bool operator==(res_handle_t const& a, res_handle_t const& b);
 bool operator!=(res_handle_t const& a, res_handle_t const& b);
 bool operator<(res_handle_t const& a, res_handle_t const& b);
 
-class MemoryResource {
+// for directly backed resources (buffer, imeage) and subresources (buffer view)
+class MappableResource {
  public:
-  MemoryResource()
+  MappableResource()
    :m_device{nullptr}
-   ,m_alloc{nullptr}
    ,m_memory{}
    ,m_offset{0}
    ,m_mapped{false}
+  {}
+
+  virtual ~MappableResource() {
+    if (m_mapped) {
+      unmap();
+    }
+  };
+
+  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
+
+  void swap(MappableResource& rhs) {
+    std::swap(m_device, rhs.m_device);
+    std::swap(m_memory, rhs.m_memory);
+    std::swap(m_offset, rhs.m_offset);
+    std::swap(m_mapped, rhs.m_mapped);
+  }
+
+  virtual vk::DeviceSize size() const = 0;
+
+  virtual void* map();
+  virtual void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
+  virtual void unmap();
+  virtual void setData(void const* data);
+  virtual void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset);
+
+ protected:
+  Device const* m_device;
+  vk::DeviceMemory m_memory;
+  vk::DeviceSize m_offset;
+  bool m_mapped;
+};
+// for allocator interface
+class MemoryResource :public MappableResource {
+ public:
+  MemoryResource()
+   :MappableResource{}
+   ,m_alloc{nullptr}
   {}
 
   virtual ~MemoryResource() {
@@ -51,48 +88,23 @@ class MemoryResource {
   
   void setAllocator(Allocator& memory);
 
-  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
+  // virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
   void setMemory(Memory& memory);
 
-  void swap(MemoryResource& rhs) {
-    std::swap(m_device, rhs.m_device);
-    std::swap(m_alloc, rhs.m_alloc);
-    std::swap(m_memory, rhs.m_memory);
-    std::swap(m_offset, rhs.m_offset);
-    std::swap(m_mapped, rhs.m_mapped);
-  }
-
-  vk::DeviceSize size() const {
-    return requirements().size;
-  }
-
-  vk::DeviceSize alignment() const {
-    return requirements().alignment;
-  }
+  void swap(MemoryResource& rhs);
 
   virtual vk::MemoryRequirements requirements() const = 0;
 
-  uint32_t memoryTypeBits() const {
-    return requirements().memoryTypeBits;
-  }
+  vk::DeviceSize alignment() const;
+  vk::DeviceSize size() const override;
+  uint32_t memoryTypeBits() const;
 
   virtual res_handle_t handle() const = 0;
 
-  virtual void* map();
-  virtual void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
-  virtual void unmap();
-  virtual void setData(void const* data);
-  virtual void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset);
-
  protected:
-
-  Device const* m_device;
   Allocator* m_alloc;
-  vk::DeviceMemory m_memory;
-  vk::DeviceSize m_offset;
-  bool m_mapped;
 };
-
+// for directly backed resources (buffer, image)
 template<typename T, typename U>
 class MemoryResourceT : public Wrapper<T, U>, public MemoryResource {
   using WrapperMemoryResource = Wrapper<T, U>;
