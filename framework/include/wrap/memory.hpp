@@ -27,11 +27,7 @@ class Memory : public WrapperMemory {
   void unmap();
   void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
 
-  vk::DeviceSize bindOffset(vk::MemoryRequirements const& requirements);
-  vk::DeviceSize bindOffset(vk::MemoryRequirements const& requirements, vk::DeviceSize offset);
-  
   vk::DeviceSize size() const;
-  vk::DeviceSize space() const;
   uint32_t memoryType() const;
   
   void swap(Memory& dev);
@@ -40,7 +36,6 @@ class Memory : public WrapperMemory {
   void destroy() override;
 
   Device const* m_device;
-  vk::DeviceSize m_offset;
 };
 
 #include "wrap/memory_resource.hpp"

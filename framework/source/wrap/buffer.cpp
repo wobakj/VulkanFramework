@@ -105,11 +105,6 @@ vk::DeviceSize Buffer::space() const {
   return size() - m_offset_view;
 }
 
-void Buffer::bindTo(Memory& memory) {
-  ResourceBuffer::bindTo(memory);
-  (*m_device)->bindBufferMemory(get(), memory, m_offset);
-}
-
 void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
   ResourceBuffer::bindTo(memory, offset);
   (*m_device)->bindBufferMemory(get(), memory, m_offset);

@@ -33,7 +33,6 @@ class Buffer : public ResourceBuffer {
   vk::DeviceSize bindView(BufferView const&, vk::DeviceSize offset);
   vk::DeviceSize space() const;
 
-  void bindTo(Memory& memory);
   void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
   virtual res_handle_t handle() const override {

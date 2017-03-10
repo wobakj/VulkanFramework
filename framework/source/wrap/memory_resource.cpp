@@ -51,13 +51,8 @@ void MemoryResource::setAllocator(Allocator& alloc) {
   m_alloc = &alloc;
 }
 
-void MemoryResource::bindTo(Memory& memory) {
-  m_offset = memory.bindOffset(requirements());
-  m_memory = memory.get();
-}
-
 void MemoryResource::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  m_offset = memory.bindOffset(requirements(), offset);
+  m_offset = offset;
   m_memory = memory.get();
 }
 

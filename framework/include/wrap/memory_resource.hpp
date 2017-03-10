@@ -50,7 +50,7 @@ class MemoryResource {
   void free();
   
   void setAllocator(Allocator& memory);
-  virtual void bindTo(Memory& memory);
+
   virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
   void setMemory(Memory& memory);
 

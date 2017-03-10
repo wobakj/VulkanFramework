@@ -34,11 +34,9 @@ class Image : public ResourceImage {
   Image& operator=(Image&& dev);
 
   void layoutTransitionCommand(vk::CommandBuffer& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
-  // TODO: correct memory type matching
-  void bindTo(Memory& memory) override;
+
   void bindTo(Memory& memory, vk::DeviceSize const& offset) override;
 
-  // void cleanup() override;
   virtual res_handle_t handle() const override {
     return res_handle_t{m_object};
   }
