@@ -54,8 +54,8 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
   m_bind_info.emplace_back(model_to_bind(model));
   m_attrib_info = model_to_attr(model);
   // create one buffer to store all data
-  m_view_vertices = BufferView{m_model.vertex_num * m_model.vertex_bytes};
-  m_view_indices = BufferView{uint32_t(m_model.indices.size() * vertex_data::INDEX.size)};
+  m_view_vertices = BufferView{m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer};
+  m_view_indices = BufferView{uint32_t(m_model.indices.size() * vertex_data::INDEX.size), vk::BufferUsageFlagBits::eIndexBuffer};
   
   vk::DeviceSize combined_size = m_view_vertices.size() + m_view_indices.size(  );
   m_buffer = Buffer{transferrer.device(), combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst};

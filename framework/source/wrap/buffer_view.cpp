@@ -16,9 +16,10 @@ BufferView::BufferView(BufferView && bufferView)
   swap(bufferView);
 }
 
-BufferView::BufferView(vk::DeviceSize const& size)
+BufferView::BufferView(vk::DeviceSize const& size, vk::BufferUsageFlagBits const& usage)
  :BufferView{}
 {
+  m_usage = usage;
   m_desc_info.range = size;
 }
 
@@ -42,6 +43,7 @@ void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descri
 void BufferView::swap(BufferView& bufferView) {
   std::swap(m_buffer, bufferView.m_buffer);
   std::swap(m_desc_info, bufferView.m_desc_info);
+  std::swap(m_usage, bufferView.m_usage);
  }
 
 void BufferView::bindTo(Buffer& buffer) {

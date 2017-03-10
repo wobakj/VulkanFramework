@@ -132,10 +132,10 @@ void GeometryLod::createStagingBuffers() {
   m_allocator_stage.allocate(m_buffer_stage);
 
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
-    m_db_views_stage.front().emplace_back(BufferView{m_size_node});
+    m_db_views_stage.front().emplace_back(BufferView{m_size_node, vk::BufferUsageFlagBits::eVertexBuffer});
     m_db_views_stage.front().back().bindTo(m_buffer_stage);
 
-    m_db_views_stage.back().emplace_back(BufferView{m_size_node});
+    m_db_views_stage.back().emplace_back(BufferView{m_size_node, vk::BufferUsageFlagBits::eVertexBuffer});
     m_db_views_stage.back().back().bindTo(m_buffer_stage);
   } 
   // map staging memory once
@@ -162,13 +162,13 @@ void GeometryLod::createDrawingBuffers() {
   m_allocator_draw.allocate(m_buffer);
 
   for(std::size_t i = 0; i < m_num_slots; ++i) {
-    m_buffer_views.emplace_back(BufferView{m_size_node});
+    m_buffer_views.emplace_back(BufferView{m_size_node,vk::BufferUsageFlagBits::eVertexBuffer});
     m_buffer_views.back().bindTo(m_buffer);
   }
 
-  m_view_draw_commands = BufferView{sizeof(vk::DrawIndirectCommand) * m_num_slots};
+  m_view_draw_commands = BufferView{sizeof(vk::DrawIndirectCommand) * m_num_slots, vk::BufferUsageFlagBits::eIndirectBuffer};
   m_view_draw_commands.bindTo(m_buffer);
-  m_view_levels = BufferView{sizeof(float) * (m_num_slots + 1)};
+  m_view_levels = BufferView{sizeof(float) * (m_num_slots + 1), vk::BufferUsageFlagBits::eStorageBuffer};
   m_view_levels.bindTo(m_buffer);
 }
 

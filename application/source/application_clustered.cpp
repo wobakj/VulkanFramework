@@ -333,8 +333,8 @@ void ApplicationClustered::createDescriptorPools() {
 
 void ApplicationClustered::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
-  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+  m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
+  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
 
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 

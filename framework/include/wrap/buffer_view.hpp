@@ -11,7 +11,7 @@ class BufferView {
  public:
   
   BufferView();
-  BufferView(vk::DeviceSize const& size);
+  BufferView(vk::DeviceSize const& size, vk::BufferUsageFlagBits const& usage);
   BufferView(BufferView && dev);
   BufferView(BufferView const&) = delete;
   
@@ -36,6 +36,7 @@ class BufferView {
 
   Buffer* m_buffer;
   vk::DescriptorBufferInfo m_desc_info;
+  vk::BufferUsageFlagBits m_usage;
 };
 
 #endif

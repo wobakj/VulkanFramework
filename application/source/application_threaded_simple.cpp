@@ -66,7 +66,7 @@ FrameResource ApplicationThreadedSimple::createFrameResource() {
   auto res = ApplicationThreaded::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
-  res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+  res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
   res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
   return res;
 }
@@ -385,7 +385,7 @@ void ApplicationThreadedSimple::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
-  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
+  m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
 }
 

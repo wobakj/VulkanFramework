@@ -99,7 +99,8 @@ ApplicationLodSingle::~ApplicationLodSingle() {
 FrameResource ApplicationLodSingle::createFrameResource() {
   FrameResource res = ApplicationSingle::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
-  res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
+  
+  res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
   res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
   res.query_pools["timers"] = QueryPool{m_device, vk::QueryType::eTimestamp, 4};
   return res;
@@ -401,7 +402,7 @@ void ApplicationLodSingle::createUniformBuffers() {
   // m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
-  m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
+  m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
 }
 
