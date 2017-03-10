@@ -27,8 +27,6 @@ class Buffer : public ResourceBuffer {
   void swap(Buffer& dev);
   vk::MemoryRequirements requirements() const override;
 
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
-  
   vk::DeviceSize bindView(BufferView const&);
   vk::DeviceSize bindView(BufferView const&, vk::DeviceSize offset);
   vk::DeviceSize space() const;

@@ -29,7 +29,7 @@ class BufferView {
   Buffer& buffer() const;
   void setBuffer(Buffer& b);
   
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
+  void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
 
  private:
   void swap(BufferView& dev);

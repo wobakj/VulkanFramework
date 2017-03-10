@@ -73,23 +73,12 @@ class MappableResource {
 // for allocator interface
 class MemoryResource :public MappableResource {
  public:
-  MemoryResource()
-   :MappableResource{}
-   ,m_alloc{nullptr}
-  {}
-
-  virtual ~MemoryResource() {
-    if (m_mapped) {
-      unmap();
-    }
-  };
-
+  MemoryResource();
+  virtual ~MemoryResource();
+  
   void free();
   
   void setAllocator(Allocator& memory);
-
-  // virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
-  void setMemory(Memory& memory);
 
   void swap(MemoryResource& rhs);
 

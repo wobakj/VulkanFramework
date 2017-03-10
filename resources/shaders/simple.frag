@@ -7,7 +7,7 @@ layout(location = 2) in vec2 frag_Texcoord;
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler;
 // add set here so matches deswcriptor in lighting shader
-layout(set = 0, binding = 0) buffer MatrixBuffer {
+layout(set = 0, binding = 0) uniform MatrixBuffer {
     mat4 model;
     mat4 view;
     mat4 proj;
@@ -23,9 +23,9 @@ layout(push_constant) uniform Push1 {
   vec3 diffuse;
 } color_override;
 
-layout(constant_id = 0) const float COLOR_R = 0.0;
-layout(constant_id = 1) const float COLOR_G = 1.0;
-layout(constant_id = 2) const float COLOR_B = 1.0;
+// layout(constant_id = 0) const float COLOR_R = 0.0;
+// layout(constant_id = 1) const float COLOR_G = 1.0;
+// layout(constant_id = 2) const float COLOR_B = 1.0;
 
 layout(location = 0) out vec4 out_Color;
 layout(location = 1) out vec4 out_Position;

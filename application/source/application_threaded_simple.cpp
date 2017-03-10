@@ -97,7 +97,7 @@ void ApplicationThreadedSimple::logic() {
 }
 
 void ApplicationThreadedSimple::updateResourceDescriptors(FrameResource& res) {
-  res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
+  res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
 }
 
 void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res) {
@@ -363,7 +363,7 @@ void ApplicationThreadedSimple::updateDescriptors() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 }
 
 void ApplicationThreadedSimple::createDescriptorPools() {
@@ -382,7 +382,7 @@ void ApplicationThreadedSimple::createDescriptorPools() {
 }
 
 void ApplicationThreadedSimple::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};

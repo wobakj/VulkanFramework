@@ -50,29 +50,9 @@ void Buffer::destroy() {
   (*m_device)->destroyBuffer(get());
 }
 
- Buffer& Buffer::operator=(Buffer&& buffer) {
+Buffer& Buffer::operator=(Buffer&& buffer) {
   swap(buffer);
   return *this;
- }
-
-// todo: write descriptor set wrapper to allow automatic type detection
-void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index) const {
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = set;
-  descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = index;
-  if (m_info.usage & vk::BufferUsageFlagBits::eUniformBuffer) {
-    descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-  }
-  else if (m_info.usage & vk::BufferUsageFlagBits::eStorageBuffer) {
-    descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
-  }
-  else {
-    throw std::runtime_error{"buffer usage '" + to_string(m_info.usage) + "' not supported for descriptor write"};
-  }
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pBufferInfo = &m_desc_info;
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
 vk::MemoryRequirements Buffer::requirements() const {

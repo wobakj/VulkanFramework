@@ -7,7 +7,7 @@ layout(location = 2) in vec2 frag_Texcoord;
 
 layout(set = 1, binding = 0) uniform sampler2D texSampler;
 // add set here so matches deswcriptor in lighting shader
-layout(set = 0, binding = 0) buffer MatrixBuffer {
+layout(set = 0, binding = 0) uniform MatrixBuffer {
     mat4 model;
     mat4 view;
     mat4 proj;

@@ -9,7 +9,7 @@ layout(location = 3) flat in int frag_VertexIndex;
 layout(location = 0) out vec4 out_Color;
 
 // add set here so matches deswcriptor in lighting shader
-layout(set = 0, binding = 0) buffer MatrixBuffer {
+layout(set = 0, binding = 0) uniform MatrixBuffer {
     mat4 model;
     mat4 view;
     mat4 proj;

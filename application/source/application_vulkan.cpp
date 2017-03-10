@@ -206,10 +206,10 @@ void ApplicationVulkan::createPipelines() {
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
-  glm::fvec3 color{1.0f, 0.0f, 0.0f};
-  info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, color.r);
-  info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 1, color.g);
-  info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 2, color.b);
+  // glm::fvec3 color{1.0f, 0.0f, 0.0f};
+  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, color.r);
+  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 1, color.g);
+  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 2, color.b);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
@@ -335,9 +335,9 @@ void ApplicationVulkan::updateDescriptors() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_database_tex.get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
   // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 }
@@ -354,7 +354,7 @@ void ApplicationVulkan::createDescriptorPools() {
 }
 
 void ApplicationVulkan::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
 

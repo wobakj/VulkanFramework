@@ -28,20 +28,12 @@ BufferView::BufferView(vk::DeviceSize const& size)
  }
 
 // todo: write descriptor set wrapper to allow automatic type detection
-void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index) const {
+void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
   descriptorWrite.dstArrayElement = index;
-  if (m_buffer->info().usage & vk::BufferUsageFlagBits::eUniformBuffer) {
-    descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-  }
-  else if (m_buffer->info().usage & vk::BufferUsageFlagBits::eStorageBuffer) {
-    descriptorWrite.descriptorType = vk::DescriptorType::eStorageBuffer;
-  }
-  else {
-    throw std::runtime_error{"bufferView usage '" + to_string(m_buffer->info().usage) + "' not supported for descriptor write"};
-  }
+  descriptorWrite.descriptorType = type;
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pBufferInfo = &m_desc_info;
   m_buffer->m_device->get().updateDescriptorSets({descriptorWrite}, 0);

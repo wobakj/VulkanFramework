@@ -309,8 +309,8 @@ void ApplicationClustered::createTextureSamplers() {
 }
 
 void ApplicationClustered::updateDescriptors() {
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0);
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
   
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
@@ -332,7 +332,7 @@ void ApplicationClustered::createDescriptorPools() {
 }
 
 void ApplicationClustered::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_buffer_views["light"] = BufferView{sizeof(BufferLights)};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject)};
 

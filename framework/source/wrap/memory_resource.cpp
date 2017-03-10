@@ -74,6 +74,18 @@ void MappableResource::setData(void const* data, vk::DeviceSize const& size, vk:
   unmap();
 }
 
+///////////////////////////////////////////////////////////
+
+MemoryResource::MemoryResource()
+ :MappableResource{}
+ ,m_alloc{nullptr}
+{}
+
+MemoryResource::~MemoryResource() {
+  if (m_mapped) {
+    unmap();
+  }
+};
 
 void MemoryResource::free() {
   if (m_alloc) {
@@ -83,10 +95,6 @@ void MemoryResource::free() {
 
 void MemoryResource::setAllocator(Allocator& alloc) {
   m_alloc = &alloc;
-}
-
-void MemoryResource::setMemory(Memory& memory) {
-  m_memory = memory.get();
 }
 
 void MemoryResource::swap(MemoryResource& rhs) {

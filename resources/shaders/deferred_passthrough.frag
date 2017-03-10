@@ -15,7 +15,7 @@ struct light_t {
   vec3 color;
   float radius;
 };
-layout(set = 0, binding = 0) buffer MatrixBuffer {
+layout(set = 0, binding = 0) uniform MatrixBuffer {
     mat4 model;
     mat4 view;
     mat4 proj;

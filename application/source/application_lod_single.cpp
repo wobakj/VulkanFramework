@@ -106,7 +106,7 @@ FrameResource ApplicationLodSingle::createFrameResource() {
 }
 
 void ApplicationLodSingle::updateResourceDescriptors(FrameResource& res) {
-  res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0);
+  res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
 }
 
 void ApplicationLodSingle::updateResourceCommandBuffers(FrameResource& res) {
@@ -382,9 +382,9 @@ void ApplicationLodSingle::createTextureSampler() {
 }
 
 void ApplicationLodSingle::updateDescriptors() {
-  m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1);
+  m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eStorageBuffer);
   m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_textureSampler.get());
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3);
+  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 }
 
 void ApplicationLodSingle::createDescriptorPools() {
@@ -397,7 +397,7 @@ void ApplicationLodSingle::createDescriptorPools() {
 }
 
 void ApplicationLodSingle::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, sizeof(BufferLights) * 4, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   // m_buffers.at("uniforms").bindTo(m_device.memoryPool("uniforms"));
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
