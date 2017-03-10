@@ -373,10 +373,7 @@ void GeometryLod::updateDrawCommands() {
   std::swap(m_commands_draw, dev.m_commands_draw);
   
   std::swap(m_view_levels, dev.m_view_levels);
-  m_view_levels.setBuffer(m_buffer);
-
   std::swap(m_view_draw_commands, dev.m_view_draw_commands);
-  m_view_draw_commands.setBuffer(m_buffer);
 
   std::swap(m_db_views_stage, dev.m_db_views_stage);
 
@@ -386,23 +383,8 @@ void GeometryLod::updateDrawCommands() {
 
 void GeometryLod::updateResourcePointers() {
   // correct parent resource pointers
-  // m_buffer.setMemory(m_memory);
   m_buffer.setAllocator(m_allocator_draw);
   m_buffer_stage.setAllocator(m_allocator_stage);
-  // TODO: correctly set pointers of RHS
-  for (auto& buffer : m_buffer_views_stage) {
-    buffer.setBuffer(m_buffer_stage);
-  }
-  for (auto& buffer : m_buffer_views) {
-    buffer.setBuffer(m_buffer);
-  }
-  
-  for (auto& buffer : m_db_views_stage.back()) {
-    buffer.setBuffer(m_buffer_stage);
-  }
-  for (auto& buffer : m_db_views_stage.back()) {
-    buffer.setBuffer(m_buffer_stage);
-  }
 }
 
 BufferView const& GeometryLod::bufferView(std::size_t i) const {

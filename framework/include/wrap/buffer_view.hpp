@@ -21,20 +21,15 @@ class BufferView : public MappableResource {
   virtual void bindTo(Buffer& buffer);
   virtual void bindTo(Buffer& buffer, vk::DeviceSize const& offset);
 
-  // void setData(void const* data);
-  // void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
-
   vk::DeviceSize size() const;
   vk::DeviceSize offset() const;
-  Buffer& buffer() const;
-  void setBuffer(Buffer& b);
+  vk::Buffer const& buffer() const;
   
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
 
  private:
   void swap(BufferView& dev);
 
-  Buffer* m_buffer;
   vk::DescriptorBufferInfo m_desc_info;
   vk::BufferUsageFlagBits m_usage;
 };

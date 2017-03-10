@@ -93,8 +93,6 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
 
   std::swap(m_view_vertices, dev.m_view_vertices);
   std::swap(m_view_indices, dev.m_view_indices);
-  m_view_vertices.setBuffer(m_buffer);
-  m_view_indices.setBuffer(m_buffer);
 }
 
 vk::Buffer const& Geometry::buffer() const {
