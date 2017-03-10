@@ -27,7 +27,7 @@ class Buffer : public ResourceBuffer {
   void setMemory(Memory& memory);
 
   void swap(Buffer& dev);
-  vk::MemoryRequirements requirements() const;
+  vk::MemoryRequirements requirements() const override;
 
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, uint32_t index = 0) const;
   

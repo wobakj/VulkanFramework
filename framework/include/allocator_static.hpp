@@ -48,8 +48,6 @@ class StaticAllocator : public Allocator {
 
   void addResource(MemoryResource& resource, range_t const& range);
 
-  Device const* m_device;
-  uint32_t m_type_index;
   size_t m_block_bytes;
 
   Memory m_block;

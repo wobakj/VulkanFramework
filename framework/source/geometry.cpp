@@ -60,13 +60,10 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
   vk::DeviceSize combined_size = m_view_vertices.size() + m_view_indices.size(  );
   m_buffer = Buffer{transferrer.device(), combined_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
-  auto mem_type = transferrer.device().suitableMemoryType(vk::BufferUsageFlagBits::eVertexBuffer
-                                           | vk::BufferUsageFlagBits::eIndexBuffer
-                                           | vk::BufferUsageFlagBits::eTransferDst 
+  auto mem_type = transferrer.device().findMemoryType(m_buffer.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
-  // m_allocator = StaticAllocator(transferrer.device(), mem_type, combined_size);
-  m_memory = Memory{transferrer.device(), m_buffer.requirements(), vk::MemoryPropertyFlagBits::eDeviceLocal};
-  m_buffer.bindTo(m_memory);
+  m_allocator = StaticAllocator(transferrer.device(), mem_type, m_buffer.requirements().size);
+  m_allocator.allocate(m_buffer);
 
   m_view_vertices.bindTo(m_buffer);
   // upload vertex data
@@ -87,18 +84,18 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
   std::swap(m_model, dev.m_model);
   std::swap(m_bind_info, dev.m_bind_info);
   std::swap(m_attrib_info, dev.m_attrib_info);
-  std::swap(m_memory, dev.m_memory);
 
   std::swap(m_allocator, dev.m_allocator);
   std::swap(m_buffer, dev.m_buffer);
   std::swap(m_view_vertices, dev.m_view_vertices);
-  m_buffer.setMemory(m_memory);
-  dev.m_buffer.setMemory(dev.m_memory);
+  m_buffer.setAllocator(m_allocator);
+  dev.m_buffer.setAllocator(dev.m_allocator);
+
   std::swap(m_view_vertices, dev.m_view_vertices);
   std::swap(m_view_indices, dev.m_view_indices);
   m_view_vertices.setBuffer(m_buffer);
   m_view_indices.setBuffer(m_buffer);
- }
+}
 
 vk::Buffer const& Geometry::buffer() const {
   return m_buffer;

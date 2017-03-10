@@ -3,7 +3,6 @@
 
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"
-#include "wrap/memory.hpp"
 #include "wrap/vertex_data.hpp"
 #include "allocator_static.hpp"
 
@@ -39,11 +38,10 @@ class Geometry {
   vertex_data m_model;
   std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
+  StaticAllocator m_allocator;
   Buffer m_buffer;
   BufferView m_view_vertices;
   BufferView m_view_indices;
-  Memory m_memory;
-  StaticAllocator m_allocator;
 };
 
 #endif

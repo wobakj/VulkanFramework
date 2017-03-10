@@ -46,7 +46,7 @@ void MemoryResource::free() {
   }
 }
 
-void MemoryResource::bindTo(Allocator& alloc) {
+void MemoryResource::setAllocator(Allocator& alloc) {
   m_alloc = &alloc;
 }
 

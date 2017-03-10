@@ -46,7 +46,7 @@ void BlockAllocator::addResource(MemoryResource& resource, range_t const& range)
   auto iter_block = m_blocks.begin(); 
   std::advance(iter_block, range.block);
   resource.bindTo(*iter_block, range.offset);
-  resource.bindTo(*this);
+  resource.setAllocator(*this);
   m_used_ranges.emplace(res_handle_t{resource.handle()}, range);
 }
 

@@ -15,7 +15,7 @@ StaticAllocator::StaticAllocator()
 StaticAllocator::StaticAllocator(Device const& device, uint32_t type_index, size_t block_bytes)
  :Allocator{device, type_index}
  ,m_block_bytes{block_bytes}
- ,m_block{*m_device, m_type_index, m_block_bytes}
+ ,m_block{device, m_type_index, m_block_bytes}
  ,m_free_ranges(1, range_t{0u, m_block_bytes})
  ,m_used_ranges{}
 {}
@@ -41,7 +41,7 @@ void StaticAllocator::swap(StaticAllocator& rhs) {
 
 void StaticAllocator::addResource(MemoryResource& resource, range_t const& range) {
   resource.bindTo(m_block, range.offset);
-  resource.bindTo(*this);
+  resource.setAllocator(*this);
   m_used_ranges.emplace(res_handle_t{resource.handle()}, range);
 }
 

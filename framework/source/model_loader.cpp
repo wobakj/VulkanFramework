@@ -70,14 +70,14 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
     materials.emplace_back(glm::fvec3{obj_mat.diffuse[0], obj_mat.diffuse[1], obj_mat.diffuse[2]}, obj_mat.diffuse_texname);
   }
 
-  if (obj_materials.empty()) {
+  // if (obj_materials.empty()) {
     geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -1)));
-  }
-  else {
-    for (size_t i = 0; i < obj_materials.size(); ++i) {
-      geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, int(i))));
-    }
-  }
+  // }
+  // else {
+  //   for (size_t i = 0; i < obj_materials.size(); ++i) {
+  //     geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, int(i))));
+  //   }
+  // }
   return make_pair(std::move(geometries), std::move(materials));
 }
 

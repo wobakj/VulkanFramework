@@ -43,7 +43,7 @@ class MemoryResource {
 
   void free();
   
-  virtual void bindTo(Allocator& memory);
+  void setAllocator(Allocator& memory);
   virtual void bindTo(Memory& memory);
   virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
@@ -89,9 +89,15 @@ class MemoryResourceT : public Wrapper<T, U>, public MemoryResource {
    ,MemoryResource{}
   {}
 
-  void cleanup() override {
-    MemoryResource::free();
-    WrapperMemoryResource::cleanup();
+  // freeing of resources, implemented in derived class
+  virtual void destroy() = 0;
+
+  // overwrite cleanup to perform additional destruction
+  virtual void cleanup() override {
+    if (WrapperMemoryResource::m_object) {
+      MemoryResource::free();
+      destroy();
+    }
   }
 
   virtual ~MemoryResourceT() {};
