@@ -35,7 +35,7 @@ class Image : public ResourceImage {
 
   void layoutTransitionCommand(vk::CommandBuffer& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
 
-  void bindTo(Memory& memory, vk::DeviceSize const& offset) override;
+  void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) override;
 
   virtual res_handle_t handle() const override {
     return res_handle_t{m_object};

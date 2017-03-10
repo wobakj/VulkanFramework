@@ -34,27 +34,12 @@ bool operator<(res_handle_t const& a, res_handle_t const& b);
 // for directly backed resources (buffer, imeage) and subresources (buffer view)
 class MappableResource {
  public:
-  MappableResource()
-   :m_device{nullptr}
-   ,m_memory{}
-   ,m_offset{0}
-   ,m_mapped{false}
-  {}
+  MappableResource();
+  virtual ~MappableResource();
 
-  virtual ~MappableResource() {
-    if (m_mapped) {
-      unmap();
-    }
-  };
+  virtual void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset);
 
-  virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
-
-  void swap(MappableResource& rhs) {
-    std::swap(m_device, rhs.m_device);
-    std::swap(m_memory, rhs.m_memory);
-    std::swap(m_offset, rhs.m_offset);
-    std::swap(m_mapped, rhs.m_mapped);
-  }
+  void swap(MappableResource& rhs);
 
   virtual vk::DeviceSize size() const = 0;
 
@@ -65,8 +50,12 @@ class MappableResource {
   virtual void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset);
 
  protected:
+  vk::DeviceSize const& offset() const;
+  vk::DeviceMemory const& memory() const;
+
   Device const* m_device;
   vk::DeviceMemory m_memory;
+ private:
   vk::DeviceSize m_offset;
   bool m_mapped;
 };
@@ -74,8 +63,8 @@ class MappableResource {
 class MemoryResource :public MappableResource {
  public:
   MemoryResource();
-  virtual ~MemoryResource();
-  
+  virtual ~MemoryResource() {};
+
   void free();
   
   void setAllocator(Allocator& memory);
@@ -113,8 +102,6 @@ class MemoryResourceT : public Wrapper<T, U>, public MemoryResource {
       destroy();
     }
   }
-
-  virtual ~MemoryResourceT() {};
 
   void swap(MemoryResourceT& rhs) {
     WrapperMemoryResource::swap(rhs);

@@ -10,10 +10,10 @@ BufferView::BufferView()
  ,m_desc_info{}
 {}
 
-BufferView::BufferView(BufferView && bufferView)
+BufferView::BufferView(BufferView && rhs)
  :BufferView{}
 {
-  swap(bufferView);
+  swap(rhs);
 }
 
 BufferView::BufferView(vk::DeviceSize const& size, vk::BufferUsageFlagBits const& usage)
@@ -23,8 +23,8 @@ BufferView::BufferView(vk::DeviceSize const& size, vk::BufferUsageFlagBits const
   m_desc_info.range = size;
 }
 
- BufferView& BufferView::operator=(BufferView&& bufferView) {
-  swap(bufferView);
+ BufferView& BufferView::operator=(BufferView&& rhs) {
+  swap(rhs);
   return *this;
  }
 
@@ -40,20 +40,23 @@ void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descri
   m_buffer->m_device->get().updateDescriptorSets({descriptorWrite}, 0);
 }
 
-void BufferView::swap(BufferView& bufferView) {
-  std::swap(m_buffer, bufferView.m_buffer);
-  std::swap(m_desc_info, bufferView.m_desc_info);
-  std::swap(m_usage, bufferView.m_usage);
+void BufferView::swap(BufferView& rhs) {
+  MappableResource::swap(rhs);
+  std::swap(m_buffer, rhs.m_buffer);
+  std::swap(m_desc_info, rhs.m_desc_info);
+  std::swap(m_usage, rhs.m_usage);
  }
 
 void BufferView::bindTo(Buffer& buffer) {
-  m_desc_info.offset = buffer.bindView(*this);
+  m_desc_info.offset = buffer.bindOffset(*this);
+  MappableResource::bindTo(buffer.memory(), buffer.offset() + m_desc_info.offset);
   m_desc_info.buffer = buffer.get();
   m_buffer = &buffer;
 }
 
 void BufferView::bindTo(Buffer& buffer, vk::DeviceSize const& offset) {
-  m_desc_info.offset = buffer.bindView(*this, offset);
+  m_desc_info.offset = buffer.bindOffset(*this, offset);
+  MappableResource::bindTo(buffer.memory(), buffer.offset() + m_desc_info.offset);
   m_desc_info.buffer = buffer.get();
   m_buffer = &buffer;
 }
@@ -63,13 +66,13 @@ void BufferView::setBuffer(Buffer& buffer) {
   m_buffer = &buffer;  
 }
 
-void BufferView::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  m_buffer->setData(data, m_desc_info.range, m_desc_info.offset + offset);
-}
+// void BufferView::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+//   m_buffer->setData(data, m_desc_info.range, m_desc_info.offset + offset);
+// }
 
-void BufferView::setData(void const* data) {
-  setData(data, m_desc_info.range, 0);
-}
+// void BufferView::setData(void const* data) {
+//   setData(data, m_desc_info.range, 0);
+// }
 
 vk::DeviceSize BufferView::size() const {
   return m_desc_info.range;

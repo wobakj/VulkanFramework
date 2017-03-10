@@ -27,11 +27,11 @@ class Buffer : public ResourceBuffer {
   void swap(Buffer& dev);
   vk::MemoryRequirements requirements() const override;
 
-  vk::DeviceSize bindView(BufferView const&);
-  vk::DeviceSize bindView(BufferView const&, vk::DeviceSize offset);
+  vk::DeviceSize bindOffset(BufferView const&);
+  vk::DeviceSize bindOffset(BufferView const&, vk::DeviceSize offset);
   vk::DeviceSize space() const;
 
-  void bindTo(Memory& memory, vk::DeviceSize const& offset);
+  void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) override;
 
   virtual res_handle_t handle() const override {
     return res_handle_t{m_object};

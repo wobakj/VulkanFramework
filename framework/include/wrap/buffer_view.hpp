@@ -7,7 +7,7 @@
 
 class Buffer;
 
-class BufferView {
+class BufferView : public MappableResource {
  public:
   
   BufferView();
@@ -21,8 +21,8 @@ class BufferView {
   virtual void bindTo(Buffer& buffer);
   virtual void bindTo(Buffer& buffer, vk::DeviceSize const& offset);
 
-  void setData(void const* data);
-  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
+  // void setData(void const* data);
+  // void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
 
   vk::DeviceSize size() const;
   vk::DeviceSize offset() const;

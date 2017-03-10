@@ -197,9 +197,9 @@ Image::~Image() {
   cleanup();
 }
 
-void Image::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  ResourceImage::bindTo(memory, offset);
-  (*m_device)->bindImageMemory(get(), memory, m_offset);
+void Image::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
+  ResourceImage::bindTo(mem, offst);
+  (*m_device)->bindImageMemory(get(), memory(), offset());
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
       (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
@@ -215,10 +215,10 @@ void Image::destroy() {
   (*m_device)->destroyImage(get());
 }
 
- Image& Image::operator=(Image&& dev) {
+Image& Image::operator=(Image&& dev) {
   swap(dev);
   return *this;
- }
+}
 
 vk::ImageLayout const& Image::layout() const {
   return m_info.initialLayout;

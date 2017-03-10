@@ -65,11 +65,11 @@ void Buffer::swap(Buffer& buffer) {
   std::swap(m_offset_view, buffer.m_offset_view);
  }
 
-vk::DeviceSize Buffer::bindView(BufferView const& view) {
-  return bindView(view, m_offset_view);
+vk::DeviceSize Buffer::bindOffset(BufferView const& view) {
+  return bindOffset(view, m_offset_view);
 }
 
-vk::DeviceSize Buffer::bindView(BufferView const& view, vk::DeviceSize offset) {
+vk::DeviceSize Buffer::bindOffset(BufferView const& view, vk::DeviceSize offset) {
   if (offset + view.size() > size()) {
     throw std::out_of_range{"View size " + std::to_string(view.size()) + " too large for buffer " + std::to_string(space()) + " from " + std::to_string(size())};
   }
@@ -85,7 +85,7 @@ vk::DeviceSize Buffer::space() const {
   return size() - m_offset_view;
 }
 
-void Buffer::bindTo(Memory& memory, vk::DeviceSize const& offset) {
-  ResourceBuffer::bindTo(memory, offset);
-  (*m_device)->bindBufferMemory(get(), memory, m_offset);
+void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
+  ResourceBuffer::bindTo(mem, offst);
+  (*m_device)->bindBufferMemory(get(), memory(), offset());
 }

@@ -40,7 +40,7 @@ void StaticAllocator::swap(StaticAllocator& rhs) {
 }
 
 void StaticAllocator::addResource(MemoryResource& resource, range_t const& range) {
-  resource.bindTo(m_block, range.offset);
+  resource.bindTo(m_block.get(), range.offset);
   resource.setAllocator(*this);
   m_used_ranges.emplace(res_handle_t{resource.handle()}, range);
 }

@@ -41,9 +41,29 @@ bool operator<(res_handle_t const& a, res_handle_t const& b) {
   }
 }
 
-void MappableResource::bindTo(Memory& memory, vk::DeviceSize const& offset) {
+MappableResource::MappableResource()
+ :m_device{nullptr}
+ ,m_memory{}
+ ,m_offset{0}
+ ,m_mapped{false}
+{}
+
+MappableResource::~MappableResource() {
+  if (m_mapped) {
+    unmap();
+  }
+}
+
+void MappableResource::swap(MappableResource& rhs) {
+  std::swap(m_device, rhs.m_device);
+  std::swap(m_memory, rhs.m_memory);
+  std::swap(m_offset, rhs.m_offset);
+  std::swap(m_mapped, rhs.m_mapped);
+}
+
+void MappableResource::bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) {
   m_offset = offset;
-  m_memory = memory.get();
+  m_memory = memory;
 }
 
 void* MappableResource::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
@@ -74,18 +94,20 @@ void MappableResource::setData(void const* data, vk::DeviceSize const& size, vk:
   unmap();
 }
 
+vk::DeviceSize const& MappableResource::offset() const {
+  return m_offset;
+}
+
+vk::DeviceMemory const& MappableResource::memory() const {
+  return m_memory;
+}
+
 ///////////////////////////////////////////////////////////
 
 MemoryResource::MemoryResource()
  :MappableResource{}
  ,m_alloc{nullptr}
 {}
-
-MemoryResource::~MemoryResource() {
-  if (m_mapped) {
-    unmap();
-  }
-};
 
 void MemoryResource::free() {
   if (m_alloc) {
