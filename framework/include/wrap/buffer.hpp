@@ -24,8 +24,6 @@ class Buffer : public ResourceBuffer {
   Buffer& operator=(Buffer const&) = delete;
   Buffer& operator=(Buffer&& dev);
 
-  void setMemory(Memory& memory);
-
   void swap(Buffer& dev);
   vk::MemoryRequirements requirements() const override;
 
@@ -35,14 +33,9 @@ class Buffer : public ResourceBuffer {
   vk::DeviceSize bindView(BufferView const&, vk::DeviceSize offset);
   vk::DeviceSize space() const;
 
-  void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
-  void* map();
-  void unmap();
-
   void bindTo(Memory& memory);
   void bindTo(Memory& memory, vk::DeviceSize const& offset);
 
-  // void cleanup() override;
   virtual res_handle_t handle() const override {
     return res_handle_t{m_object};
   }

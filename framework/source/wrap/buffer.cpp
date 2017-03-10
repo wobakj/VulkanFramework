@@ -85,10 +85,6 @@ void Buffer::swap(Buffer& buffer) {
   std::swap(m_offset_view, buffer.m_offset_view);
  }
 
-void Buffer::setMemory(Memory& memory) {
-  m_memory = &memory;
-}
-
 vk::DeviceSize Buffer::bindView(BufferView const& view) {
   return bindView(view, m_offset_view);
 }
@@ -107,18 +103,6 @@ vk::DeviceSize Buffer::bindView(BufferView const& view, vk::DeviceSize offset) {
 
 vk::DeviceSize Buffer::space() const {
   return size() - m_offset_view;
-}
-
-void* Buffer::map() {
-  return map(size(), m_offset);
-}
-
-void* Buffer::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  return m_memory->map(size, m_offset + offset);
-}
-
-void Buffer::unmap() {
-  m_memory->unmap();
 }
 
 void Buffer::bindTo(Memory& memory) {

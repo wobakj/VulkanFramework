@@ -6,6 +6,7 @@
 #include "wrap/memory.hpp"
 #include "wrap/vertex_data.hpp"
 #include "double_buffer.hpp"
+#include "allocator_static.hpp"
 
 #include "bvh.h"
 #include "lod_stream.h"
@@ -84,6 +85,8 @@ class GeometryLod {
 
   Memory m_memory;
   Memory m_memory_stage;
+  StaticAllocator m_allocator_draw;
+  StaticAllocator m_allocator_stage;
 
   vertex_data m_model;
   Device const* m_device;

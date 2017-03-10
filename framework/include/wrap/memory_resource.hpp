@@ -35,8 +35,9 @@ class MemoryResource {
  public:
   MemoryResource()
    :m_device{nullptr}
-   ,m_memory{nullptr}
    ,m_alloc{nullptr}
+   ,m_memory{}
+   ,m_offset{0}
   {}
 
   virtual ~MemoryResource() {};
@@ -46,14 +47,13 @@ class MemoryResource {
   void setAllocator(Allocator& memory);
   virtual void bindTo(Memory& memory);
   virtual void bindTo(Memory& memory, vk::DeviceSize const& offset);
-
-  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
+  void setMemory(Memory& memory);
 
   void swap(MemoryResource& rhs) {
-    std::swap(m_memory, rhs.m_memory);
     std::swap(m_device, rhs.m_device);
-    std::swap(m_offset, rhs.m_offset);
     std::swap(m_alloc, rhs.m_alloc);
+    std::swap(m_memory, rhs.m_memory);
+    std::swap(m_offset, rhs.m_offset);
   }
 
   vk::DeviceSize size() const {
@@ -72,11 +72,17 @@ class MemoryResource {
 
   virtual res_handle_t handle() const = 0;
 
+  virtual void* map();
+  virtual void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
+  virtual void unmap();
+  virtual void setData(void const* data);
+  virtual void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset);
+
  protected:
 
   Device const* m_device;
-  Memory* m_memory;
   Allocator* m_alloc;
+  vk::DeviceMemory m_memory;
   vk::DeviceSize m_offset;
 };
 

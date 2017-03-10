@@ -1,6 +1,7 @@
 #include "wrap/memory_resource.hpp"
 
 #include "wrap/memory.hpp"
+#include "wrap/device.hpp"
 #include "allocator.hpp"
 
 bool operator==(res_handle_t const& a, res_handle_t const& b) {
@@ -52,14 +53,38 @@ void MemoryResource::setAllocator(Allocator& alloc) {
 
 void MemoryResource::bindTo(Memory& memory) {
   m_offset = memory.bindOffset(requirements());
-  m_memory = &memory;
+  m_memory = memory.get();
 }
 
 void MemoryResource::bindTo(Memory& memory, vk::DeviceSize const& offset) {
   m_offset = memory.bindOffset(requirements(), offset);
-  m_memory = &memory;
+  m_memory = memory.get();
+}
+
+void MemoryResource::setMemory(Memory& memory) {
+  m_memory = memory.get();
+}
+
+void* MemoryResource::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
+  return (*m_device)->mapMemory(m_memory, m_offset + offset, size);
+}
+
+void* MemoryResource::map() {
+  return (*m_device)->mapMemory(m_memory, m_offset, size());
+}
+
+void MemoryResource::unmap() {
+  (*m_device)->unmapMemory(m_memory);
+}
+
+void MemoryResource::setData(void const* data) {
+  void* ptr = map();
+  std::memcpy(ptr, data, size_t(size()));
+  unmap();
 }
 
 void MemoryResource::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  m_memory->setData(data, size, m_offset + offset);
+  void* ptr = map(size, offset);
+  std::memcpy(ptr, data, size_t(size));
+  unmap();
 }

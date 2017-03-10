@@ -38,6 +38,7 @@ class Geometry {
   vertex_data m_model;
   std::vector<vk::VertexInputBindingDescription> m_bind_info;
   std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
+  // destroy allocator after objects
   StaticAllocator m_allocator;
   Buffer m_buffer;
   BufferView m_view_vertices;
