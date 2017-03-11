@@ -83,7 +83,8 @@ void ApplicationClustered::updateLightVolume() {
   // update light colume data
   for (uint32_t z = 0; z < m_light_grid.dimensions().z; ++z)
     for (uint32_t x = 0; x < m_light_grid.dimensions().x; ++x)
-      for (uint32_t y = 0; y < m_light_grid.dimensions().y; ++y)
+      for (uint32_t y = 0; y < m_light_grid.dimensions().y; ++y) {
+        uint32_t mask = 0;
         for (unsigned int i = 0; i < NUM_LIGHTS; ++i) {
           auto lightPos = glm::vec4(buff_l.lights[i].position, 1.0f);
           auto lightPosViewSpaceVec4 = m_camera.viewMatrix() * lightPos;
@@ -91,10 +92,12 @@ void ApplicationClustered::updateLightVolume() {
               glm::vec3(lightPosViewSpaceVec4) / lightPosViewSpaceVec4.w;
           if (m_light_grid.pointFroxelDistance(x, y, z, lightPosViewSpace) <
               buff_l.lights[i].radius)
-            m_data_light_volume.at(
-                z * m_light_grid.dimensions().y * m_light_grid.dimensions().x +
-                y * m_light_grid.dimensions().x + x) |= 1 << i;
+            mask |= 1 << i;
         }
+        m_data_light_volume.at(z * m_light_grid.dimensions().y *
+                                   m_light_grid.dimensions().x +
+                               y * m_light_grid.dimensions().x + x) = mask;
+      }
 
   m_transferrer.uploadImageData(m_data_light_volume.data(),
                            m_images.at("light_vol"));
