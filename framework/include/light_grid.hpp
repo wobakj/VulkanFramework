@@ -1,6 +1,8 @@
 #ifndef LIGHT_GRID_HPP
 #define LIGHT_GRID_HPP
 
+#include <iostream>
+
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
@@ -28,6 +30,9 @@ class LightGrid {
   glm::vec3 getFroxelCorner(unsigned int tileX,
                             unsigned int tileY,
                             unsigned int slice) const;
+  unsigned int getFroxelIndex(unsigned int tileX,
+                              unsigned int tileY,
+                              unsigned int slice) const;
 
  private:
   float m_near;
