@@ -2,28 +2,20 @@
 #define MODEL_DATABASE_HPP
 
 #include "ren/database.hpp"
-#include "geometry.hpp"
+#include "ren/model.hpp"
 
-#include <vulkan/vulkan.hpp>
-
-#include <map>
-
-class Device;
-class Image;
-class Transferrer;
-
-class ModelDatabase : public Database<Geometry> {
+class ModelDatabase : public Database<Model> {
  public:
   ModelDatabase();
-  ModelDatabase(Transferrer& transferrer);
+  // ModelDatabase(Transferrer& transferrer);
   ModelDatabase(ModelDatabase && dev);
   ModelDatabase(ModelDatabase const&) = delete;
   
   ModelDatabase& operator=(ModelDatabase const&) = delete;
   ModelDatabase& operator=(ModelDatabase&& dev);
 
-  // void swap(ModelDatabase& dev);
-  // void store(std::string const& tex_path) override;
+  // void store(std::string const& tex_path);
+ 
 };
 
 #endif
