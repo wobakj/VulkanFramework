@@ -159,7 +159,7 @@ void main() {
     float ldist = distance(P, lightPosition);
     float att = clamp(1.0 - ldist*ldist/(lradius*lradius), 0.0, 1.0);
     att *= att;
-    float intensity = 50.0; // TODO: add to light buffer and load from it here
+    float intensity = 30.0; // TODO: add to light buffer and load from it here
     vec3 Cl = att * intensity * Lights[i].color * INV_4_PI;
     vec3 L = normalize(lightPosition - P);
     float NdotL = max(dot(L, N), 0.0);

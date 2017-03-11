@@ -250,7 +250,7 @@ void ApplicationClustered::createLights() {
     light_t light;
     light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
-    light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
+    light.radius = float(rand()) / float(RAND_MAX) * 10.0f + 10.0f;
     buff_l.lights[i] = light;
   }
   // m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
