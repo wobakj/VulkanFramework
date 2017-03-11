@@ -4,15 +4,11 @@
 #include "ren/database.hpp"
 #include "ren/material.hpp"
 
-#include "wrap/memory.hpp"
+#include "wrap/buffer.hpp"
+#include "wrap/buffer_view.hpp"
+#include "allocator_static.hpp"
 
-#include <vulkan/vulkan.hpp>
-// use floats and med precision operations
-#include <glm/gtc/type_precision.hpp>
-
-#include <tiny_obj_loader.h>
-
-#include <map>
+#include <vector>
 
 class Device;
 class Image;
@@ -27,7 +23,17 @@ class MaterialDatabase : public Database<material_t> {
   MaterialDatabase& operator=(MaterialDatabase const&) = delete;
   MaterialDatabase& operator=(MaterialDatabase&& dev);
 
+  void store(std::string const& name, material_t&& resource) override;
+  size_t index(std::string const& name) const;
+ 
+  void swap(MaterialDatabase& dev);
+
+ private:
   std::map<std::string, size_t> m_indices;
+  std::vector<BufferView> m_views;
+
+  StaticAllocator m_allocator;
+  Buffer m_buffer;
 };
 
 #endif
