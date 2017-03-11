@@ -3,7 +3,7 @@
 #include "app/launcher.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
-#include "model_loader.hpp"
+#include "geometry_loader.hpp"
 #include "cmdline.h"
 
 // c++ warpper
@@ -333,7 +333,7 @@ void ApplicationLodSingle::updatePipelines() {
 void ApplicationLodSingle::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {
   m_model_lod = GeometryLod{m_transferrer, lod_path, cut_budget, upload_budget};
 
-  vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_light = Geometry{m_transferrer, tri};
 }
 

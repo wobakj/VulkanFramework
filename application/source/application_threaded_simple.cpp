@@ -3,7 +3,7 @@
 #include "app/launcher.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
-#include "model_loader.hpp"
+#include "geometry_loader.hpp"
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>
@@ -287,13 +287,13 @@ void ApplicationThreadedSimple::updatePipelines() {
 }
 
 void ApplicationThreadedSimple::createVertexBuffer() {
-  vertex_data tri = model_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
 
   m_model = Geometry{m_transferrer, tri};
 }
 void ApplicationThreadedSimple::loadModel() {
   try {
-    vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+    vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
     m_model_2 = Geometry{m_transferrer, tri};
     m_model_dirty = true;
   }

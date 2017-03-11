@@ -1,4 +1,4 @@
-#include "model_loader.hpp"
+#include "geometry_loader.hpp"
 
 #include "bvh.h"
 #include "lod_stream.h"
@@ -35,7 +35,7 @@ bool operator==(tinyobj::index_t const& lhs,
 }
 };
 
-namespace model_loader {
+namespace geometry_loader {
 
 // void generate_normals(tinyobj::mesh_t& model);
 void generate_normals(tinyobj::attrib_t& attribs, tinyobj::mesh_t& mesh);

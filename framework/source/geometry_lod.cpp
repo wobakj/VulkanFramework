@@ -2,7 +2,7 @@
 
 #include "wrap/device.hpp"
 #include "camera.hpp"
-#include "model_loader.hpp"
+#include "geometry_loader.hpp"
 #include "transferrer.hpp"
 
 #include <iostream>
@@ -65,7 +65,7 @@ GeometryLod::GeometryLod(Transferrer& transferrer, std::string const& path, std:
  ,m_num_nodes{0}
  ,m_num_uploads{0}
  ,m_num_slots{0}
- ,m_bvh{model_loader::bvh(path + ".bvh")}
+ ,m_bvh{geometry_loader::bvh(path + ".bvh")}
  ,m_size_node{sizeof(serialized_vertex) * m_bvh.get_primitives_per_node()}
  ,m_commands_draw{}
  ,m_ptr_mem_stage{nullptr}

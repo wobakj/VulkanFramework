@@ -2,7 +2,7 @@
 
 #include "app/launcher.hpp"
 #include "texture_loader.hpp"
-#include "model_loader.hpp"
+#include "geometry_loader.hpp"
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>

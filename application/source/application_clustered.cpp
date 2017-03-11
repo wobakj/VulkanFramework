@@ -3,7 +3,7 @@
 #include "app/launcher.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
-#include "model_loader.hpp"
+#include "geometry_loader.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -242,7 +242,7 @@ void ApplicationClustered::updatePipelines() {
 }
 
 void ApplicationClustered::createVertexBuffer() {
-  vertex_data tri = model_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 }
 
