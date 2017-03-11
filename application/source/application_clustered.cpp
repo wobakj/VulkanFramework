@@ -16,6 +16,7 @@ struct UniformBufferObject {
     glm::mat4 proj;
     glm::mat4 model;
     glm::mat4 normal;
+    glm::vec4 eye_world_space;
 };
 
 struct light_t {
@@ -45,8 +46,8 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
  ,m_data_light_volume(m_light_grid.dimensions().x * m_light_grid.dimensions().y * m_light_grid.dimensions().z, -1)
 {
 
-  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
-  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_frag.spv"}});
+  m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_world_space_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
+  m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -348,6 +349,7 @@ void ApplicationClustered::updateView() {
   ubo.view = m_camera.viewMatrix();
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
+  ubo.eye_world_space = glm::vec4(m_camera.position(), 1.0f);
 
   m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 }
