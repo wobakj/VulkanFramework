@@ -22,6 +22,8 @@ class Model {
   std::vector<std::string> m_geometries;
   std::vector<std::string> m_materials;
   vk::PrimitiveTopology m_topology;
+
+  friend class Renderer;
 };
 
 #endif

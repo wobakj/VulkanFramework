@@ -3,10 +3,13 @@
 
 #include "wrap/vertex_data.hpp"
 
-class Transferrer;
+#include <vector>
+#include <string>
+
 class GeometryDatabase;
 class MaterialDatabase;
 class ModelDatabase;
+class Transferrer;
 class Model;
 
 class ModelLoader {
@@ -23,7 +26,7 @@ class ModelLoader {
 
   Model load(std::string const& filename, vertex_data::attrib_flag_t import_attribs) const;
   void store(std::string const& filename, vertex_data::attrib_flag_t import_attribs) const;
-
+  
  private:
   Transferrer* m_transferrer;
   GeometryDatabase* m_database_geo;

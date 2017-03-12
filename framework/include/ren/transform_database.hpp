@@ -1,0 +1,45 @@
+#ifndef TRANSFORM_DATABASE_HPP
+#define TRANSFORM_DATABASE_HPP
+
+#include "ren/database.hpp"
+
+#include "wrap/buffer.hpp"
+#include "wrap/buffer_view.hpp"
+#include "allocator_static.hpp"
+
+// use floats and med precision operations
+#include <glm/gtc/type_precision.hpp>
+
+#include <vector>
+
+class Device;
+
+class TransformDatabase : public Database<glm::fmat4> {
+ public:
+  TransformDatabase();
+  TransformDatabase(Device const& transferrer);
+  TransformDatabase(TransformDatabase && dev);
+  TransformDatabase(TransformDatabase const&) = delete;
+  
+  TransformDatabase& operator=(TransformDatabase const&) = delete;
+  TransformDatabase& operator=(TransformDatabase&& dev);
+
+  void store(std::string const& name, glm::fmat4&& mat) override;
+  size_t index(std::string const& name) const;
+ 
+  void swap(TransformDatabase& dev);
+  glm::fmat4 const& get(std::string const& name) override;
+  void set(std::string const& name, glm::fmat4 const& mat);
+
+ private:
+  std::map<std::string, size_t> m_indices;
+  std::vector<BufferView> m_views;
+  uint8_t* m_ptr_mem_stage;
+
+  StaticAllocator m_allocator;
+  StaticAllocator m_allocator_stage;
+  Buffer m_buffer;
+  Buffer m_buffer_stage;
+};
+
+#endif

@@ -25,7 +25,7 @@ class Database {
 
   virtual void swap(Database& dev);
 
-  T const& get(std::string const& tex_path);
+  virtual T const& get(std::string const& tex_path);
   // virtual void store(std::string const& path);
   virtual void store(std::string const& name, T&& resource);
   bool contains(std::string const& tex_path);

@@ -36,7 +36,7 @@ void ModelLoader::swap(ModelLoader& rhs) {
 }
 
 Model ModelLoader::load(std::string const& filename, vertex_data::attrib_flag_t import_attribs) const {
-  // load gpu data reprsentations
+  // load gpu data representations
   auto result = geometry_loader::objs(filename, import_attribs);
   auto& vert_datas = result.first;
   auto& mat_datas = result.second;
