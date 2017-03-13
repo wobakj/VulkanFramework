@@ -77,7 +77,6 @@ void TransformDatabase::set(std::string const& name, glm::fmat4 const& mat) {
 void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
   if (m_dirties.empty()) return;
 
-  std::cout << "updating " << m_dirties.size() << " transforms" << std::endl;
   std::vector<vk::BufferCopy> copy_views{};
   for(auto const& dirty_index : m_dirties) {
     auto const& offset = dirty_index * SIZE_RESOURCE;

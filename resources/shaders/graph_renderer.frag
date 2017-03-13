@@ -15,8 +15,10 @@ layout(set = 2, binding = 0) buffer Materials {
   material_t[] materials;
 };
 
-layout(set = 2, binding = 1) uniform sampler2D diffuseSampler[24];
 
+layout(constant_id = 0) const uint NUM_TEXTURES = 1;
+// const uint bla = 24;
+layout(set = 2, binding = 1) uniform sampler2D diffuseSampler[24];
 
 layout(push_constant) uniform PushFragment {
   layout(offset = 4) uint index;

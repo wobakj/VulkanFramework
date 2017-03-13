@@ -29,7 +29,7 @@ class Database {
   // virtual void store(std::string const& path);
   virtual void store(std::string const& name, T&& resource);
   bool contains(std::string const& tex_path);
-
+  size_t size() const;
  protected:
   Device const* m_device;
   Transferrer* m_transferrer;
@@ -92,6 +92,11 @@ bool Database<T>::contains(std::string const& tex_path) {
 template<typename T>
 void Database<T>::store(std::string const& name, T&& resource) {
   m_resources.emplace(name, std::move(resource));  
+}
+
+template<typename T>
+size_t Database<T>::size() const {
+  return m_resources.size();  
 }
 
 // template<typename T>

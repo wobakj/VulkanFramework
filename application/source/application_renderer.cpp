@@ -180,6 +180,9 @@ void ApplicationRenderer::createPipelines() {
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
+  uint32_t size_uint = uint32_t(m_instance.dbMaterial().dbDiffuse().size());
+  info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, size_uint);
+
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
   depthStencil.depthWriteEnable = VK_TRUE;

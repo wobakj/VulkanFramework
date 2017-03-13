@@ -206,7 +206,7 @@ void ApplicationVulkan::createPipelines() {
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
-  // glm::fvec3 color{1.0f, 0.0f, 0.0f};
+  // glm::fvec3 color{0.0f, 0.0f, 1.0f};
   // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, color.r);
   // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 1, color.g);
   // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 2, color.b);
