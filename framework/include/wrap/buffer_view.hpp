@@ -6,7 +6,7 @@
 #include <vulkan/vulkan.hpp>
 
 class Buffer;
-
+// class to divide buffer into subresources which can be bound to a drescriptor set
 class BufferView : public MappableResource {
  public:
   

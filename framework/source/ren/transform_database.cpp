@@ -7,6 +7,8 @@
 
 #include <utility>
 
+const static size_t SIZE_MATRIX = sizeof(glm::fmat4);
+
 TransformDatabase::TransformDatabase()
  :Database{}
 {}
@@ -42,14 +44,9 @@ TransformDatabase& TransformDatabase::operator=(TransformDatabase&& rhs) {
 }
 
 void TransformDatabase::store(std::string const& name, glm::fmat4&& resource) {
-  m_indices.emplace(name, m_views.size());
+  m_indices.emplace(name, m_indices.size());
   // storge gpu representation
-  m_views.emplace_back(sizeof(glm::fmat4), vk::BufferUsageFlagBits::eStorageBuffer);
-  m_views.back().bindTo(m_buffer);
-  // m_transferrer->uploadBufferData(&gpu_mat, m_views.back());
   set(name, resource);
-  // store cpu representation
-  // Database::store(name, std::move(resource));
 }
 
 size_t TransformDatabase::index(std::string const& name) const {
@@ -59,7 +56,7 @@ size_t TransformDatabase::index(std::string const& name) const {
 void TransformDatabase::swap(TransformDatabase& rhs) {
   Database::swap(rhs);
   std::swap(m_indices, rhs.m_indices);
-  std::swap(m_views, rhs.m_views);
+  // std::swap(m_views, rhs.m_views);
   std::swap(m_allocator, rhs.m_allocator);
   std::swap(m_allocator_stage, rhs.m_allocator_stage);
   std::swap(m_buffer, rhs.m_buffer);
@@ -69,13 +66,13 @@ void TransformDatabase::swap(TransformDatabase& rhs) {
 }
 
 glm::fmat4 const& TransformDatabase::get(std::string const& name) {
-  return *reinterpret_cast<glm::fmat4 const*>(m_ptr_mem_stage + m_views.at(index(name)).offset());
+  return *reinterpret_cast<glm::fmat4 const*>(m_ptr_mem_stage + index(name) * SIZE_MATRIX);
 }
 
 void TransformDatabase::set(std::string const& name, glm::fmat4 const& mat) {
   auto const& index_transform = index(name);
   m_dirties.emplace_back(index_transform);
-  std::memcpy(m_ptr_mem_stage + m_views.at(index_transform).offset(), &mat, sizeof(mat));
+  std::memcpy(m_ptr_mem_stage + SIZE_MATRIX * index_transform, &mat, SIZE_MATRIX);
 }
 
 void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
@@ -84,8 +81,8 @@ void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
   std::cout << "updating " << m_dirties.size() << " transforms" << std::endl;
   std::vector<vk::BufferCopy> copy_views{};
   for(auto const& dirty_index : m_dirties) {
-    auto const& dirty_view = m_views.at(dirty_index);
-    copy_views.emplace_back(dirty_view.offset(), dirty_view.offset(), dirty_view.size());
+    auto const& offset = dirty_index * SIZE_MATRIX;
+    copy_views.emplace_back(offset, offset, SIZE_MATRIX);
   }
   command_buffer->copyBuffer(m_buffer_stage, m_buffer, copy_views);
   // barrier to make new data visible to vertex shader

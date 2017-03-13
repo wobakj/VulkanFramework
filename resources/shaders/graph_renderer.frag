@@ -25,6 +25,4 @@ void main() {
   out_Color = vec4(materials[material.index].diffuse.rgb, 0.5);
   out_Position = vec4(frag_Position, 1.0);
   out_Normal = vec4(frag_Normal, 0.0);
-  out_Normal = out_Color;
-  // out_Color = vec4(1.0);
 }

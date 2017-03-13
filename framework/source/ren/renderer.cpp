@@ -77,7 +77,7 @@ void Renderer::draw(CommandBuffer& buffer, std::vector<Node const*> const& nodes
       // transform changes every draw
       for (auto const& transform_entry : geometry_entry.second) {
         uint32_t transform_idx = uint32_t(transform_entry);
-        // buffer.pushConstants(vk::ShaderStageFlagBits::eVertex, 0, transform_idx);
+        buffer.pushConstants(vk::ShaderStageFlagBits::eVertex, 0, transform_idx);
         buffer.drawGeometry();
         std::cout << "drawing transform " << transform_idx << std::endl; 
       }
