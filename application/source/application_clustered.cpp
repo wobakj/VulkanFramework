@@ -90,9 +90,14 @@ void ApplicationClustered::updateLightVolume() {
           auto lightPosViewSpaceVec4 = m_camera.viewMatrix() * lightPos;
           auto lightPosViewSpace =
               glm::vec3(lightPosViewSpaceVec4) / lightPosViewSpaceVec4.w;
+#if 0
           if (m_light_grid.pointFroxelDistance(x, y, z, lightPosViewSpace) <
               buff_l.lights[i].radius)
+#else
+          if (m_light_grid.sphereFroxelAABBTest(x, y, z, lightPosViewSpace,
+                                                buff_l.lights[i].radius))
             mask |= 1 << i;
+#endif
         }
         m_data_light_volume.at(z * m_light_grid.dimensions().y *
                                    m_light_grid.dimensions().x +
