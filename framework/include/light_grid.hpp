@@ -23,6 +23,11 @@ class LightGrid {
                             unsigned int tileY,
                             unsigned int slice,
                             glm::vec3 const& point) const;
+  bool sphereFroxelAABBTest(unsigned int tileX,
+                            unsigned int tileY,
+                            unsigned int slice,
+                            glm::vec3 const& center,
+                            float radius) const;
 
  private:
   void computeDepthSliceValues();

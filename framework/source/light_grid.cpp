@@ -99,6 +99,36 @@ float LightGrid::pointFroxelDistance(unsigned int tileX,
   return glm::min(min1, min2);
 }
 
+bool LightGrid::sphereFroxelAABBTest(unsigned int tileX,
+                                     unsigned int tileY,
+                                     unsigned int slice,
+                                     glm::vec3 const& center,
+                                     float radius) const {
+  // read froxel corners
+  auto topLeftNear = getFroxelCorner(tileX, tileY + 1, slice);
+  auto bottomRightNear = getFroxelCorner(tileX + 1, tileY, slice);
+  auto topLeftFar = getFroxelCorner(tileX, tileY + 1, slice + 1);
+  auto bottomRightFar = getFroxelCorner(tileX + 1, tileY, slice + 1);
+
+  // setup axis-aligned bounding boxes
+  auto froxelAABBMin = glm::vec3(glm::min(topLeftNear.x, topLeftFar.x),
+                                 glm::min(bottomRightNear.y, bottomRightFar.y),
+                                 glm::min(topLeftFar.z, bottomRightFar.z));
+  auto froxelAABBMax = glm::vec3(glm::min(bottomRightNear.x, bottomRightFar.x),
+                                 glm::min(topLeftNear.y, topLeftFar.y),
+                                 glm::min(topLeftNear.z, bottomRightNear.z));
+  auto sphereAABBMin = center - glm::vec3(radius);
+  auto sphereAABBMax = center + glm::vec3(radius);
+
+  // check if there is an overlap between the AABBs
+  return (((sphereAABBMin.x > froxelAABBMax.x) ||
+           (sphereAABBMax.x < froxelAABBMin.x)) ||
+          ((sphereAABBMin.y > froxelAABBMax.y) ||
+           (sphereAABBMax.y < froxelAABBMin.y)) ||
+          ((sphereAABBMin.z > froxelAABBMax.z) ||
+           (sphereAABBMax.z < froxelAABBMin.z)));
+}
+
 void LightGrid::computeDepthSliceValues() {
   // absolute values from Emil Persson's "Practical Clustered Shading"
   // transformed into (0, 1) range
