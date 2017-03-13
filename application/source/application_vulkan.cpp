@@ -14,9 +14,9 @@
 // #define THREADING
 
 struct UniformBufferObject {
-    glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+    glm::mat4 model;
     glm::mat4 normal;
 };
 
@@ -268,8 +268,7 @@ void ApplicationVulkan::createVertexBuffer() {
   m_model = Geometry{m_transferrer, tri};
 }
 void ApplicationVulkan::loadModel() {
-  vertex_data tri = geometry_loader::obj("/opt/project_animation/vulkan/assets/sponza/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-  // vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_2 = Geometry{m_transferrer, tri};
   m_model_dirty = true;
 }
@@ -368,11 +367,10 @@ void ApplicationVulkan::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationVulkan::updateView() {
   UniformBufferObject ubo{};
-  // ubo.model = glm::fmat4{};
-  ubo.model = glm::scale(glm::fmat4{}, glm::fvec3{0.001f});
   ubo.view = m_camera.viewMatrix();
-  ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
+  ubo.model = glm::fmat4{1.0f};
+  ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
   m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 }

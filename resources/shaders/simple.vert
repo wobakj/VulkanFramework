@@ -6,9 +6,9 @@ layout(location = 1) in vec3 in_Normal;
 layout(location = 2) in vec2 in_TexCoord;
 
 layout(set = 0, binding = 0) uniform MatrixBuffer {
-    mat4 ModelMatrix;
     mat4 ViewMatrix;
     mat4 ProjectionMatrix;
+    mat4 ModelMatrix;
     mat4 NormalMatrix;
 };
 
