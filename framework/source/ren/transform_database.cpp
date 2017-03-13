@@ -65,6 +65,7 @@ void TransformDatabase::swap(TransformDatabase& rhs) {
   std::swap(m_buffer, rhs.m_buffer);
   std::swap(m_buffer_stage, rhs.m_buffer_stage);
   std::swap(m_ptr_mem_stage, rhs.m_ptr_mem_stage);
+  std::swap(m_dirties, rhs.m_dirties);
 }
 
 glm::fmat4 const& TransformDatabase::get(std::string const& name) {
@@ -72,5 +73,35 @@ glm::fmat4 const& TransformDatabase::get(std::string const& name) {
 }
 
 void TransformDatabase::set(std::string const& name, glm::fmat4 const& mat) {
-  std::memcpy(m_ptr_mem_stage + m_views.at(index(name)).offset(), &mat, sizeof(mat));
+  auto const& index_transform = index(name);
+  m_dirties.emplace_back(index_transform);
+  std::memcpy(m_ptr_mem_stage + m_views.at(index_transform).offset(), &mat, sizeof(mat));
+}
+
+void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
+  if (m_dirties.empty()) return;
+
+  std::vector<vk::BufferCopy> copy_views{};
+  for(auto const& dirty_index : m_dirties) {
+    auto const& dirty_view = m_views.at(dirty_index);
+    copy_views.emplace_back(dirty_view.offset(), dirty_view.offset(), dirty_view.size());
+  }
+  command_buffer->copyBuffer(m_buffer_stage, m_buffer, copy_views);
+
+  // barrier to make new data visible to vertex shader
+  vk::BufferMemoryBarrier barrier{};
+  barrier.buffer = m_buffer;
+  barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  command_buffer->pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eVertexShader,
+    vk::DependencyFlags{},
+    {},
+    {barrier},
+    {}
+  );
 }

@@ -69,10 +69,10 @@ void main() {
 
   vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
   vec3 color = Lights[frag_InstanceId].color.rgb;
-  out_Color.rgb = frag_Normal;
-  out_Color.w = 1.0;
-  return;
-  out_Color += vec4(color * 0.005 * diffuseColor 
+  // out_Color.rgb = frag_Normal;
+  // out_Color.w = 1.0;
+  // return;
+  out_Color = vec4(color * 0.005 * diffuseColor 
                   + color * diffuseColor * diffSpec.x
                     + color * ks * diffSpec.y, 1.0 - dist / radius);
   // out_Color = vec4(diffuseColor, 1.0);

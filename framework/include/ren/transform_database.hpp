@@ -31,9 +31,12 @@ class TransformDatabase : public Database<glm::fmat4> {
   glm::fmat4 const& get(std::string const& name) override;
   void set(std::string const& name, glm::fmat4 const& mat);
 
+  void updateCommand(CommandBuffer& buffer) const;
+
  private:
   std::map<std::string, size_t> m_indices;
   std::vector<BufferView> m_views;
+  std::vector<size_t> m_dirties;
   uint8_t* m_ptr_mem_stage;
 
   StaticAllocator m_allocator;

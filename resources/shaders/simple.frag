@@ -35,6 +35,7 @@ void main() {
   out_Color = vec4(texture(texSampler, frag_Texcoord).rgb, 0.5);
   out_Position = vec4(frag_Position, 1.0);
   out_Normal = vec4(frag_Normal, 0.0);
+  // out_Normal = vec4(color_override.diffuse, 0.0);
   // out_Color.rgb = color_override.diffuse;
   // out_Color.rgb = vec3(COLOR_R, COLOR_G, COLOR_B);
 }

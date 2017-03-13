@@ -28,8 +28,6 @@ class MaterialDatabase : public Database<material_t> {
  
   void swap(MaterialDatabase& dev);
 
-  void updateCommand(CommandBuffer& buffer) const;
-
  private:
   std::map<std::string, size_t> m_indices;
   std::vector<BufferView> m_views;

@@ -9,11 +9,11 @@
 struct gpu_mat_t {
   gpu_mat_t(glm::fvec3 const& diff, uint32_t tex)
    :diffuse{diff, 0.0f}
-   ,texture{tex}
+   // ,texture{tex}
   {}
 
   glm::fvec4 diffuse;
-  uint32_t texture;
+  // uint32_t texture;
 };
 
 struct material_t {

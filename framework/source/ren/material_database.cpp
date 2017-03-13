@@ -56,7 +56,3 @@ void MaterialDatabase::swap(MaterialDatabase& rhs) {
   std::swap(m_allocator, rhs.m_allocator);
   std::swap(m_buffer, rhs.m_buffer);
 }
-
-void MaterialDatabase::updateCommand(CommandBuffer& buffer) const {
-
-}
