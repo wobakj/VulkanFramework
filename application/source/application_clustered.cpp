@@ -96,8 +96,8 @@ void ApplicationClustered::updateLightVolume() {
 #else
           if (m_light_grid.sphereFroxelAABBTest(x, y, z, lightPosViewSpace,
                                                 buff_l.lights[i].radius))
-            mask |= 1 << i;
 #endif
+          mask |= 1 << i;
         }
         m_data_light_volume.at(z * m_light_grid.dimensions().y *
                                    m_light_grid.dimensions().x +
