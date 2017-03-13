@@ -1,6 +1,10 @@
 # Blender v2.68 (sub 0) OBJ File: ''
 # www.blender.org
+
 o Sphere
+mtllib sphere.mtl
+g sphere
+usemtl sphere
 v -0.880530 0.290285 -0.355932
 v -0.849800 0.382683 -0.343737
 v -0.841648 0.290285 -0.441414

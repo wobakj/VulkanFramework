@@ -38,12 +38,10 @@ const uint32_t ApplicationRenderer::imageCount = 2;
 ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
  ,m_textureSampler{m_device, vkDestroySampler}
- ,m_model_dirty{false}
- ,m_sphere{true}
+ ,m_instance{m_device, m_command_pools.at("transfer")}
+ ,m_model_loader{m_instance}
+ ,m_renderer{m_instance}
 {
-  // 
-  m_instance = ApplicationInstance{m_device, m_command_pools.at("transfer")};
-
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
@@ -67,27 +65,7 @@ FrameResource ApplicationRenderer::createFrameResource() {
   return res;
 }
 
-void ApplicationRenderer::updateModel() {
-  emptyDrawQueue();
-  m_sphere = false;
-  updateResourceCommandBuffers(m_frame_resource);
-  m_model_dirty = false;
-  #ifdef THREADING
-  if(m_thread_load.joinable()) {
-    m_thread_load.join();
-  }
-  else {
-    throw std::runtime_error{"could not join thread"};
-  }
-  #endif
-}
-
 void ApplicationRenderer::logic() {
-  if(m_model_dirty.is_lock_free()) {
-    if(m_model_dirty) {
-      updateModel();
-    }
-  }
   if (m_camera.changed()) {
     updateView();
   }
@@ -105,23 +83,13 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer").bindPipeline(m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
-  // glm::fvec3 test{0.0f, 1.0f, 0.0f};
-  // res.command_buffers.at("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
+  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("camera"), m_descriptor_sets.at("transform"), m_descriptor_sets.at("material")}, {});
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
-  // choose between sphere and house
-  Geometry const* model = nullptr;
-  if (m_sphere) {
-    model = &m_model;
-  }
-  else {
-    model = &m_model_2;
-  }
 
-  res.command_buffers.at("gbuffer").bindGeometry(*model);
-
-  res.command_buffers.at("gbuffer").drawGeometry();
+  std::vector<Node const*> nodes{};
+  nodes.emplace_back(&m_nodes.at("sponza"));
+  m_renderer.draw(res.command_buffers.at("gbuffer"), nodes);
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -145,6 +113,8 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->reset({});
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  // copy transform data
+  m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -207,11 +177,6 @@ void ApplicationRenderer::createPipelines() {
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
-  // glm::fvec3 color{1.0f, 0.0f, 0.0f};
-  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, color.r);
-  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 1, color.g);
-  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 2, color.b);
-
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
   depthStencil.depthWriteEnable = VK_TRUE;
@@ -265,14 +230,17 @@ void ApplicationRenderer::updatePipelines() {
 
 void ApplicationRenderer::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-
   m_model = Geometry{m_transferrer, tri};
-}
-void ApplicationRenderer::loadModel() {
-  vertex_data tri = geometry_loader::obj("/opt/project_animation/vulkan/assets/sponza/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-  // vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_model_2 = Geometry{m_transferrer, tri};
-  m_model_dirty = true;
+
+  std::string model_path{"/opt/project_animation/vulkan/assets/sponza/sponza.obj"};
+  m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.001f}));
+  m_nodes.emplace("sponza", Node{model_path, model_path});
+
+  model_path = m_resource_path + "models/sphere.obj";
+  m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  m_instance.dbTransform().store(model_path, glm::fmat3{1.0f});
+  m_nodes.emplace("sphere", Node{model_path, model_path});
 }
 
 void ApplicationRenderer::createLights() {
@@ -339,8 +307,12 @@ void ApplicationRenderer::updateDescriptors() {
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
-  m_instance.dbTexture().get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
+  m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
+
+  // m_instance.dbTexture().get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
   // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
 }
 
@@ -350,9 +322,12 @@ void ApplicationRenderer::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("lights"), 1, 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
-  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 1);
+  m_descriptor_sets["camera"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
+  m_descriptor_sets["transform"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 1);
+  m_descriptor_sets["material"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 2);
+
   m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 0);
 }
 
 void ApplicationRenderer::createUniformBuffers() {
@@ -370,9 +345,9 @@ void ApplicationRenderer::createUniformBuffers() {
 void ApplicationRenderer::updateView() {
   UniformBufferObject ubo{};
   // ubo.model = glm::fmat4{};
-  ubo.model = glm::scale(glm::fmat4{}, glm::fvec3{0.001f});
+  // ubo.model = glm::scale(glm::fmat4{}, glm::fvec3{0.001f});
   ubo.view = m_camera.viewMatrix();
-  ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
+  // ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
 
   m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
@@ -381,18 +356,9 @@ void ApplicationRenderer::updateView() {
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void ApplicationRenderer::keyCallback(int key, int scancode, int action, int mods) {
-  if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-    if (m_sphere) {
-    #ifdef THREADING
-      // prevent thread creation form being triggered mutliple times
-      if (!m_thread_load.joinable()) {
-        m_thread_load = std::thread(&ApplicationRenderer::loadModel, this);
-      }
-    #else
-      loadModel();
-    #endif
-    }
-  }
+  // if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+  //   }
+  // }
 }
 
 // exe entry point

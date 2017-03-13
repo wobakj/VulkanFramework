@@ -27,6 +27,10 @@ class MaterialDatabase : public Database<material_t> {
   size_t index(std::string const& name) const;
  
   void swap(MaterialDatabase& dev);
+  
+  Buffer const& buffer() const {
+    return m_buffer;
+  }
 
  private:
   std::map<std::string, size_t> m_indices;

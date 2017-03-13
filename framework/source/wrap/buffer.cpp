@@ -89,3 +89,14 @@ void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceBuffer::bindTo(mem, offst);
   (*m_device)->bindBufferMemory(get(), memory(), offset());
 }
+
+void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = set;
+  descriptorWrite.dstBinding = binding;
+  descriptorWrite.dstArrayElement = index;
+  descriptorWrite.descriptorType = type;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = &m_desc_info;
+  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+}

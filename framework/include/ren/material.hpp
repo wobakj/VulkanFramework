@@ -8,7 +8,7 @@
 // #include <tiny_obj_loader.h>
 struct gpu_mat_t {
   gpu_mat_t(glm::fvec3 const& diff, uint32_t tex)
-   :diffuse{diff, 0.0f}
+   :diffuse{diff.x, diff.y, diff.z, 0.0f}
    // ,texture{tex}
   {}
 

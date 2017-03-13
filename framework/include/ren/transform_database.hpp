@@ -32,7 +32,11 @@ class TransformDatabase : public Database<glm::fmat4> {
   void set(std::string const& name, glm::fmat4 const& mat);
 
   void updateCommand(CommandBuffer& buffer) const;
-
+  
+  Buffer const& buffer() const {
+    return m_buffer;
+  }
+  
  private:
   std::map<std::string, size_t> m_indices;
   std::vector<BufferView> m_views;

@@ -11,6 +11,8 @@
 // #include "ren/material_database.hpp"
 #include "ren/application_instance.hpp"
 #include "ren/model_loader.hpp"
+#include "ren/renderer.hpp"
+#include "ren/node.hpp"
 
 #include <atomic>
 #include <thread>
@@ -30,7 +32,6 @@ class ApplicationRenderer : public ApplicationSingle {
   void updateDescriptors() override;
   
   void createLights();
-  void loadModel();
   void createUniformBuffers();
   void createVertexBuffer();
   void createTextureImage();
@@ -50,13 +51,11 @@ class ApplicationRenderer : public ApplicationSingle {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   Geometry m_model;
-  Geometry m_model_2;
   Deleter<VkSampler> m_textureSampler;
-  std::thread m_thread_load;
-  std::atomic<bool> m_model_dirty;
-  bool m_sphere;
   ApplicationInstance m_instance;
   ModelLoader m_model_loader;
+  Renderer m_renderer;
+  std::map<std::string, Node> m_nodes;
 };
 
 #endif
