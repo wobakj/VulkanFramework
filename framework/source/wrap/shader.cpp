@@ -105,7 +105,7 @@ layout_module_t::layout_module_t(spirv_cross::Compiler const& comp)
       // spirv stores for each block member individual range
       // ranges are ordered by offset => compute total offset and size
       push_constant.offset = uint32_t(constants.front().offset);
-      push_constant.size = uint32_t(constants.back().offset + constants.back().range);
+      push_constant.size = uint32_t(constants.back().offset + constants.back().range - constants.front().offset);
       push_constant.stageFlags = stage;
     }
   }
