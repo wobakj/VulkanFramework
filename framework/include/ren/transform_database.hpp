@@ -17,17 +17,17 @@ class Device;
 class TransformDatabase : public Database<glm::fmat4> {
  public:
   TransformDatabase();
-  TransformDatabase(Device const& transferrer);
-  TransformDatabase(TransformDatabase && dev);
+  TransformDatabase(Device const& dev);
+  TransformDatabase(TransformDatabase && rhs);
   TransformDatabase(TransformDatabase const&) = delete;
   
   TransformDatabase& operator=(TransformDatabase const&) = delete;
-  TransformDatabase& operator=(TransformDatabase&& dev);
+  TransformDatabase& operator=(TransformDatabase&& rhs);
 
   void store(std::string const& name, glm::fmat4&& mat) override;
   size_t index(std::string const& name) const;
  
-  void swap(TransformDatabase& dev);
+  void swap(TransformDatabase& rhs);
   glm::fmat4 const& get(std::string const& name) override;
   void set(std::string const& name, glm::fmat4 const& mat);
 

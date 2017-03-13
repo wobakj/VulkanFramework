@@ -79,7 +79,7 @@ void CommandBuffer::bindGeometry(Geometry const& geometry) {
   m_session.geometry = &geometry;
 }
 
-void CommandBuffer::draw(uint32_t instanceCount, uint32_t firstInstance) {
+void CommandBuffer::drawGeometry(uint32_t instanceCount, uint32_t firstInstance) {
   if (m_session.geometry->numIndices() > 0) {
     get().drawIndexed(m_session.geometry->numIndices(), instanceCount, m_session.geometry->indexOffset(), m_session.geometry->vertexOffset(), firstInstance);
   }

@@ -2,21 +2,19 @@
 #define RENDERER_HPP
 
 #include "ren/node.hpp"
+#include "ren/application_instance.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 class Device;
 class Transferrer;
-class GeometryDatabase;
-class MaterialDatabase;
-class ModelDatabase;
-class TransformDatabase;
+
 class CommandBuffer;
 
 class Renderer {
  public:  
   Renderer();
-  Renderer(MaterialDatabase& mat, GeometryDatabase& geo, ModelDatabase& model, TransformDatabase& trans);
+  Renderer(ApplicationInstance& instance);
   Renderer(Renderer && dev);
   Renderer(Renderer const&) = delete;
 
@@ -27,10 +25,7 @@ class Renderer {
   void draw(CommandBuffer& buffer, std::vector<Node const*> const& nodes);
 
  private:
-  GeometryDatabase* m_database_geo;
-  MaterialDatabase* m_database_mat;
-  ModelDatabase* m_database_model;
-  TransformDatabase* m_database_transform;
+  ApplicationInstance* m_instance;
 };
 
 #endif

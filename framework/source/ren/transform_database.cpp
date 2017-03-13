@@ -25,7 +25,7 @@ TransformDatabase::TransformDatabase(Device const& device)
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocator = StaticAllocator(*m_device, mem_type, m_buffer.requirements().size);
   m_allocator.allocate(m_buffer);
-  m_buffer = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffer = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
   mem_type = m_device->findMemoryType(m_buffer_stage.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eHostVisible
@@ -44,7 +44,7 @@ TransformDatabase& TransformDatabase::operator=(TransformDatabase&& rhs) {
 void TransformDatabase::store(std::string const& name, glm::fmat4&& resource) {
   m_indices.emplace(name, m_views.size());
   // storge gpu representation
-  m_views.emplace_back(sizeof(glm::fmat4), vk::BufferUsageFlagBits::eUniformBuffer);
+  m_views.emplace_back(sizeof(glm::fmat4), vk::BufferUsageFlagBits::eStorageBuffer);
   m_views.back().bindTo(m_buffer);
   // m_transferrer->uploadBufferData(&gpu_mat, m_views.back());
   set(name, resource);

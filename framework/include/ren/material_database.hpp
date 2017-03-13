@@ -11,7 +11,7 @@
 #include <vector>
 
 class Device;
-class Image;
+class CommandBuffer;
 
 class MaterialDatabase : public Database<material_t> {
  public:
@@ -27,6 +27,8 @@ class MaterialDatabase : public Database<material_t> {
   size_t index(std::string const& name) const;
  
   void swap(MaterialDatabase& dev);
+
+  void updateCommand(CommandBuffer& buffer) const;
 
  private:
   std::map<std::string, size_t> m_indices;

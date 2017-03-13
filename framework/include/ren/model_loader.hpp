@@ -6,16 +6,13 @@
 #include <vector>
 #include <string>
 
-class GeometryDatabase;
-class MaterialDatabase;
-class ModelDatabase;
-class Transferrer;
+class ApplicationInstance;
 class Model;
 
 class ModelLoader {
  public:  
   ModelLoader();
-  ModelLoader(Transferrer& transfer, MaterialDatabase& mat, GeometryDatabase& geo, ModelDatabase& model);
+  ModelLoader(ApplicationInstance& instance);
   ModelLoader(ModelLoader && dev);
   ModelLoader(ModelLoader const&) = delete;
 
@@ -28,10 +25,7 @@ class ModelLoader {
   void store(std::string const& filename, vertex_data::attrib_flag_t import_attribs) const;
   
  private:
-  Transferrer* m_transferrer;
-  GeometryDatabase* m_database_geo;
-  MaterialDatabase* m_database_mat;
-  ModelDatabase* m_database_model;
+  ApplicationInstance* m_instance;
 };
 
 #endif

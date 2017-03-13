@@ -120,7 +120,7 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindGeometry(*model);
 
-  res.command_buffers.at("gbuffer").draw();
+  res.command_buffers.at("gbuffer").drawGeometry();
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -135,7 +135,7 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("lighting").bindGeometry(m_model);
 
-  res.command_buffers.at("lighting").draw(NUM_LIGHTS);
+  res.command_buffers.at("lighting").drawGeometry(NUM_LIGHTS);
 
   res.command_buffers.at("lighting").end();
 }
