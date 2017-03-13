@@ -146,7 +146,7 @@ void main() {
   // be used here based on the depth of the current fragment
   for (uint slice = 0; slice < lightGridSize.z; ++slice) {
     ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
-                             frag_positionNdc.y * lightGridSize.y,
+                             (1.0 - frag_positionNdc.y) * lightGridSize.y,
                              slice);
     mask_lights |= texelFetch(volumeLight, cell_index, 0).r;
   }
