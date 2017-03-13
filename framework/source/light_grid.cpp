@@ -121,12 +121,16 @@ bool LightGrid::sphereFroxelAABBTest(unsigned int tileX,
   auto sphereAABBMax = center + glm::vec3(radius);
 
   // check if there is an overlap between the AABBs
-  return (((sphereAABBMin.x > froxelAABBMax.x) ||
-           (sphereAABBMax.x < froxelAABBMin.x)) ||
-          ((sphereAABBMin.y > froxelAABBMax.y) ||
-           (sphereAABBMax.y < froxelAABBMin.y)) ||
-          ((sphereAABBMin.z > froxelAABBMax.z) ||
-           (sphereAABBMax.z < froxelAABBMin.z)));
+  if ((sphereAABBMin.x > froxelAABBMax.x) ||
+      (sphereAABBMax.x < froxelAABBMin.x))
+    return false;
+  if ((sphereAABBMin.y > froxelAABBMax.y) ||
+      (sphereAABBMax.y < froxelAABBMin.y))
+    return false;
+  if ((sphereAABBMin.z > froxelAABBMax.z) ||
+      (sphereAABBMax.z < froxelAABBMin.z))
+    return false;
+  return true;
 }
 
 void LightGrid::computeDepthSliceValues() {
