@@ -20,13 +20,13 @@ TransformDatabase::TransformDatabase(Device const& device)
  :Database{}
 {
   m_device = & device;
-  m_buffer_stage = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eTransferSrc};
+  m_buffer = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   auto mem_type = m_device->findMemoryType(m_buffer.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocator = StaticAllocator(*m_device, mem_type, m_buffer.requirements().size);
   m_allocator.allocate(m_buffer);
-  m_buffer = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
+  m_buffer_stage = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eTransferSrc};
   mem_type = m_device->findMemoryType(m_buffer_stage.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eHostVisible
                                            | vk::MemoryPropertyFlagBits::eHostCoherent);

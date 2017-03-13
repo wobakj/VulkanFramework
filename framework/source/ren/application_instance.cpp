@@ -18,11 +18,12 @@ ApplicationInstance::ApplicationInstance(ApplicationInstance && rhs)
 
 ApplicationInstance::ApplicationInstance(Device const& device, CommandPool& pool)
  :m_device(&device)
- ,m_transferrer{pool}
- ,m_database_geo{m_transferrer}
- ,m_database_mat{m_transferrer}
+ ,m_transferrer{new Transferrer{pool}}
+ ,m_database_geo{*m_transferrer}
+ ,m_database_mat{*m_transferrer}
  ,m_database_model{}
  ,m_database_transform{*m_device}
+ ,m_database_texture{*m_transferrer}
  // ,m_model_loader{m_transferrer}
 {}
 
@@ -38,11 +39,12 @@ void ApplicationInstance::swap(ApplicationInstance& rhs) {
   std::swap(m_database_mat, rhs.m_database_mat);
   std::swap(m_database_model, rhs.m_database_model);
   std::swap(m_database_transform, rhs.m_database_transform);
+  std::swap(m_database_texture, rhs.m_database_texture);
   // std::swap(m_model_loader, rhs.m_model_loader);
 }
 
 Transferrer& ApplicationInstance::transferrer() {
-	return m_transferrer;
+	return *m_transferrer;
 }
 GeometryDatabase& ApplicationInstance::dbGeometry() {
 	return m_database_geo;
@@ -55,4 +57,7 @@ ModelDatabase& ApplicationInstance::dbModel() {
 }
 TransformDatabase& ApplicationInstance::dbTransform() {
 	return m_database_transform;
+}
+TextureDatabase& ApplicationInstance::dbTexture() {
+	return m_database_texture;
 }

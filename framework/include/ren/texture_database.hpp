@@ -2,14 +2,13 @@
 #define TEXTURE_DATABASE_HPP
 
 #include "ren/database.hpp"
-#include "wrap/memory.hpp"
+#include "wrap/image.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 #include <map>
 
 class Device;
-class Image;
 class Transferrer;
 
 class TextureDatabase : public Database<Image> {

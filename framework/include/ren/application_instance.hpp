@@ -5,10 +5,11 @@
 #include "ren/geometry_database.hpp"
 #include "ren/model_database.hpp"
 #include "ren/transform_database.hpp"
+#include "ren/texture_database.hpp"
 #include "ren/model_loader.hpp"
 #include "transferrer.hpp"
 
-// #include <string>
+#include <memory>
 
 class Device;
 class CommandPool;
@@ -30,14 +31,16 @@ class ApplicationInstance {
   MaterialDatabase& dbMaterial();
   ModelDatabase& dbModel();
   TransformDatabase& dbTransform();
+  TextureDatabase& dbTexture();
 
  private:
   Device const* m_device;
-  Transferrer m_transferrer;
+  std::unique_ptr<Transferrer> m_transferrer;
   GeometryDatabase m_database_geo;
   MaterialDatabase m_database_mat;
   ModelDatabase m_database_model;
   TransformDatabase m_database_transform;
+  TextureDatabase m_database_texture;
   // ModelLoader m_model_loader;
 };
 

@@ -13,8 +13,8 @@ layout(set = 2, binding = 0) buffer Materials {
   material_t[] materials;
 };
 
-layout(push_constant, offset = 4) uniform PushFragment {
-  uint index;
+layout(push_constant) uniform PushFragment {
+  layout(offset = 4) uint index;
 } material;
 
 layout(location = 0) out vec4 out_Color;

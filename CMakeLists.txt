@@ -105,6 +105,10 @@ add_executable(vulkan_compute application/source/application_compute.cpp)
 target_link_libraries(vulkan_compute framework)
 install(TARGETS vulkan_compute DESTINATION .)
 
+add_executable(vulkan_renderer application/source/application_renderer.cpp)
+target_link_libraries(vulkan_renderer framework)
+install(TARGETS vulkan_renderer DESTINATION .)
+
 # set build type dependent flags
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
