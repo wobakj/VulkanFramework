@@ -114,9 +114,10 @@ bool LightGrid::sphereFroxelAABBTest(unsigned int tileX,
   auto froxelAABBMin = glm::vec3(glm::min(topLeftNear.x, topLeftFar.x),
                                  glm::min(bottomRightNear.y, bottomRightFar.y),
                                  glm::min(topLeftFar.z, bottomRightFar.z));
-  auto froxelAABBMax = glm::vec3(glm::min(bottomRightNear.x, bottomRightFar.x),
-                                 glm::min(topLeftNear.y, topLeftFar.y),
-                                 glm::min(topLeftNear.z, bottomRightNear.z));
+  auto froxelAABBMax = glm::vec3(glm::max(bottomRightNear.x, bottomRightFar.x),
+                                 glm::max(topLeftNear.y, topLeftFar.y),
+                                 glm::max(topLeftNear.z, bottomRightNear.z));
+
   auto sphereAABBMin = center - glm::vec3(radius);
   auto sphereAABBMax = center + glm::vec3(radius);
 
