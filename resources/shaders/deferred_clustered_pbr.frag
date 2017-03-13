@@ -139,8 +139,11 @@ void main() {
   vec3 V = normalize(E - P);
 
   uint mask_lights = 0;
-  // iterate over all depth slices of the light grid and write all relevant
-  // light indices into the mask
+  // iterate over all depth slices of the light grid and and collect light
+  // indices of each cluster to the mask
+  // TODO: this guarantees that every relevant light is used but of course
+  // leads to bad performance; only the one relevant cluster's lights should
+  // be used here based on the depth of the current fragment
   for (uint slice = 0; slice < lightGridSize.z; ++slice) {
     ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
                              frag_positionNdc.y * lightGridSize.y,
