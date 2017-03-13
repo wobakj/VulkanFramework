@@ -61,6 +61,9 @@ GraphicsPipelineInfo::GraphicsPipelineInfo(GraphicsPipelineInfo&& rhs)
 
 GraphicsPipelineInfo& GraphicsPipelineInfo::operator=(GraphicsPipelineInfo const& rhs) {
   info.layout = rhs.info.layout;
+  // copy spec infos before stages are updated
+  // because stage update sets pointer to spec infos
+  m_spec_infos = rhs.m_spec_infos;
   setShaderStages(rhs.info_stages);
 
   setVertexBindings(rhs.info_bindings);
@@ -84,6 +87,7 @@ GraphicsPipelineInfo& GraphicsPipelineInfo::operator=(GraphicsPipelineInfo const
   if (rhs.info.basePipelineHandle) {
     setRoot(rhs.info.basePipelineHandle);
   }
+
   return *this;
 }
 
@@ -94,6 +98,25 @@ GraphicsPipelineInfo& GraphicsPipelineInfo::operator=(GraphicsPipelineInfo&& rhs
 void GraphicsPipelineInfo::setShader(Shader const& shader) {
   info.layout = shader.get();
   setShaderStages(shader.shaderStages());
+  for(auto& info_stage : info_stages) {
+    auto iter = m_spec_infos.find(info_stage.stage);
+    if (iter == m_spec_infos.end()) {
+      m_spec_infos.emplace(info_stage.stage, SpecInfo{});
+    }
+    info_stage.pSpecializationInfo = &m_spec_infos.at(info_stage.stage).get();
+  }
+  for (auto const& stage_spec : m_spec_infos) {
+    bool found = false;
+    for(auto const& info_stage : info_stages) {
+      if (info_stage.stage == stage_spec.first) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      throw std::runtime_error{"spec constant exists for missing shader stage '" + to_string(stage_spec.first) + "'"};
+    }
+  }
 }
 
 void GraphicsPipelineInfo::setVertexInput(Geometry const& model) {
