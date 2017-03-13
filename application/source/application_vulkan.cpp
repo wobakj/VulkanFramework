@@ -104,9 +104,9 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer").bindPipeline(m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // glm::fvec3 test{0.0f, 1.0f, 0.0f};
-  // res.command_buffers.at("gbuffer")->pushConstants(m_pipelines.at("scene").layout(), vk::ShaderStageFlagBits::eFragment, 0, sizeof(test), &test);
+  // res.command_buffers.at("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
   // choose between sphere and house
@@ -120,7 +120,7 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer").bindGeometry(*model);
 
-  res.command_buffers.at("gbuffer")->drawIndexed(model->numIndices(), 1, 0, 0, 0);
+  res.command_buffers.at("gbuffer").draw();
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -135,7 +135,7 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("lighting").bindGeometry(m_model);
 
-  res.command_buffers.at("lighting")->drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
+  res.command_buffers.at("lighting").draw(NUM_LIGHTS);
 
   res.command_buffers.at("lighting").end();
 }
@@ -227,7 +227,7 @@ void ApplicationVulkan::createPipelines() {
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  // colorBlendAttachment2.blendEnable = VK_TRUE;
+  colorBlendAttachment2.blendEnable = VK_TRUE;
   colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
   colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
   colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
@@ -280,7 +280,8 @@ void ApplicationVulkan::createLights() {
     light_t light;
     light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
-    light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f * 100.0f;
+    // light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f * 100.0f;
+    light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     buff_l.lights[i] = light;
   }
   m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
@@ -367,6 +368,7 @@ void ApplicationVulkan::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationVulkan::updateView() {
   UniformBufferObject ubo{};
+  // ubo.model = glm::fmat4{};
   ubo.model = glm::scale(glm::fmat4{}, glm::fvec3{0.001f});
   ubo.view = m_camera.viewMatrix();
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);

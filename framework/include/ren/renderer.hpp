@@ -11,6 +11,7 @@ class GeometryDatabase;
 class MaterialDatabase;
 class ModelDatabase;
 class TransformDatabase;
+class CommandBuffer;
 
 class Renderer {
  public:  
@@ -23,7 +24,7 @@ class Renderer {
   Renderer& operator=(Renderer&& dev);
 
   void swap(Renderer& dev);
-  void draw(std::vector<Node const*> const& nodes);
+  void draw(CommandBuffer& buffer, std::vector<Node const*> const& nodes);
 
  private:
   GeometryDatabase* m_database_geo;

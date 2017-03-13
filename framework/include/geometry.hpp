@@ -27,12 +27,13 @@ class Geometry {
   BufferView const& vertices() const;
   BufferView const& indices() const;
 
-  vk::DeviceSize indexOffset() const;
   vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::vector<vk::VertexInputBindingDescription> const& bindInfos() const;
   std::vector<vk::VertexInputAttributeDescription> const& attributeInfos() const;
-  std::uint32_t numIndices() const;
-  std::uint32_t numVertices() const;
+  uint32_t numIndices() const;
+  uint32_t numVertices() const;
+  uint32_t indexOffset() const;
+  uint32_t vertexOffset() const;
 
  private:
   vertex_data m_model;

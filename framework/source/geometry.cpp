@@ -87,7 +87,6 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
 
   std::swap(m_allocator, dev.m_allocator);
   std::swap(m_buffer, dev.m_buffer);
-  std::swap(m_view_vertices, dev.m_view_vertices);
   m_buffer.setAllocator(m_allocator);
   dev.m_buffer.setAllocator(dev.m_allocator);
 
@@ -124,14 +123,19 @@ vk::PipelineVertexInputStateCreateInfo Geometry::inputInfo() const {
   return vertexInputInfo;
 }
 
-std::uint32_t Geometry::numIndices() const {
-  return std::uint32_t(m_model.indices.size());
+uint32_t Geometry::numIndices() const {
+  return uint32_t(m_model.indices.size());
 }
 
-std::uint32_t Geometry::numVertices() const {
+uint32_t Geometry::numVertices() const {
   return m_model.vertex_num;
 }
+// for drawing from shared index buffer
+uint32_t Geometry::indexOffset() const {
+  return 0;
+}
 
-vk::DeviceSize Geometry::indexOffset() const {
-  return m_view_indices.offset();
+// for drawing from shared vertex buffer
+uint32_t Geometry::vertexOffset() const {
+  return 0;
 }

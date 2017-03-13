@@ -56,6 +56,7 @@ void CommandBuffer::swap(CommandBuffer& rhs) {
   WrapperCommandBuffer::swap(rhs);
   std::swap(m_device, rhs.m_device);
   std::swap(m_recording, rhs.m_recording);
+  std::swap(m_session, rhs.m_session);
 
   assert(!m_device || m_object);
   assert(!rhs.m_device || rhs.m_object);
@@ -64,6 +65,8 @@ void CommandBuffer::swap(CommandBuffer& rhs) {
 void CommandBuffer::bindPipeline(Pipeline const& pipeline) {
   assert(m_recording);
   m_object.bindPipeline(pipeline.bindPoint(), pipeline);
+  m_session.pipe_layout = pipeline.layout();
+  m_session.bind_point = pipeline.bindPoint();
 }
 
 void CommandBuffer::bindGeometry(Geometry const& geometry) {
@@ -72,6 +75,25 @@ void CommandBuffer::bindGeometry(Geometry const& geometry) {
   if (geometry.numIndices() > 0) {
     get().bindIndexBuffer(geometry.indices().buffer(), geometry.indices().offset(), vk::IndexType::eUint32);
   }
+
+  m_session.geometry = &geometry;
+}
+
+void CommandBuffer::draw(uint32_t instanceCount, uint32_t firstInstance) {
+  if (m_session.geometry->numIndices() > 0) {
+    get().drawIndexed(m_session.geometry->numIndices(), instanceCount, m_session.geometry->indexOffset(), m_session.geometry->vertexOffset(), firstInstance);
+  }
+  else {
+    get().draw(m_session.geometry->numVertices(), instanceCount, m_session.geometry->vertexOffset(), firstInstance);
+  }
+}
+
+void CommandBuffer::pushConstants(vk::ShaderStageFlags stage, uint32_t offset, uint32_t size, const void* pValues) {
+  get().pushConstants(m_session.pipe_layout, stage, offset, size, pValues);
+}
+
+void CommandBuffer::bindDescriptorSets(uint32_t first_set, vk::ArrayProxy<const vk::DescriptorSet> sets, vk::ArrayProxy<const uint32_t> dynamic_offsets) {
+  get().bindDescriptorSets(m_session.bind_point, m_session.pipe_layout, first_set, sets, dynamic_offsets);
 }
 
 void CommandBuffer::begin(vk::CommandBufferBeginInfo const& info) {
@@ -82,4 +104,5 @@ void CommandBuffer::begin(vk::CommandBufferBeginInfo const& info) {
 void CommandBuffer::end() {
   get().end();
   m_recording = false;
+  m_session = session_t{};
 }
