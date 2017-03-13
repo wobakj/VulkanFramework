@@ -3,6 +3,7 @@
 
 #include "ren/database.hpp"
 #include "ren/material.hpp"
+#include "ren/texture_database.hpp"
 
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"
@@ -31,12 +32,16 @@ class MaterialDatabase : public Database<material_t> {
   Buffer const& buffer() const {
     return m_buffer;
   }
+  TextureDatabase const& dbDiffuse() const {
+    return m_db_texture;
+  }
 
  private:
   std::map<std::string, size_t> m_indices;
 
   StaticAllocator m_allocator;
   Buffer m_buffer;
+  TextureDatabase m_db_texture;
 };
 
 #endif

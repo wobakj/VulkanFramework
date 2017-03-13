@@ -7,11 +7,16 @@ layout(location = 2) in vec2 frag_Texcoord;
 
 struct material_t {
   vec4 diffuse;
+  vec3 pad;
+  uint index_texture;
 };
 
 layout(set = 2, binding = 0) buffer Materials {
   material_t[] materials;
 };
+
+layout(set = 2, binding = 1) uniform sampler2D diffuseSampler[24];
+
 
 layout(push_constant) uniform PushFragment {
   layout(offset = 4) uint index;
@@ -22,7 +27,12 @@ layout(location = 1) out vec4 out_Position;
 layout(location = 2) out vec4 out_Normal;
 
 void main() {
-  out_Color = vec4(materials[material.index].diffuse.rgb, 0.5);
+  uint index_texture = materials[material.index].index_texture;
+  out_Color = texture(diffuseSampler[index_texture], frag_Texcoord);
+  if (out_Color.a == 0.0) {
+    discard;
+  }
+  // out_Color = vec4(materials[material.index].diffuse.rgb, 0.5);
   out_Position = vec4(frag_Position, 1.0);
   out_Normal = vec4(frag_Normal, 0.0);
 }
