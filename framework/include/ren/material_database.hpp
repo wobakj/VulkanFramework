@@ -34,7 +34,6 @@ class MaterialDatabase : public Database<material_t> {
 
  private:
   std::map<std::string, size_t> m_indices;
-  std::vector<BufferView> m_views;
 
   StaticAllocator m_allocator;
   Buffer m_buffer;

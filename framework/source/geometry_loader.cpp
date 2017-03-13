@@ -66,18 +66,23 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
 
   std::vector<vertex_data> geometries{};
   std::vector<material_t> materials{};
-  for (auto const& obj_mat : obj_materials) {
-    materials.emplace_back(glm::fvec3{obj_mat.diffuse[0], obj_mat.diffuse[1], obj_mat.diffuse[2]}, obj_mat.diffuse_texname);
-  }
+  // for (auto const& obj_mat : obj_materials) {
+  // }
 
-  // if (obj_materials.empty()) {
+  if (obj_materials.empty()) {
     geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -1)));
-  // }
-  // else {
-  //   for (size_t i = 0; i < obj_materials.size(); ++i) {
-  //     geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, int(i))));
-  //   }
-  // }
+  }
+  else {
+    for (size_t i = 0; i < obj_materials.size(); ++i) {
+      auto vert_data = obj(attribs, shapes, import_attribs, int(i));
+      if (vert_data.data.empty()) {
+        std::cerr << "tinyobjloader: no triangles correspoding to material '" << obj_materials[i].name << "', skipping" << std::endl;
+        continue;
+      }
+      geometries.emplace_back(std::move(vert_data));
+      materials.emplace_back(glm::fvec3{obj_materials[i].diffuse[0], obj_materials[i].diffuse[1], obj_materials[i].diffuse[2]}, obj_materials[i].diffuse_texname);
+    }
+  }
   return make_pair(std::move(geometries), std::move(materials));
 }
 

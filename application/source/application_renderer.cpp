@@ -89,6 +89,7 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
   std::vector<Node const*> nodes{};
+  nodes.emplace_back(&m_nodes.at("sponza"));
   nodes.emplace_back(&m_nodes.at("sphere"));
   nodes.emplace_back(&m_nodes.at("sphere2"));
   m_renderer.draw(res.command_buffers.at("gbuffer"), nodes);
@@ -234,15 +235,14 @@ void ApplicationRenderer::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 
-  // std::string model_path{m_resource_path + "models/sponza.obj"};
-  // m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
-  // m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.001f}));
-  // m_nodes.emplace("sponza", Node{model_path, model_path});
+  std::string model_path{m_resource_path + "models/sponza.obj"};
+  m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
+  m_nodes.emplace("sponza", Node{model_path, model_path});
 
   auto model_path2 = m_resource_path + "models/sphere.obj";
   m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_instance.dbTransform().store(model_path2, glm::fmat4{1.0f});
-  // std::cout << to_string(m_instance.dbTransform().get(model_path)) << std::endl;
   m_nodes.emplace("sphere", Node{model_path2, model_path2});
 
   m_instance.dbTransform().store("test2", glm::translate(glm::fmat4{1.0f}, glm::fvec3{2.0f, 0.0f, 0.0f}));

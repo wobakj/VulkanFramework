@@ -35,11 +35,9 @@ MaterialDatabase& MaterialDatabase::operator=(MaterialDatabase&& rhs) {
 
 void MaterialDatabase::store(std::string const& name, material_t&& resource) {
   gpu_mat_t gpu_mat{resource.vec_diffuse, 0};
-  m_indices.emplace(name, m_views.size());
+  m_indices.emplace(name, m_indices.size());
   // storge gpu representation
-  m_views.emplace_back(sizeof(gpu_mat_t), vk::BufferUsageFlagBits::eStorageBuffer);
-  m_views.back().bindTo(m_buffer);
-  m_transferrer->uploadBufferData(&gpu_mat, m_views.back());
+  m_transferrer->uploadBufferData(&gpu_mat, SIZE_RESOURCE, m_buffer, (m_indices.size() - 1) * SIZE_RESOURCE);
 
   // store cpu representation
   Database::store(name, std::move(resource));
@@ -52,7 +50,6 @@ size_t MaterialDatabase::index(std::string const& name) const {
 void MaterialDatabase::swap(MaterialDatabase& rhs) {
   Database::swap(rhs);
   std::swap(m_indices, rhs.m_indices);
-  std::swap(m_views, rhs.m_views);
   std::swap(m_allocator, rhs.m_allocator);
   std::swap(m_buffer, rhs.m_buffer);
 }

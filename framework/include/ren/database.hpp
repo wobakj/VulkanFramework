@@ -36,9 +36,14 @@ class Database {
   BlockAllocator m_allocator;
 
   std::map<std::string, T> m_resources;
+
+  const static size_t SIZE_RESOURCE;
 };
 
 #include "transferrer.hpp"
+
+template<typename T>
+const size_t Database<T>::SIZE_RESOURCE = sizeof(T);
 
 template<typename T>
 Database<T>::Database()

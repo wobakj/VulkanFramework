@@ -7,7 +7,6 @@
 
 #include <utility>
 
-const static size_t SIZE_MATRIX = sizeof(glm::fmat4);
 
 TransformDatabase::TransformDatabase()
  :Database{}
@@ -66,13 +65,13 @@ void TransformDatabase::swap(TransformDatabase& rhs) {
 }
 
 glm::fmat4 const& TransformDatabase::get(std::string const& name) {
-  return *reinterpret_cast<glm::fmat4 const*>(m_ptr_mem_stage + index(name) * SIZE_MATRIX);
+  return *reinterpret_cast<glm::fmat4 const*>(m_ptr_mem_stage + index(name) * SIZE_RESOURCE);
 }
 
 void TransformDatabase::set(std::string const& name, glm::fmat4 const& mat) {
   auto const& index_transform = index(name);
   m_dirties.emplace_back(index_transform);
-  std::memcpy(m_ptr_mem_stage + SIZE_MATRIX * index_transform, &mat, SIZE_MATRIX);
+  std::memcpy(m_ptr_mem_stage + SIZE_RESOURCE * index_transform, &mat, SIZE_RESOURCE);
 }
 
 void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
@@ -81,8 +80,8 @@ void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
   std::cout << "updating " << m_dirties.size() << " transforms" << std::endl;
   std::vector<vk::BufferCopy> copy_views{};
   for(auto const& dirty_index : m_dirties) {
-    auto const& offset = dirty_index * SIZE_MATRIX;
-    copy_views.emplace_back(offset, offset, SIZE_MATRIX);
+    auto const& offset = dirty_index * SIZE_RESOURCE;
+    copy_views.emplace_back(offset, offset, SIZE_RESOURCE);
   }
   command_buffer->copyBuffer(m_buffer_stage, m_buffer, copy_views);
   // barrier to make new data visible to vertex shader
