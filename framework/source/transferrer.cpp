@@ -56,7 +56,7 @@ void Transferrer::uploadImageData(void const* data_ptr, Image& image) {
     adjustStagingPool(image.size());
     m_buffer_stage->setData(data_ptr, image.size(), 0);
     transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal);
-    copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height);
+    copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height, image.info().extent.depth);
   }
 
   transitionToLayout(image, prev_layout);
@@ -134,7 +134,7 @@ void Transferrer::copyImage(Image const& srcImage, Image& dstImage, uint32_t wid
 }
 
 
-void Transferrer::copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height) const {
+void Transferrer::copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
   vk::ImageSubresourceLayers subResource{};
   if (is_depth(dstImage.format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
@@ -159,7 +159,7 @@ void Transferrer::copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, ui
   region.imageOffset = vk::Offset3D{0, 0, 0};
   region.imageExtent.width = width;
   region.imageExtent.height = height;
-  region.imageExtent.depth = 1;
+  region.imageExtent.depth = depth;
 
   vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
   commandBuffer.copyBufferToImage(
