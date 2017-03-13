@@ -33,7 +33,7 @@ class Image : public ResourceImage {
   Image& operator=(Image const&) = delete;
   Image& operator=(Image&& dev);
 
-  void layoutTransitionCommand(vk::CommandBuffer& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
+  void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
 
   void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) override;
 

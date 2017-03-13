@@ -81,13 +81,13 @@ void TransformDatabase::set(std::string const& name, glm::fmat4 const& mat) {
 void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
   if (m_dirties.empty()) return;
 
+  std::cout << "updating " << m_dirties.size() << " transforms" << std::endl;
   std::vector<vk::BufferCopy> copy_views{};
   for(auto const& dirty_index : m_dirties) {
     auto const& dirty_view = m_views.at(dirty_index);
     copy_views.emplace_back(dirty_view.offset(), dirty_view.offset(), dirty_view.size());
   }
   command_buffer->copyBuffer(m_buffer_stage, m_buffer, copy_views);
-
   // barrier to make new data visible to vertex shader
   vk::BufferMemoryBarrier barrier{};
   barrier.buffer = m_buffer;
@@ -104,4 +104,6 @@ void TransformDatabase::updateCommand(CommandBuffer& command_buffer) const {
     {barrier},
     {}
   );
+
+  m_dirties.clear();
 }

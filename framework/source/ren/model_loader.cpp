@@ -41,7 +41,7 @@ Model ModelLoader::load(std::string const& filename, vertex_data::attrib_flag_t 
   for (size_t i = 0; i < vert_datas.size(); ++i) {
     std::string key_geo{filename + '|' + std::to_string(i)};
     m_instance->dbGeometry().store(key_geo, Geometry{m_instance->transferrer(), vert_datas[i]});
-    keys_mat.emplace_back(key_geo);
+    keys_geo.emplace_back(key_geo);
 
     std::string key_mat{filename + '|' + std::to_string(i)};
     m_instance->dbMaterial().store(key_mat, std::move(mat_datas[i]));

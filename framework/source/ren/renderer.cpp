@@ -40,7 +40,6 @@ void Renderer::draw(CommandBuffer& buffer, std::vector<Node const*> const& nodes
   for (auto const& node_ptr : nodes) {
     auto const& model = m_instance->dbModel().get(node_ptr->m_model);
     auto const& index_transform = m_instance->dbTransform().index(node_ptr->m_transform);
-
     for(size_t i = 0; i < model.m_geometries.size(); ++i) {
       auto const& name_geo = model.m_geometries[i];
       auto const& name_mat = model.m_materials[i];
@@ -64,19 +63,23 @@ void Renderer::draw(CommandBuffer& buffer, std::vector<Node const*> const& nodes
       }
     }
   }
+  // assert(0);
   // material doesnt change for some geometries
   for (auto const& material_entry : material_geometries) {
     uint32_t const& material_idx = uint32_t(m_instance->dbMaterial().index(material_entry.first));
-    buffer.pushConstants(vk::ShaderStageFlagBits::eFragment, 0, material_idx);
+    buffer.pushConstants(vk::ShaderStageFlagBits::eFragment, sizeof(uint32_t), material_idx);
+    std::cout << "drawing material " << material_idx << std::endl; 
     // geometry doesnt change for some transforms
     for (auto const& geometry_entry : material_entry.second) {
       auto const& geometry = m_instance->dbGeometry().get(geometry_entry.first);
       buffer.bindGeometry(geometry);
+      std::cout << "drawing geometry " <<geometry_entry.first << std::endl; 
       // transform changes every draw
       for (auto const& transform_entry : geometry_entry.second) {
         uint32_t transform_idx = uint32_t(transform_entry);
-        buffer.pushConstants(vk::ShaderStageFlagBits::eVertex, 0, transform_idx);
+        // buffer.pushConstants(vk::ShaderStageFlagBits::eVertex, 0, transform_idx);
         buffer.drawGeometry();
+        std::cout << "drawing transform " << transform_idx << std::endl; 
       }
     }
   }

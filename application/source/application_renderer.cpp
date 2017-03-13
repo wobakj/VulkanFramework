@@ -8,15 +8,16 @@
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <iostream>
 
 // #define THREADING
 
 struct UniformBufferObject {
-    glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
+    glm::mat4 model;
     glm::mat4 normal;
 };
 
@@ -88,7 +89,7 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
   std::vector<Node const*> nodes{};
-  nodes.emplace_back(&m_nodes.at("sponza"));
+  nodes.emplace_back(&m_nodes.at("sphere"));
   m_renderer.draw(res.command_buffers.at("gbuffer"), nodes);
 
   res.command_buffers.at("gbuffer").end();
@@ -135,7 +136,10 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  // m_images.at("color").layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferSrcOptimal);
+  // res.command_buffers.at("draw")->blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw")->blitImage(m_images.at("normal"), m_images.at("normal").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  // res.command_buffers.at("draw")->blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
@@ -162,7 +166,7 @@ void ApplicationRenderer::createPipelines() {
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+  // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
   info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
@@ -232,15 +236,16 @@ void ApplicationRenderer::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 
-  std::string model_path{"/opt/project_animation/vulkan/assets/sponza/sponza.obj"};
-  m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.001f}));
-  m_nodes.emplace("sponza", Node{model_path, model_path});
+  // std::string model_path{m_resource_path + "models/sponza.obj"};
+  // m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  // m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.001f}));
+  // m_nodes.emplace("sponza", Node{model_path, model_path});
 
-  model_path = m_resource_path + "models/sphere.obj";
-  m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_instance.dbTransform().store(model_path, glm::fmat3{1.0f});
-  m_nodes.emplace("sphere", Node{model_path, model_path});
+  auto model_path2 = m_resource_path + "models/sphere.obj";
+  m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  m_instance.dbTransform().store(model_path2, glm::fmat3{1.0f});
+  // std::cout << to_string(m_instance.dbTransform().get(model_path)) << std::endl;
+  m_nodes.emplace("sphere", Node{model_path2, model_path2});
 }
 
 void ApplicationRenderer::createLights() {
@@ -268,16 +273,18 @@ void ApplicationRenderer::createFramebufferAttachments() {
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
 
-  m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
+  // m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 
   m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_transferrer.transitionToLayout(m_images.at("pos"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("pos"));
 
-  m_images["normal"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
-  m_transferrer.transitionToLayout(m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
+  m_images["normal"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  // m_transferrer.transitionToLayout(m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
+  m_transferrer.transitionToLayout(m_images.at("normal"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("normal"));
 
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};

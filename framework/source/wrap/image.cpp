@@ -297,7 +297,7 @@ void Image::swap(Image& dev) {
   std::swap(m_view, dev.m_view);
  }
 
-void Image::layoutTransitionCommand(vk::CommandBuffer& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) {
+void Image::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) {
   vk::ImageMemoryBarrier barrier{};
   barrier.oldLayout = layout_old;
   barrier.newLayout = layout_new;
