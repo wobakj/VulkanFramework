@@ -33,7 +33,7 @@ class SpecInfo {
   }
 
   SpecInfo& operator=(SpecInfo info) {
-    std::swap(*this, info);
+    swap(info);
     return *this;
   }
 

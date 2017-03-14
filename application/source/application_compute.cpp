@@ -193,7 +193,7 @@ void ApplicationCompute::updateDescriptors() {
   m_images.at("texture").writeToSet(m_descriptor_sets.at("texture"), 0, m_textureSampler.get());
   m_images.at("texture").writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
   
-  m_buffer_views.at("uniforms").writeToSet(m_descriptor_sets.at("storage"), 1, vk::DescriptorType::eUniformBuffer);
+  m_buffers.at("time").writeToSet(m_descriptor_sets.at("storage"), 1, vk::DescriptorType::eUniformBuffer);
 }
 
 void ApplicationCompute::createDescriptorPools() {
@@ -207,16 +207,13 @@ void ApplicationCompute::createDescriptorPools() {
 }
 
 void ApplicationCompute::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
-  
-  m_buffer_views["uniforms"] = BufferView{sizeof(float), vk::BufferUsageFlagBits::eStorageBuffer};
-  m_buffer_views.at("uniforms").bindTo(m_buffers.at("uniforms"));
+  m_buffers["time"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_allocators.at("buffers").allocate(m_buffers.at("time"));
 }
 
 void ApplicationCompute::updateUniformBuffers() {
   float time = float(glfwGetTime()) * 2.0f;
-  m_transferrer.uploadBufferData(&time, m_buffer_views.at("uniforms"));
+  m_transferrer.uploadBufferData(&time, m_buffers.at("time"));
 }
 ///////////////////////////// misc functions ////////////////////////////////
 
