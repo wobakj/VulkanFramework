@@ -253,7 +253,7 @@ void ApplicationClustered::updatePipelines() {
 }
 
 void ApplicationClustered::createVertexBuffer() {
-  vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = model_loader::obj(m_resource_path + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 }
 
@@ -358,7 +358,8 @@ void ApplicationClustered::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationClustered::updateView() {
   UniformBufferObject ubo{};
-  ubo.model = glm::mat4();
+  ubo.model = glm::rotate(glm::scale(glm::mat4(), glm::vec3(0.01f)),
+                          glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
   ubo.view = m_camera.viewMatrix();
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
