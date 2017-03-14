@@ -21,7 +21,7 @@ struct UniformBufferObject {
 
 struct light_t {
   glm::fvec3 position;
-  float pad = 0.0f;
+  float intensity;
   glm::fvec3 color;
   float radius;
 };
@@ -270,7 +270,7 @@ void ApplicationClustered::createLights() {
     buff_l.lights[i].position = lightPositions[i];
     buff_l.lights[i].radius = 7.0f;
     buff_l.lights[i].color = glm::fvec3(0.996, 0.9531, 0.8945);
-    // buff_l.lights[i].intensity = 30.0f;
+    buff_l.lights[i].intensity = 30.0f;
   }
 
   // three lights above the atrium
@@ -281,14 +281,14 @@ void ApplicationClustered::createLights() {
     buff_l.lights[offset + i].radius = 9.0f;
     buff_l.lights[offset + i].color =
         glm::fvec3(0.9803921568627451, 0.8392156862745098, 0.6470588235294118);
-    // buff_l.lights[offset + i].intensity = 80.0f;
+    buff_l.lights[offset + i].intensity = 80.0f;
   }
 
   buff_l.lights[9].position = glm::vec3(-1.0f, 20.0f, 4.0f);
   buff_l.lights[9].radius = 35.0f;
   buff_l.lights[9].color =
       glm::fvec3(0.9803921568627451, 0.8392156862745098, 0.6470588235294118);
-  // buff_l.lights[9].intensity = 50.0f;
+  buff_l.lights[9].intensity = 50.0f;
 }
 
 void ApplicationClustered::createFramebufferAttachments() {
