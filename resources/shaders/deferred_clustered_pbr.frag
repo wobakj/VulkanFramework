@@ -132,23 +132,27 @@ vec3 sRGB_to_linear(vec3 c)
              greaterThanEqual(c, vec3(0.04045)));
 }
 
+const float[16 + 1] depths = float[](0.1, 5.0, 6.8, 9.2, 12.6, 17.1, 23.2, 31.5,
+  42.9, 58.3, 79.2, 108.0, 146.0, 199.0, 271.0, 368.0, 500.0);
+
 void main() {
   vec3 P = subpassLoad(position).xyz;
   vec3 N = normalize(subpassLoad(normal).xyz);
   vec3 E = ubo.eye_world_space.xyz;
   vec3 V = normalize(E - P);
 
+  float depth = (ubo.view * vec4(P, 1.0)).z;
   uint mask_lights = 0;
-  // iterate over all depth slices of the light grid and and collect light
-  // indices of each cluster to the mask
-  // TODO: this guarantees that every relevant light is used but of course
-  // leads to bad performance; only the one relevant cluster's lights should
-  // be used here based on the depth of the current fragment
+  // find the cluster according to the depth of this fragment and store its
+  // lights that are then used for shading this fragment
   for (uint slice = 0; slice < lightGridSize.z; ++slice) {
-    ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
-                             (1.0 - frag_positionNdc.y) * lightGridSize.y,
-                             slice);
-    mask_lights |= texelFetch(volumeLight, cell_index, 0).r;
+    if (depth <= -depths[slice] && depth > -depths[slice + 1]) {
+      ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
+                               (1.0 - frag_positionNdc.y) * lightGridSize.y,
+                               slice);
+      mask_lights = texelFetch(volumeLight, cell_index, 0).r;
+      break;
+    }
   }
 
   for (uint i = 0u; i < Lights.length(); ++i) {
