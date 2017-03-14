@@ -29,6 +29,9 @@ layout(set = 1, binding = 4) uniform usampler3D volumeLight;
 
 layout(set = 1, binding = 3) buffer LightBuffer {
   uvec4 lightGridSize;
+  float near;
+  float far;
+  vec2 pad;
   light_t[] Lights;
 };
 
@@ -132,8 +135,17 @@ vec3 sRGB_to_linear(vec3 c)
              greaterThanEqual(c, vec3(0.04045)));
 }
 
-const float[16 + 1] depths = float[](0.1, 5.0, 6.8, 9.2, 12.6, 17.1, 23.2, 31.5,
-  42.9, 58.3, 79.2, 108.0, 146.0, 199.0, 271.0, 368.0, 500.0);
+// relative depths (regarding depth range: far - near) for the depth slices
+const float[16 + 1] rel_slice_depths = float[](
+  0.0, 0.009801960392078417, 0.013402680536107223, 0.01820364072814563,
+  0.02500500100020004, 0.03400680136027206, 0.04620924184836967,
+  0.0628125625125025, 0.08561712342468493, 0.11642328465693139,
+  0.15823164632926587, 0.21584316863372677, 0.29185837167433487,
+  0.3978795759151831, 0.5419083816763353, 0.7359471894378876, 1.0);
+
+float z_from_slice(uint slice) {
+  return -(near + rel_slice_depths[slice] * (far - near));
+}
 
 void main() {
   vec3 P = subpassLoad(position).xyz;
@@ -146,7 +158,9 @@ void main() {
   // find the cluster according to the depth of this fragment and store its
   // lights that are then used for shading this fragment
   for (uint slice = 0; slice < lightGridSize.z; ++slice) {
-    if (depth <= -depths[slice] && depth > -depths[slice + 1]) {
+    // check if the fragment's depth is in the depth range of the current
+    // fragment
+    if (depth <= z_from_slice(slice) && depth > z_from_slice(slice + 1)) {
       ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
                                (1.0 - frag_positionNdc.y) * lightGridSize.y,
                                slice);
