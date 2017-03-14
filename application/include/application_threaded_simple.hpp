@@ -7,6 +7,7 @@
 #include "geometry.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
+#include "wrap/sampler.hpp"
 
 #include <vector>
 #include <atomic>
@@ -49,7 +50,7 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   FrameBuffer m_framebuffer;
   Geometry m_model;
   Geometry m_model_2;
-  Deleter<VkSampler> m_textureSampler;
+  Sampler m_sampler;
 
   bool m_sphere;
   std::thread m_thread_load;

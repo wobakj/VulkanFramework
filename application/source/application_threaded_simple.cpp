@@ -41,7 +41,6 @@ const uint32_t ApplicationThreadedSimple::imageCount = 3;
 
 ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded{resource_path, device, chain, window, cmd_parse}
- ,m_textureSampler{m_device, vkDestroySampler}
  ,m_sphere{true}
  ,m_model_dirty{false}
 {  
@@ -354,11 +353,11 @@ void ApplicationThreadedSimple::createTextureImage() {
 }
 
 void ApplicationThreadedSimple::createTextureSampler() {
-  m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+  m_sampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
 }
 
 void ApplicationThreadedSimple::updateDescriptors() {
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);

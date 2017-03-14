@@ -7,6 +7,7 @@
 #include "geometry.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
+#include "wrap/sampler.hpp"
 #include "ren/application_instance.hpp"
 #include "ren/model_loader.hpp"
 #include "ren/renderer.hpp"
@@ -49,7 +50,7 @@ class ApplicationRenderer : public ApplicationSingle {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   Geometry m_model;
-  Deleter<VkSampler> m_textureSampler;
+  Sampler m_sampler;
   ApplicationInstance m_instance;
   ModelLoader m_model_loader;
   Renderer m_renderer;

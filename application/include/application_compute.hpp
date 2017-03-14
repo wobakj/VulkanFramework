@@ -12,6 +12,7 @@
 #include "wrap/frame_buffer.hpp"
 #include "wrap/fence.hpp"
 #include "wrap/pipeline.hpp"
+#include "wrap/sampler.hpp"
 
 #include <vector>
 #include <atomic>
@@ -46,7 +47,7 @@ class ApplicationCompute : public ApplicationSingle {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;
-  Deleter<VkSampler> m_textureSampler;
+  Sampler m_sampler;
 };
 
 #endif

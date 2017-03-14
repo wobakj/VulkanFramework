@@ -48,7 +48,6 @@ const uint32_t ApplicationLodSingle::imageCount = 2;
 
 ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_textureSampler{m_device, vkDestroySampler}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
@@ -379,12 +378,12 @@ void ApplicationLodSingle::createTextureImage() {
 }
 
 void ApplicationLodSingle::createTextureSampler() {
-  m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+  m_sampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
 }
 
 void ApplicationLodSingle::updateDescriptors() {
   m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eStorageBuffer);
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_textureSampler.get());
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_sampler.get());
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 }
 

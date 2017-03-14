@@ -11,6 +11,7 @@
 #include "wrap/frame_buffer.hpp"
 #include "wrap/pipeline_info.hpp"
 #include "wrap/pipeline.hpp"
+#include "wrap/sampler.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -62,8 +63,8 @@ class ApplicationClustered : public ApplicationSingle {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   Geometry m_model;
-  Deleter<VkSampler> m_textureSampler;
-  Deleter<VkSampler> m_volumeSampler;
+  Sampler m_sampler;
+  Sampler m_volumeSampler;
   std::thread m_thread_load;
 
   LightGrid m_light_grid;

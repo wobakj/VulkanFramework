@@ -38,7 +38,6 @@ const uint32_t ApplicationRenderer::imageCount = 2;
 
 ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_textureSampler{m_device, vkDestroySampler}
  ,m_instance{m_device, m_command_pools.at("transfer")}
  ,m_model_loader{m_instance}
  ,m_renderer{m_instance}
@@ -307,7 +306,7 @@ void ApplicationRenderer::createTextureImage() {
 }
 
 void ApplicationRenderer::createTextureSampler() {
-  m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+  m_sampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
 }
 
 void ApplicationRenderer::updateDescriptors() {
@@ -321,9 +320,10 @@ void ApplicationRenderer::updateDescriptors() {
   m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().dbDiffuse().writeToSet(m_descriptor_sets.at("material"), 1);
+  m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
 
-  // m_instance.dbTexture().get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
-  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  // m_instance.dbTexture().get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
+  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 }
 
 void ApplicationRenderer::createDescriptorPools() {

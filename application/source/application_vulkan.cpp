@@ -37,7 +37,6 @@ const uint32_t ApplicationVulkan::imageCount = 2;
 
 ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_textureSampler{m_device, vkDestroySampler}
  ,m_model_dirty{false}
  ,m_sphere{true}
  ,m_database_tex{m_transferrer}
@@ -328,7 +327,7 @@ void ApplicationVulkan::createTextureImage() {
 }
 
 void ApplicationVulkan::createTextureSampler() {
-  m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+  m_sampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
 }
 
 void ApplicationVulkan::updateDescriptors() {
@@ -338,8 +337,8 @@ void ApplicationVulkan::updateDescriptors() {
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
-  m_database_tex.get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
-  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_database_tex.get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
+  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 }
 
 void ApplicationVulkan::createDescriptorPools() {

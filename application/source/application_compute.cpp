@@ -20,7 +20,6 @@ const uint32_t ApplicationCompute::imageCount = 2;
 
 ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_textureSampler{m_device, vkDestroySampler}
 {  
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/transfer_frag.spv"}});
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
@@ -186,11 +185,11 @@ void ApplicationCompute::createTextureImages() {
 }
 
 void ApplicationCompute::createTextureSamplers() {
-  m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+  m_sampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
 }
 
 void ApplicationCompute::updateDescriptors() { 
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("texture"), 0, m_textureSampler.get());
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("texture"), 0, m_sampler.get());
   m_images.at("texture").writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
   
   m_buffers.at("time").writeToSet(m_descriptor_sets.at("storage"), 1, vk::DescriptorType::eUniformBuffer);

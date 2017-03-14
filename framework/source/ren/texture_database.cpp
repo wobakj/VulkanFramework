@@ -57,7 +57,8 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) 
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
   descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+  descriptorWrite.descriptorType = vk::DescriptorType::eSampledImage;
+  // descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 
   std::vector<vk::DescriptorImageInfo> image_infos(m_indices.size(), vk::DescriptorImageInfo{}); 
   // TODO: support images with non-continous indices 

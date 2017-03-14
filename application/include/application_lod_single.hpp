@@ -10,6 +10,7 @@
 #include "wrap/memory.hpp"
 #include "wrap/frame_buffer.hpp"
 #include "wrap/fence.hpp"
+#include "wrap/sampler.hpp"
 #include "deleter.hpp"
 #include "frame_resource.hpp"
 #include "semaphore.hpp"
@@ -62,7 +63,7 @@ class ApplicationLodSingle : public ApplicationSingle {
   FrameBuffer m_framebuffer;
   Geometry m_model_light;
   GeometryLod m_model_lod;
-  Deleter<VkSampler> m_textureSampler;
+  Sampler m_sampler;
 
   bool m_setting_wire;
   bool m_setting_transparent;

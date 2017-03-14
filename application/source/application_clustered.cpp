@@ -41,7 +41,6 @@ const uint32_t ApplicationClustered::imageCount = 2;
 
 ApplicationClustered::ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_textureSampler{m_device, vkDestroySampler}
  ,m_light_grid{m_camera.near(), m_camera.far(), m_camera.projectionMatrix(), glm::uvec2(chain.extent().width, chain.extent().height)}
  ,m_data_light_volume(m_light_grid.dimensions().x * m_light_grid.dimensions().y * m_light_grid.dimensions().z, -1)
 {
@@ -304,15 +303,15 @@ void ApplicationClustered::createTextureImages() {
 }
 
 void ApplicationClustered::createTextureSamplers() {
-  m_textureSampler = m_device->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
-  m_volumeSampler = m_device->createSampler({{}, vk::Filter::eNearest, vk::Filter::eNearest});
+  m_sampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
+  m_volumeSampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
 }
 
 void ApplicationClustered::updateDescriptors() {
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
   
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_textureSampler.get());
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
   
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
