@@ -383,7 +383,7 @@ void ApplicationClustered::updateView() {
   ubo.model = glm::rotate(glm::scale(glm::mat4(), glm::vec3(0.01f)),
                           glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
   ubo.view = m_camera.viewMatrix();
-  ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
+  ubo.normal = glm::inverseTranspose(ubo.model);
   ubo.proj = m_camera.projectionMatrix();
   ubo.eye_world_space = glm::vec4(m_camera.position(), 1.0f);
 
