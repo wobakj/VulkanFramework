@@ -25,7 +25,7 @@ struct light_t {
   glm::fvec3 color;
   float radius;
 };
-const std::size_t NUM_LIGHTS = 32;
+const std::size_t NUM_LIGHTS = 10;
 struct BufferLights {
   glm::uvec4 lightGridSize;
   float near;
@@ -258,15 +258,37 @@ void ApplicationClustered::createVertexBuffer() {
 }
 
 void ApplicationClustered::createLights() {
-  std::srand(5);
-  for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
-    light_t light;
-    light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
-    light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
-    light.radius = float(rand()) / float(RAND_MAX) * 10.0f + 10.0f;
-    buff_l.lights[i] = light;
+  // some smaller lights
+  std::vector<glm::vec3> lightPositions = {
+      // wells
+      glm::vec3(-4.5f, 1.0f, -11.0f), glm::vec3(4.5f, 1.0f, -11.0f),
+      glm::vec3(-4.5f, 1.0f, 11.0f), glm::vec3(4.5f, 1.0f, 11.0f),
+      // lions
+      glm::vec3(-0.35f, 2.0f, -11.5f), glm::vec3(-0.35f, 2.0f, 11.5f)};
+
+  for (unsigned int i = 0; i < lightPositions.size(); ++i) {
+    buff_l.lights[i].position = lightPositions[i];
+    buff_l.lights[i].radius = 7.0f;
+    buff_l.lights[i].color = glm::fvec3(0.996, 0.9531, 0.8945);
+    // buff_l.lights[i].intensity = 30.0f;
   }
-  // m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
+
+  // three lights above the atrium
+  auto offset = lightPositions.size();
+  for (unsigned int i = 0; i < 3; ++i) {
+    buff_l.lights[offset + i].position =
+        glm::vec3(-0.35f, 5.5f, -7.0f + 7.0f * i);
+    buff_l.lights[offset + i].radius = 9.0f;
+    buff_l.lights[offset + i].color =
+        glm::fvec3(0.9803921568627451, 0.8392156862745098, 0.6470588235294118);
+    // buff_l.lights[offset + i].intensity = 80.0f;
+  }
+
+  buff_l.lights[9].position = glm::vec3(-1.0f, 20.0f, 4.0f);
+  buff_l.lights[9].radius = 35.0f;
+  buff_l.lights[9].color =
+      glm::fvec3(0.9803921568627451, 0.8392156862745098, 0.6470588235294118);
+  // buff_l.lights[9].intensity = 50.0f;
 }
 
 void ApplicationClustered::createFramebufferAttachments() {
