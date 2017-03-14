@@ -239,7 +239,7 @@ void Transferrer::endSingleTimeCommands() const {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &m_command_buffer_help.get();
 
-  m_device->getQueue("transfer").submit({submitInfo}, VK_NULL_HANDLE);
+  m_device->getQueue("transfer").submit({submitInfo}, nullptr);
   m_device->getQueue("transfer").waitIdle();
   m_command_buffer_help->reset({});
 

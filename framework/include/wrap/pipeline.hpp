@@ -52,7 +52,7 @@ template<typename T>
 PipelineT<T>::PipelineT()
  :WrapperPipeline{}
  ,m_device{nullptr}
- ,m_cache{VK_NULL_HANDLE}
+ ,m_cache{}
 {}
 
 template<typename T>

@@ -61,7 +61,7 @@ class DebugReporter {
  public:
   DebugReporter()
    :m_instance{nullptr}
-   ,m_callback{VK_NULL_HANDLE}
+   ,m_callback()
   {}
 
   void attach(vk::Instance const& inst) {
@@ -93,7 +93,7 @@ class DebugReporter {
   void destroy() { 
     if (m_callback) {
       m_instance->destroyDebugReportCallbackEXT(m_callback);
-      m_callback = VK_NULL_HANDLE;
+      m_callback = vk::DebugReportCallbackEXT{};
     }
   }
 
