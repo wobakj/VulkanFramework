@@ -1,4 +1,4 @@
-#include "ren/transform_database.hpp"
+#include "ren/light_database.hpp"
 
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"
@@ -8,26 +8,26 @@
 #include <utility>
 
 
-TransformDatabase::TransformDatabase()
+LightDatabase::LightDatabase()
  :Database{}
 {}
 
-TransformDatabase::TransformDatabase(TransformDatabase && rhs)
+LightDatabase::LightDatabase(LightDatabase && rhs)
 {
   swap(rhs);
 }
 
-TransformDatabase::TransformDatabase(Device const& device)
+LightDatabase::LightDatabase(Device const& device)
  :Database{}
 {
   m_device = & device;
-  m_buffer = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffer = Buffer{*m_device, sizeof(light_t) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
   auto mem_type = m_device->findMemoryType(m_buffer.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocator = StaticAllocator(*m_device, mem_type, m_buffer.requirements().size);
   m_allocator.allocate(m_buffer);
 
-  m_buffer_stage = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eTransferSrc};
+  m_buffer_stage = Buffer{*m_device, sizeof(light_t) * 100, vk::BufferUsageFlagBits::eTransferSrc};
   mem_type = m_device->findMemoryType(m_buffer_stage.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eHostVisible
                                            | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -37,22 +37,22 @@ TransformDatabase::TransformDatabase(Device const& device)
   m_ptr_mem_stage = static_cast<uint8_t*>(m_buffer_stage.map());
 }
 
-TransformDatabase& TransformDatabase::operator=(TransformDatabase&& rhs) {
+LightDatabase& LightDatabase::operator=(LightDatabase&& rhs) {
   swap(rhs);
   return *this;
 }
 
-void TransformDatabase::store(std::string const& name, glm::fmat4&& resource) {
+void LightDatabase::store(std::string const& name, light_t&& resource) {
   m_indices.emplace(name, m_indices.size());
   // storge gpu representation
   set(name, resource);
 }
 
-size_t TransformDatabase::index(std::string const& name) const {
+size_t LightDatabase::index(std::string const& name) const {
   return m_indices.at(name);
 }
 
-void TransformDatabase::swap(TransformDatabase& rhs) {
+void LightDatabase::swap(LightDatabase& rhs) {
   Database::swap(rhs);
   std::swap(m_indices, rhs.m_indices);
   // std::swap(m_views, rhs.m_views);
@@ -64,17 +64,17 @@ void TransformDatabase::swap(TransformDatabase& rhs) {
   std::swap(m_dirties, rhs.m_dirties);
 }
 
-glm::fmat4 const& TransformDatabase::get(std::string const& name) {
-  return *reinterpret_cast<glm::fmat4 const*>(m_ptr_mem_stage + index(name) * SIZE_RESOURCE);
+light_t const& LightDatabase::get(std::string const& name) {
+  return *reinterpret_cast<light_t const*>(m_ptr_mem_stage + index(name) * SIZE_RESOURCE);
 }
 
-void TransformDatabase::set(std::string const& name, glm::fmat4 const& mat) {
+void LightDatabase::set(std::string const& name, light_t const& mat) {
   auto const& index_transform = index(name);
   m_dirties.emplace_back(index_transform);
   std::memcpy(m_ptr_mem_stage + SIZE_RESOURCE * index_transform, &mat, SIZE_RESOURCE);
 }
 
-void TransformDatabase::updateCommand(CommandBuffer const& command_buffer) const {
+void LightDatabase::updateCommand(CommandBuffer const& command_buffer) const {
   if (m_dirties.empty()) return;
 
   std::vector<vk::BufferCopy> copy_views{};
@@ -93,7 +93,7 @@ void TransformDatabase::updateCommand(CommandBuffer const& command_buffer) const
 
   command_buffer->pipelineBarrier(
     vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eVertexShader,
+    vk::PipelineStageFlagBits::eFragmentShader,
     vk::DependencyFlags{},
     {},
     {barrier},

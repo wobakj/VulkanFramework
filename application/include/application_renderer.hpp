@@ -11,7 +11,7 @@
 #include "ren/application_instance.hpp"
 #include "ren/model_loader.hpp"
 #include "ren/renderer.hpp"
-#include "ren/node.hpp"
+#include "ren/node_model.hpp"
 
 #include <atomic>
 #include <thread>
@@ -54,7 +54,7 @@ class ApplicationRenderer : public ApplicationSingle {
   ApplicationInstance m_instance;
   ModelLoader m_model_loader;
   Renderer m_renderer;
-  std::map<std::string, Node> m_nodes;
+  std::map<std::string, ModelNode> m_nodes;
 };
 
 #endif

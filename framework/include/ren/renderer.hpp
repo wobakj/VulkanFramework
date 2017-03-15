@@ -1,7 +1,7 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "ren/node.hpp"
+#include "ren/node_model.hpp"
 #include "ren/application_instance.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -22,7 +22,7 @@ class Renderer {
   Renderer& operator=(Renderer&& dev);
 
   void swap(Renderer& dev);
-  void draw(CommandBuffer& buffer, std::vector<Node const*> const& nodes);
+  void draw(CommandBuffer& buffer, std::vector<ModelNode const*> const& nodes);
 
  private:
   ApplicationInstance* m_instance;

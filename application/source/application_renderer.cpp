@@ -12,8 +12,6 @@
 
 #include <iostream>
 
-// #define THREADING
-
 struct UniformBufferObject {
     glm::mat4 proj;
     glm::mat4 model;
@@ -21,17 +19,13 @@ struct UniformBufferObject {
     glm::mat4 normal;
 };
 
-struct light_t {
-  glm::fvec3 position;
-  float pad = 0.0f;
-  glm::fvec3 color;
-  float radius;
-};
+// struct light_t {
+//   glm::fvec3 position;
+//   float pad = 0.0f;
+//   glm::fvec3 color;
+//   float radius;
+// };
 const std::size_t NUM_LIGHTS = 60;
-struct BufferLights {
-  light_t lights[NUM_LIGHTS];
-};
-BufferLights buff_l;
 
 // child classes must overwrite
 const uint32_t ApplicationRenderer::imageCount = 2;
@@ -87,7 +81,7 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  std::vector<Node const*> nodes{};
+  std::vector<ModelNode const*> nodes{};
   nodes.emplace_back(&m_nodes.at("sponza"));
   nodes.emplace_back(&m_nodes.at("sphere"));
   nodes.emplace_back(&m_nodes.at("sphere2"));
@@ -240,15 +234,15 @@ void ApplicationRenderer::createVertexBuffer() {
   std::string model_path{m_resource_path + "models/sponza.obj"};
   m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
-  m_nodes.emplace("sponza", Node{model_path, model_path});
+  m_nodes.emplace("sponza", ModelNode{model_path, model_path});
 
   auto model_path2 = m_resource_path + "models/sphere.obj";
   m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_instance.dbTransform().store(model_path2, glm::fmat4{1.0f});
-  m_nodes.emplace("sphere", Node{model_path2, model_path2});
+  m_nodes.emplace("sphere", ModelNode{model_path2, model_path2});
 
   m_instance.dbTransform().store("test2", glm::translate(glm::fmat4{1.0f}, glm::fvec3{2.0f, 0.0f, 0.0f}));
-  m_nodes.emplace("sphere2", Node{model_path2, "test2"});
+  m_nodes.emplace("sphere2", ModelNode{model_path2, "test2"});
 }
 
 void ApplicationRenderer::createLights() {
@@ -259,9 +253,12 @@ void ApplicationRenderer::createLights() {
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
     // light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f * 100.0f;
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
-    buff_l.lights[i] = light;
+    m_instance.dbLight().store(std::to_string(i), std::move(light));
   }
-  m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
+  auto const& command_buffer = m_transferrer.beginSingleTimeCommands();
+  m_instance.dbLight().updateCommand(command_buffer);
+  m_transferrer.endSingleTimeCommands();
+  // m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationRenderer::createFramebufferAttachments() {
@@ -313,7 +310,8 @@ void ApplicationRenderer::updateDescriptors() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
+  // m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
+  m_instance.dbLight().buffer().writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
@@ -341,13 +339,13 @@ void ApplicationRenderer::createDescriptorPools() {
 }
 
 void ApplicationRenderer::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
+  m_buffers["uniforms"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  // m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
 
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
-  m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
+  // m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
   m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 

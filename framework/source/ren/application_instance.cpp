@@ -24,6 +24,7 @@ ApplicationInstance::ApplicationInstance(Device const& device, CommandPool& pool
  ,m_database_model{}
  ,m_database_transform{*m_device}
  ,m_database_texture{*m_transferrer}
+ ,m_database_light{*m_device}
  // ,m_model_loader{m_transferrer}
 {}
 
@@ -40,6 +41,7 @@ void ApplicationInstance::swap(ApplicationInstance& rhs) {
   std::swap(m_database_model, rhs.m_database_model);
   std::swap(m_database_transform, rhs.m_database_transform);
   std::swap(m_database_texture, rhs.m_database_texture);
+  std::swap(m_database_light, rhs.m_database_light);
   // std::swap(m_model_loader, rhs.m_model_loader);
 }
 
@@ -59,5 +61,8 @@ TransformDatabase& ApplicationInstance::dbTransform() {
 	return m_database_transform;
 }
 TextureDatabase& ApplicationInstance::dbTexture() {
-	return m_database_texture;
+  return m_database_texture;
+}
+LightDatabase& ApplicationInstance::dbLight() {
+	return m_database_light;
 }
