@@ -135,7 +135,7 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
   res.command_buffers.at("gbuffer").bindGeometry(m_model);
-  res.command_buffers.at("gbuffer").draw(1);
+  res.command_buffers.at("gbuffer").drawGeometry(1);
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 

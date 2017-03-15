@@ -125,7 +125,7 @@ void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res)
   }
 
   res.command_buffers.at("gbuffer").bindGeometry(*model);
-  res.command_buffers.at("gbuffer").draw(1);
+  res.command_buffers.at("gbuffer").drawGeometry(1);
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -139,7 +139,7 @@ void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res)
   res.command_buffers.at("lighting")->setScissor(0, {m_swap_chain.asRect()});
 
   res.command_buffers.at("lighting").bindGeometry(m_model);
-  res.command_buffers.at("lighting").draw(NUM_LIGHTS);
+  res.command_buffers.at("lighting").drawGeometry(NUM_LIGHTS);
 
   res.command_buffers.at("lighting").end();
 }
