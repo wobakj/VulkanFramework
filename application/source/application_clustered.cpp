@@ -49,6 +49,7 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
  ,m_data_light_volume(m_light_grid.dimensions().x * m_light_grid.dimensions().y * m_light_grid.dimensions().z, -1)
 {
 
+  m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/light_grid_comp.spv"}});
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_world_space_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
@@ -68,6 +69,7 @@ ApplicationClustered::~ApplicationClustered() {
 
 FrameResource ApplicationClustered::createFrameResource() {
   auto res = ApplicationSingle::createFrameResource();
+  res.command_buffers.emplace("compute", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("tonemapping", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
@@ -109,8 +111,8 @@ void ApplicationClustered::updateLightVolume() {
                                y * m_light_grid.dimensions().x + x) = mask;
       }
 
-  m_transferrer.uploadImageData(m_data_light_volume.data(),
-                           m_images.at("light_vol"));
+  // m_transferrer.uploadImageData(m_data_light_volume.data(),
+  //                          m_images.at("light_vol"));
 
   buff_l.lightGridSize = glm::vec4(m_light_grid.dimensions(), 1.0f);
   buff_l.near = m_camera.near();
@@ -122,11 +124,27 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
+
+  // light grid compute
+  res.command_buffers.at("compute")->reset({});
+  res.command_buffers.at("compute")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
+  res.command_buffers.at("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("lightgrid")}, {});
+
+  glm::uvec3 workers{8, 8, 8};
+  res.command_buffers.at("compute")->dispatch(
+      m_light_grid.dimensions().x / workers.x,
+      m_light_grid.dimensions().y / workers.y,
+      m_light_grid.dimensions().z / workers.z);
+
+  res.command_buffers.at("compute")->end();
+
+  // all following passes use the renderpass and framebuffer
   inheritanceInfo.renderPass = m_render_pass;
   inheritanceInfo.framebuffer = m_framebuffer;
-  inheritanceInfo.subpass = 0;
 
   // first pass
+  inheritanceInfo.subpass = 0;
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
@@ -171,6 +189,7 @@ void ApplicationClustered::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->reset({});
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("compute")});
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -277,6 +296,10 @@ void ApplicationClustered::createPipelines() {
   m_pipelines.emplace("scene", GraphicsPipeline{m_device, info_pipe, m_pipeline_cache});
   m_pipelines.emplace("quad", GraphicsPipeline{m_device, info_pipe2, m_pipeline_cache});
   m_pipelines.emplace("tonemapping", GraphicsPipeline{m_device, info_pipe3, m_pipeline_cache});
+
+  ComputePipelineInfo info_pipe_comp;
+  info_pipe_comp.setShader(m_shaders.at("compute"));
+  m_pipeline_compute = ComputePipeline{m_device, info_pipe_comp, m_pipeline_cache};
 }
 
 void ApplicationClustered::updatePipelines() {
@@ -291,6 +314,10 @@ void ApplicationClustered::updatePipelines() {
   auto info_pipe3 = m_pipelines.at("tonemapping").info();
   info_pipe3.setShader(m_shaders.at("tonemapping"));
   m_pipelines.at("tonemapping").recreate(info_pipe3);
+
+  auto info_pipe_comp = m_pipeline_compute.info();
+  info_pipe_comp.setShader(m_shaders.at("compute"));
+  m_pipeline_compute.recreate(info_pipe_comp);
 }
 
 void ApplicationClustered::createVertexBuffer() {
@@ -391,9 +418,11 @@ void ApplicationClustered::createTextureSamplers() {
 void ApplicationClustered::updateDescriptors() {
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
+  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
   
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
+  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
   
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
@@ -407,12 +436,14 @@ void ApplicationClustered::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("simple"), 2);
   info_pool.reserve(m_shaders.at("quad"), 1, 2);
   info_pool.reserve(m_shaders.at("tonemapping"), 1);
+  info_pool.reserve(m_shaders.at("compute"), 1);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
   m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 0);
   m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 1);
   m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("quad"), 1);
   m_descriptor_sets["tonemapping"] = m_descriptor_pool.allocate(m_shaders.at("tonemapping"), 0);
+  m_descriptor_sets["lightgrid"] = m_descriptor_pool.allocate(m_shaders.at("compute"), 0);
 }
 
 void ApplicationClustered::createUniformBuffers() {

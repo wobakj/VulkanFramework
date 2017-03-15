@@ -62,6 +62,7 @@ class ApplicationClustered : public ApplicationSingle {
   // path to the resource folders
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
+  ComputePipeline m_pipeline_compute;
   Geometry m_model;
   Sampler m_sampler;
   Sampler m_volumeSampler;
