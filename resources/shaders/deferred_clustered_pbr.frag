@@ -9,10 +9,10 @@ layout(location = 0) in vec2 frag_positionNdc;
 // fragment output
 layout(location = 0) out vec4 out_Color;
 
-layout(set = 0, binding = 0) buffer MatrixBuffer {
-    mat4 model;
+layout(set = 0, binding = 0) uniform MatrixBuffer {
     mat4 view;
     mat4 proj;
+    mat4 model;
     mat4 normal;
     vec4 eye_world_space;
 } ubo;
