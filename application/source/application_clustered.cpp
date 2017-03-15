@@ -294,7 +294,7 @@ void ApplicationClustered::updatePipelines() {
 }
 
 void ApplicationClustered::createVertexBuffer() {
-  vertex_data tri = model_loader::obj(m_resource_path + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(m_resource_path + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 }
 
