@@ -10,9 +10,9 @@ layout(location = 0) in vec2 frag_positionNdc;
 layout(location = 0) out vec4 out_Color;
 
 layout(set = 0, binding = 0) uniform MatrixBuffer {
-    mat4 model;
     mat4 view;
     mat4 proj;
+    mat4 model;
     mat4 normal;
 } ubo;
 
