@@ -394,9 +394,9 @@ void ApplicationClustered::createFramebufferAttachments() {
   // update light grid so its extent is computed
   m_light_grid.update(m_camera.projectionMatrix(), glm::uvec2(m_swap_chain.extent().width, m_swap_chain.extent().height));
   // light volume
-  m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
-  m_transferrer.transitionToLayout(m_images.at("light_vol"), vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_transferrer.transitionToLayout(m_images.at("light_vol"), vk::ImageLayout::eGeneral);
 }
 
 void ApplicationClustered::createTextureImages() {
