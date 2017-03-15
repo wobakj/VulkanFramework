@@ -39,6 +39,7 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
+  m_instance.dbCamera().store("cam", Camera{45.0f, 10, 10, 0.1f, 500.0f, window});
   createVertexBuffer();
   createUniformBuffers();
   createLights();  
@@ -60,9 +61,12 @@ FrameResource ApplicationRenderer::createFrameResource() {
 }
 
 void ApplicationRenderer::logic() {
-  if (m_camera.changed()) {
-    updateView();
-  }
+  auto cam = m_instance.dbCamera().get("cam");
+  cam.update(1.0f / 60.0f);
+  m_instance.dbCamera().set("cam", std::move(cam));
+  // if (m_camera.changed()) {
+  //   updateView();
+  // }
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
@@ -111,6 +115,7 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // copy transform data
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
+  m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -358,7 +363,7 @@ void ApplicationRenderer::updateView() {
   // ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
 
-  m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
+  // m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

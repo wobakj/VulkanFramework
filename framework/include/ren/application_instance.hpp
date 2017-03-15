@@ -7,7 +7,8 @@
 #include "ren/transform_database.hpp"
 #include "ren/texture_database.hpp"
 #include "ren/light_database.hpp"
-#include "ren/model_loader.hpp"
+#include "ren/database_camera.hpp"
+// #include "ren/model_loader.hpp"
 #include "transferrer.hpp"
 
 #include <memory>
@@ -34,6 +35,7 @@ class ApplicationInstance {
   TransformDatabase& dbTransform();
   TextureDatabase& dbTexture();
   LightDatabase& dbLight();
+  CameraDatabase& dbCamera();
 
  private:
   Device const* m_device;
@@ -44,6 +46,7 @@ class ApplicationInstance {
   TransformDatabase m_database_transform;
   TextureDatabase m_database_texture;
   LightDatabase m_database_light;
+  CameraDatabase m_database_camera;
   // ModelLoader m_model_loader;
 };
 
