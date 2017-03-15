@@ -111,19 +111,17 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("gbuffer")->bindVertexBuffers(0, {m_model.buffer()}, {0});
-  res.command_buffers.at("gbuffer")->bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("gbuffer").bindGeometry(m_model);
+  res.command_buffers.at("gbuffer").draw(1);
 
-  res.command_buffers.at("gbuffer")->drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
-
-  res.command_buffers.at("gbuffer")->end();
+  res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting")->reset({});

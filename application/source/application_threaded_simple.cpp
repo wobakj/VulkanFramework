@@ -109,7 +109,7 @@ void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res)
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
@@ -124,28 +124,24 @@ void ApplicationThreadedSimple::updateResourceCommandBuffers(FrameResource& res)
     model = &m_model_2;
   }
 
-  res.command_buffers.at("gbuffer")->bindVertexBuffers(0, {model->buffer()}, {0});
-  res.command_buffers.at("gbuffer")->bindIndexBuffer(model->buffer(), model->indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("gbuffer").bindGeometry(*model);
+  res.command_buffers.at("gbuffer").draw(1);
 
-  res.command_buffers.at("gbuffer")->drawIndexed(model->numIndices(), 1, 0, 0, 0);
-
-  res.command_buffers.at("gbuffer")->end();
+  res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting")->reset({});
-  res.command_buffers.at("lighting")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights"));
   res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("lighting")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("lighting")->bindVertexBuffers(0, {m_model.buffer()}, {0});
-  res.command_buffers.at("lighting")->bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("lighting").bindGeometry(m_model);
+  res.command_buffers.at("lighting").draw(NUM_LIGHTS);
 
-  res.command_buffers.at("lighting")->drawIndexed(m_model.numIndices(), NUM_LIGHTS, 0, 0, 0);
-
-  res.command_buffers.at("lighting")->end();
+  res.command_buffers.at("lighting").end();
 }
 
 void ApplicationThreadedSimple::recordDrawBuffer(FrameResource& res) {
