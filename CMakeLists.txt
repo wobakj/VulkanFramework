@@ -109,6 +109,10 @@ add_executable(vulkan_renderer application/source/application_renderer.cpp)
 target_link_libraries(vulkan_renderer framework)
 install(TARGETS vulkan_renderer DESTINATION .)
 
+add_executable(vulkan_sdf application/source/application_sdf.cpp)
+target_link_libraries(vulkan_sdf framework)
+install(TARGETS vulkan_sdf DESTINATION .)
+
 # set build type dependent flags
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
