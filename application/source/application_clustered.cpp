@@ -51,7 +51,7 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path, Dev
 
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_world_space_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
-  m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
+  m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -162,7 +162,7 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("tonemapping")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("tonemapping")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("tonemapping")->draw(4, 1, 0, 0);
+  res.command_buffers.at("tonemapping")->draw(3, 1, 0, 0);
 
   res.command_buffers.at("tonemapping")->end();
 }
