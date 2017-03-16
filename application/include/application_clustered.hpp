@@ -54,8 +54,6 @@ class ApplicationClustered : public ApplicationSingle {
   void createDescriptorPools() override;
   void createFramebufferAttachments() override;
 
-  void onResize(std::size_t width, std::size_t height) override;
-
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
 
@@ -69,7 +67,6 @@ class ApplicationClustered : public ApplicationSingle {
   std::thread m_thread_load;
 
   LightGrid m_light_grid;
-  std::vector<uint32_t> m_data_light_volume;
 };
 
 #endif

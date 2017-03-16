@@ -7,5 +7,9 @@ layout(set = 0, binding = 0, r32ui) uniform uimage3D destTexture;
 
 void main() {
   ivec3 storePos = ivec3(gl_GlobalInvocationID.xyz);
-  imageStore(destTexture, storePos, uvec4(0));
+
+  // TODO: insert actual value instead of -1; this value will set all bits and
+  // hence lead to every cluster being marked to overlap all lights which is of
+  // course bad for performance
+  imageStore(destTexture, storePos, uvec4(-1));
 }

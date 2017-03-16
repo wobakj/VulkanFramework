@@ -16,6 +16,7 @@ class LightGrid {
 
   bool update(glm::mat4 const& projection, glm::uvec2 const& resolution);
 
+  glm::uvec3 recomputeDimensions(glm::uvec2 const& resolution);
   glm::uvec3 dimensions() const;
   vk::Extent3D extent() const;
 

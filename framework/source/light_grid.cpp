@@ -6,7 +6,7 @@ LightGrid::LightGrid(float near,
                      glm::uvec2 const& resolution)
     : m_near(near),
       m_far(far),
-      m_tileSize(128, 128),
+      m_tileSize(64, 64),
       m_nearFrustumCornersClipSpace{
           glm::vec4(-1.0f, +1.0f, 0.0f, 1.0f),  // bottom left
           glm::vec4(+1.0f, +1.0f, 0.0f, 1.0f),  // bottom right
@@ -56,6 +56,16 @@ bool LightGrid::update(glm::mat4 const& projection,
     }
 
   return true;
+}
+
+glm::uvec3 LightGrid::recomputeDimensions(glm::uvec2 const& resolution) {
+  m_resolution = resolution;
+
+  m_tileNum.x = (resolution.x + m_tileSize.x - 1) / m_tileSize.x;
+  m_tileNum.y = (resolution.y + m_tileSize.y - 1) / m_tileSize.y;
+  m_tileNum.z = static_cast<unsigned int>(m_depthSlices.size() - 1);
+
+  return m_tileNum;
 }
 
 glm::uvec3 LightGrid::dimensions() const {

@@ -46,7 +46,6 @@ const uint32_t ApplicationClustered::imageCount = 2;
 ApplicationClustered::ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
  ,m_light_grid{m_camera.near(), m_camera.far(), m_camera.projectionMatrix(), glm::uvec2(chain.extent().width, chain.extent().height)}
- ,m_data_light_volume(m_light_grid.dimensions().x * m_light_grid.dimensions().y * m_light_grid.dimensions().z, -1)
 {
 
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/light_grid_comp.spv"}});
@@ -79,41 +78,10 @@ FrameResource ApplicationClustered::createFrameResource() {
 void ApplicationClustered::logic() { 
   if (m_camera.changed()) {
     updateView();
-    updateLightVolume();
   }
 }
 
 void ApplicationClustered::updateLightVolume() {
-  m_data_light_volume.resize(m_light_grid.dimensions().x *
-                             m_light_grid.dimensions().y *
-                             m_light_grid.dimensions().z);
-  // update light colume data
-  for (uint32_t z = 0; z < m_light_grid.dimensions().z; ++z)
-    for (uint32_t x = 0; x < m_light_grid.dimensions().x; ++x)
-      for (uint32_t y = 0; y < m_light_grid.dimensions().y; ++y) {
-        uint32_t mask = 0;
-        for (unsigned int i = 0; i < NUM_LIGHTS; ++i) {
-          auto lightPos = glm::vec4(buff_l.lights[i].position, 1.0f);
-          auto lightPosViewSpaceVec4 = m_camera.viewMatrix() * lightPos;
-          auto lightPosViewSpace =
-              glm::vec3(lightPosViewSpaceVec4) / lightPosViewSpaceVec4.w;
-#if 0
-          if (m_light_grid.pointFroxelDistance(x, y, z, lightPosViewSpace) <
-              buff_l.lights[i].radius)
-#else
-          if (m_light_grid.sphereFroxelAABBTest(x, y, z, lightPosViewSpace,
-                                                buff_l.lights[i].radius))
-#endif
-          mask |= 1 << i;
-        }
-        m_data_light_volume.at(z * m_light_grid.dimensions().y *
-                                   m_light_grid.dimensions().x +
-                               y * m_light_grid.dimensions().x + x) = mask;
-      }
-
-  // m_transferrer.uploadImageData(m_data_light_volume.data(),
-  //                          m_images.at("light_vol"));
-
   buff_l.lightGridSize = glm::vec4(m_light_grid.dimensions(), 1.0f);
   buff_l.near = m_camera.near();
   buff_l.far = m_camera.far();
@@ -133,9 +101,9 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
 
   glm::uvec3 workers{8, 8, 8};
   res.command_buffers.at("compute")->dispatch(
-      m_light_grid.dimensions().x / workers.x,
-      m_light_grid.dimensions().y / workers.y,
-      m_light_grid.dimensions().z / workers.z);
+      (m_light_grid.dimensions().x - 1) / workers.x + 1,
+      (m_light_grid.dimensions().y - 1) / workers.y + 1,
+      (m_light_grid.dimensions().z - 1) / workers.z + 1);
 
   res.command_buffers.at("compute")->end();
 
@@ -357,6 +325,8 @@ void ApplicationClustered::createLights() {
   buff_l.lights[9].color =
       glm::fvec3(0.9803921568627451, 0.8392156862745098, 0.6470588235294118);
   buff_l.lights[9].intensity = 50.0f;
+
+  m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationClustered::createFramebufferAttachments() {
@@ -392,7 +362,10 @@ void ApplicationClustered::createFramebufferAttachments() {
   m_allocators.at("images").allocate(m_images.at("tonemapping_result"));
 
   // update light grid so its extent is computed
-  m_light_grid.update(m_camera.projectionMatrix(), glm::uvec2(m_swap_chain.extent().width, m_swap_chain.extent().height));
+  m_light_grid.recomputeDimensions(
+      glm::uvec2(m_swap_chain.extent().width, m_swap_chain.extent().height));
+  updateLightVolume();
+
   // light volume
   m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
@@ -468,11 +441,6 @@ void ApplicationClustered::updateView() {
   ubo.eye_world_space = glm::vec4(m_camera.position(), 1.0f);
 
   m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
-}
-
-void ApplicationClustered::onResize(std::size_t width, std::size_t height) {
-  // recompute froxels
-  m_light_grid.update(m_camera.projectionMatrix(), glm::uvec2(width, height));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
