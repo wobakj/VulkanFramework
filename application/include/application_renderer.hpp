@@ -31,12 +31,12 @@ class ApplicationRenderer : public ApplicationSingle {
   void updateDescriptors() override;
   
   void createLights();
-  void createUniformBuffers();
+  // void createUniformBuffers();
   void createVertexBuffer();
   void createTextureImage();
   void createTextureSampler();
 
-  void updateView() override;
+  // void updateView() override;
   void createFramebuffers();
   void createRenderPasses();
   void createPipelines();

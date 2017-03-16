@@ -34,7 +34,6 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
 
   m_instance.dbCamera().store("cam", Camera{45.0f, 10, 10, 0.1f, 500.0f, window});
   createVertexBuffer();
-  createUniformBuffers();
   createLights();  
   createTextureImage();
   createTextureSampler();
@@ -54,12 +53,15 @@ FrameResource ApplicationRenderer::createFrameResource() {
 }
 
 void ApplicationRenderer::logic() {
+  static double time_last = glfwGetTime();
+  // calculate delta time
+  double time_current = glfwGetTime();
+  float time_delta = float(time_current - time_last);
+  time_last = time_current;
+
   auto cam = m_instance.dbCamera().get("cam");
-  cam.update(1.0f / 60.0f);
+  cam.update(time_delta);
   m_instance.dbCamera().set("cam", std::move(cam));
-  if (m_camera.changed()) {
-    updateView();
-  }
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
@@ -108,7 +110,7 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // copy transform data
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
-  // m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
+  m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -309,16 +311,12 @@ void ApplicationRenderer::updateDescriptors() {
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
   m_instance.dbLight().buffer().writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
+  m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
+  m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().dbDiffuse().writeToSet(m_descriptor_sets.at("material"), 1);
   m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
-  // m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
-
-  // m_instance.dbTexture().get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
-  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 }
 
 void ApplicationRenderer::createDescriptorPools() {
@@ -333,26 +331,6 @@ void ApplicationRenderer::createDescriptorPools() {
 
   m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
   m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 0);
-}
-
-void ApplicationRenderer::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
-
-  m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
-  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-}
-
-///////////////////////////// update functions ////////////////////////////////
-void ApplicationRenderer::updateView() {
-  UniformBufferObject ubo{};
-  // ubo.model = glm::fmat4{};
-  // ubo.model = glm::scale(glm::fmat4{}, glm::fvec3{0.001f});
-  ubo.view = m_camera.viewMatrix();
-  // ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
-  ubo.proj = m_camera.projectionMatrix();
-
-  m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

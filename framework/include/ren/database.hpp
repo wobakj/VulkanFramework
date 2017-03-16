@@ -99,12 +99,12 @@ void Database<T>::store(std::string const& name, T&& resource) {
 
 template<typename T>
 void Database<T>::set(std::string const& name, T const& resource) {
-  m_resources.emplace(name, resource);  
+  m_resources.at(name) = resource;
 }
 
 template<typename T>
 void Database<T>::set(std::string const& name, T&& resource) {
-  m_resources.emplace(name, std::move(resource));  
+  m_resources.at(name) = std::move(resource);
 }
 
 template<typename T>

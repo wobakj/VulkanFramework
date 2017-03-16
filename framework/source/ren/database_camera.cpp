@@ -23,7 +23,7 @@ CameraDatabase::CameraDatabase(Device const& device)
  :Database{}
 {
   m_device = & device;
-  m_buffer = Buffer{*m_device, sizeof(gpu_camera_t) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffer = Buffer{*m_device, sizeof(gpu_camera_t) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eUniformBuffer};
   auto mem_type = m_device->findMemoryType(m_buffer.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocator = StaticAllocator(*m_device, mem_type, m_buffer.requirements().size);
@@ -47,7 +47,7 @@ CameraDatabase& CameraDatabase::operator=(CameraDatabase&& rhs) {
 void CameraDatabase::store(std::string const& name, Camera&& resource) {
   m_indices.emplace(name, m_indices.size());
   // storge gpu representation
-  set(name, resource);
+  Database::store(name, std::move(resource));
 }
 
 size_t CameraDatabase::index(std::string const& name) const {
@@ -71,13 +71,13 @@ void CameraDatabase::swap(CameraDatabase& rhs) {
 // }
 
 void CameraDatabase::set(std::string const& name, Camera&& cam) {
-  // set cpu camera
-  Database::set(name, std::move(cam));
   // set gpu camera
   gpu_camera_t gpu_cam{cam.viewMatrix(), cam.projectionMatrix()};
   auto const& index_transform = index(name);
   m_dirties.emplace_back(index_transform);
   std::memcpy(m_ptr_mem_stage + sizeof(gpu_camera_t) * index_transform, &gpu_cam, sizeof(gpu_camera_t));
+  // set cpu camera
+  Database::set(name, std::move(cam));
 }
 
 void CameraDatabase::set(std::string const& name, Camera const& cam) {
