@@ -13,11 +13,18 @@
 
 // #define THREADING
 
+struct SDFUniformBufferObject {
+    glm::vec3 res;
+    float time;
+    glm::fmat4 projection;
+    glm::fmat4 view;
+};
+
 struct UniformBufferObject {
-    glm::mat4 view;
-    glm::mat4 proj;
-    glm::mat4 model;
-    glm::mat4 normal;
+    glm::fmat4 view;
+    glm::fmat4 proj;
+    glm::fmat4 model;
+    glm::fmat4 normal;
 };
 
 struct light_t {
@@ -42,12 +49,12 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_database_tex{m_transferrer}
 {
 
-  m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
+  m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/sdf_vert.spv", m_resource_path + "shaders/sdf_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
-  createLights();  
+  createLights();
   createTextureImage();
   createTextureSampler();
 
@@ -336,41 +343,51 @@ void ApplicationVulkan::updateDescriptors() {
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
+  m_buffer_views.at("sdf_uniform").writeToSet(m_descriptor_sets.at("sdf_matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
-  m_database_tex.get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
   // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 }
 
 void ApplicationVulkan::createDescriptorPools() {
   DescriptorPoolInfo info_pool{};
   info_pool.reserve(m_shaders.at("scene"), 2);
-  info_pool.reserve(m_shaders.at("lights"), 1, 2);
+  info_pool.reserve(m_shaders.at("lights"), 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
-  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 1);
+  m_descriptor_sets["sdf_matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 0);
   m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
 }
 
 void ApplicationVulkan::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, (sizeof(SDFUniformBufferObject) + sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
+  m_buffer_views["sdf_uniform"] = BufferView{sizeof(SDFUniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
 
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
+  m_buffer_views.at("sdf_uniform").bindTo(m_buffers.at("uniforms"));
   m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationVulkan::updateView() {
+  SDFUniformBufferObject sdf_ubo{};
+  VkExtent2D extent = m_swap_chain.extent();
+  sdf_ubo.res = glm::vec3(extent.width, extent.height, 1.0);
+  sdf_ubo.time = glfwGetTime();
+  sdf_ubo.projection = m_camera.projectionMatrix();
+  sdf_ubo.view = m_camera.viewMatrix();
+
   UniformBufferObject ubo{};
   ubo.view = m_camera.viewMatrix();
   ubo.proj = m_camera.projectionMatrix();
   ubo.model = glm::fmat4{1.0f};
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
+  m_transferrer.uploadBufferData(&sdf_ubo, m_buffer_views.at("sdf_uniform"));
   m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 }
 

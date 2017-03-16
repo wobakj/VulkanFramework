@@ -145,7 +145,7 @@ void Application::createRenderResources() {
 void Application::createMemoryPools() {
   // find memory type which supports optimal image and specific depth format
   auto type_img = m_device.suitableMemoryType(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  m_allocators.emplace("images", BlockAllocator{m_device, type_img, 4 * 4 * 3840 * 2160});
+  m_allocators.emplace("images", BlockAllocator{m_device, type_img, 133693440});
   // separate allocator for buffers to not deal with buffer-image-granularity
   auto type_buffer = m_device.suitableMemoryType(vk::BufferUsageFlagBits::eStorageBuffer
                                                | vk::BufferUsageFlagBits::eTransferDst 
