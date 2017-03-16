@@ -110,23 +110,13 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer").bindPipeline(m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("sdf_matrix")}, {});
   // glm::fvec3 test{0.0f, 1.0f, 0.0f};
   // res.command_buffers.at("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
-  // choose between sphere and house
-  Geometry const* model = nullptr;
-  if (m_sphere) {
-    model = &m_model;
-  }
-  else {
-    model = &m_model_2;
-  }
 
-  res.command_buffers.at("gbuffer").bindGeometry(*model);
-
-  res.command_buffers.at("gbuffer").drawGeometry();
+  res.command_buffers.at("gbuffer")->draw(3, 1, 0, 0);
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -164,20 +154,20 @@ void ApplicationVulkan::recordDrawBuffer(FrameResource& res) {
   // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
-  blit.srcSubresource = img_to_resource_layer(m_images.at("color_2").info());
+  blit.srcSubresource = img_to_resource_layer(m_images.at("color_shaded").info());
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw")->blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest); // change to color_shaded
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
 }
 
 void ApplicationVulkan::createFramebuffers() {
-  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
+  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_shaded")}, m_render_pass};
 }
 
 void ApplicationVulkan::createRenderPasses() {
@@ -185,7 +175,7 @@ void ApplicationVulkan::createRenderPasses() {
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
   sub_pass_t pass_2({4},{0,1,2}, 3);
-  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
+  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_shaded").info()}, {pass_1, pass_2}};
 }
 
 void ApplicationVulkan::createPipelines() {
@@ -207,7 +197,7 @@ void ApplicationVulkan::createPipelines() {
   info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
   info_pipe.setShader(m_shaders.at("scene"));
-  info_pipe.setVertexInput(m_model);
+  //info_pipe.setVertexInput(m_model);
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
@@ -304,8 +294,8 @@ void ApplicationVulkan::createFramebufferAttachments() {
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
 
-  m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
-  m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
+  m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment |  vk::ImageUsageFlagBits::eTransferSrc};
+  m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 
   m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
@@ -316,9 +306,9 @@ void ApplicationVulkan::createFramebufferAttachments() {
   m_transferrer.transitionToLayout(m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("normal"));
 
-  m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
-  m_transferrer.transitionToLayout(m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
-  m_allocators.at("images").allocate(m_images.at("color_2"));
+  m_images["color_shaded"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_transferrer.transitionToLayout(m_images.at("color_shaded"), vk::ImageLayout::eTransferSrcOptimal);
+  m_allocators.at("images").allocate(m_images.at("color_shaded"));
 }
 
 void ApplicationVulkan::createTextureImage() {

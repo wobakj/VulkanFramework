@@ -350,9 +350,12 @@ Ray getRay(vec3 position)
   return Ray(cam_world, normalize(pos_world - cam_world));
 }
 
+
 // INSANE IN THE MAIN
 void main()
 {
+	outColor = vec4(1.0, 0.0, 0.0, 1.0);
+	return;
   Ray ray = getRay(iPosition);
   vec3 eye = ray.pos.xyz;
   Hit hit = raymarch(ray);
@@ -373,8 +376,7 @@ void main()
   float depth = 1.0 / abs(ray.pos.z);
   depth = (-vec4(ubo.view * ray.pos).z - 0.1) / 99.9;
   gl_FragDepth = depth;
-  outColor = vec4(color, 1.0); //color;
-  outPosition = vec4((ubo.view * hit.pos).xyz, 1.0);
+  outColor = color; //color;
+  outPosition = vec4((ubo.view * ray.pos).xyz, 1.0);
   outNormals = vec4((ubo.view * vec4(n, 0.0)).xyz, 0.0);
-  // }
 }
