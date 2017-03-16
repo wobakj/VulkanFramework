@@ -13,20 +13,13 @@
 #include <iostream>
 
 struct UniformBufferObject {
+    glm::mat4 view;
     glm::mat4 proj;
     glm::mat4 model;
-    glm::mat4 view;
     glm::mat4 normal;
 };
 
-// struct light_t {
-//   glm::fvec3 position;
-//   float pad = 0.0f;
-//   glm::fvec3 color;
-//   float radius;
-// };
 const std::size_t NUM_LIGHTS = 60;
-
 // child classes must overwrite
 const uint32_t ApplicationRenderer::imageCount = 2;
 
@@ -64,9 +57,9 @@ void ApplicationRenderer::logic() {
   auto cam = m_instance.dbCamera().get("cam");
   cam.update(1.0f / 60.0f);
   m_instance.dbCamera().set("cam", std::move(cam));
-  // if (m_camera.changed()) {
-  //   updateView();
-  // }
+  if (m_camera.changed()) {
+    updateView();
+  }
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
@@ -115,7 +108,7 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // copy transform data
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
-  m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
+  // m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -256,14 +249,13 @@ void ApplicationRenderer::createLights() {
     light_t light;
     light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
-    // light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f * 100.0f;
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
     m_instance.dbLight().store(std::to_string(i), std::move(light));
+
   }
   auto const& command_buffer = m_transferrer.beginSingleTimeCommands();
   m_instance.dbLight().updateCommand(command_buffer);
   m_transferrer.endSingleTimeCommands();
-  // m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
 }
 
 void ApplicationRenderer::createFramebufferAttachments() {
@@ -315,7 +307,6 @@ void ApplicationRenderer::updateDescriptors() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
-  // m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
   m_instance.dbLight().buffer().writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
@@ -324,6 +315,7 @@ void ApplicationRenderer::updateDescriptors() {
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().dbDiffuse().writeToSet(m_descriptor_sets.at("material"), 1);
   m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
+  // m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
 
   // m_instance.dbTexture().get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
   // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
@@ -345,12 +337,9 @@ void ApplicationRenderer::createDescriptorPools() {
 
 void ApplicationRenderer::createUniformBuffers() {
   m_buffers["uniforms"] = Buffer{m_device, sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  // m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
 
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
-
-  // m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
   m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 
@@ -363,7 +352,7 @@ void ApplicationRenderer::updateView() {
   // ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
   ubo.proj = m_camera.projectionMatrix();
 
-  // m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
+  m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
