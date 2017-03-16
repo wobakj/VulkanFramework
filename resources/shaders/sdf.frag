@@ -25,6 +25,8 @@ layout(location = 2) in vec3 iResolution;
 layout(location = 3) in float iGlobalTime;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outPosition;
+layout(location = 2) out vec4 outNormals;
 
 #define PI 3.14159265359
 
@@ -309,7 +311,7 @@ vec4 slimshady(vec3 eye, vec3 rdir, vec3 norm, vec3 light, Hit hit) {
   vec4 specular = specularC * spec;
 
   color = ambient + diffuse;
-  return color;
+  return ambient;
 }
 
 
@@ -370,6 +372,9 @@ void main()
   // }
   float depth = 1.0 / abs(ray.pos.z);
   depth = (-vec4(ubo.view * ray.pos).z - 0.1) / 99.9;
-  outColor = vec4(depth.xxx, 1.0); //color;
+  gl_FragDepth = depth;
+  outColor = vec4(color, 1.0); //color;
+  outPosition = vec4((ubo.view * hit.pos).xyz, 1.0);
+  outNormals = vec4((ubo.view * vec4(n, 0.0)).xyz, 0.0);
   // }
 }

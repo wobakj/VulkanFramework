@@ -19,13 +19,16 @@ out gl_PerVertex {
   vec4 gl_Position;
 };
 
+vec2 positions[4] = vec2[](
+  vec2(-1.0, -1.0),
+  vec2(1.0, -1.0),
+  vec2(-1.0, 1.0),
+  vec2(1.0, 1.0)
+);
+
 void main() {
-	fragCoord = vec2(
-		((inPosition.x+1)/2) * (ubo.res.x-1),
-		((inPosition.y+1)/2) * (ubo.res.y-1)
-	);
 	iResolution = ubo.res;
 	iGlobalTime = ubo.time;
-  gl_Position = vec4(inPosition, 1.0);
-	iPosition = inPosition;
+  gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+	iPosition = vec3(positions[gl_VertexIndex], 0.0);
 }
