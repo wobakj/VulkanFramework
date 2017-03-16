@@ -17,9 +17,9 @@ layout(set = 2, binding = 0) buffer Materials {
 
 layout(constant_id = 0) const uint NUM_TEXTURES = 1;
 // const uint bla = 24;
-layout(set = 2, binding = 1) uniform texture2D diffuseTextures[24];
-// layout(set = 2, binding = 1) uniform sampler2D diffuseTextures[24];
-layout(set = 2, binding = 2) uniform sampler diffuseSampler;
+// layout(set = 2, binding = 1) uniform texture2D diffuseTextures[24];
+layout(set = 2, binding = 1) uniform sampler2D diffuseTextures[24];
+// layout(set = 2, binding = 2) uniform sampler diffuseSampler;
 
 layout(push_constant) uniform PushFragment {
   layout(offset = 4) uint index;
@@ -31,8 +31,8 @@ layout(location = 2) out vec4 out_Normal;
 
 void main() {
   uint index_texture = materials[material.index].index_texture;
-  out_Color = texture(sampler2D(diffuseTextures[index_texture], diffuseSampler), frag_Texcoord);
-  // out_Color = texture(diffuseTextures[index_texture], frag_Texcoord);
+  // out_Color = texture(sampler2D(diffuseTextures[index_texture], diffuseSampler), frag_Texcoord);
+  out_Color = texture(diffuseTextures[index_texture], frag_Texcoord);
   if (out_Color.a == 0.0) {
     discard;
   }

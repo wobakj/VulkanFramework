@@ -316,7 +316,7 @@ void ApplicationRenderer::updateDescriptors() {
   m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().dbDiffuse().writeToSet(m_descriptor_sets.at("material"), 1);
-  m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
+  // m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
 }
 
 void ApplicationRenderer::createDescriptorPools() {
