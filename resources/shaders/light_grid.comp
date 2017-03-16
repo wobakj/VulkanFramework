@@ -5,6 +5,21 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(set = 0, binding = 0, r32ui) uniform uimage3D destTexture;
 
+layout(set = 0, binding = 1) uniform LightGridBuffer {
+  uvec2 grid_size;
+  float near;
+  float far;
+  vec3 frustum_corners[4];
+} light_grid;
+
+// relative depths (regarding depth range: far - near) for the depth slices
+const float[16 + 1] rel_slice_depths = float[](
+  0.0, 0.009801960392078417, 0.013402680536107223, 0.01820364072814563,
+  0.02500500100020004, 0.03400680136027206, 0.04620924184836967,
+  0.0628125625125025, 0.08561712342468493, 0.11642328465693139,
+  0.15823164632926587, 0.21584316863372677, 0.29185837167433487,
+  0.3978795759151831, 0.5419083816763353, 0.7359471894378876, 1.0);
+
 void main() {
   ivec3 storePos = ivec3(gl_GlobalInvocationID.xyz);
 

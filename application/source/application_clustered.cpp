@@ -27,13 +27,16 @@ struct light_t {
 };
 const std::size_t NUM_LIGHTS = 10;
 struct BufferLights {
-  glm::uvec4 lightGridSize;
-  float near;
-  float far;
-  glm::vec2 pad;
   light_t lights[NUM_LIGHTS];
 };
 BufferLights buff_l;
+
+struct LightGridBufferObject {
+  glm::uvec2 grid_size;
+  float near;
+  float far;
+  glm::vec3 frustum_corners[4];
+};
 
 
 cmdline::parser ApplicationClustered::getParser() {
@@ -43,11 +46,19 @@ cmdline::parser ApplicationClustered::getParser() {
 // child classes must overwrite
 const uint32_t ApplicationClustered::imageCount = 2;
 
-ApplicationClustered::ApplicationClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_light_grid{m_camera.near(), m_camera.far(), m_camera.projectionMatrix(), glm::uvec2(chain.extent().width, chain.extent().height)}
-{
-
+ApplicationClustered::ApplicationClustered(std::string const& resource_path,
+                                           Device& device,
+                                           SwapChain const& chain,
+                                           GLFWwindow* window,
+                                           cmdline::parser const& cmd_parse)
+    : ApplicationSingle{resource_path, device, chain, window, cmd_parse},
+      m_tileSize{64, 64},
+      m_nearFrustumCornersClipSpace{
+          glm::vec4(-1.0f, +1.0f, 0.0f, 1.0f),  // bottom left
+          glm::vec4(+1.0f, +1.0f, 0.0f, 1.0f),  // bottom right
+          glm::vec4(+1.0f, -1.0f, 0.0f, 1.0f),  // top right
+          glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f)   // top left
+      } {
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/light_grid_comp.spv"}});
   m_shaders.emplace("simple", Shader{m_device, {m_resource_path + "shaders/simple_world_space_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
@@ -81,11 +92,29 @@ void ApplicationClustered::logic() {
   }
 }
 
-void ApplicationClustered::updateLightVolume() {
-  buff_l.lightGridSize = glm::vec4(m_light_grid.dimensions(), 1.0f);
-  buff_l.near = m_camera.near();
-  buff_l.far = m_camera.far();
-  m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
+void ApplicationClustered::updateLightGrid() {
+  LightGridBufferObject lightGridBuff{};
+  // compute number of required screen tiles regarding the tile size and our
+  // current resolution; number of depth slices is constant and needs to be
+  // the same as in the compute shader
+  m_lightGridSize = glm::uvec3{
+      (m_swap_chain.extent().width + m_tileSize.x - 1) / m_tileSize.x,
+      (m_swap_chain.extent().height + m_tileSize.y - 1) / m_tileSize.y, 16};
+  lightGridBuff.grid_size = glm::uvec2{m_lightGridSize.x, m_lightGridSize.y};
+
+  // compute near frustum corners in view space
+  auto invProj = glm::inverse(m_camera.projectionMatrix());
+  for (unsigned int i = 0; i < 4; ++i) {
+    auto corner = invProj * m_nearFrustumCornersClipSpace[i];
+    lightGridBuff.frustum_corners[i] = glm::vec3(corner) / corner.w;
+  }
+
+  // set clipping plane values
+  lightGridBuff.near = m_camera.near();
+  lightGridBuff.far = m_camera.far();
+
+  m_transferrer.uploadBufferData(&lightGridBuff,
+                                 m_buffer_views.at("lightgrid"));
 }
 
 void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
@@ -101,9 +130,9 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
 
   glm::uvec3 workers{8, 8, 8};
   res.command_buffers.at("compute")->dispatch(
-      (m_light_grid.dimensions().x - 1) / workers.x + 1,
-      (m_light_grid.dimensions().y - 1) / workers.y + 1,
-      (m_light_grid.dimensions().z - 1) / workers.z + 1);
+      (m_lightGridSize.x - 1) / workers.x + 1,
+      (m_lightGridSize.y - 1) / workers.y + 1,
+      (m_lightGridSize.z - 1) / workers.z + 1);
 
   res.command_buffers.at("compute")->end();
 
@@ -362,12 +391,13 @@ void ApplicationClustered::createFramebufferAttachments() {
   m_allocators.at("images").allocate(m_images.at("tonemapping_result"));
 
   // update light grid so its extent is computed
-  m_light_grid.recomputeDimensions(
-      glm::uvec2(m_swap_chain.extent().width, m_swap_chain.extent().height));
-  updateLightVolume();
+  updateLightGrid();
+  std::cout << glm::to_string(m_lightGridSize) << std::endl;
+  auto lightVolExtent =
+      vk::Extent3D{m_lightGridSize.x, m_lightGridSize.y, m_lightGridSize.z};
 
   // light volume
-  m_images["light_vol"] = Image{m_device, m_light_grid.extent(), vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
+  m_images["light_vol"] = Image{m_device, lightVolExtent, vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
   m_transferrer.transitionToLayout(m_images.at("light_vol"), vk::ImageLayout::eGeneral);
 }
@@ -389,9 +419,11 @@ void ApplicationClustered::createTextureSamplers() {
 }
 
 void ApplicationClustered::updateDescriptors() {
+  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
+  m_buffer_views.at("lightgrid").writeToSet(m_descriptor_sets.at("lightgrid"), 1, vk::DescriptorType::eUniformBuffer);
+
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
-  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
   
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
@@ -420,12 +452,15 @@ void ApplicationClustered::createDescriptorPools() {
 }
 
 void ApplicationClustered::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights) + sizeof(LightGridBufferObject)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
   m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
+  m_buffer_views["lightgrid"] = BufferView{
+      sizeof(LightGridBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
 
   m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
 
+  m_buffer_views.at("lightgrid").bindTo(m_buffers.at("uniforms"));
   m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
   m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }

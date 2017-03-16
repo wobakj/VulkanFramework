@@ -4,7 +4,6 @@
 #include "app/application_single.hpp"
 
 #include "deleter.hpp"
-#include "light_grid.hpp"
 #include "frame_resource.hpp"
 #include "geometry.hpp"
 #include "wrap/render_pass.hpp"
@@ -44,7 +43,7 @@ class ApplicationClustered : public ApplicationSingle {
   void createTextureImages();
   void createTextureSamplers();
 
-  void updateLightVolume();
+  void updateLightGrid();
 
   void updateView() override;
 
@@ -66,7 +65,10 @@ class ApplicationClustered : public ApplicationSingle {
   Sampler m_volumeSampler;
   std::thread m_thread_load;
 
-  LightGrid m_light_grid;
+  // required for light culling
+  glm::uvec3 m_lightGridSize;
+  glm::uvec2 m_tileSize;
+  std::array<glm::vec4, 4> m_nearFrustumCornersClipSpace;
 };
 
 #endif
