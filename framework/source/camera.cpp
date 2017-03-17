@@ -96,7 +96,7 @@ float Camera::far() const {
   return z_far_;
 }
 
-Frustum const& Camera::frustum() const {
+Frustum2 const& Camera::frustum() const {
   return m_frustum;
 }
 

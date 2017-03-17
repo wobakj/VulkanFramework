@@ -118,6 +118,7 @@ install(TARGETS vulkan_renderer DESTINATION .)
 # set build type dependent flags
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fstack-protector-all")
 elseif(MSVC)
 	set(CMAKE_CXX_FLAGS_RELEASE "/MD /O2")
 	set(CMAKE_CXX_FLAGS_DEBUG "/MDd /Zi")

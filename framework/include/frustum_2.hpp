@@ -1,5 +1,5 @@
-#ifndef FRUSTUM_HPP
-#define FRUSTUM_HPP
+#ifndef FRUSTUM_2_HPP
+#define FRUSTUM_2_HPP
 /*
 * View frustum culling class
 *
@@ -14,7 +14,7 @@
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtx/intersect.hpp>
 
-class Frustum
+class Frustum2
 {
  public:
 	void update(glm::fmat4 const& matrix)
