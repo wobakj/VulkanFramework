@@ -1,28 +1,15 @@
-#ifndef NODE_TRANSFORM_HPP
-#define NODE_TRANSFORM_HPP
+#ifndef NODETRANSFORM_HPP
+#define NODETRANSFORM_HPP
 
-#include <string>
+#include "node.hpp"
 
-// class Device;
-// class Transferrer;
+class TransformNode : public Node
+{
+public:
+	TransformNode();
+	TransformNode(std::string const& name, glm::mat4 const& transf);
 
-class TransformNode {
- public:  
-  TransformNode();
-  TransformNode(std::string const& transform);
-  TransformNode(TransformNode && dev);
-  TransformNode(TransformNode const&) = delete;
-  ~TransformNode(){};
-
-  TransformNode& operator=(TransformNode const&) = delete;
-  TransformNode& operator=(TransformNode&& dev);
-
-  void swap(TransformNode& dev);
-
- protected:
-  std::string m_transform;
-
-  friend class Renderer;
+	void accept(NodeVisitor &v) override;
 };
 
 #endif

@@ -20,7 +20,7 @@ void BboxVisitor::visit(Node * node)
 {
 }
 
-void BboxVisitor::visit(GeometryNode * node)
+void BboxVisitor::visit(ModelNode * node)
 {
 	auto currmin = node->getBox().getMin();
 	auto currmax = node->getBox().getMax(); 

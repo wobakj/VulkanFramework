@@ -1,9 +1,9 @@
 #include "scenegraph.hpp"
 
-#include "node_transform.hpp"
-#include "node_geometry.hpp"
+#include "node/node_transform.hpp"
+#include "node/node_model.hpp"
 // #include "geometry.hpp"
-#include "node_camera.hpp"
+#include "node/node_camera.hpp"
 #include "visit/visitor_node.hpp"
 #include "ren/application_instance.hpp"
 
@@ -24,7 +24,7 @@ std::unique_ptr<Node> Scenegraph::createGeometryNode(std::string const& name, st
   m_model_loader.store(path, vertex_data::NORMAL | vertex_data::TEXCOORD);
   std::string name_transform{path + "|" + name};
   m_instance->dbTransform().store(name_transform, glm::fmat4{1.0f});
-  return std::unique_ptr<Node>(new GeometryNode{name, path, name_transform});
+  return std::unique_ptr<Node>(new ModelNode{name, path, name_transform});
 }
 
 void Scenegraph::removeNode(std::unique_ptr<Node> n)

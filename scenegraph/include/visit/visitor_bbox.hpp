@@ -5,10 +5,10 @@
 
 #include "visit/visitor_node.hpp"
 #include "bbox.hpp"
-#include "node_geometry.hpp"
-#include "node_light.hpp"
-#include "node_screen.hpp"
-#include "node_camera.hpp"
+#include "node/node_model.hpp"
+#include "node/node_light.hpp"
+#include "node/node_screen.hpp"
+#include "node/node_camera.hpp"
 #include "frustum.hpp"
 
 class BboxVisitor : public NodeVisitor
@@ -20,7 +20,7 @@ public:
 	Bbox const& getBox() const;
 
 	void visit(Node* node) override;
-	void visit(GeometryNode* node) override;
+	void visit(ModelNode* node) override;
 	void visit(CameraNode* node) override;
 	void visit(LightNode* node) override;
 	void visit(ScreenNode* node) override;

@@ -1,28 +1,18 @@
 #include "node/node_transform.hpp"
 
-// #include "wrap/device.hpp"
-// #include "transferrer.hpp"
 
-// #include <iostream>
 
-TransformNode::TransformNode()
-{}
-
-TransformNode::TransformNode(TransformNode && rhs)
- :TransformNode{}
+TransformNode::TransformNode() : Node()
 {
-  swap(rhs);
 }
 
-TransformNode::TransformNode(std::string const& transform)
- :m_transform{transform}
-{}
-
-TransformNode& TransformNode::operator=(TransformNode&& rhs) {
-  swap(rhs);
-  return *this;
+TransformNode::TransformNode(std::string const & name, glm::mat4 const & transf) : Node(name, transf)
+{
 }
 
-void TransformNode::swap(TransformNode& rhs) {
-  std::swap(m_transform, rhs.m_transform);
+
+void TransformNode::accept(NodeVisitor & v)
+{
+	v.visit(this);
 }
+

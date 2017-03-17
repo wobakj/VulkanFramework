@@ -2,7 +2,7 @@
 #define VISITOR_NODE_HPP
 
 class Node;
-class GeometryNode;
+class ModelNode;
 class CameraNode;
 class LightNode;
 class ScreenNode;
@@ -13,7 +13,7 @@ public:
 	NodeVisitor() {};
 
 	virtual void visit(Node* node) = 0;
-	virtual void visit(GeometryNode* node) = 0;
+	virtual void visit(ModelNode* node) = 0;
 	virtual void visit(CameraNode* node) = 0;
 	virtual void visit(LightNode* node) = 0;
 	virtual void visit(ScreenNode* node) = 0;

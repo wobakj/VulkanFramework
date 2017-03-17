@@ -1,4 +1,4 @@
-#include "node.hpp"
+#include "node/node.hpp"
 #include "hit.hpp"
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>

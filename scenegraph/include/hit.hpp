@@ -1,7 +1,7 @@
 #ifndef HIT_HPP
 #define HIT_HPP
 
-#include "node.hpp"
+#include "node/node.hpp"
 
 class Hit
 {

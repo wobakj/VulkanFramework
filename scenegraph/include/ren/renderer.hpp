@@ -1,14 +1,13 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "node/node_model.hpp"
-#include "node_geometry.hpp"
 #include "ren/application_instance.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 class Device;
 class Transferrer;
+class ModelNode;
 
 class CommandBuffer;
 
@@ -24,7 +23,6 @@ class Renderer {
 
   void swap(Renderer& dev);
   void draw(CommandBuffer& buffer, std::vector<ModelNode const*> const& nodes);
-  void draw(CommandBuffer& buffer, std::vector<GeometryNode const*> const& nodes);
 
  private:
   ApplicationInstance* m_instance;

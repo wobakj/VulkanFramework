@@ -24,7 +24,7 @@ public:
 	std::vector<std::shared_ptr<Hit>> const& getHits() const;
 
 	void visit(Node* node) override;
-	void visit(GeometryNode* node) override;
+	void visit(ModelNode* node) override;
 	void visit(CameraNode* node) override;
 	void visit(LightNode* node) override;
 	void visit(ScreenNode* node) override;

@@ -1,34 +1,16 @@
 #include "node/node_model.hpp"
 
-// #include "wrap/device.hpp"
-// #include "transferrer.hpp"
-
-// #include <iostream>
-
-ModelNode::ModelNode()\
- // :TransformNode{}
- :m_transform{}
+ModelNode::ModelNode()
+ :Node{std::string{}, glm::mat4{}}
 {}
 
-ModelNode::ModelNode(ModelNode && rhs)
- :ModelNode{}
+ModelNode::ModelNode(std::string const & name, std::string const& model, std::string const& transform)
+ :Node{name, glm::fmat4{1.0f}}
+ ,m_model{model}
+ ,m_transform{transform}
+{}
+
+void ModelNode::accept(NodeVisitor &v)
 {
-  swap(rhs);
-}
-
-ModelNode::ModelNode(std::string const& model, std::string const& transform)
- // :TransformNode{transform}
- :m_transform{transform}
- ,m_model(model)
-{}
-
-ModelNode& ModelNode::operator=(ModelNode&& rhs) {
-  swap(rhs);
-  return *this;
-}
-
-void ModelNode::swap(ModelNode& rhs) {
-  // TransformNode::swap(rhs);
-  std::swap(m_model, rhs.m_model);
-  std::swap(m_transform, rhs.m_transform);
+	v.visit(this);
 }

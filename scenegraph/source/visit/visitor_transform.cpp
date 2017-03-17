@@ -1,9 +1,9 @@
 #include "visit/visitor_transform.hpp"
-#include "node.hpp"
-#include "node_geometry.hpp"
-#include "node_light.hpp"
-#include "node_screen.hpp"
-#include "node_camera.hpp"
+#include "node/node.hpp"
+#include "node/node_model.hpp"
+#include "node/node_light.hpp"
+#include "node/node_screen.hpp"
+#include "node/node_camera.hpp"
 
 #include "ren/application_instance.hpp"
 
@@ -28,10 +28,11 @@ void TransformVisitor::visit(Node * node)
 	}
 }
 
-void TransformVisitor::visit(GeometryNode * node)
+void TransformVisitor::visit(ModelNode * node)
 {
 	m_transf = node->getLocal() * m_transf;
-	node->setWorld(m_transf); // world or local?
+	node->setWorld(m_transf);
+
   m_instance->dbTransform().set(node->m_transform, m_transf);
 	for (auto child : node->getChildren())
 	{

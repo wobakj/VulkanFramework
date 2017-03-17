@@ -8,7 +8,7 @@
 #include <vector>
 
 class Node;
-class GeometryNode;
+class ModelNode;
 class CameraNode;
 class LightNode;
 class ScreenNode;
@@ -21,17 +21,17 @@ public:
 	// void setFrustum(Frustum const& f);
 
 	void visit(Node* node) override;
-	void visit(GeometryNode* node) override;
+	void visit(ModelNode* node) override;
 	void visit(CameraNode* node) override;
 	void visit(LightNode* node) override;
 	void visit(ScreenNode* node) override;
 
-	std::vector<GeometryNode const*> const& visibleNodes() {
+	std::vector<ModelNode const*> const& visibleNodes() {
 		return m_toRender;
 	}
 
 private:
-	std::vector<GeometryNode const*> m_toRender;
+	std::vector<ModelNode const*> m_toRender;
 	// Frustum m_frustum;
 
 };

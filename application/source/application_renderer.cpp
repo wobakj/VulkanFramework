@@ -4,7 +4,8 @@
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
-#include "node_transform.hpp"
+#include "node/node_transform.hpp"
+#include "node/node_model.hpp"
 #include "visit/visitor_render.hpp"
 #include "visit/visitor_node.hpp"
 #include "visit/visitor_transform.hpp"
@@ -263,13 +264,13 @@ void ApplicationRenderer::createVertexBuffer() {
   // m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
   // m_nodes.emplace("sponza", ModelNode{model_path, model_path});
 
-  auto model_path2 = m_resource_path + "models/sphere.obj";
-  m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_instance.dbTransform().store(model_path2, glm::fmat4{1.0f});
-  m_nodes.emplace("sphere", ModelNode{model_path2, model_path2});
+  // auto model_path2 = m_resource_path + "models/sphere.obj";
+  // m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  // m_instance.dbTransform().store(model_path2, glm::fmat4{1.0f});
+  // m_nodes.emplace("sphere", ModelNode{model_path2, model_path2});
 
-  m_instance.dbTransform().store("test2", glm::translate(glm::fmat4{1.0f}, glm::fvec3{2.0f, 0.0f, 0.0f}));
-  m_nodes.emplace("sphere2", ModelNode{model_path2, "test2"});
+  // m_instance.dbTransform().store("test2", glm::translate(glm::fmat4{1.0f}, glm::fvec3{2.0f, 0.0f, 0.0f}));
+  // m_nodes.emplace("sphere2", ModelNode{model_path2, "test2"});
 
   auto node_sponza = m_graph.createGeometryNode("sponza", m_resource_path + "models/sponza.obj");
   node_sponza->setLocal(glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));

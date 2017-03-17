@@ -1,11 +1,11 @@
 #include "visit/visitor_pick.hpp"
 #include "hit.hpp"
 #include "ray.hpp"
-#include "node.hpp"
-#include "node_geometry.hpp"
-#include "node_light.hpp"
-#include "node_camera.hpp"
-#include "node_screen.hpp"
+#include "node/node.hpp"
+#include "node/node_model.hpp"
+#include "node/node_light.hpp"
+#include "node/node_camera.hpp"
+#include "node/node_screen.hpp"
 
 
 PickVisitor::PickVisitor() : NodeVisitor()
@@ -36,7 +36,7 @@ void PickVisitor::visit(Node * node)
 	}
 }
 
-void PickVisitor::visit(GeometryNode * node)
+void PickVisitor::visit(ModelNode * node)
 {
 	auto hits = node->intersectsRay(m_ray);
 	m_hits.push_back(hits);

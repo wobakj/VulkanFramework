@@ -1,7 +1,7 @@
 
 #include <assert.h>
 #include "bbox.hpp"
-#include "node.hpp"
+#include "node/node.hpp"
 
 #include <numeric>
 

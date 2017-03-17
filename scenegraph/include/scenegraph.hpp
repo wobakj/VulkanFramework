@@ -2,14 +2,14 @@
 #define SCENEGRAPH_HPP
 
 #include "ren/model_loader.hpp"
-#include "node_camera.hpp"
+#include "node/node_camera.hpp"
 
 #include <memory>
 #include <string>
 #include <vector>
 class Node;
 class TransformNode;
-class GeometryNode;
+class modelNode;
 class CameraNode;
 class NodeVisitor;
 class ApplicationInstance;

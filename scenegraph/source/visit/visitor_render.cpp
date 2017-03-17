@@ -1,10 +1,10 @@
 #include "visit/visitor_render.hpp"
 
-#include "node.hpp"
-#include "node_geometry.hpp"
-#include "node_light.hpp"
-#include "node_screen.hpp"
-#include "node_camera.hpp"
+#include "node/node.hpp"
+#include "node/node_model.hpp"
+#include "node/node_light.hpp"
+#include "node/node_screen.hpp"
+#include "node/node_camera.hpp"
 #include "frustum.hpp"
 
 #include <iostream>
@@ -26,7 +26,7 @@ void RenderVisitor::visit(Node * node)
 	}
 }
 
-void RenderVisitor::visit(GeometryNode * node)
+void RenderVisitor::visit(ModelNode * node)
 {
 	std::cout << "visiting node " << node->getName() << std::endl;
 	// if (m_frustum.intersects(*node->getBox())) m_toRender.insert(node);

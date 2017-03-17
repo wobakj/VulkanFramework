@@ -1,30 +1,22 @@
 #ifndef NODE_MODEL_HPP
 #define NODE_MODEL_HPP
 
-// #include "node/node_transform.hpp"
+#include "node.hpp"
+#include "ren/database_model.hpp"
+#include "ren/database_transform.hpp"
 
-#include <string>
-
-// class Device;
-// class Transferrer;
-
-class ModelNode {
- public:  
+class ModelNode : public Node
+{
+public:
   ModelNode();
-  ModelNode(std::string const& model, std::string const& transform);
-  ModelNode(ModelNode && dev);
-  ModelNode(ModelNode const&) = delete;
+  ModelNode(std::string const& name, std::string const& model, std::string const& transform);
 
-  ModelNode& operator=(ModelNode const&) = delete;
-  ModelNode& operator=(ModelNode&& dev);
+  void accept(NodeVisitor &v) override;
 
-  void swap(ModelNode& dev);
-
- private:
-  std::string m_transform;
   std::string m_model;
-
-  friend class Renderer;
+  std::string m_transform;
+ private:
 };
 
 #endif
+
