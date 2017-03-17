@@ -14,7 +14,7 @@ public:
 
 	void accept(NodeVisitor &v) override;
 
-	glm::vec4 getColor() const;
+	glm::vec4 const& getColor() const;
 
 private:
 	glm::vec4 m_color;

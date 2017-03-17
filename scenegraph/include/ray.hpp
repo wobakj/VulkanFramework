@@ -12,10 +12,10 @@ public:
 	Ray();
 	Ray(glm::vec4 orig, glm::vec4 dir);
 	
-	glm::vec4 getOrigin() const;
-	glm::vec4 getDir() const;
-	glm::vec4 getInvDir() const;
-	std::array<bool, 3> getSign() const;
+	glm::vec4 const& getOrigin() const;
+	glm::vec4 const& getDir() const;
+	glm::vec4 const& getInvDir() const;
+	std::array<bool, 3> const& getSign() const;
 
 	void setOrigin(glm::vec4 const& o);
 	void setDir(glm::vec4 const& d);

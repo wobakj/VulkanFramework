@@ -24,12 +24,12 @@ Bbox::Bbox(glm::vec3 const& min_p, glm::vec3 const& max_p):
 Bbox::~Bbox()
 {}
 
-glm::vec3 Bbox::getMin() const
+glm::vec3 const& Bbox::getMin() const
 {
 	return m_min;
 }
 
-glm::vec3 Bbox::getMax() const
+glm::vec3 const& Bbox::getMax() const
 {
 	return m_max;
 }

@@ -46,7 +46,7 @@ void Scenegraph::addCamNode(CameraNode* cam)
 	m_cam_nodes.push_back(std::unique_ptr<CameraNode>(cam));
 }
 
-std::string Scenegraph::getName() const
+std::string const& Scenegraph::getName() const
 {
 	return m_name;
 }

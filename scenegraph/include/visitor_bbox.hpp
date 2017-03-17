@@ -17,7 +17,7 @@ public:
 	BboxVisitor();
 	~BboxVisitor();
 
-	Bbox getBox() const;
+	Bbox const& getBox() const;
 
 	void visit(Node* node) override;
 	void visit(GeometryNode* node) override;

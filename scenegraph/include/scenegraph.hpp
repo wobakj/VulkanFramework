@@ -21,7 +21,7 @@ public:
 	bool hasChildren(std::unique_ptr<Node> n);
 	void addCamNode(CameraNode* cam);
 
-	std::string getName() const;
+	std::string const& getName() const;
 	Node* getRoot() const;
 	void accept(NodeVisitor &v) const;
 

@@ -11,6 +11,8 @@ public:
 	TransformVisitor();
 	~TransformVisitor();
 
+	glm::mat4 const& getTransform() const;
+
 	void visit(Node* node) override;
 	void visit(GeometryNode* node) override;
 	void visit(CameraNode* node) override;

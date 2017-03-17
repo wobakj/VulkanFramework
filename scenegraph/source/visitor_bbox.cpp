@@ -11,7 +11,7 @@ BboxVisitor::~BboxVisitor()
 {
 }
 
-Bbox BboxVisitor::getBox() const
+Bbox const& BboxVisitor::getBox() const
 {
 	return m_box;
 }

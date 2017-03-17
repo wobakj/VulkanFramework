@@ -15,8 +15,8 @@ public:
 	Bbox(glm::vec3 const& pmin, glm::vec3 const& pmax);
 	~Bbox();
 
-	glm::vec3 getMin() const;
-	glm::vec3 getMax() const;
+	glm::vec3 const& getMin() const;
+	glm::vec3 const& getMax() const;
 
 	void setMin(float x, float y, float z);
 	void setMax(float x, float y, float z);

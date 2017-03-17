@@ -3,7 +3,7 @@
 
 #include "visitor_node.hpp"
 #include "ray.hpp"
-#include <set>
+#include <vector>
 #include <memory>
 
 class Node;
@@ -21,6 +21,7 @@ public:
 	~PickVisitor();
 
 	void setRay(Ray const& r);
+	std::vector<std::shared_ptr<Hit>> const& getHits() const;
 
 	void visit(Node* node) override;
 	void visit(GeometryNode* node) override;
@@ -29,7 +30,7 @@ public:
 	void visit(ScreenNode* node) override;
 
 private:
-	std::set<std::shared_ptr<Hit>> m_hits;
+	std::vector<std::shared_ptr<Hit>> m_hits;
 	Ray m_ray;
 };
 

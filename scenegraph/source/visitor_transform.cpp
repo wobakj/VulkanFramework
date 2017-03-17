@@ -15,6 +15,11 @@ TransformVisitor::~TransformVisitor()
 {
 }
 
+glm::mat4 const& TransformVisitor::getTransform() const
+{
+	return m_transf;
+}
+
 void TransformVisitor::visit(Node * node)
 {
 	m_transf = node->getLocal() * m_transf;

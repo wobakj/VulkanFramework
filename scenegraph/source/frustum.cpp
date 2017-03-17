@@ -81,30 +81,6 @@ void Frustum::calculatePlanes(glm::mat4 const & cam_transf, glm::mat4 const & sc
 glm::mat4 Frustum::perspective(float fov, glm::vec2 aspect, glm::mat4 cam_transf, glm::mat4 screen_transf, float m_near_clip, float m_far_clip)
 {
 	Frustum f = Frustum();
-	/*for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
-			std::cout << screen_transf[i][j] << " ";
-		}
-	}
-	/*glm::vec4 rel_eye = glm::inverse(screen_transf) * glm::vec4(cam_transf[3][0], cam_transf[3][1], cam_transf[3][2], cam_transf[3][3]);
-	std::cout << "\n rel eye " << rel_eye.x << " " << rel_eye.y << " " << rel_eye.z << " " << rel_eye.t;
-	//rel_eye = glm::vec4(1.0f);
-	f.m_proj = glm::mat4();
-	float dist = rel_eye[2];
-	float offx = -rel_eye[0];
-	float offy = -rel_eye[1];
-
-	f.m_proj[0][0] = 2.0f * dist;
-	f.m_proj[1][1] = 2.0f * dist;
-	f.m_proj[2][0] = 2.0f * offx;
-	f.m_proj[2][1] = 2.0f * offy;
-	f.m_proj[2][2] = (-m_near_clip - m_far_clip) / (m_far_clip - m_near_clip);
-	f.m_proj[2][3] = -1.0f;
-	f.m_proj[3][2] = -2.0f * (m_far_clip * m_near_clip) / (m_far_clip - m_near_clip);
-	f.m_proj[3][3] = 0.0f;*/
-
 	float ratio = aspect.x / aspect.y;
 	f.m_proj = glm::perspective(fov, ratio, m_near_clip, m_far_clip);
 	return f.m_proj;
@@ -132,47 +108,47 @@ std::vector<glm::vec3> Frustum::getFrustumCorners() const
 	return corners;
 }
 
-std::vector<glm::vec4> Frustum::getPlanes() const
+std::vector<glm::vec4> const& Frustum::getPlanes() const
 {
 	return m_planes;
 }
 
-glm::mat4 Frustum::getCamTransf() const
+glm::mat4 const& Frustum::getCamTransf() const
 {
 	return m_cam_transf;
 }
 
-glm::vec3 Frustum::getCamPos() const
+glm::vec3 const& Frustum::getCamPos() const
 {
 	return glm::vec3(m_cam_transf[3].x, m_cam_transf[3].y, m_cam_transf[3].z);
 }
 
-glm::mat4 Frustum::getScreenTransf() const
+glm::mat4 const& Frustum::getScreenTransf() const
 {
 	return m_screen_transf;
 }
 
-glm::mat4 Frustum::getProj() const
+glm::mat4 const& Frustum::getProj() const
 {
 	return m_proj;
 }
 
-glm::mat4 Frustum::getView() const
+glm::mat4 const& Frustum::getView() const
 {
 	return m_view;
 }
 
-glm::mat4 Frustum::getTransf() const
+glm::mat4 const& Frustum::getTransf() const
 {
 	return m_transf;
 }
 
-float Frustum::getNear() const
+float const& Frustum::getNear() const
 {
 	return m_near_clip;
 }
 
-float Frustum::getFar() const
+float const& Frustum::getFar() const
 {
 	return m_far_clip;
 }

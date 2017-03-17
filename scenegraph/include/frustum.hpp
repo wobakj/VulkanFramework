@@ -27,15 +27,15 @@ public:
 	glm::mat4 perspective(float fov, glm::vec2 aspect, glm::mat4 cam_transf, glm::mat4 screen_transf, float m_near_clip, float m_far_clip);
 	
 	std::vector<glm::vec3> getFrustumCorners() const;
-	std::vector<glm::vec4> getPlanes() const;
-	glm::mat4 getCamTransf() const;
-	glm::vec3 getCamPos() const;
-	glm::mat4 getScreenTransf() const;
-	glm::mat4 getProj() const;
-	glm::mat4 getView() const;
-	glm::mat4 getTransf() const;
-	float getNear() const;
-	float getFar() const;
+	std::vector<glm::vec4> const& getPlanes() const;
+	glm::mat4 const& getCamTransf() const;
+	glm::vec3 const& getCamPos() const;
+	glm::mat4 const& getScreenTransf() const;
+	glm::mat4 const& getProj() const;
+	glm::mat4 const& getView() const;
+	glm::mat4 const& getTransf() const;
+	float const& getNear() const;
+	float const& getFar() const;
 
 	void setCamTransf(glm::mat4 cam_t);
 	void setScreenTransf(glm::mat4 screen_t);
