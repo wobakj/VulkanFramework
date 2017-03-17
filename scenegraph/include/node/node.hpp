@@ -26,12 +26,12 @@ public:
 	void setLocal(glm::mat4 const &local);
 	void setBox(Bbox const& box);
 
-	std::string getName() const;
-	glm::mat4 getWorld() const;
-	glm::mat4 getLocal() const;
+	std::string const& getName() const;
+	glm::mat4 const& getWorld() const;
+	glm::mat4 const& getLocal() const;
 	Bbox getBox() const;
 	Node* getParent() const;
-	Scenegraph* getScenegraph() const;
+	// Scenegraph* getScenegraph() const;
 
 	std::vector<Node*> getChildren();
 	bool hasChildren();
@@ -44,10 +44,10 @@ public:
 	void translate(glm::vec3 const& t);
 
 	std::shared_ptr<Hit> intersectsRay(Ray const& r) const;
-	virtual void accept(NodeVisitor &v);
 
 protected:
 	void setParent(Node* const p);
+	virtual void accept(NodeVisitor &v);
 	
 	Node* m_parent;
 	std::string m_name;
@@ -56,9 +56,12 @@ protected:
 	Bbox m_box;
 	std::vector<std::unique_ptr<Node>> m_children;
 
-	Scenegraph * m_scenegraph;
+	// Scenegraph * m_scenegraph;
 
-	friend class NodeVisitor;
+	friend class TransformVisitor;
+	friend class PickVisitor;
+	friend class BboxVisitor;
+	friend class RenderVisitor;
 };
 
 #endif

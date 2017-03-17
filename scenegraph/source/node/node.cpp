@@ -48,17 +48,17 @@ void Node::setParent(Node* const p)
 	m_parent = p;
 }
 
-std::string Node::getName() const
+std::string const& Node::getName() const
 {
 	return m_name;
 }
 
-glm::mat4 Node::getWorld() const
+glm::mat4 const& Node::getWorld() const
 {
 	return m_world;
 }
 
-glm::mat4 Node::getLocal() const
+glm::mat4 const& Node::getLocal() const
 {
 	return m_local;
 }
@@ -73,10 +73,10 @@ Node * Node::getParent() const
 	return m_parent;
 }
 
-Scenegraph * Node::getScenegraph() const
-{
-	return m_scenegraph;
-}
+// Scenegraph * Node::getScenegraph() const
+// {
+// 	return m_scenegraph;
+// }
 
 std::vector<Node*> Node::getChildren()
 {

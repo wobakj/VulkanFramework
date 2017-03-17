@@ -90,10 +90,11 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   // m_renderer.draw(res.command_buffers.at("gbuffer"), nodes);
 
   TransformVisitor transform_visitor{m_instance};
-  transform_visitor.visit(m_graph.getRoot());
+  m_graph.accept(transform_visitor);
+
   RenderVisitor render_visitor{};
-  render_visitor.visit(m_graph.getRoot());
-  assert(!render_visitor.visibleNodes().empty());
+  m_graph.accept(render_visitor);
+  // draw collected models
   m_renderer.draw(res.command_buffers.at("gbuffer"), render_visitor.visibleNodes());
 
   res.command_buffers.at("gbuffer").end();

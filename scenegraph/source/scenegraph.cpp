@@ -78,5 +78,5 @@ Node* Scenegraph::getRoot() const
 
 void Scenegraph::accept(NodeVisitor & v) const
 {
-	m_root->accept(v);
+	v.visit(m_root.get());
 }
