@@ -59,6 +59,10 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
   createTextureSampler();
 
   createRenderResources();
+
+  // set initial camera to correct aspect
+  VkExtent2D extent = m_swap_chain.extent();
+  m_camera.setAspect(extent.width, extent.height);
 }
 
 ApplicationVulkan::~ApplicationVulkan() {
@@ -93,9 +97,7 @@ void ApplicationVulkan::logic() {
       updateModel();
     }
   }
-  if (m_camera.changed()) {
-    updateView();
-  }
+  updateView();
 }
 
 void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
@@ -116,7 +118,7 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("gbuffer")->draw(3, 1, 0, 0);
+  res.command_buffers.at("gbuffer")->draw(4, 1, 0, 0);
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -183,11 +185,10 @@ void ApplicationVulkan::createPipelines() {
   GraphicsPipelineInfo info_pipe2;
 
   info_pipe.setResolution(m_swap_chain.extent());
-  info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
+  info_pipe.setTopology(vk::PrimitiveTopology::eTriangleStrip);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
   info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};

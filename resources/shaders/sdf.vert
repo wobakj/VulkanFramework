@@ -9,9 +9,8 @@ layout(binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(location = 0) out vec3 iPosition;
-layout(location = 1) out vec2 fragCoord;
-layout(location = 2) out vec3 iResolution;
-layout(location = 3) out float iGlobalTime;
+layout(location = 1) out vec3 iResolution;
+layout(location = 2) out float iGlobalTime;
 
 out gl_PerVertex {
   vec4 gl_Position;
