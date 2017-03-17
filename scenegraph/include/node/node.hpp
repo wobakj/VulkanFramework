@@ -21,22 +21,19 @@ public:
 	Node();
 	Node(std::string const &name, glm::mat4 const);
 
-	void setName(std::string const &name);
-	void setWorld(glm::mat4 const &world);
 	void setLocal(glm::mat4 const &local);
-	void setBox(Bbox const& box);
 
 	std::string const& getName() const;
 	glm::mat4 const& getWorld() const;
 	glm::mat4 const& getLocal() const;
 	Bbox getBox() const;
 	Node* getParent() const;
-	// Scenegraph* getScenegraph() const;
 
 	std::vector<Node*> getChildren();
+	Node* getChild(std::string const& name);
 	bool hasChildren();
 	void addChild(std::unique_ptr<Node>&& n);
-	void removeChild(std::unique_ptr<Node> const child);
+	std::unique_ptr<Node> detachChild(std::string const& name);
 	void clearChildren();
 
 	void scale(glm::vec3 const& s);
@@ -45,18 +42,21 @@ public:
 
 	std::shared_ptr<Hit> intersectsRay(Ray const& r) const;
 
-protected:
-	void setParent(Node* const p);
+ protected:
 	virtual void accept(NodeVisitor &v);
-	
+ 
+ private:	
+	std::vector<std::unique_ptr<Node>>::iterator findChild(std::string const& name);
+	void setWorld(glm::mat4 const &world);
+	void setBox(Bbox const& box);
+	void setParent(Node* const p);
+
 	Node* m_parent;
 	std::string m_name;
 	glm::mat4 m_world;
 	glm::mat4 m_local;
 	Bbox m_box;
 	std::vector<std::unique_ptr<Node>> m_children;
-
-	// Scenegraph * m_scenegraph;
 
 	friend class TransformVisitor;
 	friend class PickVisitor;

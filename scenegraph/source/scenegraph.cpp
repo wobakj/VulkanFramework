@@ -22,7 +22,9 @@ Scenegraph::Scenegraph(std::string name, ApplicationInstance& instance)
 {}
 
 std::unique_ptr<Node> Scenegraph::createGeometryNode(std::string const& name, std::string const& path) {
-  m_model_loader.store(path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+	if (!m_instance->dbModel().contains(path)) {
+  	m_model_loader.store(path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+	}
   std::string name_transform{path + "|" + name};
   m_instance->dbTransform().store(name_transform, glm::fmat4{1.0f});
   return std::unique_ptr<Node>(new ModelNode{name, path, name_transform});

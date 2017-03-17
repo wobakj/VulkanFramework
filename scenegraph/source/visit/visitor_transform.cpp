@@ -16,7 +16,7 @@ TransformVisitor::TransformVisitor(ApplicationInstance& instance)
 
 void TransformVisitor::visit(Node * node) {
 	if (node->getParent()) {
-		node->setWorld(node->getLocal() * node->getParent()->getWorld());
+		node->setWorld(node->getParent()->getWorld() * node->getLocal());
 	}
 	else {
 		node->setWorld(node->getLocal());

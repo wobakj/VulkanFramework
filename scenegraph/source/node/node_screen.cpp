@@ -13,13 +13,13 @@ Node(name, transform), m_size(size) {}
 glm::mat4 ScreenNode::getScaledLocal() const
 {
 	glm::mat4 scaled = glm::scale(glm::vec3(m_size.x, m_size.y, 0.0f));
-	return m_local * scaled;
+	return getLocal() * scaled;
 }
 
 glm::mat4 ScreenNode::getScaledWorld() const
 {
 	glm::mat4 scaled = glm::scale(glm::vec3(m_size.x, m_size.y, 0.0f));
-	return m_world * scaled;
+	return getWorld() * scaled;
 }
 
 void ScreenNode::accept(NodeVisitor &v)

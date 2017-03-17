@@ -23,11 +23,6 @@ Node::Node(std::string const & name, glm::mat4 const world)
 	m_children = std::vector<std::unique_ptr<Node>>();
 }
 
-void Node::setName(std::string const & name)
-{
-	m_name = name;
-}
-
 void Node::setWorld(glm::mat4 const & world)
 {
 	m_world = world;
@@ -73,11 +68,6 @@ Node * Node::getParent() const
 	return m_parent;
 }
 
-// Scenegraph * Node::getScenegraph() const
-// {
-// 	return m_scenegraph;
-// }
-
 std::vector<Node*> Node::getChildren()
 {
 	std::vector<Node*> children; 
@@ -99,9 +89,28 @@ void Node::addChild(std::unique_ptr<Node>&& n)
 	m_children.emplace_back(std::move(n));
 }
 
-void Node::removeChild(std::unique_ptr<Node> const child)
+std::vector<std::unique_ptr<Node>>::iterator Node::findChild(std::string const& name) {
+	// search for child
+	auto child = std::find_if(m_children.begin(), m_children.end(), [&name](std::unique_ptr<Node> const& a){return a->getName() == name;});
+	if (child == m_children.end()) {
+		throw std::runtime_error{name + " is no child of '" + m_name + "'"};
+	}
+	return child;
+}
+
+Node* Node::getChild(std::string const& name) {
+	// take ownership and remove
+	return findChild(name)->get();
+}
+
+std::unique_ptr<Node> Node::detachChild(std::string const& name_child)
 {
-	m_children.erase(std::find(m_children.begin(), m_children.end(), child));
+	// serach for child
+	auto child = findChild(name_child);
+	// take ownership and remove
+	std::unique_ptr<Node> node{child->release()};
+	m_children.erase(child);
+	return node;
 }
 
 void Node::clearChildren()

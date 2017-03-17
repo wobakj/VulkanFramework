@@ -64,7 +64,13 @@ void ApplicationRenderer::logic() {
 
   auto cam = m_instance.dbCamera().get("cam");
   cam.update(time_delta);
+
+  m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
   m_instance.dbCamera().set("cam", std::move(cam));
+
+  // update transforms every frame
+  TransformVisitor transform_visitor{m_instance};
+  m_graph.accept(transform_visitor);
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
@@ -82,15 +88,6 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("camera"), m_descriptor_sets.at("transform"), m_descriptor_sets.at("material")}, {});
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
-
-  // std::vector<ModelNode const*> nodes{};
-  // nodes.emplace_back(&m_nodes.at("sponza"));
-  // nodes.emplace_back(&m_nodes.at("sphere"));
-  // nodes.emplace_back(&m_nodes.at("sphere2"));
-  // m_renderer.draw(res.command_buffers.at("gbuffer"), nodes);
-
-  TransformVisitor transform_visitor{m_instance};
-  m_graph.accept(transform_visitor);
 
   RenderVisitor render_visitor{};
   m_graph.accept(render_visitor);
@@ -260,18 +257,14 @@ void ApplicationRenderer::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 
-  // std::string model_path{m_resource_path + "models/sponza.obj"};
-  // m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
-  // m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
-  // m_nodes.emplace("sponza", ModelNode{model_path, model_path});
+  auto node_sphere = m_graph.createGeometryNode("sphere", m_resource_path + "models/sphere.obj");
+  node_sphere->setLocal(glm::translate(glm::fmat4{}, glm::fvec3{0.0f, 1.0f, 0.0f}));
+  node_sphere->scale(glm::fvec3{0.2f});
+  m_graph.getRoot()->addChild(std::move(node_sphere));
 
-  // auto model_path2 = m_resource_path + "models/sphere.obj";
-  // m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
-  // m_instance.dbTransform().store(model_path2, glm::fmat4{1.0f});
-  // m_nodes.emplace("sphere", ModelNode{model_path2, model_path2});
-
-  // m_instance.dbTransform().store("test2", glm::translate(glm::fmat4{1.0f}, glm::fvec3{2.0f, 0.0f, 0.0f}));
-  // m_nodes.emplace("sphere2", ModelNode{model_path2, "test2"});
+  auto node_sphere2 = m_graph.createGeometryNode("sphere2", m_resource_path + "models/sphere.obj");
+  node_sphere2->setLocal(glm::translate(glm::fmat4{}, glm::fvec3{0.0f, 0.0f, 4.0f}));
+  m_graph.getRoot()->getChild("sphere")->addChild(std::move(node_sphere2));
 
   auto node_sponza = m_graph.createGeometryNode("sponza", m_resource_path + "models/sponza.obj");
   node_sponza->setLocal(glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
