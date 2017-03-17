@@ -162,7 +162,7 @@ void ApplicationVulkan::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest); // change to color_shaded
+  res.command_buffers.at("draw")->blitImage(m_images.at("color_shaded"), m_images.at("color_shaded").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest); // change to color_shaded
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
@@ -296,7 +296,7 @@ void ApplicationVulkan::createFramebufferAttachments() {
   m_allocators.at("images").allocate(m_images.at("depth"));
 
   m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment |  vk::ImageUsageFlagBits::eTransferSrc};
-  m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
+  m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 
   m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
