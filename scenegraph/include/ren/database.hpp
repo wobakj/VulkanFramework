@@ -94,6 +94,9 @@ bool Database<T>::contains(std::string const& tex_path) {
 
 template<typename T>
 void Database<T>::store(std::string const& name, T&& resource) {
+  if (m_resources.find(name) != m_resources.end()) {
+    throw std::runtime_error{"key already in use"};
+  }
   m_resources.emplace(name, std::move(resource));  
 }
 

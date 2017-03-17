@@ -25,10 +25,10 @@ void Node::setName(std::string const & name)
 	m_name = name;
 }
 
-void Node::setWorld(glm::mat4 const & world)
-{
-	m_world = world;
-}
+// void Node::setWorld(glm::mat4 const & world)
+// {
+// 	m_world = world;
+// }
 
 void Node::setLocal(glm::mat4 const & local)
 {

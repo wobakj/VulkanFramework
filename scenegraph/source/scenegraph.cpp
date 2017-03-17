@@ -1,16 +1,30 @@
 #include "scenegraph.hpp"
+
 #include "node_transform.hpp"
+#include "node_geometry.hpp"
+// #include "geometry.hpp"
 #include "node_camera.hpp"
 #include "visitor_node.hpp"
+#include "ren/application_instance.hpp"
 
 #include <iostream>
 
-Scenegraph::Scenegraph() {}
+Scenegraph::Scenegraph() 
+ :m_instance{nullptr}
+{}
 
-Scenegraph::Scenegraph(std::string name)
-{
-	m_name = name;
-	m_root = std::unique_ptr<Node>(new TransformNode(std::string{"root"}, glm::mat4()));
+Scenegraph::Scenegraph(std::string name, ApplicationInstance& instance)
+ :m_name{name}
+ ,m_instance{&instance}
+ ,m_model_loader{*m_instance}
+ ,m_root{std::unique_ptr<Node>(new TransformNode(std::string{"root"}, glm::mat4{1.0f}))}
+{}
+
+std::unique_ptr<Node> Scenegraph::createGeometryNode(std::string const& name, std::string const& path) {
+  m_model_loader.store(path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  std::string name_transform{path + "|" + name};
+  m_instance->dbTransform().store(name_transform, glm::fmat4{1.0f});
+  return std::unique_ptr<Node>(new GeometryNode{name, path, name_transform});
 }
 
 void Scenegraph::removeNode(std::unique_ptr<Node> n)

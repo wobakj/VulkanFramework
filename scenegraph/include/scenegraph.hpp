@@ -1,20 +1,24 @@
 #ifndef SCENEGRAPH_HPP
 #define SCENEGRAPH_HPP
 
+#include "ren/model_loader.hpp"
+
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-
 class Node;
 class TransformNode;
+class GeometryNode;
 class CameraNode;
 class NodeVisitor;
+class ApplicationInstance;
 
 class Scenegraph
 {
 public:
 	Scenegraph();
-	Scenegraph(std::string name);
+	Scenegraph(std::string name, ApplicationInstance & instance);
+	std::unique_ptr<Node> createGeometryNode(std::string const& name, std::string const& path);
 
 	void removeNode(std::unique_ptr<Node> n);
 	Node* findNode(std::string name);
@@ -27,6 +31,8 @@ public:
 
 private:
 	std::string m_name;
+	ApplicationInstance* m_instance;
+	ModelLoader m_model_loader;
 	std::unique_ptr<Node> m_root;
 	std::vector<std::unique_ptr<CameraNode>> m_cam_nodes;
 };
