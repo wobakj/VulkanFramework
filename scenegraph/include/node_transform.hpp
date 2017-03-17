@@ -8,8 +8,7 @@ class TransformNode : public Node
 public:
 	TransformNode();
 	TransformNode(std::string const& name, glm::mat4 const& transf);
-	~TransformNode();
-
+	
 	void accept(NodeVisitor &v) override;
 };
 

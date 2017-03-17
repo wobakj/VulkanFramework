@@ -20,34 +20,30 @@ class Node
 public:
 	Node();
 	Node(std::string const &name, glm::mat4 const);
-	~Node();
-
-	std::unique_ptr<Node> copy() const;
 
 	void setName(std::string const &name);
 	void setWorld(glm::mat4 const &world);
 	void setLocal(glm::mat4 const &local);
-	void setBox(std::shared_ptr<Bbox> const &box);
-	void setParent(std::shared_ptr<Node> const &p);
+	void setBox(Bbox const& box);
+	void setParent(Node* const p);
 
 	std::string getName() const;
 	glm::mat4 getWorld() const;
 	glm::mat4 getLocal() const;
-	std::shared_ptr<Bbox> getBox() const;
-	std::shared_ptr<Node> getParent() const;
-	std::shared_ptr<Scenegraph> getScenegraph() const;
+	Bbox getBox() const;
+	Node* getParent() const;
+	Scenegraph* getScenegraph() const;
 
-	std::vector<std::shared_ptr<Node>> getChildren();
+	std::vector<Node*> getChildren();
 	bool hasChildren();
-	void addChild(std::shared_ptr<Node> n);
-	void removeChild(std::shared_ptr<Node> const& child);
+	void addChild(Node* n);
+	void removeChild(std::unique_ptr<Node> const child);
 	void clearChildren();
 
 	void scale(glm::vec3 const& s);
 	void rotate(float angle, glm::vec3 const& r);
 	void translate(glm::vec3 const& t);
 
-	//virtual std::set<hit> ray_test();
 	std::shared_ptr<Hit> intersectsRay(Ray const& r) const;
 	virtual void accept(NodeVisitor &v) = 0;
 
@@ -55,11 +51,11 @@ protected:
 	std::string m_name;
 	glm::mat4 m_world;
 	glm::mat4 m_local;
-	std::shared_ptr<Bbox> m_box;
-	std::vector<std::shared_ptr<Node>> m_children;
+	Bbox m_box;
+	std::vector<std::unique_ptr<Node>> m_children;
 
-	std::shared_ptr<Node> m_parent;
-	std::shared_ptr<Scenegraph> m_scenegraph;
+	Node * m_parent;
+	Scenegraph * m_scenegraph;
 };
 
 #endif

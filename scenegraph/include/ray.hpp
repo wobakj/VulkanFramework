@@ -11,7 +11,7 @@ class Ray
 public:
 	Ray();
 	Ray(glm::vec4 orig, glm::vec4 dir);
-	~Ray();
+	
 	glm::vec4 getOrigin() const;
 	glm::vec4 getDir() const;
 	glm::vec4 getInvDir() const;

@@ -2,18 +2,10 @@
 
 
 
-GeometryNode::GeometryNode() : Node(std::string(), glm::mat4())
-{
-}
+GeometryNode::GeometryNode() : Node(std::string(), glm::mat4()){}
 
 
-GeometryNode::GeometryNode(std::string const & name, glm::mat4 const & transform) : Node(name, transform)
-{
-}
-
-GeometryNode::~GeometryNode()
-{
-}
+GeometryNode::GeometryNode(std::string const & name, glm::mat4 const & transform) : Node(name, transform) {}
 
 void GeometryNode::accept(NodeVisitor &v)
 {

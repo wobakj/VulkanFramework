@@ -11,7 +11,6 @@ class LightNode : public Node
 public:
 	LightNode();
 	LightNode(std::string &name, glm::mat4 const& transform, glm::vec4 &color, float const& brightness);
-	~LightNode();
 
 	void accept(NodeVisitor &v) override;
 

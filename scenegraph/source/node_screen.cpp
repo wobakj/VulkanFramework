@@ -4,18 +4,11 @@
 #include <glm/gtx/transform.hpp>
 
 
-ScreenNode::ScreenNode()
-{
-}
+ScreenNode::ScreenNode() {}
 
-ScreenNode::ScreenNode(std::string const & name, glm::vec2 const & size, glm::mat4 const & transform) : Node(name, transform), m_size(size)
-{
-}
+ScreenNode::ScreenNode(std::string const & name, glm::vec2 const & size, glm::mat4 const & transform) : 
+Node(name, transform), m_size(size) {}
 
-
-ScreenNode::~ScreenNode()
-{
-}
 
 glm::mat4 ScreenNode::getScaledLocal() const
 {

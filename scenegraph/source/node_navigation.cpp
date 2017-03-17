@@ -3,14 +3,7 @@
 
 
 NavigationNode::NavigationNode()
- :Node()
-{
-}
-
-
-NavigationNode::~NavigationNode()
-{
-}
+ :Node() {}
 
 void NavigationNode::accept(NodeVisitor & v)
 {

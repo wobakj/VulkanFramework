@@ -44,7 +44,7 @@ public:
 	void setNear(float n);
 	void setFar(float f);
 
-	bool intersects(Bbox &box);
+	bool intersects(Bbox const& box);
 	bool contains(glm::vec3 const& p);
 
 

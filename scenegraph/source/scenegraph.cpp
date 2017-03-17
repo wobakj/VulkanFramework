@@ -5,43 +5,27 @@
 
 #include <iostream>
 
-Scenegraph::Scenegraph()
-{
-}
+Scenegraph::Scenegraph() {}
 
 Scenegraph::Scenegraph(std::string name)
 {
 	m_name = name;
-	m_root = std::make_shared<TransformNode>();
-	m_root->setName("root");
+	m_root = std::unique_ptr<Node>(new TransformNode(std::string{"root"}, glm::mat4()));
 }
 
-
-Scenegraph::~Scenegraph()
-{
-}
-
-std::shared_ptr<TransformNode> Scenegraph::addTransfNode(std::shared_ptr<Node> parent, std::string name)
-{
-	auto n = std::make_shared<TransformNode>(name, glm::mat4());
-	parent->addChild(n);
-	n->setParent(parent);
-	return n;
-}
-
-void Scenegraph::removeNode(std::shared_ptr<Node> n)
+void Scenegraph::removeNode(std::unique_ptr<Node> n)
 {
 	auto foundNode = findNode(n->getName());
 	auto parent = foundNode->getParent();
 }
 
-std::shared_ptr<Node> Scenegraph::findNode(std::string name)
+Node* Scenegraph::findNode(std::string name)
 {
-	std::vector<std::shared_ptr<Node>> visited;
-	visited.push_back(m_root);
+	std::vector<Node*> visited;
+	visited.push_back(m_root.get());
 	while (!visited.empty())
 	{
-		auto current = visited.back();
+		auto& current = visited.back();
 		visited.pop_back();
 		if (current->getName() == name) return current;
 		for (auto child : current->getChildren())
@@ -52,14 +36,14 @@ std::shared_ptr<Node> Scenegraph::findNode(std::string name)
 	return nullptr;
 }
 
-bool Scenegraph::hasChildren(std::shared_ptr<Node> n)
+bool Scenegraph::hasChildren(std::unique_ptr<Node> n)
 {
 	return m_root->hasChildren();
 }
 
-void Scenegraph::addCamNode(std::shared_ptr<CameraNode> cam)
+void Scenegraph::addCamNode(CameraNode* cam)
 {
-	m_cam_nodes.push_back(cam);
+	m_cam_nodes.push_back(std::unique_ptr<CameraNode>(cam));
 }
 
 std::string Scenegraph::getName() const
@@ -67,9 +51,9 @@ std::string Scenegraph::getName() const
 	return m_name;
 }
 
-std::shared_ptr<TransformNode> Scenegraph::getRoot() const
+Node* Scenegraph::getRoot() const
 {
-	return m_root;
+	return m_root.get();
 }
 
 void Scenegraph::accept(NodeVisitor & v) const

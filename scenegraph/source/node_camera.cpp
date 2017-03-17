@@ -3,17 +3,9 @@
 #include <iostream>
 
 
-CameraNode::CameraNode() : Node()
-{
-}
+CameraNode::CameraNode() : Node() {}
 
-CameraNode::CameraNode(std::string name, glm::mat4 transf) : Node(name, transf)
-{
-}
-
-CameraNode::~CameraNode()
-{
-}
+CameraNode::CameraNode(std::string name, glm::mat4 transf) : Node(name, transf) {}
 
 Frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf)
 {

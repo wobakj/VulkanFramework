@@ -20,7 +20,6 @@ public:
 
 	CameraNode();
 	CameraNode(std::string name, glm::mat4 transf);
-	~CameraNode();
 
 	Frustum makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf);
 	void accept(NodeVisitor &v) override;

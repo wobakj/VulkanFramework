@@ -7,7 +7,6 @@ class NavigationNode : public Node
 {
 public:
 	NavigationNode();
-	~NavigationNode();
 
 	void accept(NodeVisitor &v) override;
 };

@@ -10,19 +10,13 @@
 
 Node::Node()
 {
-	m_children = std::vector<std::shared_ptr<Node>>();
+	m_children = std::vector<std::unique_ptr<Node>>();
 }
 
 Node::Node(std::string const & name, glm::mat4 const world):
-	m_name(name), m_world(world), m_box(std::make_shared<Bbox>())
+	m_name(name), m_world(world), m_box(Bbox())
 {
-	m_children = std::vector<std::shared_ptr<Node>>();
-
-}
-
-
-Node::~Node()
-{
+	m_children = std::vector<std::unique_ptr<Node>>();
 }
 
 
@@ -41,12 +35,12 @@ void Node::setLocal(glm::mat4 const & local)
 	m_local = local;
 }
 
-void Node::setBox(std::shared_ptr<Bbox> const & box)
+void Node::setBox(Bbox const& box)
 {
 	m_box = box;
 }
 
-void Node::setParent(std::shared_ptr<Node> const & p)
+void Node::setParent(Node* const p)
 {
 	m_parent = p;
 }
@@ -66,24 +60,29 @@ glm::mat4 Node::getLocal() const
 	return m_local;
 }
 
-std::shared_ptr<Bbox> Node::getBox() const
+Bbox Node::getBox() const
 {
 	return m_box;
 }
 
-std::shared_ptr<Node> Node::getParent() const
+Node * Node::getParent() const
 {
 	return m_parent;
 }
 
-std::shared_ptr<Scenegraph> Node::getScenegraph() const
+Scenegraph * Node::getScenegraph() const
 {
 	return m_scenegraph;
 }
 
-std::vector<std::shared_ptr<Node>> Node::getChildren()
+std::vector<Node*> Node::getChildren()
 {
-	return m_children;
+	std::vector<Node*> children; 
+	for (auto const& child : m_children)
+	{
+		children.push_back(child.get());
+	}
+	return children;
 }
 
 bool Node::hasChildren()
@@ -91,13 +90,12 @@ bool Node::hasChildren()
 	return (m_children.size() > 0);
 }
 
-void Node::addChild(std::shared_ptr<Node> n)
+void Node::addChild(Node* n)
 {
-	m_children.push_back(n);
+	m_children.push_back(std::unique_ptr<Node>(n));
 }
 
-
-void Node::removeChild(std::shared_ptr<Node> const & child)
+void Node::removeChild(std::unique_ptr<Node> const child)
 {
 	m_children.erase(std::find(m_children.begin(), m_children.end(), child));
 }
@@ -121,12 +119,6 @@ void Node::translate(glm::vec3 const & t)
 {
 	m_local = glm::translate(m_local, t);
 }
-
-/*std::set<hit> Node::ray_test()
-{
-	return std::set<hit>();
-}
-*/
  
 std::shared_ptr<Hit> Node::intersectsRay(Ray const & r) const
 {
@@ -139,25 +131,25 @@ std::shared_ptr<Hit> Node::intersectsRay(Ray const & r) const
 
 	if (r.getInvDir().x >= 0.0f)
 	{
-		txmin = (m_box->getMin().x - r.getOrigin().x) * r.getInvDir().x;
-		txmax = (m_box->getMax().x - r.getOrigin().x) * r.getInvDir().x;
+		txmin = (m_box.getMin().x - r.getOrigin().x) * r.getInvDir().x;
+		txmax = (m_box.getMax().x - r.getOrigin().x) * r.getInvDir().x;
 	}
 	else
 	{
-		txmin = (m_box->getMax().x - r.getOrigin().x) * r.getInvDir().x;
-		txmax = (m_box->getMin().x - r.getOrigin().x) * r.getInvDir().x;
+		txmin = (m_box.getMax().x - r.getOrigin().x) * r.getInvDir().x;
+		txmax = (m_box.getMin().x - r.getOrigin().x) * r.getInvDir().x;
 	}
 
 	// check y axis
 	if (r.getInvDir().y >= 0.0f)
 	{
-		tymin = (m_box->getMin().y - r.getOrigin().y) * r.getInvDir().y;
-		tymax = (m_box->getMax().y - r.getOrigin().y) * r.getInvDir().y;
+		tymin = (m_box.getMin().y - r.getOrigin().y) * r.getInvDir().y;
+		tymax = (m_box.getMax().y - r.getOrigin().y) * r.getInvDir().y;
 	}
 	else
 	{
-		tymin = (m_box->getMax().y - r.getOrigin().y) * r.getInvDir().y;
-		tymax = (m_box->getMin().y - r.getOrigin().y) * r.getInvDir().y;
+		tymin = (m_box.getMax().y - r.getOrigin().y) * r.getInvDir().y;
+		tymax = (m_box.getMin().y - r.getOrigin().y) * r.getInvDir().y;
 	}
 
 	if (txmin > tymax || tymin > txmax)
@@ -169,13 +161,13 @@ std::shared_ptr<Hit> Node::intersectsRay(Ray const & r) const
 	// check z axis
 	if (r.getInvDir().z >= 0.0f)
 	{
-		tzmin = (m_box->getMin().z - r.getOrigin().z) * r.getInvDir().z;
-		tzmax = (m_box->getMax().z - r.getOrigin().z) * r.getInvDir().z;
+		tzmin = (m_box.getMin().z - r.getOrigin().z) * r.getInvDir().z;
+		tzmax = (m_box.getMax().z - r.getOrigin().z) * r.getInvDir().z;
 	}
 	else
 	{
-		tzmin = (m_box->getMax().z - r.getOrigin().z) * r.getInvDir().z;
-		tzmax = (m_box->getMin().z - r.getOrigin().z) * r.getInvDir().z;
+		tzmin = (m_box.getMax().z - r.getOrigin().z) * r.getInvDir().z;
+		tzmax = (m_box.getMin().z - r.getOrigin().z) * r.getInvDir().z;
 	}
 
 	if (txmin > tzmax || tzmin > txmax) 

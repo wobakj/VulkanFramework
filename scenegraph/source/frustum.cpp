@@ -207,7 +207,7 @@ void Frustum::setFar(float f)
 	m_far_clip = f;
 }
 
-bool Frustum::intersects(Bbox &box)
+bool Frustum::intersects(Bbox const& box)
 {
 	for (unsigned int i = 0; i < 6; ++i)
 	{

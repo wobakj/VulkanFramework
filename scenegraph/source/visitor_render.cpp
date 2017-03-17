@@ -33,7 +33,7 @@ void RenderVisitor::visit(Node * node)
 void RenderVisitor::visit(GeometryNode * node)
 {
 	std::cout << "\n visiting node " << node->getName();
-	if (m_frustum.intersects(*node->getBox())) m_toRender.insert(node);
+	if (m_frustum.intersects(node->getBox())) m_toRender.insert(node);
 	for (auto child : node->getChildren())
 	{
 		child->accept(*this);

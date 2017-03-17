@@ -17,7 +17,7 @@ public:
 	BboxVisitor();
 	~BboxVisitor();
 
-	std::shared_ptr<Bbox> getBox() const;
+	Bbox getBox() const;
 
 	void visit(Node* node) override;
 	void visit(GeometryNode* node) override;
@@ -26,7 +26,7 @@ public:
 	void visit(ScreenNode* node) override;
 
 private:
-	std::shared_ptr<Bbox> m_box;
+	Bbox m_box;
 };
 
 #endif

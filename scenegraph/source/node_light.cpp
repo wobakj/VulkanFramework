@@ -2,19 +2,10 @@
 
 
 
-LightNode::LightNode()
-{
-}
+LightNode::LightNode() {}
 
-LightNode::LightNode(std::string &name, glm::mat4 const& transform, glm::vec4 &color, float const& brightness) : Node(name, transform), m_color(color), m_brightness(brightness)
-{
-	m_name = name;
-}
-
-
-LightNode::~LightNode()
-{
-}
+LightNode::LightNode(std::string &name, glm::mat4 const& transform, glm::vec4 &color, float const& brightness) : 
+Node(name, transform), m_color(color), m_brightness(brightness) { m_name = name; }
 
 void LightNode::accept(NodeVisitor &v)
 {

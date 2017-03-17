@@ -22,7 +22,7 @@ public:
 	void setNode(Node* n);
 
 private:
-	Node* m_node;
+	Node * m_node;
 	float m_dist_to_Hit;
 	glm::vec3 m_local;
 	glm::vec3 m_world;

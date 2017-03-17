@@ -1,14 +1,9 @@
 #include "hit.hpp"
 
 
-Hit::Hit()
-{
-}
+Hit::Hit() {}
 
-
-Hit::~Hit()
-{
-}
+Hit::~Hit() {}
 
 glm::vec3 Hit::getLocal() const
 {

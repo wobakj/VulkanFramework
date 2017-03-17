@@ -2,18 +2,9 @@
 
 
 
-Ray::Ray()
-{
-}
+Ray::Ray() {}
 
-Ray::Ray(glm::vec4 orig, glm::vec4 dir)
-{
-}
-
-
-Ray::~Ray()
-{
-}
+Ray::Ray(glm::vec4 orig, glm::vec4 dir) {}
 
 glm::vec4 Ray::getOrigin() const
 {
