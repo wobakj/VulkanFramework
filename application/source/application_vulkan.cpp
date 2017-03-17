@@ -37,7 +37,6 @@ const uint32_t ApplicationVulkan::imageCount = 2;
 
 ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_database_tex{m_transferrer}
 {
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});
@@ -281,15 +280,13 @@ void ApplicationVulkan::createFramebufferAttachments() {
 }
 
 void ApplicationVulkan::createTextureImage() {
-  // pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
+  pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
-  // m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  // m_allocators.at("images").allocate(m_images.at("texture"));
+  m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  m_allocators.at("images").allocate(m_images.at("texture"));
  
-  // m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
-  // m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
-
-  m_database_tex.store(m_resource_path + "textures/test.tga");
+  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
 }
 
 void ApplicationVulkan::createTextureSampler() {
@@ -303,8 +300,7 @@ void ApplicationVulkan::updateDescriptors() {
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
-  m_database_tex.get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
-  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
+  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 }
 
 void ApplicationVulkan::createDescriptorPools() {

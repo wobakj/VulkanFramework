@@ -2,7 +2,8 @@
 #define DATABASE_CAMERA_HPP
 
 #include "ren/database.hpp"
-#include "../camera.hpp"
+#include "camera.hpp"
+// #include "gpu_camera.hpp"
 
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"

@@ -1,6 +1,6 @@
 #include "ren/database_camera.hpp"
 
-#include "ren/camera.hpp"
+#include "ren/gpu_camera.hpp"
 
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"

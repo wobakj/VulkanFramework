@@ -8,7 +8,6 @@
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
 #include "wrap/sampler.hpp"
-#include "ren/texture_database.hpp"
 
 #include <atomic>
 #include <thread>
@@ -49,7 +48,6 @@ class ApplicationVulkan : public ApplicationSingle {
   Geometry m_model;
   Geometry m_model_2;
   Sampler m_sampler;
-  TextureDatabase m_database_tex;
 };
 
 #endif

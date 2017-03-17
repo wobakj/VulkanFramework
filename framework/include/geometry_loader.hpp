@@ -2,7 +2,7 @@
 #define GEOMETRY_LOADER_HPP
 
 #include "vertex_data.hpp"
-#include "ren/material.hpp"
+#include "material.hpp"
 
 #include <vector>
 

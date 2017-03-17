@@ -2,7 +2,7 @@
 #define MATERIAL_DATABASE_HPP
 
 #include "ren/database.hpp"
-#include "ren/material.hpp"
+#include "material.hpp"
 #include "ren/texture_database.hpp"
 
 #include "wrap/buffer.hpp"

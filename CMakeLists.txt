@@ -74,6 +74,12 @@ add_library(framework STATIC ${FRAMEWORK_SOURCES} ${TINYOBJLOADER_SOURCES})
 target_include_directories(framework PUBLIC framework/include)
 target_link_libraries(framework glfw ${GLFW_LIBRARIES} ${VULKAN_LIBRARY} spirv-cross-core bvh)
 
+# create framework helper library 
+file(GLOB_RECURSE SCENEGRAPH_SOURCES scenegraph/source/*.cpp)
+add_library(scenegraph STATIC ${SCENEGRAPH_SOURCES})
+target_include_directories(scenegraph PUBLIC scenegraph/include)
+target_link_libraries(scenegraph ${VULKAN_LIBRARY} framework)
+
 include_directories(application/include)
 
 # output executables
@@ -106,7 +112,7 @@ target_link_libraries(vulkan_compute framework)
 install(TARGETS vulkan_compute DESTINATION .)
 
 add_executable(vulkan_renderer application/source/application_renderer.cpp)
-target_link_libraries(vulkan_renderer framework)
+target_link_libraries(vulkan_renderer scenegraph)
 install(TARGETS vulkan_renderer DESTINATION .)
 
 # set build type dependent flags
