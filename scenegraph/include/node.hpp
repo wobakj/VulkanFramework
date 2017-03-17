@@ -1,7 +1,7 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include "visitor_node.hpp"
+#include "visit/visitor_node.hpp"
 #include "bbox.hpp"
 #include "ray.hpp"
 

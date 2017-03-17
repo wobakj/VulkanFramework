@@ -1,7 +1,7 @@
 #ifndef VISITORRENDER_HPP
 #define VISITORRENDER_HPP
 
-#include "visitor_node.hpp"
+#include "visit/visitor_node.hpp"
 
 #include "frustum.hpp"
 

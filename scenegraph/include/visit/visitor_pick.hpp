@@ -1,7 +1,7 @@
 #ifndef VISITORPICK_HPP
 #define VISITORPICK_HPP
 
-#include "visitor_node.hpp"
+#include "visit/visitor_node.hpp"
 #include "ray.hpp"
 #include <vector>
 #include <memory>

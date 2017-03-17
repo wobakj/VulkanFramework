@@ -4,7 +4,7 @@
 #include "node_geometry.hpp"
 // #include "geometry.hpp"
 #include "node_camera.hpp"
-#include "visitor_node.hpp"
+#include "visit/visitor_node.hpp"
 #include "ren/application_instance.hpp"
 
 #include <iostream>

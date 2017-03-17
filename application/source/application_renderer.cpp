@@ -5,9 +5,9 @@
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
 #include "node_transform.hpp"
-#include "visitor_render.hpp"
-#include "visitor_node.hpp"
-#include "visitor_transform.hpp"
+#include "visit/visitor_render.hpp"
+#include "visit/visitor_node.hpp"
+#include "visit/visitor_transform.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>

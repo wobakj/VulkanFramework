@@ -1,4 +1,4 @@
-#include "visitor_pick.hpp"
+#include "visit/visitor_pick.hpp"
 #include "hit.hpp"
 #include "ray.hpp"
 #include "node.hpp"

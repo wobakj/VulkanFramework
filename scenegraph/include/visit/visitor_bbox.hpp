@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "visitor_node.hpp"
+#include "visit/visitor_node.hpp"
 #include "bbox.hpp"
 #include "node_geometry.hpp"
 #include "node_light.hpp"

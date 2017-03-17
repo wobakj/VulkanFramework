@@ -1,7 +1,7 @@
 #ifndef VISITORTRANSFORM_HPP
 #define VISITORTRANSFORM_HPP
 
-#include "visitor_node.hpp"
+#include "visit/visitor_node.hpp"
 #include <glm/mat4x4.hpp>
 
 class ApplicationInstance;
