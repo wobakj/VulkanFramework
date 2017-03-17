@@ -1,7 +1,9 @@
 #include "scenegraph.hpp"
 
+#include "light.hpp"
 #include "node/node_transform.hpp"
 #include "node/node_model.hpp"
+#include "node/node_light.hpp"
 // #include "geometry.hpp"
 #include "node/node_camera.hpp"
 #include "visit/visitor_node.hpp"
@@ -25,6 +27,11 @@ std::unique_ptr<Node> Scenegraph::createGeometryNode(std::string const& name, st
   std::string name_transform{path + "|" + name};
   m_instance->dbTransform().store(name_transform, glm::fmat4{1.0f});
   return std::unique_ptr<Node>(new ModelNode{name, path, name_transform});
+}
+
+std::unique_ptr<Node> Scenegraph::createLightNode(std::string const& name, light_t light) {
+  m_instance->dbLight().store(name, std::move(light));
+  return std::unique_ptr<Node>(new LightNode{name, name});
 }
 
 void Scenegraph::removeNode(std::unique_ptr<Node> n)

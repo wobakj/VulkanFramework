@@ -120,6 +120,7 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // copy transform data
+  m_instance.dbLight().updateCommand(res.command_buffers.at("draw"));
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
   m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
@@ -275,10 +276,6 @@ void ApplicationRenderer::createVertexBuffer() {
   auto node_sponza = m_graph.createGeometryNode("sponza", m_resource_path + "models/sponza.obj");
   node_sponza->setLocal(glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
   m_graph.getRoot()->addChild(std::move(node_sponza));
-
-  // NodeVisitor render_visitor{};
-  // RenderVisitor render_visitor2{};
-
 }
 
 void ApplicationRenderer::createLights() {
@@ -288,13 +285,11 @@ void ApplicationRenderer::createLights() {
     light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
-    m_instance.dbLight().store(std::to_string(i), std::move(light));
-
+    
+    auto node_light = m_graph.createLightNode("Light" + std::to_string(i), light);
+    node_light->setLocal(glm::translate(glm::fmat4{1.0f}, light.position));
+    m_graph.getRoot()->addChild(std::move(node_light));
   }
-  auto const& command_buffer = m_transferrer.beginSingleTimeCommands();
-  m_instance.dbLight().updateCommand(command_buffer);
-  m_transferrer.endSingleTimeCommands();
-
 }
 
 void ApplicationRenderer::createFramebufferAttachments() {

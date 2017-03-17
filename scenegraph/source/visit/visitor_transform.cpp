@@ -6,60 +6,43 @@
 #include "node/node_camera.hpp"
 
 #include "ren/application_instance.hpp"
+#include "glm/gtc/matrix_access.hpp"
+#include "glm/gtx/string_cast.hpp"
 
 TransformVisitor::TransformVisitor(ApplicationInstance& instance) 
  :NodeVisitor{}
- ,m_transf{glm::mat4()}
  ,m_instance{&instance}
 {}
 
-glm::mat4 const& TransformVisitor::getTransform() const
-{
-	return m_transf;
-}
+void TransformVisitor::visit(Node * node) {
+	if (node->getParent()) {
+		node->setWorld(node->getLocal() * node->getParent()->getWorld());
+	}
+	else {
+		node->setWorld(node->getLocal());
+	}
 
-void TransformVisitor::visit(Node * node)
-{
-	m_transf = node->getLocal() * m_transf;
-	node->setWorld(m_transf);
-	for (auto child : node->getChildren())
-	{
+	for (auto child : node->getChildren()) {
 		child->accept(*this);
 	}
 }
 
-void TransformVisitor::visit(ModelNode * node)
-{
-	m_transf = node->getLocal() * m_transf;
-	node->setWorld(m_transf);
-
-  m_instance->dbTransform().set(node->m_transform, m_transf);
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+void TransformVisitor::visit(ModelNode * node) {
+	visit(reinterpret_cast<Node*>(node));
+  m_instance->dbTransform().set(node->m_transform, node->getWorld());
 }
 
-void TransformVisitor::visit(CameraNode * node)
-{
-	m_transf = node->getLocal() * m_transf;
-	node->setWorld(m_transf);
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+void TransformVisitor::visit(CameraNode * node) {
+	visit(reinterpret_cast<Node*>(node));
 }
 
-void TransformVisitor::visit(LightNode * node)
-{
-	m_transf = node->getLocal() * m_transf;
-	node->setWorld(m_transf);
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+void TransformVisitor::visit(LightNode * node) {
+	visit(reinterpret_cast<Node*>(node));
+	// store new position in buffer and mark for upload
+  auto& light = m_instance->dbLight().getEdit(node->id());
+  light.position = glm::fvec3(glm::column(node->getWorld(), 3));
 }
 
-void TransformVisitor::visit(ScreenNode * node)
-{
+void TransformVisitor::visit(ScreenNode * node) {
+	visit(reinterpret_cast<Node*>(node));
 }

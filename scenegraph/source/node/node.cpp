@@ -9,16 +9,19 @@
 #include <algorithm>
 
 Node::Node()
+ :m_parent{nullptr}
 {
 	m_children = std::vector<std::unique_ptr<Node>>();
 }
 
-Node::Node(std::string const & name, glm::mat4 const world):
-	m_name(name), m_world(world), m_box(Bbox())
+Node::Node(std::string const & name, glm::mat4 const world)
+ :m_parent{nullptr}
+ ,m_name(name)
+ ,m_world(world)
+ ,m_box(Bbox())
 {
 	m_children = std::vector<std::unique_ptr<Node>>();
 }
-
 
 void Node::setName(std::string const & name)
 {
@@ -92,6 +95,7 @@ bool Node::hasChildren()
 
 void Node::addChild(std::unique_ptr<Node>&& n)
 {
+	n->setParent(this);
 	m_children.emplace_back(std::move(n));
 }
 

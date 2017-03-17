@@ -10,16 +10,14 @@ class LightNode : public Node
 {
 public:
 	LightNode();
-	LightNode(std::string &name, glm::mat4 const& transform, glm::vec4 &color, float const& brightness);
+	LightNode(std::string const& name, std::string const& light);
 
 	void accept(NodeVisitor &v) override;
-
-	glm::vec4 const& getColor() const;
-
+  std::string const& id () const {
+    return m_light;
+  }
 private:
-	glm::vec4 m_color;
-	float m_brightness;
-
+  std::string m_light;
 };
 
 #endif

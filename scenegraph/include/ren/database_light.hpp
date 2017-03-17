@@ -26,6 +26,7 @@ class LightDatabase : public Database<light_t> {
  
   void swap(LightDatabase& rhs);
   light_t const& get(std::string const& name) override;
+  light_t& getEdit(std::string const& name);
   void set(std::string const& name, light_t const& mat);
 
   void updateCommand(CommandBuffer const& buffer) const;

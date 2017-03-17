@@ -25,7 +25,6 @@ public:
 	void setWorld(glm::mat4 const &world);
 	void setLocal(glm::mat4 const &local);
 	void setBox(Bbox const& box);
-	void setParent(Node* const p);
 
 	std::string getName() const;
 	glm::mat4 getWorld() const;
@@ -48,13 +47,15 @@ public:
 	virtual void accept(NodeVisitor &v) = 0;
 
 protected:
+	void setParent(Node* const p);
+	
+	Node* m_parent;
 	std::string m_name;
 	glm::mat4 m_world;
 	glm::mat4 m_local;
 	Bbox m_box;
 	std::vector<std::unique_ptr<Node>> m_children;
 
-	Node * m_parent;
 	Scenegraph * m_scenegraph;
 
 	friend class NodeVisitor;

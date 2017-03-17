@@ -68,6 +68,11 @@ light_t const& LightDatabase::get(std::string const& name) {
   return *reinterpret_cast<light_t const*>(m_ptr_mem_stage + index(name) * SIZE_RESOURCE);
 }
 
+light_t& LightDatabase::getEdit(std::string const& name) {
+  m_dirties.emplace_back(index(name));
+  return *reinterpret_cast<light_t*>(m_ptr_mem_stage + index(name) * SIZE_RESOURCE);
+}
+
 void LightDatabase::set(std::string const& name, light_t const& mat) {
   auto const& index_transform = index(name);
   m_dirties.emplace_back(index_transform);
