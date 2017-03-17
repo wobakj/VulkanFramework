@@ -1,5 +1,5 @@
-#ifndef TEXTURE_DATABASE_HPP
-#define TEXTURE_DATABASE_HPP
+#ifndef DATABASE_TEXTURE_HPP
+#define DATABASE_TEXTURE_HPP
 
 #include "ren/database.hpp"
 #include "wrap/image.hpp"

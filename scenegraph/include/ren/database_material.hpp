@@ -1,9 +1,9 @@
-#ifndef MATERIAL_DATABASE_HPP
-#define MATERIAL_DATABASE_HPP
+#ifndef DATABASE_MATERIAL_HPP
+#define DATABASE_MATERIAL_HPP
 
 #include "ren/database.hpp"
 #include "material.hpp"
-#include "ren/texture_database.hpp"
+#include "ren/database_texture.hpp"
 
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"

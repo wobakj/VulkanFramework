@@ -1,5 +1,5 @@
-#ifndef TRANSFORM_DATABASE_HPP
-#define TRANSFORM_DATABASE_HPP
+#ifndef DATABASE_TRANSFORM_HPP
+#define DATABASE_TRANSFORM_HPP
 
 #include "ren/database.hpp"
 

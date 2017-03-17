@@ -1,4 +1,4 @@
-#include "ren/light_database.hpp"
+#include "ren/database_light.hpp"
 
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"

@@ -1,4 +1,4 @@
-#include "ren/material_database.hpp"
+#include "ren/database_material.hpp"
 
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"

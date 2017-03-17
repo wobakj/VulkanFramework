@@ -1,5 +1,5 @@
-#ifndef LIGHT_DATABASE_HPP
-#define LIGHT_DATABASE_HPP
+#ifndef DATABASE_LIGHT_HPP
+#define DATABASE_LIGHT_HPP
 
 #include "ren/database.hpp"
 #include "ren/light.hpp"

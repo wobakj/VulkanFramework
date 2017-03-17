@@ -1,8 +1,8 @@
 #include "ren/model_loader.hpp"
 
-#include "ren/material_database.hpp"
-#include "ren/geometry_database.hpp"
-#include "ren/model_database.hpp"
+#include "ren/database_material.hpp"
+#include "ren/database_geometry.hpp"
+#include "ren/database_model.hpp"
 #include "ren/application_instance.hpp"
 #include "transferrer.hpp"
 #include "geometry_loader.hpp"

@@ -1,12 +1,12 @@
 #ifndef APPLICATION_INSTANCE_HPP
 #define APPLICATION_INSTANCE_HPP
 
-#include "ren/material_database.hpp"
-#include "ren/geometry_database.hpp"
-#include "ren/model_database.hpp"
-#include "ren/transform_database.hpp"
-#include "ren/texture_database.hpp"
-#include "ren/light_database.hpp"
+#include "ren/database_material.hpp"
+#include "ren/database_geometry.hpp"
+#include "ren/database_model.hpp"
+#include "ren/database_transform.hpp"
+#include "ren/database_texture.hpp"
+#include "ren/database_light.hpp"
 #include "ren/database_camera.hpp"
 // #include "ren/model_loader.hpp"
 #include "transferrer.hpp"

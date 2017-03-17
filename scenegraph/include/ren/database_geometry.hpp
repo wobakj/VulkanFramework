@@ -1,5 +1,5 @@
-#ifndef GEOMETRY_DATABASE_HPP
-#define GEOMETRY_DATABASE_HPP
+#ifndef DATABASE_GEOMETRY_HPP
+#define DATABASE_GEOMETRY_HPP
 
 #include "ren/database.hpp"
 #include "geometry.hpp"

@@ -1,4 +1,4 @@
-#include "ren/geometry_database.hpp"
+#include "ren/database_geometry.hpp"
 
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"

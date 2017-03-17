@@ -1,5 +1,5 @@
-#ifndef MODEL_DATABASE_HPP
-#define MODEL_DATABASE_HPP
+#ifndef DATABASE_MODEL_HPP
+#define DATABASE_MODEL_HPP
 
 #include "ren/database.hpp"
 #include "ren/model.hpp"

@@ -1,4 +1,4 @@
-#include "ren/texture_database.hpp"
+#include "ren/database_texture.hpp"
 
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"
