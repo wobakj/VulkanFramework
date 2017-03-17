@@ -2,6 +2,7 @@
 #define SCENEGRAPH_HPP
 
 #include "ren/model_loader.hpp"
+#include "node_camera.hpp"
 
 #include <memory>
 #include <string>
@@ -18,6 +19,7 @@ class Scenegraph
 public:
 	Scenegraph();
 	Scenegraph(std::string name, ApplicationInstance & instance);
+
 	std::unique_ptr<Node> createGeometryNode(std::string const& name, std::string const& path);
 
 	void removeNode(std::unique_ptr<Node> n);

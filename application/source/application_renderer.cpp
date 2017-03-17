@@ -4,6 +4,10 @@
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
+#include "node_transform.hpp"
+#include "visitor_render.hpp"
+#include "visitor_node.hpp"
+#include "visitor_transform.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -28,6 +32,7 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
  ,m_instance{m_device, m_command_pools.at("transfer")}
  ,m_model_loader{m_instance}
  ,m_renderer{m_instance}
+ ,m_graph{"graph", m_instance}
 {
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
@@ -78,11 +83,18 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  std::vector<ModelNode const*> nodes{};
-  nodes.emplace_back(&m_nodes.at("sponza"));
-  nodes.emplace_back(&m_nodes.at("sphere"));
-  nodes.emplace_back(&m_nodes.at("sphere2"));
-  m_renderer.draw(res.command_buffers.at("gbuffer"), nodes);
+  // std::vector<ModelNode const*> nodes{};
+  // nodes.emplace_back(&m_nodes.at("sponza"));
+  // nodes.emplace_back(&m_nodes.at("sphere"));
+  // nodes.emplace_back(&m_nodes.at("sphere2"));
+  // m_renderer.draw(res.command_buffers.at("gbuffer"), nodes);
+
+  TransformVisitor transform_visitor{m_instance};
+  transform_visitor.visit(m_graph.getRoot());
+  RenderVisitor render_visitor{};
+  render_visitor.visit(m_graph.getRoot());
+  assert(!render_visitor.visibleNodes().empty());
+  m_renderer.draw(res.command_buffers.at("gbuffer"), render_visitor.visibleNodes());
 
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
@@ -246,10 +258,10 @@ void ApplicationRenderer::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 
-  std::string model_path{m_resource_path + "models/sponza.obj"};
-  m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
-  m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
-  m_nodes.emplace("sponza", ModelNode{model_path, model_path});
+  // std::string model_path{m_resource_path + "models/sponza.obj"};
+  // m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
+  // m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
+  // m_nodes.emplace("sponza", ModelNode{model_path, model_path});
 
   auto model_path2 = m_resource_path + "models/sphere.obj";
   m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
@@ -258,6 +270,14 @@ void ApplicationRenderer::createVertexBuffer() {
 
   m_instance.dbTransform().store("test2", glm::translate(glm::fmat4{1.0f}, glm::fvec3{2.0f, 0.0f, 0.0f}));
   m_nodes.emplace("sphere2", ModelNode{model_path2, "test2"});
+
+  auto node_sponza = m_graph.createGeometryNode("sponza", m_resource_path + "models/sponza.obj");
+  node_sponza->setLocal(glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
+  m_graph.getRoot()->addChild(std::move(node_sponza));
+
+  // NodeVisitor render_visitor{};
+  // RenderVisitor render_visitor2{};
+
 }
 
 void ApplicationRenderer::createLights() {

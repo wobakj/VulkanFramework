@@ -12,9 +12,10 @@ public:
   GeometryNode(std::string const& name, std::string const& model, std::string const& transform);
 
   void accept(NodeVisitor &v) override;
- private:
+
   std::string m_model;
   std::string m_transform;
+ private:
 };
 
 #endif

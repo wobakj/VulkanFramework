@@ -5,15 +5,13 @@
 #include "node_screen.hpp"
 #include "node_camera.hpp"
 
+#include "ren/application_instance.hpp"
 
-TransformVisitor::TransformVisitor() : NodeVisitor(), m_transf(glm::mat4())
-{
-}
-
-
-TransformVisitor::~TransformVisitor()
-{
-}
+TransformVisitor::TransformVisitor(ApplicationInstance& instance) 
+ :NodeVisitor{}
+ ,m_transf{glm::mat4()}
+ ,m_instance{&instance}
+{}
 
 glm::mat4 const& TransformVisitor::getTransform() const
 {
@@ -34,6 +32,7 @@ void TransformVisitor::visit(GeometryNode * node)
 {
 	m_transf = node->getLocal() * m_transf;
 	node->setWorld(m_transf); // world or local?
+  m_instance->dbTransform().set(node->m_transform, m_transf);
 	for (auto child : node->getChildren())
 	{
 		child->accept(*this);

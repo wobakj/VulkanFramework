@@ -11,11 +11,6 @@ NodeVisitor::NodeVisitor()
 {
 }
 
-
-NodeVisitor::~NodeVisitor()
-{
-}
-
 void NodeVisitor::visit(Node * node)
 {
 }

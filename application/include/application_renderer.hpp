@@ -12,6 +12,7 @@
 #include "ren/model_loader.hpp"
 #include "ren/renderer.hpp"
 #include "node/node_model.hpp"
+#include "scenegraph.hpp"
 
 #include <atomic>
 #include <thread>
@@ -51,6 +52,7 @@ class ApplicationRenderer : public ApplicationSingle {
   ApplicationInstance m_instance;
   ModelLoader m_model_loader;
   Renderer m_renderer;
+  Scenegraph m_graph;
   std::map<std::string, ModelNode> m_nodes;
 };
 

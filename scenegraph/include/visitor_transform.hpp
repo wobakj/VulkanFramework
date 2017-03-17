@@ -4,12 +4,12 @@
 #include "visitor_node.hpp"
 #include <glm/mat4x4.hpp>
 
+class ApplicationInstance;
 
 class TransformVisitor : public NodeVisitor
 {
 public:
-	TransformVisitor();
-	~TransformVisitor();
+	TransformVisitor(ApplicationInstance& instance);
 
 	glm::mat4 const& getTransform() const;
 
@@ -21,6 +21,7 @@ public:
 
 private:
 	glm::mat4 m_transf;
+  ApplicationInstance* m_instance;
 };
 
 #endif

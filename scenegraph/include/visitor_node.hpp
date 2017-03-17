@@ -7,12 +7,10 @@ class CameraNode;
 class LightNode;
 class ScreenNode;
 
-
 class NodeVisitor
 {
 public:
 	NodeVisitor();
-	~NodeVisitor();
 
 	virtual void visit(Node* node);
 	virtual void visit(GeometryNode* node);

@@ -25,10 +25,10 @@ void Node::setName(std::string const & name)
 	m_name = name;
 }
 
-// void Node::setWorld(glm::mat4 const & world)
-// {
-// 	m_world = world;
-// }
+void Node::setWorld(glm::mat4 const & world)
+{
+	m_world = world;
+}
 
 void Node::setLocal(glm::mat4 const & local)
 {
@@ -90,9 +90,9 @@ bool Node::hasChildren()
 	return (m_children.size() > 0);
 }
 
-void Node::addChild(Node* n)
+void Node::addChild(std::unique_ptr<Node>&& n)
 {
-	m_children.push_back(std::unique_ptr<Node>(n));
+	m_children.emplace_back(std::move(n));
 }
 
 void Node::removeChild(std::unique_ptr<Node> const child)

@@ -36,7 +36,7 @@ public:
 
 	std::vector<Node*> getChildren();
 	bool hasChildren();
-	void addChild(Node* n);
+	void addChild(std::unique_ptr<Node>&& n);
 	void removeChild(std::unique_ptr<Node> const child);
 	void clearChildren();
 
@@ -56,6 +56,8 @@ protected:
 
 	Node * m_parent;
 	Scenegraph * m_scenegraph;
+
+	friend class NodeVisitor;
 };
 
 #endif
