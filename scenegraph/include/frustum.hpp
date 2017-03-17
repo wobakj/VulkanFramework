@@ -1,9 +1,9 @@
 #ifndef FRUSTUM_HPP
 #define FRUSTUM_HPP
 
-#include<vector>
-#include<glm\vec4.hpp>
-#include<glm\mat4x4.hpp>
+#include <vector>
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 
 #include "bbox.hpp"
 

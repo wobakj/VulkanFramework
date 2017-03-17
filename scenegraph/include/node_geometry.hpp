@@ -1,7 +1,7 @@
 #ifndef NODEGEOMETRY_HPP
 #define NODEGEOMETRY_HPP
 
-#include "Node.hpp"
+#include "node.hpp"
 
 class GeometryNode : public Node
 {

@@ -4,7 +4,7 @@
 #include <string>
 
 #include "node.hpp"
-#include "node_visitor.hpp"
+#include "visitor_node.hpp"
 
 class LightNode : public Node
 {

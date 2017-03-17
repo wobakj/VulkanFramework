@@ -1,7 +1,7 @@
 #ifndef BBOX_HPP
 #define BBOX_HPP
 
-#include <glm\vec3.hpp>
+#include <glm/vec3.hpp>
 #include <utility>
 
 class Bbox

@@ -2,6 +2,7 @@
 #define VISITORTRANSFORM_HPP
 
 #include "visitor_node.hpp"
+#include <glm/mat4x4.hpp>
 
 
 class TransformVisitor : public NodeVisitor

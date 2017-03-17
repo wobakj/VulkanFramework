@@ -1,8 +1,9 @@
-#include "node_Navigation.hpp"
+#include "node_navigation.hpp"
 
 
 
-NavigationNode::NavigationNode() : node()
+NavigationNode::NavigationNode()
+ :Node()
 {
 }
 

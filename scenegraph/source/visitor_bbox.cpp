@@ -2,7 +2,7 @@
 
 
 
-BboxVisitor::BboxVisitor() : NodeVisitor(), m_box(std::make_shared<bbox>())
+BboxVisitor::BboxVisitor() : NodeVisitor(), m_box(std::make_shared<Bbox>())
 {
 }
 

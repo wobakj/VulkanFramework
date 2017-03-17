@@ -2,6 +2,9 @@
 #define VISITORPICK_HPP
 
 #include "visitor_node.hpp"
+#include "ray.hpp"
+#include <set>
+#include <memory>
 
 class Node;
 class GeometryNode;
@@ -17,7 +20,7 @@ public:
 	PickVisitor();
 	~PickVisitor();
 
-	void setRay(ray const& r);
+	void setRay(Ray const& r);
 
 	void visit(Node* node) override;
 	void visit(GeometryNode* node) override;

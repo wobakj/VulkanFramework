@@ -1,9 +1,9 @@
 #include "visitor_transform.hpp"
 #include "node.hpp"
-#include "geometryNode.hpp"
-#include "lightNode.hpp"
-#include "screenNode.hpp"
-#include "cameraNode.hpp"
+#include "node_geometry.hpp"
+#include "node_light.hpp"
+#include "node_screen.hpp"
+#include "node_camera.hpp"
 
 
 TransformVisitor::TransformVisitor() : NodeVisitor(), m_transf(glm::mat4())

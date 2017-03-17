@@ -6,7 +6,8 @@
 // #include <iostream>
 
 ModelNode::ModelNode()\
- :TransformNode{}
+ // :TransformNode{}
+ :m_transform{}
 {}
 
 ModelNode::ModelNode(ModelNode && rhs)
@@ -16,7 +17,8 @@ ModelNode::ModelNode(ModelNode && rhs)
 }
 
 ModelNode::ModelNode(std::string const& model, std::string const& transform)
- :TransformNode{transform}
+ // :TransformNode{transform}
+ :m_transform{transform}
  ,m_model(model)
 {}
 
@@ -26,6 +28,7 @@ ModelNode& ModelNode::operator=(ModelNode&& rhs) {
 }
 
 void ModelNode::swap(ModelNode& rhs) {
-  TransformNode::swap(rhs);
+  // TransformNode::swap(rhs);
   std::swap(m_model, rhs.m_model);
+  std::swap(m_transform, rhs.m_transform);
 }

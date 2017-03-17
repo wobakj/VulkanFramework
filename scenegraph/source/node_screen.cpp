@@ -1,7 +1,7 @@
 #include "node_screen.hpp"
 
-#include <glm\gtc\matrix_transform.hpp>
-#include <glm\gtx\transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 
 
 ScreenNode::ScreenNode()

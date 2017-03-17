@@ -2,7 +2,7 @@
 #define DATABASE_LIGHT_HPP
 
 #include "ren/database.hpp"
-#include "ren/light.hpp"
+#include "light.hpp"
 
 #include "wrap/buffer.hpp"
 #include "allocator_static.hpp"

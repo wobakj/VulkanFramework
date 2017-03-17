@@ -16,22 +16,22 @@ NodeVisitor::~NodeVisitor()
 {
 }
 
-void NodeVisitor::visit(node * node)
+void NodeVisitor::visit(Node * node)
 {
 }
 
-void NodeVisitor::visit(geometryNode * node)
+void NodeVisitor::visit(GeometryNode * node)
 {
 }
 
-void NodeVisitor::visit(cameraNode * node)
+void NodeVisitor::visit(CameraNode * node)
 {
 }
 
-void NodeVisitor::visit(lightNode * node)
+void NodeVisitor::visit(LightNode * node)
 {
 }
 
-void NodeVisitor::visit(screenNode * node)
+void NodeVisitor::visit(ScreenNode * node)
 {
 }

@@ -1,4 +1,4 @@
-#include "Hit.hpp"
+#include "hit.hpp"
 
 
 Hit::Hit()

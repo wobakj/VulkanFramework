@@ -1,6 +1,6 @@
 
 #include <assert.h>
-#include "Bbox.hpp"
+#include "bbox.hpp"
 #include "node.hpp"
 
 #include <numeric>

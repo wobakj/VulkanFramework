@@ -1,7 +1,8 @@
-#include "Frustum.hpp"
-#include<glm\gtc\matrix_transform.hpp>
-#include<glm\matrix.hpp>
-#include<iostream>
+#include "frustum.hpp"
+
+#include <glm/matrix.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 #define PI    3.14159265358979323846f
 

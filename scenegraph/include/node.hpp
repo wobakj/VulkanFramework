@@ -1,12 +1,12 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include "nodeVisitor.hpp"
+#include "visitor_node.hpp"
 #include "bbox.hpp"
 #include "ray.hpp"
 
 #include <string>
-#include <glm\mat4x4.hpp>
+#include <glm/mat4x4.hpp>
 #include <vector>
 #include <set>
 #include <memory>
@@ -48,14 +48,14 @@ public:
 	void translate(glm::vec3 const& t);
 
 	//virtual std::set<hit> ray_test();
-	std::shared_ptr<hit> intersectsRay(Ray const& r) const;
+	std::shared_ptr<Hit> intersectsRay(Ray const& r) const;
 	virtual void accept(NodeVisitor &v) = 0;
 
 protected:
 	std::string m_name;
 	glm::mat4 m_world;
 	glm::mat4 m_local;
-	std::shared_ptr<bbox> m_box;
+	std::shared_ptr<Bbox> m_box;
 	std::vector<std::shared_ptr<Node>> m_children;
 
 	std::shared_ptr<Node> m_parent;

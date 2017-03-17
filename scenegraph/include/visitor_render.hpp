@@ -2,6 +2,8 @@
 #define VISITORRENDER_HPP
 
 #include "visitor_node.hpp"
+#include "frustum.hpp"
+#include <set>
 
 class Node;
 class GeometryNode;
@@ -10,7 +12,7 @@ class LightNode;
 class ScreenNode;
 class Frustum;
 
-class RenderVisitor : public nodeVisitor
+class RenderVisitor : public NodeVisitor
 {
 public:
 	RenderVisitor();

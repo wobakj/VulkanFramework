@@ -2,7 +2,7 @@
 #include "node.hpp"
 #include "node_geometry.hpp"
 #include "node_light.hpp"
-#include "node_Screen.hpp"
+#include "node_screen.hpp"
 #include "node_camera.hpp"
 #include "frustum.hpp"
 

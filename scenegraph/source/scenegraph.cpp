@@ -1,7 +1,7 @@
 #include "scenegraph.hpp"
-#include "Node_transform.hpp"
-#include "Node_camera.hpp"
-#include "visitor_Node.hpp"
+#include "node_transform.hpp"
+#include "node_camera.hpp"
+#include "visitor_node.hpp"
 
 #include <iostream>
 

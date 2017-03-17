@@ -1,11 +1,12 @@
-#include "Node.hpp"
+#include "node.hpp"
 #include "hit.hpp"
-#include<glm\mat4x4.hpp>
-#include<glm\gtc\matrix_transform.hpp>
-#include<glm\gtx\euler_angles.hpp>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include "scenegraph.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 Node::Node()
 {
@@ -13,7 +14,7 @@ Node::Node()
 }
 
 Node::Node(std::string const & name, glm::mat4 const world):
-	m_name(name), m_world(world), m_box(std::make_shared<bbox>())
+	m_name(name), m_world(world), m_box(std::make_shared<Bbox>())
 {
 	m_children = std::vector<std::shared_ptr<Node>>();
 
@@ -40,7 +41,7 @@ void Node::setLocal(glm::mat4 const & local)
 	m_local = local;
 }
 
-void Node::setBox(std::shared_ptr<bbox> const & box)
+void Node::setBox(std::shared_ptr<Bbox> const & box)
 {
 	m_box = box;
 }
@@ -65,7 +66,7 @@ glm::mat4 Node::getLocal() const
 	return m_local;
 }
 
-std::shared_ptr<bbox> Node::getBox() const
+std::shared_ptr<Bbox> Node::getBox() const
 {
 	return m_box;
 }
@@ -75,7 +76,7 @@ std::shared_ptr<Node> Node::getParent() const
 	return m_parent;
 }
 
-std::shared_ptr<scenegraph> Node::getScenegraph() const
+std::shared_ptr<Scenegraph> Node::getScenegraph() const
 {
 	return m_scenegraph;
 }
@@ -127,9 +128,9 @@ void Node::translate(glm::vec3 const & t)
 }
 */
  
-std::shared_ptr<hit> Node::intersectsRay(Ray const & r) const
+std::shared_ptr<Hit> Node::intersectsRay(Ray const & r) const
 {
-	std::shared_ptr<hit> h = std::make_shared<hit>();
+	std::shared_ptr<Hit> h = std::make_shared<Hit>();
 	glm::vec3 normals[6] = { glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0), 
 		glm::vec3(0, 0, -1), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), 
 		glm::vec3(0, 0, 1) };

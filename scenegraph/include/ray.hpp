@@ -1,8 +1,8 @@
 #ifndef RAY_HPP
 #define RAY_HPP
 
-#include <glm\vec4.hpp>
-#include <glm\vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/vec3.hpp>
 #include <string>
 #include <array>
 

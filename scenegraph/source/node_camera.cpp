@@ -1,6 +1,6 @@
 #include "node_camera.hpp"
 
-#include<iostream>
+#include <iostream>
 
 
 CameraNode::CameraNode() : Node()
@@ -15,9 +15,9 @@ CameraNode::~CameraNode()
 {
 }
 
-frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf)
+Frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf)
 {
-	frustum f = frustum();
+	Frustum f = Frustum{};
 	f.setNear(m_near);
 	f.setFar(m_far);
 	f.setProj(f.perspective(90.0f, m_resolution, cam_transf, screen_transf, m_near, m_far));
