@@ -11,7 +11,7 @@
 #include "ren/application_instance.hpp"
 #include "ren/model_loader.hpp"
 #include "ren/renderer.hpp"
-#include "ren/node_model.hpp"
+#include "node/node_model.hpp"
 
 #include <atomic>
 #include <thread>

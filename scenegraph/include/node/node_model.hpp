@@ -1,7 +1,7 @@
 #ifndef NODE_MODEL_HPP
 #define NODE_MODEL_HPP
 
-#include "ren/node_transform.hpp"
+#include "node/node_transform.hpp"
 
 #include <string>
 

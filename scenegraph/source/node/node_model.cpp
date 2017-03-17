@@ -1,4 +1,4 @@
-#include "ren/node_model.hpp"
+#include "node/node_model.hpp"
 
 // #include "wrap/device.hpp"
 // #include "transferrer.hpp"

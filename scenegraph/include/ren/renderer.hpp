@@ -1,7 +1,7 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include "ren/node_model.hpp"
+#include "node/node_model.hpp"
 #include "ren/application_instance.hpp"
 
 #include <vulkan/vulkan.hpp>
