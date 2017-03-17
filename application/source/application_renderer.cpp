@@ -4,7 +4,6 @@
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
-#include "node/node_transform.hpp"
 #include "node/node_model.hpp"
 #include "visit/visitor_render.hpp"
 #include "visit/visitor_node.hpp"

@@ -44,7 +44,7 @@ public:
 	void translate(glm::vec3 const& t);
 
 	std::shared_ptr<Hit> intersectsRay(Ray const& r) const;
-	virtual void accept(NodeVisitor &v) = 0;
+	virtual void accept(NodeVisitor &v);
 
 protected:
 	void setParent(Node* const p);

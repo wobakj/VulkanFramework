@@ -1,7 +1,6 @@
 #include "scenegraph.hpp"
 
 #include "light.hpp"
-#include "node/node_transform.hpp"
 #include "node/node_model.hpp"
 #include "node/node_light.hpp"
 // #include "geometry.hpp"
@@ -19,7 +18,7 @@ Scenegraph::Scenegraph(std::string name, ApplicationInstance& instance)
  :m_name{name}
  ,m_instance{&instance}
  ,m_model_loader{*m_instance}
- ,m_root{std::unique_ptr<Node>(new TransformNode(std::string{"root"}, glm::mat4{1.0f}))}
+ ,m_root{std::unique_ptr<Node>(new Node(std::string{"root"}, glm::mat4{1.0f}))}
 {}
 
 std::unique_ptr<Node> Scenegraph::createGeometryNode(std::string const& name, std::string const& path) {
