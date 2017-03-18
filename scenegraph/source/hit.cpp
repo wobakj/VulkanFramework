@@ -5,29 +5,34 @@ Hit::Hit() {}
 
 Hit::~Hit() {}
 
-glm::vec3 Hit::getLocal() const
+glm::vec3 const& Hit::getLocal() const
 {
 	return m_local;
 }
 
-glm::vec3 Hit::getWorld() const
+glm::vec3 const& Hit::getWorld() const
 {
 	return m_world;
 }
 
-glm::vec3 Hit::getNormal() const
+glm::vec3 const& Hit::getNormal() const
 {
 	return m_normal;
 }
 
-glm::vec3 Hit::getWorldNormal() const
+glm::vec3 const& Hit::getWorldNormal() const
 {
 	return m_world_normal;
 }
 
-Node * Hit::getNode() const
+Node * const& Hit::getNode() const
 {
 	return m_node;
+}
+
+void Hit::setDistToHit(float const & d)
+{
+	m_dist_to_hit = d;
 }
 
 void Hit::setLocal(glm::vec3 const & l)
