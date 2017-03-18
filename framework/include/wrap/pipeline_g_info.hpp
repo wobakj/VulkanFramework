@@ -2,6 +2,7 @@
 #define PIPELINE_G_INFO_HPP
 
 #include "wrap/pipeline_info.hpp"
+#include "wrap/vertex_info.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vector>
@@ -21,8 +22,7 @@ class GraphicsPipelineInfo : public PipelineInfo<vk::GraphicsPipelineCreateInfo>
 
   void setShader(Shader const& shader) override;
 
-  void setVertexInput(Geometry const& model);
-  void setVertexInput(GeometryLod const& model);
+  void setVertexInput(VertexInfo const& model);
 
   void setTopology(vk::PrimitiveTopology const& topo);
 
@@ -57,11 +57,9 @@ class GraphicsPipelineInfo : public PipelineInfo<vk::GraphicsPipelineCreateInfo>
   }
 
  private:
-  void setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes);
   void setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages);
-  void setVertexBindings(std::vector<vk::VertexInputBindingDescription> const& bindings);
 
-  vk::PipelineVertexInputStateCreateInfo info_vert;
+  VertexInfo info_vert;
   vk::PipelineInputAssemblyStateCreateInfo info_assembly;
   vk::PipelineViewportStateCreateInfo info_viewports;
   vk::PipelineMultisampleStateCreateInfo info_ms;
@@ -75,9 +73,6 @@ class GraphicsPipelineInfo : public PipelineInfo<vk::GraphicsPipelineCreateInfo>
   // viewport
   vk::Viewport info_viewport;
   vk::Rect2D info_scissor;
-  // vertex input
-  std::vector<vk::VertexInputBindingDescription> info_bindings;
-  std::vector<vk::VertexInputAttributeDescription> info_attributes;
   
   std::vector<vk::DynamicState> info_dynamics;
 

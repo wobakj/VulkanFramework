@@ -140,7 +140,7 @@ vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::ve
 
 Image::Image()
  :ResourceImage{}
- ,m_view{VK_NULL_HANDLE}
+ ,m_view{}
 {}
 
 Image::Image(Image && dev)

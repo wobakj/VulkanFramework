@@ -20,6 +20,7 @@
 class Device;
 class Camera;
 class Transferrer;
+class VertexInfo;
 
 struct serialized_vertex {
   float v0_x_, v0_y_, v0_z_;   //vertex 0
@@ -46,13 +47,12 @@ class GeometryLod {
 
   BufferView const& bufferView(std::size_t i = 0) const;
   vk::Buffer const& buffer() const;
-  vk::PipelineVertexInputStateCreateInfo inputInfo() const;
   std::uint32_t numVertices() const;
   std::size_t numUploads() const;
   std::size_t sizeNode() const;
-  std::vector<vk::VertexInputBindingDescription> const& bindInfos() const;
-  std::vector<vk::VertexInputAttributeDescription> const& attributeInfos() const;
-  
+
+  VertexInfo vertexInfo() const;
+
   void update(Camera const& cam);
   void performCopiesCommand(vk::CommandBuffer const& command_buffer);
   void updateDrawCommands(vk::CommandBuffer const& command_buffer);
@@ -88,8 +88,6 @@ class GeometryLod {
   vertex_data m_model;
   Device const* m_device;
   Transferrer const* m_transferrer;
-  std::vector<vk::VertexInputBindingDescription> m_bind_info;
-  std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   Buffer m_buffer;
   Buffer m_buffer_stage;
   std::vector<BufferView> m_buffer_views;

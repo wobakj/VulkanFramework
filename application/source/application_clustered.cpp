@@ -198,7 +198,7 @@ void ApplicationClustered::createPipelines() {
   info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
   info_pipe.setShader(m_shaders.at("simple"));
-  info_pipe.setVertexInput(m_model);
+  info_pipe.setVertexInput(m_model.vertexInfo());
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);

@@ -1,6 +1,7 @@
 #include "geometry_lod.hpp"
 
 #include "wrap/device.hpp"
+#include "wrap/vertex_info.hpp"
 #include "camera.hpp"
 #include "geometry_loader.hpp"
 #include "transferrer.hpp"
@@ -16,37 +17,9 @@ bool contains(T const& container, U const& element) {
   return std::find(container.begin(), container.end(), element) != container.end();
 }
 
-static vk::VertexInputBindingDescription vertex_datao_bind(vertex_data const& m) {
-  vk::VertexInputBindingDescription bindingDescription{};
-  bindingDescription.binding = 0;
-  bindingDescription.stride = m.vertex_bytes;
-  bindingDescription.inputRate = vk::VertexInputRate::eVertex;
-  return bindingDescription;  
-}
-
-static std::vector<vk::VertexInputAttributeDescription> vertex_data_to_attr(vertex_data const& model_) {
-  std::vector<vk::VertexInputAttributeDescription> attributeDescriptions{};
-
-  int attrib_index = 0;
-  for(vertex_data::attribute const& attribute : vertex_data::VERTEX_ATTRIBS) {
-    if(model_.offsets.find(attribute) != model_.offsets.end()) {
-      vk::VertexInputAttributeDescription desc{};
-      desc.binding = 0;
-      desc.location = attrib_index;
-      desc.format = attribute.type;
-      desc.offset = model_.offsets.at(attribute);
-      attributeDescriptions.emplace_back(std::move(desc));
-      ++attrib_index;
-    }
-  }
-  return attributeDescriptions;  
-}
-
 GeometryLod::GeometryLod()
  :m_model{}
  ,m_device{nullptr}
- ,m_bind_info{}
- ,m_attrib_info{}
  ,m_ptr_mem_stage{nullptr}
 {}
 
@@ -60,8 +33,6 @@ GeometryLod::GeometryLod(Transferrer& transferrer, std::string const& path, std:
  :m_model{}
  ,m_device{&transferrer.device()}
  ,m_transferrer{&transferrer}
- ,m_bind_info{}
- ,m_attrib_info{}
  ,m_num_nodes{0}
  ,m_num_uploads{0}
  ,m_num_slots{0}
@@ -81,8 +52,6 @@ GeometryLod::GeometryLod(Transferrer& transferrer, std::string const& path, std:
   }
   // store model for easier descriptor generation
   m_model = vertex_data{m_nodes.front(), vertex_data::POSITION | vertex_data::NORMAL | vertex_data::TEXCOORD};
-  m_bind_info.emplace_back(vertex_datao_bind(m_model));
-  m_attrib_info = vertex_data_to_attr(m_model);
 
   std::cout << "Bvh has depth " << m_bvh.get_depth() << ", with " << m_bvh.get_num_nodes() << " nodes with "  << numVertices() << " vertices each" << std::endl;
 // set node buffer sizes
@@ -349,8 +318,6 @@ void GeometryLod::updateDrawCommands() {
   std::swap(m_model, dev.m_model);
   std::swap(m_device, dev.m_device);
   std::swap(m_transferrer, dev.m_transferrer);
-  std::swap(m_bind_info, dev.m_bind_info);
-  std::swap(m_attrib_info, dev.m_attrib_info);
   std::swap(m_ptr_mem_stage, dev.m_ptr_mem_stage);
 
   std::swap(m_allocator_stage, dev.m_allocator_stage);
@@ -407,14 +374,6 @@ std::size_t GeometryLod::numNodes() const {
   return m_num_nodes;
 }
 
-std::vector<vk::VertexInputBindingDescription> const& GeometryLod::bindInfos() const {
-  return m_bind_info;
-}
-
-std::vector<vk::VertexInputAttributeDescription> const& GeometryLod::attributeInfos() const {
-  return m_attrib_info;
-}
-
 std::vector<std::size_t> const& GeometryLod::cut() const {
   return m_cut;
 }
@@ -427,13 +386,13 @@ std::vector<vk::DrawIndirectCommand> const& GeometryLod::drawCommands() const {
   return m_commands_draw;
 }
 
-vk::PipelineVertexInputStateCreateInfo GeometryLod::inputInfo() const {
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.vertexBindingDescriptionCount = 1;
-  vertexInputInfo.vertexAttributeDescriptionCount = std::uint32_t(m_attrib_info.size());
-  vertexInputInfo.pVertexBindingDescriptions = m_bind_info.data();
-  vertexInputInfo.pVertexAttributeDescriptions = m_attrib_info.data();
-  return vertexInputInfo;
+VertexInfo GeometryLod::vertexInfo() const {
+  vertex_data::attrib_flag_t attribs;
+  for (auto const& offset : m_model.offsets) {
+    attribs |= offset.first;
+  }
+
+  return attribs_to_vert_info(attribs, true);
 }
 
 std::uint32_t GeometryLod::numVertices() const {

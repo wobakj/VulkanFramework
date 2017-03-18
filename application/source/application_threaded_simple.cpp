@@ -225,7 +225,7 @@ void ApplicationThreadedSimple::createPipelines() {
   info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
   info_pipe.setShader(m_shaders.at("scene"));
-  info_pipe.setVertexInput(m_model);
+  info_pipe.setVertexInput(m_model.vertexInfo());
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
@@ -255,7 +255,7 @@ void ApplicationThreadedSimple::createPipelines() {
   colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
   info_pipe2.setAttachmentBlending(colorBlendAttachment2, 0);
 
-  info_pipe2.setVertexInput(m_model);
+  info_pipe2.setVertexInput(m_model.vertexInfo());
   info_pipe2.setShader(m_shaders.at("lights"));
   info_pipe2.setPass(m_render_pass, 1);
   info_pipe2.addDynamic(vk::DynamicState::eViewport);

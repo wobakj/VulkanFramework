@@ -277,7 +277,7 @@ void ApplicationLodSingle::createPipelines() {
   info_pipe.setDepthStencil(depthStencil);
 
   info_pipe.setShader(m_shaders.at("lod"));
-  info_pipe.setVertexInput(m_model_lod);
+  info_pipe.setVertexInput(m_model_lod.vertexInfo());
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);

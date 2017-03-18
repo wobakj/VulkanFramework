@@ -200,7 +200,7 @@ void ApplicationVulkan::createPipelines() {
   info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
   info_pipe.setShader(m_shaders.at("scene"));
-  info_pipe.setVertexInput(m_model);
+  info_pipe.setVertexInput(m_model.vertexInfo());
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
@@ -235,7 +235,7 @@ void ApplicationVulkan::createPipelines() {
   colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
   info_pipe2.setAttachmentBlending(colorBlendAttachment2, 0);
 
-  info_pipe2.setVertexInput(m_model);
+  info_pipe2.setVertexInput(m_model.vertexInfo());
   info_pipe2.setShader(m_shaders.at("lights"));
   info_pipe2.setPass(m_render_pass, 1);
   info_pipe2.addDynamic(vk::DynamicState::eViewport);
@@ -301,8 +301,7 @@ void ApplicationVulkan::createFramebufferAttachments() {
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 
-  m_images["pos"] = Image{m_device, extent, vk::Format::eR8G8B8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
-  // m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_transferrer.transitionToLayout(m_images.at("pos"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("pos"));
 
