@@ -11,11 +11,17 @@ public:
   ModelNode();
   ModelNode(std::string const& name, std::string const& model, std::string const& transform);
 
+  Bbox const& getOrientedBox() const;
+
+  void setOrientedBoxPoints(glm::vec3 const& min, glm::vec3 const& max);
+  void setOrientedBoxTransform(glm::mat4 const& transform);
+
   void accept(NodeVisitor &v) override;
 
   std::string m_model;
   std::string m_transform;
  private:
+  Bbox m_oriented_box;
 };
 
 #endif

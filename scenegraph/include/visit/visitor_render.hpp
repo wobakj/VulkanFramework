@@ -18,7 +18,7 @@ class RenderVisitor : public NodeVisitor
 public:
 	RenderVisitor();
 
-	// void setFrustum(Frustum const& f);
+	//void setFrustum(Frustum const& f);
 
 	void visit(Node* node) override;
 	void visit(ModelNode* node) override;
@@ -32,7 +32,7 @@ public:
 
 private:
 	std::vector<ModelNode const*> m_toRender;
-	// Frustum m_frustum;
+	Frustum m_frustum;
 
 };
 

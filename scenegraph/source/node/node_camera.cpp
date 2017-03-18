@@ -10,10 +10,10 @@ CameraNode::CameraNode(std::string name, glm::mat4 transf) : Node(name, transf) 
 Frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf)
 {
 	Frustum f = Frustum{};
-	f.setNear(m_near);
-	f.setFar(m_far);
-	f.setProj(f.perspective(90.0f, m_resolution, cam_transf, screen_transf, m_near, m_far));
-	f.calculatePlanes(cam_transf, screen_transf, f);
+	// f.setNear(m_near);
+	// f.setFar(m_far);
+	// f.setProj(f.perspective(90.0f, m_resolution, cam_transf, screen_transf, m_near, m_far));
+	// f.calculatePlanes(cam_transf, screen_transf, f);
 	return f;
 }
 void CameraNode::accept(NodeVisitor &v)

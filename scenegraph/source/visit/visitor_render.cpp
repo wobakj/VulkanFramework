@@ -5,13 +5,12 @@
 #include "node/node_light.hpp"
 #include "node/node_screen.hpp"
 #include "node/node_camera.hpp"
-#include "frustum.hpp"
 
 #include <iostream>
 
-RenderVisitor::RenderVisitor()
-{
-}
+RenderVisitor::RenderVisitor() 
+: m_frustum() 
+{}
 
 // void RenderVisitor::setFrustum(Frustum const & f)
 // {

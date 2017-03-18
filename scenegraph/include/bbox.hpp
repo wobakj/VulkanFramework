@@ -2,6 +2,7 @@
 #define BBOX_HPP
 
 #include <glm/vec3.hpp>
+#include <glm/mat4x4.hpp>
 #include <utility>
 
 class Bbox
@@ -18,8 +19,10 @@ public:
 	glm::vec3 const& getMin() const;
 	glm::vec3 const& getMax() const;
 
-	void setMin(float x, float y, float z);
-	void setMax(float x, float y, float z);
+	void setMin(glm::vec3 const& min);
+	void setMax(glm::vec3 const& max);
+
+	void transformBox(glm::mat4 const& transform);
 
 	bool isEmpty() const;
 	std::pair<glm::vec3, glm::vec3> corners() const;

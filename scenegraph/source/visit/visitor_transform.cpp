@@ -28,8 +28,19 @@ void TransformVisitor::visit(Node * node) {
 }
 
 void TransformVisitor::visit(ModelNode * node) {
-	visit(reinterpret_cast<Node*>(node));
-  m_instance->dbTransform().set(node->m_transform, node->getWorld());
+	//visit(reinterpret_cast<Node*>(node));
+	if (node->getParent()) {
+		node->setWorld(node->getParent()->getWorld() * node->getLocal());
+	}
+	else {
+		node->setWorld(node->getLocal());
+	}
+	node->setOrientedBoxTransform(node->getWorld());
+
+	for (auto child : node->getChildren()) {
+		child->accept(*this);
+	}
+  	m_instance->dbTransform().set(node->m_transform, node->getWorld());
 }
 
 void TransformVisitor::visit(CameraNode * node) {
@@ -39,8 +50,8 @@ void TransformVisitor::visit(CameraNode * node) {
 void TransformVisitor::visit(LightNode * node) {
 	visit(reinterpret_cast<Node*>(node));
 	// store new position in buffer and mark for upload
-  auto& light = m_instance->dbLight().getEdit(node->id());
-  light.position = glm::fvec3(glm::column(node->getWorld(), 3));
+  	auto& light = m_instance->dbLight().getEdit(node->id());
+  	light.position = glm::fvec3(glm::column(node->getWorld(), 3));
 }
 
 void TransformVisitor::visit(ScreenNode * node) {

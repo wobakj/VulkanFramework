@@ -34,14 +34,23 @@ glm::vec3 const& Bbox::getMax() const
 	return m_max;
 }
 
-void Bbox::setMin(float x, float y, float z)
+void Bbox::setMin(glm::vec3 const& min)
 {
-	m_min = glm::vec3(x, y, z);
+	m_min = min;
 }
 
-void Bbox::setMax(float x, float y, float z)
+void Bbox::setMax(glm::vec3 const& max)
 {
-	m_max = glm::vec3(x, y, z);
+	m_max = max;
+}
+
+void Bbox::transformBox(glm::mat4 const& transform)
+{
+	glm::vec4 newPoint = transform * glm::vec4(m_min, 1.0f);
+	m_min = glm::vec3(newPoint.x, newPoint.y, newPoint.z);
+	
+	newPoint = transform * glm::vec4(m_max, 1.0f);
+	m_max = glm::vec3(newPoint.x, newPoint.y, newPoint.z);
 }
 
 bool Bbox::isEmpty() const
