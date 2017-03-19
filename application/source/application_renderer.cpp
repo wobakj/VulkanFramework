@@ -173,8 +173,8 @@ void ApplicationRenderer::createPipelines() {
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
-  uint32_t size_uint = uint32_t(m_instance.dbMaterial().dbDiffuse().size());
-  info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, size_uint);
+  // uint32_t size_uint = uint32_t(m_instance.dbMaterial().mapping().at("diffuse").size());
+  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, size_uint);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
@@ -315,7 +315,7 @@ void ApplicationRenderer::updateDescriptors() {
   m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
-  m_instance.dbMaterial().dbDiffuse().writeToSet(m_descriptor_sets.at("material"), 1);
+  m_instance.dbTexture().writeToSet(m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
   // m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
 }
 

@@ -7,14 +7,14 @@
 
 #include <map>
 struct gpu_mat_t {
-  gpu_mat_t(glm::fvec3 const& diff, uint32_t tex)
+  gpu_mat_t(glm::fvec3 const& diff, int32_t tex)
    :diffuse{diff.x, diff.y, diff.z, 0.0f}
    ,texture{tex}
   {}
 
   glm::fvec4 diffuse;
   glm::fvec3 pad;
-  uint32_t texture;
+  int32_t texture;
 };
 
 // enum tex_type : uint8_t {

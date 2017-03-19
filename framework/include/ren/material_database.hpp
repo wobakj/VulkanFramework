@@ -32,16 +32,18 @@ class MaterialDatabase : public Database<material_t> {
   Buffer const& buffer() const {
     return m_buffer;
   }
-  TextureDatabase const& dbDiffuse() const {
-    return m_db_texture;
+
+  std::map<std::string, std::map<std::string, int32_t>> const& mapping() const {
+    return m_tex_mapping;
   }
 
  private:
   std::map<std::string, size_t> m_indices;
+  // index per texyure name per texture type 
+  std::map<std::string, std::map<std::string, int32_t>> m_tex_mapping;
 
   StaticAllocator m_allocator;
   Buffer m_buffer;
-  TextureDatabase m_db_texture;
 };
 
 #endif

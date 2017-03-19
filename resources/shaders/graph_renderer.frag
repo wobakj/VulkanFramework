@@ -8,7 +8,7 @@ layout(location = 2) in vec2 frag_Texcoord;
 struct material_t {
   vec4 diffuse;
   vec3 pad;
-  uint index_texture;
+  int index_texture;
 };
 
 layout(set = 2, binding = 0) buffer Materials {
@@ -16,10 +16,12 @@ layout(set = 2, binding = 0) buffer Materials {
 };
 
 layout(constant_id = 0) const uint NUM_TEXTURES = 1;
-// const uint bla = 24;
-// layout(set = 2, binding = 1) uniform texture2D diffuseTextures[24];
-layout(set = 2, binding = 1) uniform sampler2D diffuseTextures[24];
-// layout(set = 2, binding = 2) uniform sampler diffuseSampler;
+// hardcode texture num, is limited by glslang bug
+// validation bug prevents usage of spec constant
+layout(set = 2, binding = 1) uniform sampler2D diffuseTextures[75];
+layout(set = 2, binding = 2) uniform sampler2D metalnessTextures[75];
+// layout(set = 2, binding = 3) uniform sampler2D normalTextures[75];
+// layout(set = 2, binding = 4) uniform sampler2D roughnessTextures[75];
 
 layout(push_constant) uniform PushFragment {
   layout(offset = 4) uint index;
