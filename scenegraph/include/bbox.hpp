@@ -22,6 +22,7 @@ public:
 	void setMax(glm::vec3 const& max);
 
 	void transformBox(glm::mat4 const& transform);
+	void join(Bbox const& b);
 
 	glm::vec3 const& getMin() const;
 	glm::vec3 const& getMax() const;

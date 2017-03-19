@@ -74,8 +74,8 @@ void ApplicationRenderer::logic() {
   TransformVisitor transform_visitor{m_instance};
   m_graph.accept(transform_visitor);
 
-  BboxVisitor box_visitor{m_instance};
-  m_graph.accept(box_visitor);
+  // BboxVisitor box_visitor{m_instance};
+  // m_graph.accept(box_visitor);
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {

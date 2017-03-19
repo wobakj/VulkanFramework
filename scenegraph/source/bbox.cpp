@@ -43,11 +43,52 @@ void Bbox::setMax(glm::vec3 const& max)
 
 void Bbox::transformBox(glm::mat4 const& transform)
 {
-	glm::vec4 newPoint = transform * glm::vec4(m_min, 1.0f);
-	m_min = glm::vec3(newPoint.x, newPoint.y, newPoint.z);
+	glm::vec4 points[8];
+	points[0] = glm::vec4(m_min, 1.0f);
+	points[1] = glm::vec4(m_max.x, m_min.y, m_min.z, 1.0f);
+	points[2] = glm::vec4(m_max.x, m_max.y, m_min.z, 1.0f);
+	points[3] = glm::vec4(m_min.x, m_max.y, m_min.z, 1.0f);
+
+	points[4] = glm::vec4(m_min.x, m_max.y, m_max.z, 1.0f);
+	points[5] = glm::vec4(m_max, 1.0f);
+	points[6] = glm::vec4(m_max.x, m_min.y, m_max.z, 1.0f);
+	points[7] = glm::vec4(m_min.x, m_min.y, m_max.z, 1.0f);
+
 	
-	newPoint = transform * glm::vec4(m_max, 1.0f);
-	m_max = glm::vec3(newPoint.x, newPoint.y, newPoint.z);
+	for (unsigned int i = 0; i < 8; ++i)
+	{
+		points[i] = points[i] * transform;
+		if (points[i].x < m_min.x) m_min.x = points[i].x;
+		if (points[i].y < m_min.y) m_min.y = points[i].y;
+		if (points[i].z < m_min.z) m_min.z = points[i].z;
+
+		if (points[i].x > m_max.x) m_max.x = points[i].x;
+		if (points[i].y > m_max.y) m_max.y = points[i].y;
+		if (points[i].z > m_max.z) m_max.z = points[i].z;
+	}
+
+}
+
+void Bbox::join(Bbox const& b)
+{
+	if (b.getMin().x < m_min.x) m_min = glm::vec3(b.getMin().x, m_min.y, m_min.z);
+	if (b.getMax().x < m_min.x) m_min = glm::vec3(b.getMax().x, m_min.y, m_min.z);
+
+	if (b.getMin().y < m_min.y) m_min = glm::vec3(m_min.x, b.getMin().y, m_min.z);
+	if (b.getMax().y < m_min.y) m_min = glm::vec3(m_min.x, b.getMax().y, m_min.z);
+
+	if (b.getMin().z < m_min.z) m_min = glm::vec3(m_min.x, m_min.y, b.getMin().z);
+	if (b.getMax().z < m_min.z) m_min = glm::vec3(m_min.x, m_min.y, b.getMax().z);
+
+	if (b.getMin().x > m_max.x) m_max = glm::vec3(b.getMin().x, m_max.y, m_max.z);
+	if (b.getMax().x > m_max.x) m_max = glm::vec3(b.getMax().x, m_max.y, m_max.z);
+
+	if (b.getMin().y > m_max.y) m_max = glm::vec3(m_max.x, b.getMin().y, m_max.z);
+	if (b.getMax().y > m_max.y) m_max = glm::vec3(m_max.x, b.getMax().y, m_max.z);
+
+	if (b.getMin().z > m_max.z) m_max = glm::vec3(m_max.x, m_max.y, b.getMin().z);
+	if (b.getMax().z > m_max.z) m_max = glm::vec3(m_max.x, m_max.y, b.getMax().z);
+
 }
 
 bool Bbox::isEmpty() const
