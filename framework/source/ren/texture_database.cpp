@@ -87,6 +87,7 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, uint32_t first_binding,
     vk::WriteDescriptorSet set_write{};
     set_write.dstSet = set;
     set_write.dstBinding = binding + first_binding;
+    std::cout << "binding type " << type.first << " to " << set_write.dstBinding << std::endl;
     set_write.dstArrayElement = 0;
     // descriptorWrite.descriptorType = vk::DescriptorType::eSampledImage;
     set_write.descriptorType = vk::DescriptorType::eCombinedImageSampler;
