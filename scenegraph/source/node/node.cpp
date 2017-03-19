@@ -99,7 +99,6 @@ std::vector<std::unique_ptr<Node>>::iterator Node::findChild(std::string const& 
 }
 
 Node* Node::getChild(std::string const& name) {
-	// take ownership and remove
 	return findChild(name)->get();
 }
 
@@ -120,17 +119,17 @@ void Node::clearChildren()
 
 void Node::scale(glm::vec3 const & s)
 {
-	m_local = glm::scale(m_local, s);
+	m_local = glm::scale(glm::fmat4{1.0f}, s) * m_local;
 }
 
 void Node::rotate(float const angle, glm::vec3 const & r)
 {
-	m_local = glm::rotate(m_local, angle, r);
+	m_local = glm::rotate(glm::fmat4{1.0f}, angle, r) * m_local;
 }
 
 void Node::translate(glm::vec3 const & t)
 {
-	m_local = glm::translate(m_local, t);
+	m_local = glm::translate(glm::fmat4{1.0f}, t) * m_local;
 }
 
 void Node::accept(NodeVisitor &v)

@@ -38,7 +38,7 @@ void Bbox::setMax(glm::vec3 const& max)
 	m_max = max;
 }
 
-void Bbox::transformBox(glm::mat4 const& transform)
+void Bbox::transform(glm::mat4 const& transform)
 {
 	std::vector<glm::vec4> points(8);
 	points[0] = glm::vec4(m_min, 1.0f);

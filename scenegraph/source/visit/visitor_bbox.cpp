@@ -41,7 +41,7 @@ void BboxVisitor::visit(ModelNode * node)
 	// get model-space bbox
 	auto curr_box = m_instance->dbModel().get(node->m_model).getBox();
 	// transform into world space
-	curr_box.transformBox(node->getWorld());
+	curr_box.transform(node->getWorld());
 	
 	// grow bbox
 	for (auto child : node->getChildren()) {

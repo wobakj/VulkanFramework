@@ -45,7 +45,7 @@ void PickVisitor::visit(ModelNode * node)
 	if (hierarchy_hit.success()) {
 		// calculate ray in model space
 		Ray ray_local = m_ray.transform(glm::inverse(node->getWorld()));
-		// intersect
+		// intersect model-space bbox
 		auto curr_box = m_instance->dbModel().get(node->m_model).getBox();
 		auto local_hit = curr_box.intersects(ray_local);
 		if (local_hit.success())

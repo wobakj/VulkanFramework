@@ -49,8 +49,8 @@ public:
 
 	Node* m_parent;
 	std::string m_name;
-	glm::mat4 m_world;
-	glm::mat4 m_local;
+	glm::fmat4 m_world;
+	glm::fmat4 m_local;
 	Bbox m_box;
 	std::vector<std::unique_ptr<Node>> m_children;
 

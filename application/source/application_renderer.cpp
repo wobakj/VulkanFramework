@@ -268,16 +268,17 @@ void ApplicationRenderer::createVertexBuffer() {
   m_model = Geometry{m_transferrer, tri};
 
   auto node_sphere = m_graph.createGeometryNode("sphere", m_resource_path + "models/sphere.obj");
-  node_sphere->setLocal(glm::translate(glm::fmat4{}, glm::fvec3{0.0f, 1.0f, 0.0f}));
   node_sphere->scale(glm::fvec3{0.2f});
+  node_sphere->translate(glm::fvec3{0.0f, 1.0f, 0.0f});
   m_graph.getRoot()->addChild(std::move(node_sphere));
 
   auto node_sphere2 = m_graph.createGeometryNode("sphere2", m_resource_path + "models/sphere.obj");
-  node_sphere2->setLocal(glm::translate(glm::fmat4{}, glm::fvec3{0.0f, 0.0f, 4.0f}));
+  node_sphere2->translate(glm::fvec3{0.0f, 0.0f, 4.0f});
   m_graph.getRoot()->getChild("sphere")->addChild(std::move(node_sphere2));
 
   auto node_sponza = m_graph.createGeometryNode("sponza", m_resource_path + "models/sponza.obj");
   node_sponza->scale(glm::fvec3{0.005f});
+  node_sponza->translate(glm::fvec3{0.0f, 30.0f, 0.0f});
   m_graph.getRoot()->addChild(std::move(node_sponza));
 }
 
