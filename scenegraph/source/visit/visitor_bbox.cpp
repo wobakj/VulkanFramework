@@ -11,14 +11,7 @@
 BboxVisitor::BboxVisitor(ApplicationInstance& instance) 
  :NodeVisitor() 
  ,m_instance{&instance}
- ,m_box()
-{
-}
-
-Bbox const& BboxVisitor::getBox() const
-{
-	return m_box;
-}
+{}
 
 void BboxVisitor::visit(Node * node)
 {
@@ -31,47 +24,49 @@ void BboxVisitor::visit(ModelNode * node)
 {
 	visit(static_cast<Node*>(node));
 
-	glm::fvec3 currmin{0.0f};
-	glm::fvec3 currmax{0.0f}; 
-	// auto currmin = node->getOrientedBox().getMin();
-	// auto currmax = node->getOrientedBox().getMax(); 
+	// glm::fvec3 currmin{0.0f};
+	// glm::fvec3 currmax{0.0f}; 
 
-	if (currmin.x < m_box.getMin().x) m_box.setMin(glm::vec3(currmin.x, m_box.getMin().y, m_box.getMin().z));
-	if (currmin.y < m_box.getMin().y) m_box.setMin(glm::vec3(m_box.getMin().x, currmin.y, m_box.getMin().z));
-	if (currmin.z < m_box.getMin().z) m_box.setMin(glm::vec3(m_box.getMin().x, m_box.getMin().y, currmin.z));
+	auto curr_box = m_instance->dbModel().get(node->m_model).getBox();
+	auto currmin = curr_box.getMin();
+	auto currmax = curr_box.getMax(); 
 
-	if (currmax.x < m_box.getMin().x) m_box.setMin(glm::vec3(currmax.x, m_box.getMin().y, m_box.getMin().z));
-	if (currmax.y < m_box.getMin().y) m_box.setMin(glm::vec3(m_box.getMin().x, currmax.y, m_box.getMin().z));
-	if (currmax.z < m_box.getMin().z) m_box.setMin(glm::vec3(m_box.getMin().x, m_box.getMin().y, currmax.z));
+	if (currmin.x < curr_box.getMin().x) curr_box.setMin(glm::vec3(currmin.x, curr_box.getMin().y, curr_box.getMin().z));
+	if (currmin.y < curr_box.getMin().y) curr_box.setMin(glm::vec3(curr_box.getMin().x, currmin.y, curr_box.getMin().z));
+	if (currmin.z < curr_box.getMin().z) curr_box.setMin(glm::vec3(curr_box.getMin().x, curr_box.getMin().y, currmin.z));
 
-	if (currmin.x > m_box.getMax().x) m_box.setMax(glm::vec3(currmin.x, m_box.getMax().y, m_box.getMax().z));
-	if (currmin.y > m_box.getMax().y) m_box.setMax(glm::vec3(m_box.getMax().x, currmin.y, m_box.getMax().z));
-	if (currmin.z > m_box.getMax().z) m_box.setMax(glm::vec3(m_box.getMax().x, m_box.getMax().y, currmin.z));
+	if (currmax.x < curr_box.getMin().x) curr_box.setMin(glm::vec3(currmax.x, curr_box.getMin().y, curr_box.getMin().z));
+	if (currmax.y < curr_box.getMin().y) curr_box.setMin(glm::vec3(curr_box.getMin().x, currmax.y, curr_box.getMin().z));
+	if (currmax.z < curr_box.getMin().z) curr_box.setMin(glm::vec3(curr_box.getMin().x, curr_box.getMin().y, currmax.z));
 
-	if (currmax.x > m_box.getMax().x) m_box.setMax(glm::vec3(currmax.x, m_box.getMax().y, m_box.getMax().z));
-	if (currmax.y > m_box.getMax().y) m_box.setMax(glm::vec3(m_box.getMax().x, currmax.y, m_box.getMax().z));
-	if (currmax.z > m_box.getMax().z) m_box.setMax(glm::vec3(m_box.getMax().x, m_box.getMax().y, currmax.z));
+	if (currmin.x > curr_box.getMax().x) curr_box.setMax(glm::vec3(currmin.x, curr_box.getMax().y, curr_box.getMax().z));
+	if (currmin.y > curr_box.getMax().y) curr_box.setMax(glm::vec3(curr_box.getMax().x, currmin.y, curr_box.getMax().z));
+	if (currmin.z > curr_box.getMax().z) curr_box.setMax(glm::vec3(curr_box.getMax().x, curr_box.getMax().y, currmin.z));
+
+	if (currmax.x > curr_box.getMax().x) curr_box.setMax(glm::vec3(currmax.x, curr_box.getMax().y, curr_box.getMax().z));
+	if (currmax.y > curr_box.getMax().y) curr_box.setMax(glm::vec3(curr_box.getMax().x, currmax.y, curr_box.getMax().z));
+	if (currmax.z > curr_box.getMax().z) curr_box.setMax(glm::vec3(curr_box.getMax().x, curr_box.getMax().y, currmax.z));
 
 	for (auto child : node->getChildren())
 	{
 		currmin = child->getBox().getMin();
 		currmax = child->getBox().getMax(); 
 
-		if (currmin.x < m_box.getMin().x) m_box.setMin(glm::vec3(currmin.x, m_box.getMin().y, m_box.getMin().z));
-		if (currmin.y < m_box.getMin().y) m_box.setMin(glm::vec3(m_box.getMin().x, currmin.y, m_box.getMin().z));
-		if (currmin.z < m_box.getMin().z) m_box.setMin(glm::vec3(m_box.getMin().x, m_box.getMin().y, currmin.z));
+		if (currmin.x < curr_box.getMin().x) curr_box.setMin(glm::vec3(currmin.x, curr_box.getMin().y, curr_box.getMin().z));
+		if (currmin.y < curr_box.getMin().y) curr_box.setMin(glm::vec3(curr_box.getMin().x, currmin.y, curr_box.getMin().z));
+		if (currmin.z < curr_box.getMin().z) curr_box.setMin(glm::vec3(curr_box.getMin().x, curr_box.getMin().y, currmin.z));
 
-		if (currmax.x < m_box.getMin().x) m_box.setMin(glm::vec3(currmax.x, m_box.getMin().y, m_box.getMin().z));
-		if (currmax.y < m_box.getMin().y) m_box.setMin(glm::vec3(m_box.getMin().x, currmax.y, m_box.getMin().z));
-		if (currmax.z < m_box.getMin().z) m_box.setMin(glm::vec3(m_box.getMin().x, m_box.getMin().y, currmax.z));
+		if (currmax.x < curr_box.getMin().x) curr_box.setMin(glm::vec3(currmax.x, curr_box.getMin().y, curr_box.getMin().z));
+		if (currmax.y < curr_box.getMin().y) curr_box.setMin(glm::vec3(curr_box.getMin().x, currmax.y, curr_box.getMin().z));
+		if (currmax.z < curr_box.getMin().z) curr_box.setMin(glm::vec3(curr_box.getMin().x, curr_box.getMin().y, currmax.z));
 
-		if (currmin.x > m_box.getMax().x) m_box.setMax(glm::vec3(currmin.x, m_box.getMax().y, m_box.getMax().z));
-		if (currmin.y > m_box.getMax().y) m_box.setMax(glm::vec3(m_box.getMax().x, currmin.y, m_box.getMax().z));
-		if (currmin.z > m_box.getMax().z) m_box.setMax(glm::vec3(m_box.getMax().x, m_box.getMax().y, currmin.z));
+		if (currmin.x > curr_box.getMax().x) curr_box.setMax(glm::vec3(currmin.x, curr_box.getMax().y, curr_box.getMax().z));
+		if (currmin.y > curr_box.getMax().y) curr_box.setMax(glm::vec3(curr_box.getMax().x, currmin.y, curr_box.getMax().z));
+		if (currmin.z > curr_box.getMax().z) curr_box.setMax(glm::vec3(curr_box.getMax().x, curr_box.getMax().y, currmin.z));
 
-		if (currmax.x > m_box.getMax().x) m_box.setMax(glm::vec3(currmax.x, m_box.getMax().y, m_box.getMax().z));
-		if (currmax.y > m_box.getMax().y) m_box.setMax(glm::vec3(m_box.getMax().x, currmax.y, m_box.getMax().z));
-		if (currmax.z > m_box.getMax().z) m_box.setMax(glm::vec3(m_box.getMax().x, m_box.getMax().y, currmax.z));
+		if (currmax.x > curr_box.getMax().x) curr_box.setMax(glm::vec3(currmax.x, curr_box.getMax().y, curr_box.getMax().z));
+		if (currmax.y > curr_box.getMax().y) curr_box.setMax(glm::vec3(curr_box.getMax().x, currmax.y, curr_box.getMax().z));
+		if (currmax.z > curr_box.getMax().z) curr_box.setMax(glm::vec3(curr_box.getMax().x, curr_box.getMax().y, currmax.z));
 	}
 }
 

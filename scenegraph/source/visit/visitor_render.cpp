@@ -19,7 +19,10 @@ RenderVisitor::RenderVisitor()
 
 void RenderVisitor::visit(Node * node)
 {
-	visit(reinterpret_cast<Node*>(node));
+	for (auto child : node->getChildren())
+	{
+		child->accept(*this);
+	}
 }
 
 void RenderVisitor::visit(ModelNode * node)
@@ -27,10 +30,7 @@ void RenderVisitor::visit(ModelNode * node)
 	std::cout << "visiting node " << node->getName() << std::endl;
 	// if (m_frustum.intersects(*node->getBox())) m_toRender.insert(node);
 	m_toRender.emplace_back(node);
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+	visit(reinterpret_cast<Node*>(node));
 }
 
 void RenderVisitor::visit(CameraNode * node)

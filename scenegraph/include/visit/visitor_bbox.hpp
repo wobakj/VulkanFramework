@@ -10,9 +10,6 @@ class BboxVisitor : public NodeVisitor
 {
 public:
 	BboxVisitor(ApplicationInstance& instance);
-	~BboxVisitor();
-
-	Bbox const& getBox() const;
 
 	void visit(Node* node) override;
 	void visit(ModelNode* node) override;
@@ -22,7 +19,6 @@ public:
 
 private:
   ApplicationInstance* m_instance;
-	Bbox m_box;
 };
 
 #endif
