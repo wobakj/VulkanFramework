@@ -36,11 +36,11 @@ MaterialDatabase& MaterialDatabase::operator=(MaterialDatabase&& rhs) {
 
 void MaterialDatabase::store(std::string const& name, material_t&& resource) {
   uint32_t index_diffuse = 0;
-  if (!resource.tex_diffuse.empty()) {
-    if (!m_db_texture.contains(resource.tex_diffuse)) {
-      m_db_texture.store(resource.tex_diffuse);
+  if (resource.textures.find("diffuse") != resource.textures.end()) {
+    if (!m_db_texture.contains(resource.textures.at("diffuse"))) {
+      m_db_texture.store(resource.textures.at("diffuse"));
     }
-    index_diffuse = uint32_t(m_db_texture.index(resource.tex_diffuse));
+    index_diffuse = uint32_t(m_db_texture.index(resource.textures.at("diffuse")));
   }
 
   gpu_mat_t gpu_mat{resource.vec_diffuse, index_diffuse};
