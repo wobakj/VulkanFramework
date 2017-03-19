@@ -387,7 +387,7 @@ std::vector<vk::DrawIndirectCommand> const& GeometryLod::drawCommands() const {
 }
 
 VertexInfo GeometryLod::vertexInfo() const {
-  vertex_data::attrib_flag_t attribs;
+  vertex_data::attrib_flag_t attribs = 0;
   for (auto const& offset : m_model.offsets) {
     attribs |= offset.first;
   }

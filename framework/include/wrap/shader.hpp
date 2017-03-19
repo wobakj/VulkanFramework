@@ -2,6 +2,7 @@
 #define SHADER_HPP
 
 #include "wrap/wrapper.hpp"
+#include "wrap/descriptor_set_layout.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -59,16 +60,12 @@ class Shader : public WrapperShader {
 
   vk::PipelineLayout const& pipelineLayout() const;
   std::vector<vk::PipelineShaderStageCreateInfo> const& shaderStages() const;
-  vk::DescriptorSetLayout const& setLayout(std::size_t index) const;
-  std::vector<vk::DescriptorSetLayout> const& setLayouts() const;
+  DescriptorSetLayout const& setLayout(std::size_t index) const;
+  std::vector<DescriptorSetLayout> const& setLayouts() const;
 
   vk::DescriptorPool createPool(uint32_t times = 1) const;
   vk::GraphicsPipelineCreateInfo startPipelineInfo() const;
 
-  vk::DescriptorSetAllocateInfo allocateInfos(vk::DescriptorPool const& pool) const;
-  vk::DescriptorSetAllocateInfo allocateInfo(vk::DescriptorPool const& pool, uint32_t idx_set) const;
-  vk::DescriptorSet allocateSet(vk::DescriptorPool const& pool, uint32_t idx_set) const;
-  std::vector<vk::DescriptorSet> allocateSets(vk::DescriptorPool const& pool) const;
   std::vector<std::string> const& paths() const;
  private:
   void destroy() override;
@@ -76,7 +73,7 @@ class Shader : public WrapperShader {
   Device const* m_device;
   std::vector<std::string> m_paths;
   std::vector<vk::ShaderModule> m_modules;
-  std::vector<vk::DescriptorSetLayout> m_set_layouts;
+  std::vector<DescriptorSetLayout> m_set_layouts;
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stages;
 };
 
