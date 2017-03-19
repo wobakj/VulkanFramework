@@ -368,11 +368,11 @@ void ApplicationThreadedSimple::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("lights"), 1, 1);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 1);
-  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
+  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(1));
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(1));
   
   for(auto& res : m_frame_resources) {
-    res.descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
+    res.descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(0));
   }
 }
 

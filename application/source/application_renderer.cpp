@@ -325,12 +325,12 @@ void ApplicationRenderer::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("lights"), 1, 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["camera"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
-  m_descriptor_sets["transform"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 1);
-  m_descriptor_sets["material"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 2);
+  m_descriptor_sets["camera"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(0));
+  m_descriptor_sets["transform"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(1));
+  m_descriptor_sets["material"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(2));
 
-  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 0);
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(1));
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(0));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

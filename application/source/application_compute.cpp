@@ -201,8 +201,8 @@ void ApplicationCompute::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("compute"), 0, 1);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["texture"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 2);
-  m_descriptor_sets["storage"] = m_descriptor_pool.allocate(m_shaders.at("compute"), 0);
+  m_descriptor_sets["texture"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(2));
+  m_descriptor_sets["storage"] = m_descriptor_pool.allocate(m_shaders.at("compute").setLayout(0));
 }
 
 void ApplicationCompute::createUniformBuffers() {

@@ -19,9 +19,6 @@ class DescriptorPool : public WrapperDescriptorPool {
   DescriptorPool(DescriptorPool && dev);
   DescriptorPool(DescriptorPool const&) = delete;
   ~DescriptorPool();
-  
-  std::vector<vk::DescriptorSet> allocate(Shader const& shader) const;
-  vk::DescriptorSet allocate(Shader const& shader, uint32_t set) const;
  
   std::vector<vk::DescriptorSet> allocate(std::vector<DescriptorSetLayout> const& layouts) const;
   vk::DescriptorSet allocate(DescriptorSetLayout const& layout) const;

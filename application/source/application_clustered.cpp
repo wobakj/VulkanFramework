@@ -323,9 +323,9 @@ void ApplicationClustered::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("quad"), 1, 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 0);
-  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 1);
-  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("quad"), 1);
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("simple").setLayout(0));
+  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("simple").setLayout(1));
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("quad").setLayout(1));
 }
 
 void ApplicationClustered::createUniformBuffers() {
