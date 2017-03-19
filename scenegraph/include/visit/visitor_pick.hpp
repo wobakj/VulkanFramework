@@ -19,7 +19,7 @@ class ApplicationInstance;
 class PickVisitor : public NodeVisitor
 {
 public:
-	PickVisitor(ApplicationInstance& instance);
+	PickVisitor(ApplicationInstance& instance, Ray const& ray);
 
 	void setRay(Ray const& r);
 	std::vector<Hit> const& getHits() const;
@@ -31,9 +31,9 @@ public:
 	void visit(ScreenNode* node) override;
 
 private:
-	std::vector<Hit> m_hits;
-	Ray m_ray;
 	ApplicationInstance* m_instance;
+	Ray m_ray;
+	std::vector<Hit> m_hits;
 };
 
 #endif 

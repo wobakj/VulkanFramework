@@ -10,9 +10,10 @@
 #include "ren/application_instance.hpp"
 
 
-PickVisitor::PickVisitor(ApplicationInstance& instance) : 
-NodeVisitor(), 
-m_instance(&instance)
+PickVisitor::PickVisitor(ApplicationInstance& instance, Ray const& ray)
+ :NodeVisitor()
+ ,m_instance(&instance)
+ ,m_ray{ray}
 {}
 
 
@@ -28,48 +29,30 @@ std::vector<Hit> const& PickVisitor::getHits() const
 
 void PickVisitor::visit(Node * node)
 {
-	// auto world = node->getWorld();
-	// std::cout<<"\naaaaaaaa";
-	// for (unsigned int i = 0; i < 4; ++i)
-	// {
-	// 	for (unsigned int j = 0; j < 4; ++j)
-	// 	{
-	// 		std::cout<<"\n"<<world[i][j];
-	// 	}
-	// }
-	// std::cout<<"\nbbbbbbbbb";
-	std::cout<<"\naaaaaaaa";
-	std::cout<<"\n"<<" bmin: "<<node->getBox().getMin().x<<" "<<node->getBox().getMin().y<<" "<<node->getBox().getMin().z<<" bmax: "<<node->getBox().getMax().x<<" "<<node->getBox().getMax().y<<" "<<node->getBox().getMax().z;
-	std::cout<<"\nbbbbbbbbb";
-
 	auto hit = node->getBox().intersects(m_ray);
-	std::cout<<"\n"<<node->getName()<<" hits " << hit.success();
 	if (hit.success()) 
 	{
-		//hit.setNode(node);
-		//m_hits.push_back(hit);
-		std::cout<<"\nhierarchy hit "<<node->getName();
 		for (auto child : node->getChildren())
 		{
 			child->accept(*this);
 		}
 	}
-	
 }
 
 void PickVisitor::visit(ModelNode * node)
 {
 	auto hierarchy_hit = node->getBox().intersects(m_ray);
-	if (hierarchy_hit.success()) 
-	{
+	if (hierarchy_hit.success()) {
+		// calculate ray in model space
+		Ray ray_local = m_ray.transform(glm::inverse(node->getWorld()));
+		// intersect
 		auto curr_box = m_instance->dbModel().get(node->m_model).getBox();
-		m_ray.setOrigin(m_ray.getOrigin() * glm::inverse(node->getWorld()));
-		m_ray.setDir(m_ray.getDir() * glm::inverse(node->getWorld()));
-		auto local_hit = curr_box.intersects(m_ray);
+		auto local_hit = curr_box.intersects(ray_local);
 		if (local_hit.success())
 		{
-			std::cout<<"\nlocal hit "<<node->getName();
+			std::cout<<"local hit "<<node->getName() << std::endl;
 			local_hit.setNode(node);
+			local_hit.setWorld(node->getWorld() * glm::fvec4{local_hit.getLocal(),1.0f});
 			m_hits.push_back(local_hit);
 		}
 		for (auto child : node->getChildren())

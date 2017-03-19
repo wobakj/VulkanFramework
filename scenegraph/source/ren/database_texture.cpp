@@ -73,8 +73,10 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) 
 
   descriptorWrite.descriptorCount = uint32_t(image_infos.size());
   descriptorWrite.pImageInfo = image_infos.data();
-
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  // write only if update has effect
+  if (descriptorWrite.descriptorCount > 0) {
+    (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  }
 }
 
 void TextureDatabase::writeToSet(vk::DescriptorSet& set, uint32_t first_binding, std::map<std::string, std::map<std::string, int32_t>> const& mapping) const {

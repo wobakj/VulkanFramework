@@ -40,7 +40,7 @@ Model ModelLoader::load(std::string const& filename, vertex_data::attrib_flag_t 
   std::vector<std::string> keys_geo{};
   std::vector<std::string> keys_mat{};
   glm::vec3 box_min(std::numeric_limits<float>::max()); 
-  glm::vec3 box_max(std::numeric_limits<float>::min());
+  glm::vec3 box_max(std::numeric_limits<float>::lowest());
   for (size_t i = 0; i < vert_datas.size(); ++i) {
     // store geometry
     std::string key_geo{filename + '|' + std::to_string(i)};
@@ -72,7 +72,7 @@ Model ModelLoader::load(std::string const& filename, vertex_data::attrib_flag_t 
 
         if (vert_datas[i].data[j] > box_max.x) box_max.x = vert_datas[i].data[j];
         if (vert_datas[i].data[j+1] > box_max.y) box_max.y = vert_datas[i].data[j+1];
-        if (vert_datas[i].data[j+2] < box_max.z) box_max.z = vert_datas[i].data[j+2];
+        if (vert_datas[i].data[j+2] > box_max.z) box_max.z = vert_datas[i].data[j+2];
     }
   }
   if (mat_datas.empty()) {

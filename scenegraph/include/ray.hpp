@@ -1,8 +1,9 @@
 #ifndef RAY_HPP
 #define RAY_HPP
 
-#include <glm/vec4.hpp>
+// #include <glm/vec4.hpp>
 #include <glm/vec3.hpp>
+#include <glm/gtc/type_precision.hpp>
 #include <string>
 #include <array>
 
@@ -10,25 +11,18 @@ class Ray
 {
 public:
 	Ray();
-	Ray(glm::vec4 orig, glm::vec4 dir);
+	Ray(glm::fvec3 const& orig, glm::fvec3 const& dir);
 	
-	glm::vec4 const& getOrigin() const;
-	glm::vec4 const& getDir() const;
-	glm::vec4 const& getInvDir() const;
-	std::array<bool, 3> const& getSign() const;
-
-	void setOrigin(glm::vec4 const& o);
-	void setDir(glm::vec4 const& d);
-	void setInvDir(glm::vec4 const& d);
-	void setSign(glm::vec4 const& d);
-
-
+	glm::fvec3 const& origin() const;
+	glm::fvec3 const& direction() const;
+	glm::fvec3 const& invDir() const;
+	glm::uvec3 const& sign() const;
+	Ray transform(glm::fmat4 const& mat) const;
 private:
-	glm::vec4 m_origin;
-	glm::vec4 m_dir;
-	glm::vec4 m_inv_dir;
-	std::array<bool, 3> m_sign;
-	
+	glm::fvec3 m_origin;
+	glm::fvec3 m_dir;
+	glm::fvec3 m_inv_dir;
+	glm::uvec3 m_sign;
 };
 
 #endif

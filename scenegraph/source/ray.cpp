@@ -1,51 +1,34 @@
 #include "ray.hpp"
 
-
-
 Ray::Ray() {}
 
-Ray::Ray(glm::vec4 orig, glm::vec4 dir) {}
+Ray::Ray(glm::fvec3 const& orig, glm::fvec3 const& dir)
+ :m_origin{orig}
+ ,m_dir{dir}
+ ,m_inv_dir{1.0f / dir}
+ ,m_sign{glm::sign(dir) * 0.5f + 0.5f}
+{}
 
-glm::vec4 const& Ray::getOrigin() const
+glm::fvec3 const& Ray::origin() const
 {
 	return m_origin;
 }
 
-
-glm::vec4 const& Ray::getDir() const
+glm::fvec3 const& Ray::direction() const
 {
 	return m_dir;
 }
 
-glm::vec4 const& Ray::getInvDir() const
+glm::fvec3 const& Ray::invDir() const
 {
 	return m_inv_dir;
 }
 
-std::array<bool, 3> const& Ray::getSign() const
+glm::uvec3 const& Ray::sign() const
 {
 	return m_sign;
 }
 
-void Ray::setOrigin(glm::vec4 const & o)
-{
-	m_origin = o;
-}
-
-void Ray::setDir(glm::vec4 const & d)
-{
-	m_dir = d;
-	setInvDir(m_dir);
-}
-
-void Ray::setInvDir(glm::vec4 const & d)
-{
-	m_inv_dir = glm::vec4(1.0f / d.x, 1.0f / d.y, 1.0f / d.z, 1.0f / d.t);
-}
-
-void Ray::setSign(glm::vec4 const & d)
-{
-	m_sign[0] = (m_inv_dir.x < 0.0f);
-	m_sign[1] = (m_inv_dir.y < 0.0f);
-	m_sign[2] = (m_inv_dir.z < 0.0f);
+Ray Ray::transform(glm::fmat4 const& mat) const {
+	return Ray{mat * glm::fvec4{origin(), 1.0f}, mat * glm::fvec4{direction(), 0.0f}};
 }

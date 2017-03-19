@@ -3,7 +3,6 @@
 
 #include "visit/visitor_node.hpp"
 #include "bbox.hpp"
-#include "ray.hpp"
 
 #include <string>
 #include <glm/mat4x4.hpp>
@@ -11,7 +10,6 @@
 #include <set>
 #include <memory>
 
-class Hit;
 class NodeVisitor;
 class Scenegraph;
 
@@ -19,7 +17,7 @@ class Node
 {
 public:
 	Node();
-	Node(std::string const &name, glm::mat4 const);
+	Node(std::string const&name, glm::mat4 const& mat  = glm::fmat4{1.0f});
 
 	void setLocal(glm::mat4 const &local);
 
@@ -39,8 +37,6 @@ public:
 	void scale(glm::vec3 const& s);
 	void rotate(float angle, glm::vec3 const& r);
 	void translate(glm::vec3 const& t);
-
-	std::shared_ptr<Hit> intersectsRay(Ray const& r) const;
 
  protected:
 	virtual void accept(NodeVisitor &v);

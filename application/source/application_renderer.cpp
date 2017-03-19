@@ -78,10 +78,9 @@ void ApplicationRenderer::logic() {
   BboxVisitor box_visitor{m_instance};
   m_graph.accept(box_visitor);
 
-  Ray r{glm::vec4(0.0f, 0.0f, 0.0f, -10.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)};
-  PickVisitor pick_visitor{m_instance};
+  Ray r{glm::fvec3(0.0f, 1.0f, 0.0f), glm::fvec3(0.0f, 0.0f, 1.0f)};
+  PickVisitor pick_visitor{m_instance, r};
   m_graph.accept(pick_visitor);
-  // throw std::exception{};
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
@@ -278,7 +277,7 @@ void ApplicationRenderer::createVertexBuffer() {
   m_graph.getRoot()->getChild("sphere")->addChild(std::move(node_sphere2));
 
   auto node_sponza = m_graph.createGeometryNode("sponza", m_resource_path + "models/sponza.obj");
-  node_sponza->setLocal(glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
+  node_sponza->scale(glm::fvec3{0.005f});
   m_graph.getRoot()->addChild(std::move(node_sponza));
 }
 
