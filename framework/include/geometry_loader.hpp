@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_LOADER_HPP
 #define GEOMETRY_LOADER_HPP
 
-#include "wrap/vertex_data.hpp"
+#include "vertex_data.hpp"
 #include "ren/material.hpp"
 
 #include <vector>

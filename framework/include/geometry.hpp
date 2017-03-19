@@ -3,7 +3,7 @@
 
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"
-#include "wrap/vertex_data.hpp"
+#include "vertex_data.hpp"
 #include "allocator_static.hpp"
 
 #include <vulkan/vulkan.hpp>

@@ -58,4 +58,8 @@ struct vertex_data {
   std::uint32_t vertex_num;
 };
 
+class VertexInfo;
+
+VertexInfo attribs_to_vert_info(vertex_data::attrib_flag_t const& active_attributes, bool interleaved = true);
+
 #endif

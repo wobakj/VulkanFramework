@@ -1,14 +1,9 @@
 #ifndef VERTEX_INFO_HPP
 #define VERTEX_INFO_HPP
 
-#include "wrap/vertex_data.hpp"
-
 #include <vulkan/vulkan.hpp>
 #include <vector>
 
-class VertexInfo;
-
-VertexInfo attribs_to_vert_info(vertex_data::attrib_flag_t const& active_attributes, bool interleaved = true);
 
 class VertexInfo {
  public:

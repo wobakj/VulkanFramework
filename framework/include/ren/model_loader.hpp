@@ -1,7 +1,7 @@
 #ifndef MODEL_LOADER_HPP
 #define MODEL_LOADER_HPP
 
-#include "wrap/vertex_data.hpp"
+#include "vertex_data.hpp"
 
 #include <vector>
 #include <string>
