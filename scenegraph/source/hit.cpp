@@ -1,9 +1,8 @@
 #include "hit.hpp"
 
-
-Hit::Hit() {}
-
-Hit::~Hit() {}
+Hit::Hit()
+ :m_hit{false}
+{}
 
 glm::vec3 const& Hit::getLocal() const
 {
@@ -58,4 +57,12 @@ void Hit::setWorldNormal(glm::vec3 const & w)
 void Hit::setNode(Node* n)
 {
 	m_node = n;
+}
+
+bool Hit::intersected() const {
+	return m_hit;
+}
+
+void Hit::success() {
+	m_hit = true;
 }

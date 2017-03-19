@@ -1,20 +1,15 @@
 #ifndef VISITORBBOX_HPP
 #define VISITORBBOX_HPP
 
-#include <memory>
-
 #include "visit/visitor_node.hpp"
 #include "bbox.hpp"
-#include "node/node_model.hpp"
-#include "node/node_light.hpp"
-#include "node/node_screen.hpp"
-#include "node/node_camera.hpp"
-#include "frustum.hpp"
+
+class ApplicationInstance;
 
 class BboxVisitor : public NodeVisitor
 {
 public:
-	BboxVisitor();
+	BboxVisitor(ApplicationInstance& instance);
 	~BboxVisitor();
 
 	Bbox const& getBox() const;
@@ -26,6 +21,7 @@ public:
 	void visit(ScreenNode* node) override;
 
 private:
+  ApplicationInstance* m_instance;
 	Bbox m_box;
 };
 

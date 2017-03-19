@@ -19,10 +19,7 @@ RenderVisitor::RenderVisitor()
 
 void RenderVisitor::visit(Node * node)
 {
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+	visit(reinterpret_cast<Node*>(node));
 }
 
 void RenderVisitor::visit(ModelNode * node)
@@ -38,24 +35,15 @@ void RenderVisitor::visit(ModelNode * node)
 
 void RenderVisitor::visit(CameraNode * node)
 {
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+	visit(reinterpret_cast<Node*>(node));
 }
 
 void RenderVisitor::visit(LightNode * node)
 {
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+	visit(reinterpret_cast<Node*>(node));
 }
 
 void RenderVisitor::visit(ScreenNode * node)
 {
-	for (auto child : node->getChildren())
-	{
-		child->accept(*this);
-	}
+	visit(reinterpret_cast<Node*>(node));
 }
