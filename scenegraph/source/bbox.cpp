@@ -5,10 +5,11 @@
 #include "ray.hpp"
 
 #include <numeric>
+#include <iostream>
 
 Bbox::Bbox(): 
-	m_min(glm::vec3(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max())),
-	m_max(glm::vec3(std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()))
+	m_min(glm::vec3(std::numeric_limits<float>::max())),
+	m_max(glm::vec3(std::numeric_limits<float>::min()))
 {}
 
 Bbox::Bbox(glm::vec3 const& p):
@@ -54,10 +55,19 @@ void Bbox::transformBox(glm::mat4 const& transform)
 	points[6] = glm::vec4(m_max.x, m_min.y, m_max.z, 1.0f);
 	points[7] = glm::vec4(m_min.x, m_min.y, m_max.z, 1.0f);
 
-	
+	// std::cout<<"\naaaaaaaaaaaaaaaaaaa";
+
+	// for (unsigned int i = 0; i < 8; ++i)
+	// {
+	// 	std::cout<<"\n"<<points[i].x<<" "<<points[i].y<<" "<<points[i].z;
+	// }
+
+	// std::cout<<"\n";
+	m_min = glm::vec3(std::numeric_limits<float>::max());
+	m_max = glm::vec3(std::numeric_limits<float>::min());
 	for (unsigned int i = 0; i < 8; ++i)
 	{
-		points[i] = points[i] * transform;
+		points[i] = transform * points[i];
 		if (points[i].x < m_min.x) m_min.x = points[i].x;
 		if (points[i].y < m_min.y) m_min.y = points[i].y;
 		if (points[i].z < m_min.z) m_min.z = points[i].z;
@@ -67,28 +77,24 @@ void Bbox::transformBox(glm::mat4 const& transform)
 		if (points[i].z > m_max.z) m_max.z = points[i].z;
 	}
 
+	for (unsigned int i = 0; i < 8; ++i)
+	{
+		std::cout<<"\n"<<points[i].x<<" "<<points[i].y<<" "<<points[i].z;
+	}
+
+	// std::cout<<"\nbbbbbbbbbbbbbbb";
+
 }
 
 void Bbox::join(Bbox const& b)
 {
-	if (b.getMin().x < m_min.x) m_min = glm::vec3(b.getMin().x, m_min.y, m_min.z);
-	if (b.getMax().x < m_min.x) m_min = glm::vec3(b.getMax().x, m_min.y, m_min.z);
+	if (b.getMin().x < m_min.x) m_min.x = b.getMin().x;
+	if (b.getMin().y < m_min.y) m_min.y = b.getMin().y;
+	if (b.getMin().z < m_min.z) m_min.z = b.getMin().z;
 
-	if (b.getMin().y < m_min.y) m_min = glm::vec3(m_min.x, b.getMin().y, m_min.z);
-	if (b.getMax().y < m_min.y) m_min = glm::vec3(m_min.x, b.getMax().y, m_min.z);
-
-	if (b.getMin().z < m_min.z) m_min = glm::vec3(m_min.x, m_min.y, b.getMin().z);
-	if (b.getMax().z < m_min.z) m_min = glm::vec3(m_min.x, m_min.y, b.getMax().z);
-
-	if (b.getMin().x > m_max.x) m_max = glm::vec3(b.getMin().x, m_max.y, m_max.z);
-	if (b.getMax().x > m_max.x) m_max = glm::vec3(b.getMax().x, m_max.y, m_max.z);
-
-	if (b.getMin().y > m_max.y) m_max = glm::vec3(m_max.x, b.getMin().y, m_max.z);
-	if (b.getMax().y > m_max.y) m_max = glm::vec3(m_max.x, b.getMax().y, m_max.z);
-
-	if (b.getMin().z > m_max.z) m_max = glm::vec3(m_max.x, m_max.y, b.getMin().z);
-	if (b.getMax().z > m_max.z) m_max = glm::vec3(m_max.x, m_max.y, b.getMax().z);
-
+	if (b.getMax().x > m_max.x) m_max.x = b.getMax().x;
+	if (b.getMax().y > m_max.y) m_max.y = b.getMax().y;
+	if (b.getMax().z > m_max.z) m_max.z = b.getMax().z;
 }
 
 bool Bbox::isEmpty() const
@@ -157,130 +163,120 @@ glm::vec3 Bbox::getNegVertex(glm::vec4 &normal) const
 	return res;
 }
 
-Hit Bbox::intersect(Ray const& r, glm::fmat4 const& mat_world) {
-	float tMin = 0.0f;
-	float tMax = 100000.0f;
+Hit Bbox::intersects(Ray const& r) {
 
-	Hit hit{};
-	glm::vec3 obox_worldpos(mat_world[3][0], mat_world[3][1], mat_world[3][2]);
-	glm::vec4 invPoint = glm::vec4(getMin(), 1.0f) * glm::inverse(mat_world);
-	glm::vec3 aabb_min = glm::vec3(invPoint.x, invPoint.y, invPoint.z);
-	invPoint = glm::vec4(getMax(), 1.0f) * glm::inverse(mat_world);
-	glm::vec3 aabb_max = glm::vec3(invPoint.x, invPoint.y, invPoint.z);
+	Hit h{};
 
-	glm::vec3 delta = obox_worldpos - glm::vec3(r.getOrigin().x, r.getOrigin().y, r.getOrigin().z);
+	glm::vec3 normals[6] = { glm::vec3(-1, 0, 0), glm::vec3(0, -1, 0), 
+		glm::vec3(0, 0, -1), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), 
+		glm::vec3(0, 0, 1) };
+	float txmin, txmax, tymin, tymax, tzmin, tzmax;
 
-	// Test intersection with the 2 planes perpendicular to the OBB's X axis
+	//check x axis
+	if (r.getInvDir().x >= 0.0f)
 	{
-
-		glm::vec3 x_axis(mat_world[0][0], mat_world[0][1], mat_world[0][2]);
-		float e = glm::dot(x_axis, delta);
-		float f = glm::dot(glm::vec3(r.getDir().x, r.getDir().y, r.getDir().z), x_axis);
-
-		if (std::fabs(f) > 0.001f)
-		{
-
-			float t1 = (e + aabb_min.x) / f; // Intersection with the left plane
-			float t2 = (e + aabb_max.x)/f; // Intersection with the right plane
-
-			if (t1 > t2){
-				float w = t1; t1 = t2;t2 = w; // swap t1 and t2
-			}
-
-			// tMax is the nearest "far" intersection (amongst the X,Y and Z planes pairs)
-			if ( t2 < tMax )
-				tMax = t2;
-			// tMin is the farthest "near" intersection (amongst the X,Y and Z planes pairs)
-			if ( t1 > tMin )
-				tMin = t1;
-
-			// And here's the trick :
-			// If "far" is closer than "near", then there is NO intersection.
-			// See the images in the tutorials for the visual explanation.
-			if (tMax < tMin) 
-			{
-				return hit;
-			}
-
-		}
-		else
-		{ // Rare case : the ray is almost parallel to the planes, so they don't have any "intersection"
-			if(-e + aabb_min.x > 0.0f || -e + aabb_max.x < 0.0f)
-			{
-				return hit;
-			}
-		}
+		txmin = (m_min.x - r.getOrigin().x) * r.getInvDir().x;
+		txmax = (m_max.x - r.getOrigin().x) * r.getInvDir().x;
+	}
+	else
+	{
+		txmin = (m_max.x - r.getOrigin().x) * r.getInvDir().x;
+		txmax = (m_min.x - r.getOrigin().x) * r.getInvDir().x;
 	}
 
+	// check y axis
+	if (r.getInvDir().y >= 0.0f)
 	{
-		glm::vec3 y_axis(mat_world[1][0], mat_world[1][1], mat_world[1][2]);
-		float e = glm::dot(y_axis, delta);
-		float f = glm::dot(glm::vec3(r.getDir().x, r.getDir().y, r.getDir().z), y_axis);
-
-		if (std::fabs(f) > 0.001f)
-		{
-
-			float t1 = (e + aabb_min.y) / f;
-			float t2 = (e + aabb_max.y) / f;
-
-			if (t1 > t2)
-			{
-				float w = t1; t1 = t2; t2 = w;
-			}
-
-			if ( t2 < tMax )
-				tMax = t2;
-			if ( t1 > tMin )
-				tMin = t1;
-			if (tMin > tMax)
-			{
-				return hit;
-			}
-
-		}
-		else
-		{
-			if(-e + aabb_min.y > 0.0f || -e + aabb_max.y < 0.0f)
-			{
-				return hit;
-			}
-		}
+		tymin = (m_min.y - r.getOrigin().y) * r.getInvDir().y;
+		tymax = (m_max.y - r.getOrigin().y) * r.getInvDir().y;
+	}
+	else
+	{
+		tymin = (m_max.y - r.getOrigin().y) * r.getInvDir().y;
+		tymax = (m_min.y - r.getOrigin().y) * r.getInvDir().y;
 	}
 
+	if (txmin > tymax || tymin > txmax)
 	{
-		glm::vec3 z_axis(mat_world[2][0], mat_world[2][1], mat_world[2][2]);
-		float e = glm::dot(z_axis, delta);
-		float f = glm::dot(glm::vec3(r.getDir().x, r.getDir().y, r.getDir().z), z_axis);
+		h.setSuccess(false);
+		return h;
+	}
 
-		if (std::fabs(f) > 0.001f)
+	// check z axis
+	if (r.getInvDir().z >= 0.0f)
+	{
+		tzmin = (m_min.z - r.getOrigin().z) * r.getInvDir().z;
+		tzmax = (m_max.z - r.getOrigin().z) * r.getInvDir().z;
+	}
+	else
+	{
+		tzmin = (m_max.z - r.getOrigin().z) * r.getInvDir().z;
+		tzmax = (m_min.z - r.getOrigin().z) * r.getInvDir().z;
+	}
+
+	if (txmin > tzmax || tzmin > txmax) 
+	{
+		h.setSuccess(false);
+		return h;
+	}
+
+	float t0, t1;
+	int normal_in, normal_out;
+
+	if (txmin > tymin)
+	{
+		t0 = txmin;
+		normal_in= (r.getInvDir().x >= 0.0) ? 0 : 3;
+	}
+
+	else
+	{
+		t0 = tymin;
+		normal_in = (r.getInvDir().y >= 0.0) ? 1 : 4;
+	}
+
+	if (tzmin > t0)
+	{
+		t0 = tzmin;
+		normal_in = (r.getInvDir().z >= 0.0) ? 2 : 5;
+	}
+
+	if (txmax < tymax)
+	{
+		t1 = txmax;
+		normal_out = (r.getInvDir().x >= 0.0) ? 3 : 0;
+	}
+
+	else
+	{
+		t1 = tymax;
+		normal_out = (r.getInvDir().y >= 0.0) ? 4 : 1;
+	}
+
+	if (tzmax < t1)
+	{
+		t1 = tzmax;
+		normal_out = (r.getInvDir().z >= 0.0) ? 5 : 2;
+	}
+
+	if (t0 < t1 && t1 > 0.001f)
+	{
+		std::cout<<"\n hitting box ";
+		float d = 0.0f;
+		if (t0 > 0.001f)
 		{
-			float t1 = (e + aabb_min.z) / f;
-			float t2 = (e + aabb_max.z) / f;
-
-			if (t1 > t2)
-			{
-				float w = t1; t1 = t2; t2 = w;
-			}
-
-			if ( t2 < tMax )
-				tMax = t2;
-			if ( t1 > tMin )
-				tMin = t1;
-			if (tMin > tMax)
-			{
-				return hit;
-			}
-
+			d = t0;
+			h.setNormal(normals[normal_in]);
 		}
 		else
 		{
-			if(-e + aabb_min.z > 0.0f || -e+aabb_max.z < 0.0f)
-			{
-				return hit;
-			}
+			d = t1;
+			h.setNormal(normals[normal_out]);
 		}
+		h.setDistToHit(d);
+		h.setSuccess(true);
+		h.setLocal(r.getOrigin() + r.getDir() * d);
+		return h;
 	}
-	hit.success();
-	hit.setDistToHit(tMin);
-	return hit;
+	return h;
 }

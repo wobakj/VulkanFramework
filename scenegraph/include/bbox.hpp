@@ -32,7 +32,7 @@ public:
 	
 	bool contains(glm::vec3 &p) const;
 	bool intersects(Bbox const &box) const;
-  Hit intersect(Ray const& r, glm::fmat4 const& mat_world);
+  	Hit intersects(Ray const& r);
 
 	glm::vec3 getPosVertex(glm::vec4 &normal) const;
 	glm::vec3 getNegVertex(glm::vec4 &normal) const;

@@ -9,6 +9,7 @@
 #include "visit/visitor_node.hpp"
 #include "visit/visitor_transform.hpp"
 #include "visit/visitor_bbox.hpp"
+#include "visit/visitor_pick.hpp"
 #include "ray.hpp"
 
 #include <glm/gtc/type_precision.hpp>
@@ -74,8 +75,13 @@ void ApplicationRenderer::logic() {
   TransformVisitor transform_visitor{m_instance};
   m_graph.accept(transform_visitor);
 
-  // BboxVisitor box_visitor{m_instance};
-  // m_graph.accept(box_visitor);
+  BboxVisitor box_visitor{m_instance};
+  m_graph.accept(box_visitor);
+
+  Ray r{glm::vec4(0.0f, 0.0f, 0.0f, -10.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)};
+  PickVisitor pick_visitor{m_instance};
+  m_graph.accept(pick_visitor);
+  // throw std::exception{};
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {

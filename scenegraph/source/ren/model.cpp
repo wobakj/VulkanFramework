@@ -35,4 +35,5 @@ void Model::swap(Model& rhs) {
   std::swap(m_geometries, rhs.m_geometries);
   std::swap(m_materials, rhs.m_materials);
   std::swap(m_topology, rhs.m_topology);
+  std::swap(m_box, rhs.m_box);
 }

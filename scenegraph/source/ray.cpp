@@ -35,6 +35,7 @@ void Ray::setOrigin(glm::vec4 const & o)
 void Ray::setDir(glm::vec4 const & d)
 {
 	m_dir = d;
+	setInvDir(m_dir);
 }
 
 void Ray::setInvDir(glm::vec4 const & d)

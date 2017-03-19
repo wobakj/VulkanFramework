@@ -63,6 +63,11 @@ bool Hit::intersected() const {
 	return m_hit;
 }
 
-void Hit::success() {
-	m_hit = true;
+bool Hit::success() {
+	return m_hit;
+}
+
+void Hit::setSuccess(bool success)
+{
+	m_hit = success;
 }

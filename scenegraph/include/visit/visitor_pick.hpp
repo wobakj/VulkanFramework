@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 
+
 class Node;
 class GeometryNode;
 class CameraNode;
@@ -13,15 +14,15 @@ class LightNode;
 class ScreenNode;
 class Hit;
 class Ray;
+class ApplicationInstance;
 
 class PickVisitor : public NodeVisitor
 {
 public:
-	PickVisitor();
-	~PickVisitor();
+	PickVisitor(ApplicationInstance& instance);
 
 	void setRay(Ray const& r);
-	std::vector<std::shared_ptr<Hit>> const& getHits() const;
+	std::vector<Hit> const& getHits() const;
 
 	void visit(Node* node) override;
 	void visit(ModelNode* node) override;
@@ -30,8 +31,9 @@ public:
 	void visit(ScreenNode* node) override;
 
 private:
-	std::vector<std::shared_ptr<Hit>> m_hits;
+	std::vector<Hit> m_hits;
 	Ray m_ray;
+	ApplicationInstance* m_instance;
 };
 
 #endif 

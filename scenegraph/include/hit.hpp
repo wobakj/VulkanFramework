@@ -14,13 +14,14 @@ public:
 	glm::vec3 const& getWorldNormal() const;
 	Node* const& getNode() const;
 	bool intersected() const;
-	void success();
+	bool success();
 	void setDistToHit(float const& d);
 	void setLocal(glm::vec3 const& l);
 	void setWorld(glm::vec3 const& w);
 	void setNormal(glm::vec3 const& n);
 	void setWorldNormal(glm::vec3 const& w);
 	void setNode(Node* n);
+	void setSuccess(bool success);
 
 private:
 	bool m_hit;
