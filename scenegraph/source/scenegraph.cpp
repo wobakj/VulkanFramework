@@ -37,8 +37,8 @@ std::unique_ptr<Node> Scenegraph::createLightNode(std::string const& name, light
 
 void Scenegraph::removeNode(std::unique_ptr<Node> n)
 {
-	auto foundNode = findNode(n->getName());
-	auto parent = foundNode->getParent();
+	//auto foundNode = findNode(n->getName());
+	//auto parent = foundNode->getParent();
 }
 
 Node* Scenegraph::findNode(std::string name)

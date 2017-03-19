@@ -8,6 +8,8 @@
 #include "visit/visitor_render.hpp"
 #include "visit/visitor_node.hpp"
 #include "visit/visitor_transform.hpp"
+#include "visit/visitor_bbox.hpp"
+#include "ray.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -71,6 +73,9 @@ void ApplicationRenderer::logic() {
   // update transforms every frame
   TransformVisitor transform_visitor{m_instance};
   m_graph.accept(transform_visitor);
+
+  BboxVisitor box_visitor{};
+  m_graph.accept(box_visitor);
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
