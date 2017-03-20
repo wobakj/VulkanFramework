@@ -49,7 +49,8 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
  ,m_database_tex{m_transferrer}
 {
 
-  m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/sdf_vert.spv", m_resource_path + "shaders/sdf_frag.spv"}});
+  m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/sdf_vert.spv", m_resource_path + "shaders/sdf_frag.spv"}});  
+  m_shaders.emplace("scene_model", Shader{m_device, {m_resource_path + "shaders/simple_vert.spv", m_resource_path + "shaders/simple_frag.spv"}});  
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
   createVertexBuffer();
@@ -120,6 +121,18 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("gbuffer")->draw(4, 1, 0, 0);
 
+
+  res.command_buffers.at("gbuffer").bindPipeline(m_pipelines.at("scene_model"));
+  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  // glm::fvec3 test{0.0f, 1.0f, 0.0f};
+  // res.command_buffers.at("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
+  res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
+
+  res.command_buffers.at("gbuffer").bindGeometry(m_model_2);
+
+  res.command_buffers.at("gbuffer").drawGeometry(1);
+
   res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
@@ -181,8 +194,9 @@ void ApplicationVulkan::createRenderPasses() {
 }
 
 void ApplicationVulkan::createPipelines() {
-  GraphicsPipelineInfo info_pipe;
-  GraphicsPipelineInfo info_pipe2;
+  GraphicsPipelineInfo info_pipe;   // SDF
+  GraphicsPipelineInfo info_pipe2;  // Model
+  GraphicsPipelineInfo info_pipe3;  // Shady
 
   info_pipe.setResolution(m_swap_chain.extent());
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleStrip);
@@ -216,56 +230,86 @@ void ApplicationVulkan::createPipelines() {
 
   info_pipe2.setResolution(m_swap_chain.extent());
   info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleList);
-  
-  vk::PipelineRasterizationStateCreateInfo rasterizer2{};
-  rasterizer2.lineWidth = 1.0f;
-  rasterizer2.cullMode = vk::CullModeFlagBits::eFront;
-  info_pipe2.setRasterizer(rasterizer2);
 
-  vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
-  colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
-  colorBlendAttachment2.blendEnable = VK_TRUE;
-  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
-  colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
-  info_pipe2.setAttachmentBlending(colorBlendAttachment2, 0);
+  info_pipe2.setRasterizer(rasterizer);
 
+  info_pipe2.setAttachmentBlending(colorBlendAttachment, 0);
+  info_pipe2.setAttachmentBlending(colorBlendAttachment, 1);
+  info_pipe2.setAttachmentBlending(colorBlendAttachment, 2);
+
+  info_pipe2.setShader(m_shaders.at("scene_model"));
   info_pipe2.setVertexInput(m_model);
-  info_pipe2.setShader(m_shaders.at("lights"));
-  info_pipe2.setPass(m_render_pass, 1);
+  info_pipe2.setPass(m_render_pass, 0);
   info_pipe2.addDynamic(vk::DynamicState::eViewport);
   info_pipe2.addDynamic(vk::DynamicState::eScissor);
 
-  vk::PipelineDepthStencilStateCreateInfo depthStencil2{};
-  depthStencil2.depthTestEnable = VK_TRUE;
-  depthStencil2.depthWriteEnable = VK_FALSE;
-  depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
-  info_pipe2.setDepthStencil(depthStencil2);
+  // glm::fvec3 color{0.0f, 0.0f, 1.0f};
+  // info_pipe2.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, color.r);
+  // info_pipe2.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 1, color.g);
+  // info_pipe2.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 2, color.b);
+
+  
+  info_pipe2.setDepthStencil(depthStencil);
+
+  info_pipe3.setResolution(m_swap_chain.extent());
+  info_pipe3.setTopology(vk::PrimitiveTopology::eTriangleList);
+  
+  vk::PipelineRasterizationStateCreateInfo rasterizer3{};
+  rasterizer3.lineWidth = 1.0f;
+  rasterizer3.cullMode = vk::CullModeFlagBits::eFront;
+  info_pipe3.setRasterizer(rasterizer3);
+
+  vk::PipelineColorBlendAttachmentState colorBlendAttachment3{};
+  colorBlendAttachment3.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+  colorBlendAttachment3.blendEnable = VK_TRUE;
+  colorBlendAttachment3.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+  colorBlendAttachment3.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment3.colorBlendOp = vk::BlendOp::eAdd;
+  colorBlendAttachment3.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment3.dstAlphaBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment3.alphaBlendOp = vk::BlendOp::eAdd;
+  info_pipe3.setAttachmentBlending(colorBlendAttachment3, 0);
+
+  info_pipe3.setVertexInput(m_model);
+  info_pipe3.setShader(m_shaders.at("lights"));
+  info_pipe3.setPass(m_render_pass, 1);
+  info_pipe3.addDynamic(vk::DynamicState::eViewport);
+  info_pipe3.addDynamic(vk::DynamicState::eScissor);
+
+  vk::PipelineDepthStencilStateCreateInfo depthStencil3{};
+  depthStencil3.depthTestEnable = VK_TRUE;
+  depthStencil3.depthWriteEnable = VK_FALSE;
+  depthStencil3.depthCompareOp = vk::CompareOp::eGreater;
+  info_pipe3.setDepthStencil(depthStencil3);
 
   m_pipelines.emplace("scene", GraphicsPipeline{m_device, info_pipe, m_pipeline_cache});
-  m_pipelines.emplace("lights", GraphicsPipeline{m_device, info_pipe2, m_pipeline_cache});
+  m_pipelines.emplace("scene_model", GraphicsPipeline{m_device, info_pipe2, m_pipeline_cache});
+  m_pipelines.emplace("lights", GraphicsPipeline{m_device, info_pipe3, m_pipeline_cache});
 }
 
 void ApplicationVulkan::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("scene"));
   m_pipelines.at("scene").recreate(info_pipe);
+  
+  auto info_pipe2 = m_pipelines.at("scene_model").info();
+  info_pipe2.setShader(m_shaders.at("scene_model"));
+  m_pipelines.at("scene_model").recreate(info_pipe2);
 
-  auto info_pipe2 = m_pipelines.at("lights").info();
-  info_pipe2.setShader(m_shaders.at("lights"));
-  m_pipelines.at("lights").recreate(info_pipe2);
+  auto info_pipe3 = m_pipelines.at("lights").info();
+  info_pipe3.setShader(m_shaders.at("lights"));
+  m_pipelines.at("lights").recreate(info_pipe3);
 }
 
 void ApplicationVulkan::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-
+  vertex_data tri2 = geometry_loader::obj(m_resource_path + "models/Sponza/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  m_model_2 = Geometry{m_transferrer, tri2};
   m_model = Geometry{m_transferrer, tri};
 }
+
 void ApplicationVulkan::loadModel() {
-  vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(m_resource_path + "models/Sponza/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_2 = Geometry{m_transferrer, tri};
   m_model_dirty = true;
 }
@@ -336,17 +380,20 @@ void ApplicationVulkan::updateDescriptors() {
 
   m_buffer_views.at("sdf_uniform").writeToSet(m_descriptor_sets.at("sdf_matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
+  m_database_tex.get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
   // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 }
 
 void ApplicationVulkan::createDescriptorPools() {
   DescriptorPoolInfo info_pool{};
   info_pool.reserve(m_shaders.at("scene"), 2);
+  info_pool.reserve(m_shaders.at("scene_model"), 2);
   info_pool.reserve(m_shaders.at("lights"), 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
   m_descriptor_sets["sdf_matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 0);
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene_model"), 0);
+  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene_model"), 1);
   m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
 }
 
@@ -376,6 +423,7 @@ void ApplicationVulkan::updateView() {
   ubo.view = m_camera.viewMatrix();
   ubo.proj = m_camera.projectionMatrix();
   ubo.model = glm::fmat4{1.0f};
+  ubo.model = glm::scale(ubo.model, glm::vec3(0.005));
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
   m_transferrer.uploadBufferData(&sdf_ubo, m_buffer_views.at("sdf_uniform"));

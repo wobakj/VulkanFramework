@@ -260,9 +260,10 @@ float scene(vec3 p) {
   vec2 cyl = vec2(1.0, 2.0);
   float hit13 = sdfCylinder(opRot(p, rot5) - vec3(0.0,0.0,-10.0), cyl);
   hit13 = opUnion(hit13,sdfCylinder(opRot(p, rot4) - vec3(0.0,0.0,-12.0), cyl));
-  hit13 = opUnion(hit13,sdfCylinder(opRot(p, rot5) - vec3(0.0,0.0,-14.0), cyl));  
+  hit13 = opUnion(hit13,sdfCylinder(opRot(p, rot5) - vec3(0.0,0.0,-14.0), cyl)); 
+  float hit15 = opIntersection(sdfSphere(p - vec3(8.0, 0.0, -5.0), 2.0 + 1.0 * sin(ubo.time)), sdfBox(p - vec3(8.0, 0.0, -5.0), vec3(2.0 + 1.0 * -sin(ubo.time))));    
   float hit7 = opUnion(opUnion(hit4, hit5), hit6);
-  float hit = opUnion(hit14,opUnion(hit13,opUnion(hit12,opUnion(hit11,opUnion(hit10,opUnion(hit9,opUnion(hit8,opUnion(hit3, hit7))))))));
+  float hit = opUnion(hit15,opUnion(hit14,opUnion(hit13,opUnion(hit12,opUnion(hit11,opUnion(hit10,opUnion(hit9,opUnion(hit8,opUnion(hit3, hit7)))))))));
   // float hit = opDifference(hit1, hit2);
   return hit;
 }
@@ -281,36 +282,36 @@ vec4 slimshady(vec3 eye, vec3 rdir, vec3 norm, vec3 light, Hit hit) {
   if(-1.0 == hit.dist) {
     return color;
   }
-  vec3 ldir = normalize(light - hit.hit);
-  // float diffuse = max(0.0, dot(norm, ldir));
-  // float spec = max(0.0,dot(reflect(ldir,norm),normalize(dir)));
-  // spec = pow(spec, 16.0)*.5;
+  // vec3 ldir = normalize(light - hit.hit);
+  // // float diffuse = max(0.0, dot(norm, ldir));
+  // // float spec = max(0.0,dot(reflect(ldir,norm),normalize(dir)));
+  // // spec = pow(spec, 16.0)*.5;
   vec4 ambientC = vec4((norm + vec3(1.0)) * 0.5, 1.0);
-  vec4 diffuseC = vec4(0.7,0.7,0.65, 1.0);
-  vec4 specularC = vec4(1.0, 1.0, 1.0, 1.0);
+  // vec4 diffuseC = vec4(0.7,0.7,0.65, 1.0);
+  // vec4 specularC = vec4(1.0, 1.0, 1.0, 1.0);
 
   vec4 ambientL = vec4(0.3, 0.3, 0.3, 1.0);
-  vec4 diffuseL = vec4(0.8, 0.8, 0.9, 1.0);
-  vec4 specularL = vec4(0.5, 0.5, 0.5, 1.0);
-  float shininess = 124;
+  // vec4 diffuseL = vec4(0.8, 0.8, 0.9, 1.0);
+  // vec4 specularL = vec4(0.5, 0.5, 0.5, 1.0);
+  // float shininess = 124;
 
   vec4 ambient = ambientC * ambientL;
 
-  float lambert = max(dot(norm, ldir), 0);
-  vec4 diffuse = diffuseC * diffuseL * lambert;
+  // float lambert = max(dot(norm, ldir), 0);
+  // vec4 diffuse = diffuseC * diffuseL * lambert;
 
-  float spec = 0.0;
+  // float spec = 0.0;
 
-  if (lambert > 0) {
-      vec3 halfDir = normalize(rdir + ldir);
-      float angle = max(dot(norm, halfDir), 0.0);
-      spec = pow(angle, shininess);
-  }
+  // if (lambert > 0) {
+  //     vec3 halfDir = normalize(rdir + ldir);
+  //     float angle = max(dot(norm, halfDir), 0.0);
+  //     spec = pow(angle, shininess);
+  // }
 
-  vec4 specular = specularC * spec;
+  // vec4 specular = specularC * spec;
 
-  color = ambient + diffuse;
-  return vec4(0.0, 0.0, 0.0, 1.0);
+  // color = ambient + diffuse;
+  return vec4(0.4, 0.4, 0.4, 1.0);
 }
 
 
