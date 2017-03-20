@@ -43,7 +43,7 @@ vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shape
 
 // std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& vertex_data);
 
-std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
+std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string const& file_path, vertex_data::attrib_flag_t import_attribs, bool all) {
 // import
   tinyobj::attrib_t attribs;
   std::vector<tinyobj::shape_t> shapes;
@@ -69,7 +69,7 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
   // for (auto const& obj_mat : obj_materials) {
   // }
 
-  if (obj_materials.empty()) {
+  if (obj_materials.empty() || all) {
     geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -1)));
   }
   else {
@@ -113,7 +113,7 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
 }
 
 vertex_data obj(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
-  return objs(file_path, import_attribs).first[0];
+  return objs(file_path, import_attribs, true).first[0];
 }
 
 vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shapes, vertex_data::attrib_flag_t import_attribs, int idx_mat_store) {

@@ -37,8 +37,6 @@ const uint32_t ApplicationVulkan::imageCount = 2;
 
 ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
- ,m_model_dirty{false}
- ,m_sphere{true}
  ,m_database_tex{m_transferrer}
 {
 
@@ -65,27 +63,7 @@ FrameResource ApplicationVulkan::createFrameResource() {
   return res;
 }
 
-void ApplicationVulkan::updateModel() {
-  emptyDrawQueue();
-  m_sphere = false;
-  updateResourceCommandBuffers(m_frame_resource);
-  m_model_dirty = false;
-  #ifdef THREADING
-  if(m_thread_load.joinable()) {
-    m_thread_load.join();
-  }
-  else {
-    throw std::runtime_error{"could not join thread"};
-  }
-  #endif
-}
-
 void ApplicationVulkan::logic() {
-  if(m_model_dirty.is_lock_free()) {
-    if(m_model_dirty) {
-      updateModel();
-    }
-  }
   if (m_camera.changed()) {
     updateView();
   }
@@ -108,16 +86,7 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   // res.command_buffers.at("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
-  // choose between sphere and house
-  Geometry const* model = nullptr;
-  if (m_sphere) {
-    model = &m_model;
-  }
-  else {
-    model = &m_model_2;
-  }
-
-  res.command_buffers.at("gbuffer").bindGeometry(*model);
+  res.command_buffers.at("gbuffer").bindGeometry(m_model_2);
 
   res.command_buffers.at("gbuffer").drawGeometry();
 
@@ -263,13 +232,10 @@ void ApplicationVulkan::updatePipelines() {
 
 void ApplicationVulkan::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
-
   m_model = Geometry{m_transferrer, tri};
-}
-void ApplicationVulkan::loadModel() {
-  vertex_data tri = geometry_loader::obj(m_resource_path + "models/house.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+
+  tri = geometry_loader::obj(m_resource_path + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_2 = Geometry{m_transferrer, tri};
-  m_model_dirty = true;
 }
 
 void ApplicationVulkan::createLights() {
@@ -369,6 +335,7 @@ void ApplicationVulkan::updateView() {
   ubo.view = m_camera.viewMatrix();
   ubo.proj = m_camera.projectionMatrix();
   ubo.model = glm::fmat4{1.0f};
+  ubo.model = glm::scale(glm::fmat4{1.0f}, glm::fvec3{0.005f});
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
   m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
@@ -377,18 +344,6 @@ void ApplicationVulkan::updateView() {
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void ApplicationVulkan::keyCallback(int key, int scancode, int action, int mods) {
-  if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-    if (m_sphere) {
-    #ifdef THREADING
-      // prevent thread creation form being triggered mutliple times
-      if (!m_thread_load.joinable()) {
-        m_thread_load = std::thread(&ApplicationVulkan::loadModel, this);
-      }
-    #else
-      loadModel();
-    #endif
-    }
-  }
 }
 
 // exe entry point

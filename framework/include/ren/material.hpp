@@ -9,12 +9,15 @@
 struct gpu_mat_t {
   gpu_mat_t(glm::fvec3 const& diff, int32_t tex)
    :diffuse{diff.x, diff.y, diff.z, 0.0f}
-   ,texture{tex}
+   ,tex_diffuse{tex}
   {}
 
   glm::fvec4 diffuse;
   glm::fvec3 pad;
-  int32_t texture;
+  int32_t tex_diffuse;
+  int32_t tex_normal;
+  int32_t tex_metalness;
+  int32_t tex_roughness;
 };
 
 // enum tex_type : uint8_t {
