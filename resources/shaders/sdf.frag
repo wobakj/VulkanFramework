@@ -310,7 +310,7 @@ vec4 slimshady(vec3 eye, vec3 rdir, vec3 norm, vec3 light, Hit hit) {
   vec4 specular = specularC * spec;
 
   color = ambient + diffuse;
-  return ambient;
+  return vec4(0.0, 0.0, 0.0, 1.0);
 }
 
 
@@ -332,17 +332,7 @@ Hit raymarch(inout Ray ray)
 
 Ray getRay(vec3 position)
 {
-  vec4 cam_proj = ubo.projection * vec4(0.0, 0.0, -0.1, 1.0);
-  cam_proj /= cam_proj.w;
   vec4 cam_world = inverse(ubo.view) * vec4(0.0, 0.0, 0.0, 1.0);
-  
-  // float aspect = ubo.res.x/ubo.res.y;
-  // vec4 dir = vec4(position.xy, -2.41421, 0.0);
-  // if(aspect>1) {
-  //   dir.x *= aspect;
-  // } else {
-  //   dir.y /= aspect;
-  // }
   vec4 pos_proj = vec4(position.xy, 0.0, 1.0);
   pos_proj = inverse(ubo.view) * inverse(ubo.projection) * pos_proj;
   vec4 pos_world = pos_proj / pos_proj.w;
@@ -370,8 +360,14 @@ void main()
   // if(0.0 == color) {
   //   outColor = vec4(1.0, 0.1, 0.5, 1.0);
   // }
-  float depth = 1.0 / abs(ray.pos.z);
-  depth = (-vec4(ubo.view * ray.pos).z - 0.1) / 99.9;
+
+  // float depth = 1.0 / abs(ray.pos.z);
+  // depth = (-vec4(ubo.view * ray.pos).z - 0.1) / 99.9;
+
+  vec4 pos_view = ubo.view * ray.pos;
+  vec4 pos_proj = ubo.projection * pos_view;
+  float depth = pos_proj.z/pos_proj.w;
+
   gl_FragDepth = depth;
   outColor = color; //color;
   outPosition = vec4((ubo.view * ray.pos).xyz, 1.0);
