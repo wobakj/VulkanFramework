@@ -66,8 +66,6 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
 
   std::vector<vertex_data> geometries{};
   std::vector<material_t> materials{};
-  // for (auto const& obj_mat : obj_materials) {
-  // }
 
   if (obj_materials.empty() || all) {
     geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -1)));
@@ -81,13 +79,19 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
       }
       geometries.emplace_back(std::move(vert_data));
       material_t material{};
-      material.vec_diffuse = glm::fvec3{obj_materials[i].diffuse[0], obj_materials[i].diffuse[1], obj_materials[i].diffuse[2]};
+      material.diffuse = glm::fvec3{obj_materials[i].diffuse[0], obj_materials[i].diffuse[1], obj_materials[i].diffuse[2]};
+      material.metalness = obj_materials[i].metallic;
+      material.roughness = obj_materials[i].roughness;
       if (!obj_materials[i].diffuse_texname.empty()) {
         material.textures.emplace("diffuse", obj_materials[i].diffuse_texname);
       }
 
       if (!obj_materials[i].normal_texname.empty()) {
         material.textures.emplace("normal", obj_materials[i].normal_texname);
+      }
+      // fallback
+      else if (!obj_materials[i].bump_texname.empty()) {
+        material.textures.emplace("normal", obj_materials[i].bump_texname);
       }
 
       if (!obj_materials[i].roughness_texname.empty()) {

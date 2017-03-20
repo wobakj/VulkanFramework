@@ -44,13 +44,33 @@ void MaterialDatabase::store(std::string const& name, material_t&& resource) {
     // store continous increasing indices for types
     iter->second.emplace(tex_pair.second, iter->second.size());
   }
-  int32_t index_diffuse = -1;
+  int32_t index_diff = -1;
+  int32_t index_norm = -1;
+  int32_t index_metal = -1;
+  int32_t index_rough = -1;
   if (resource.textures.find("diffuse") != resource.textures.end()) {
     // lookup diffuse texture index
-    index_diffuse = m_tex_mapping.at("diffuse").at(resource.textures.at("diffuse"));
+    index_diff = m_tex_mapping.at("diffuse").at(resource.textures.at("diffuse"));
   }
-
-  gpu_mat_t gpu_mat{resource.vec_diffuse, index_diffuse};
+  if (resource.textures.find("normal") != resource.textures.end()) {
+    // lookup normal texture index
+    index_norm = m_tex_mapping.at("normal").at(resource.textures.at("normal"));
+  }
+  if (resource.textures.find("metalness") != resource.textures.end()) {
+    // lookup metalness texture index
+    index_metal = m_tex_mapping.at("metalness").at(resource.textures.at("metalness"));
+  }
+  if (resource.textures.find("roughness") != resource.textures.end()) {
+    // lookup roughness texture index
+    index_rough = m_tex_mapping.at("roughness").at(resource.textures.at("roughness"));
+  }
+  gpu_mat_t gpu_mat{resource.diffuse, resource.metalness, resource.roughness, index_diff, index_norm, index_metal, index_rough};
+  // if (name == "/home/jisi4780/documents/VulkanFramework/install/resources/models/sphere.obj|0") {
+  //   assert(0);
+  // }
+  // else {
+  //   std::cout << name << std::endl;
+  // }
   m_indices.emplace(name, m_indices.size());
   // storge gpu representation
   m_transferrer->uploadBufferData(&gpu_mat, sizeof(gpu_mat_t), m_buffer, (m_indices.size() - 1) * sizeof(gpu_mat_t));

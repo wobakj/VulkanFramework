@@ -7,8 +7,13 @@ layout(location = 2) in vec2 frag_Texcoord;
 
 struct material_t {
   vec4 diffuse;
-  vec3 pad;
-  int index_texture;
+  float metalness;
+  float roughness;
+  vec2 pad;
+  int index_diff;
+  int index_norm;
+  int index_metal;
+  int index_rough;
 };
 
 layout(set = 2, binding = 0) buffer Materials {
@@ -21,7 +26,7 @@ layout(constant_id = 0) const uint NUM_TEXTURES = 1;
 layout(set = 2, binding = 1) uniform sampler2D diffuseTextures[75];
 layout(set = 2, binding = 2) uniform sampler2D metalnessTextures[75];
 layout(set = 2, binding = 3) uniform sampler2D normalTextures[75];
-// layout(set = 2, binding = 4) uniform sampler2D roughnessTextures[75];
+layout(set = 2, binding = 4) uniform sampler2D roughnessTextures[75];
 
 layout(push_constant) uniform PushFragment {
   layout(offset = 4) uint index;
@@ -35,18 +40,44 @@ mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv);
 vec3 perturb_normal(sampler2D normalMap, vec3 N, vec3 p, vec2 texcoord);
 
 void main() {
-  uint index_texture = materials[material.index].index_texture;
-  // out_Color = texture(sampler2D(diffuseTextures[index_texture], diffuseSampler), frag_Texcoord);
-  out_Color = texture(diffuseTextures[index_texture], frag_Texcoord);
-  if (out_Color.a == 0.0) {
-    discard;
-  }
-  // out_Color = vec4(materials[material.index].diffuse.rgb, 0.5);
   out_Position = vec4(frag_Position, 1.0);
-  out_Normal = vec4(frag_Normal, 0.0);
-  vec3 V = normalize(-frag_Position);
-  // vec3 V = normalize(ubo.eyeWorldSpace.xyz - v_PositionWorldSpace);
-  out_Normal.rgb = perturb_normal(normalTextures[index_texture], normalize(frag_Normal), -V, frag_Texcoord);
+  // color
+  int index_diff = materials[material.index].index_diff;
+  if (index_diff >= 0) {
+    out_Color = texture(diffuseTextures[index_diff], frag_Texcoord);
+    if (out_Color.a == 0.0) {
+      discard;
+    }
+  }
+  else {
+    out_Color.rgb = materials[material.index].diffuse.rgb;
+  }
+  // normal
+  int index_norm = materials[material.index].index_norm;
+  if (index_norm >= 0) {
+    vec3 V = normalize(-frag_Position);
+    // vec3 V = normalize(ubo.eyeWorldSpace.xyz - v_PositionWorldSpace);
+    out_Normal.rgb = perturb_normal(normalTextures[index_norm], normalize(frag_Normal), -V, frag_Texcoord);
+  }
+  else {
+    out_Normal.rgb = frag_Normal;
+  }
+  // metalness
+  int index_metal = materials[material.index].index_metal;
+  if (index_metal >= 0) {
+    out_Color.a = texture(metalnessTextures[index_metal], frag_Texcoord).r;
+  }
+  else {
+    out_Color.a = materials[material.index].metalness;
+  }
+  // roughness
+  int index_rough = materials[material.index].index_rough;
+  if (index_rough >= 0) {
+    out_Normal.a = texture(roughnessTextures[index_rough], frag_Texcoord).r;
+  }
+  else {
+    out_Normal.a = materials[material.index].roughness;
+  }
 }
 
 mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv) {

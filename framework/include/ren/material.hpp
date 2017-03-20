@@ -7,13 +7,20 @@
 
 #include <map>
 struct gpu_mat_t {
-  gpu_mat_t(glm::fvec3 const& diff, int32_t tex)
-   :diffuse{diff.x, diff.y, diff.z, 0.0f}
-   ,tex_diffuse{tex}
+  gpu_mat_t(glm::fvec3 const& color, float metal_v, float rough_v, int32_t diff, int32_t norm, int32_t metal, int32_t rough)
+   :diffuse{color.x, color.y, color.z, 0.0f}
+   ,metalness{metal_v}
+   ,roughness{rough_v}
+   ,tex_diffuse{diff}
+   ,tex_normal{norm}
+   ,tex_metalness{metal}
+   ,tex_roughness{rough}
   {}
 
   glm::fvec4 diffuse;
-  glm::fvec3 pad;
+  float metalness;
+  float roughness;
+  glm::fvec2 pad;
   int32_t tex_diffuse;
   int32_t tex_normal;
   int32_t tex_metalness;
@@ -26,20 +33,18 @@ struct gpu_mat_t {
 
 struct material_t {
 material_t()
- :vec_diffuse{0.0f}
+ :diffuse{0.0f}
  ,textures{}
 {}
 
 material_t(glm::fvec3 const& color, std::map<std::string, std::string> const& paths)
- :vec_diffuse{color}
+ :diffuse{color}
  ,textures{paths}
 {}
-// material_t(tinyobj::material_t const& mat)
-//  :vec_diffuse{mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]}
-//  ,tex_diffuse{mat.diffuse_texname}
-// {}
-  glm::fvec3 vec_diffuse;
 
+  glm::fvec3 diffuse;
+  float metalness;
+  float roughness;
   std::map<std::string, std::string> textures;
 };
 
