@@ -9,6 +9,7 @@
 #include <vector>
 
 class Device;
+class DescriptorSetLayout;
 
 using WrapperDescriptorPool = Wrapper<vk::DescriptorPool, DescriptorPoolInfo>;
 class DescriptorPool : public WrapperDescriptorPool {
@@ -18,9 +19,9 @@ class DescriptorPool : public WrapperDescriptorPool {
   DescriptorPool(DescriptorPool && dev);
   DescriptorPool(DescriptorPool const&) = delete;
   ~DescriptorPool();
-  
-  std::vector<vk::DescriptorSet> allocate(Shader const& shader) const;
-  vk::DescriptorSet allocate(Shader const& shader, uint32_t set) const;
+ 
+  std::vector<vk::DescriptorSet> allocate(std::vector<DescriptorSetLayout> const& layouts) const;
+  vk::DescriptorSet allocate(DescriptorSetLayout const& layout) const;
 
   DescriptorPool& operator=(DescriptorPool const&) = delete;
   DescriptorPool& operator=(DescriptorPool&& dev);

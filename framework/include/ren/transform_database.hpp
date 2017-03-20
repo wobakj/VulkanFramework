@@ -31,7 +31,7 @@ class TransformDatabase : public Database<glm::fmat4> {
   glm::fmat4 const& get(std::string const& name) override;
   void set(std::string const& name, glm::fmat4 const& mat);
 
-  void updateCommand(CommandBuffer& buffer) const;
+  void updateCommand(CommandBuffer const& buffer) const;
   
   Buffer const& buffer() const {
     return m_buffer;

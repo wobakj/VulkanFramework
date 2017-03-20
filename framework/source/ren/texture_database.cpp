@@ -57,8 +57,8 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) 
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
   descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = vk::DescriptorType::eSampledImage;
-  // descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+  // descriptorWrite.descriptorType = vk::DescriptorType::eSampledImage;
+  descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
 
   std::vector<vk::DescriptorImageInfo> image_infos(m_indices.size(), vk::DescriptorImageInfo{}); 
   // TODO: support images with non-continous indices 
@@ -75,6 +75,40 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) 
   descriptorWrite.pImageInfo = image_infos.data();
 
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+}
+
+void TextureDatabase::writeToSet(vk::DescriptorSet& set, uint32_t first_binding, std::map<std::string, std::map<std::string, int32_t>> const& mapping) const {
+  std::vector<vk::WriteDescriptorSet> set_writes{};
+  // infos for all bindings
+  std::vector<std::vector<vk::DescriptorImageInfo>> image_infos{}; 
+  uint32_t binding = 0;
+  // map types to bindings in alphabetical order
+  for(auto const& type : mapping) {
+    vk::WriteDescriptorSet set_write{};
+    set_write.dstSet = set;
+    set_write.dstBinding = binding + first_binding;
+    std::cout << "binding type " << type.first << " to " << set_write.dstBinding << std::endl;
+    set_write.dstArrayElement = 0;
+    // descriptorWrite.descriptorType = vk::DescriptorType::eSampledImage;
+    set_write.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+    // allocate infos for this binding
+    image_infos.emplace_back(std::vector<vk::DescriptorImageInfo>(type.second.size(), vk::DescriptorImageInfo{}));
+    // TODO: support images with non-continous indices 
+    for(auto const& tex_pair : type.second) {
+      vk::DescriptorImageInfo info{};
+      // info.imageLayout = m_info.initialLayout;
+      info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+      info.imageView = m_resources.at(tex_pair.first).view();
+      info.sampler = m_sampler;
+      image_infos[binding][tex_pair.second] = std::move(info);
+    }
+    set_write.descriptorCount = uint32_t(image_infos[binding].size());
+    set_write.pImageInfo = image_infos[binding].data();
+    set_writes.emplace_back(std::move(set_write));
+    ++binding;
+  }
+
+  (*m_device)->updateDescriptorSets(set_writes, 0);
 }
 
 size_t TextureDatabase::index(std::string const& name) const {

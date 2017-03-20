@@ -221,7 +221,7 @@ void Transferrer::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo c
   // m_info.initialLayout = newLayout;
 }
 
-vk::CommandBuffer const& Transferrer::beginSingleTimeCommands() const {
+CommandBuffer const& Transferrer::beginSingleTimeCommands() const {
   m_mutex_single_command.lock();
   vk::CommandBufferBeginInfo beginInfo{};
   beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;

@@ -43,7 +43,7 @@ vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shape
 
 // std::vector<glm::fvec3> generate_tangents(tinyobj::mesh_t const& vertex_data);
 
-std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
+std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string const& file_path, vertex_data::attrib_flag_t import_attribs, bool all) {
 // import
   tinyobj::attrib_t attribs;
   std::vector<tinyobj::shape_t> shapes;
@@ -69,7 +69,7 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
   // for (auto const& obj_mat : obj_materials) {
   // }
 
-  if (obj_materials.empty()) {
+  if (obj_materials.empty() || all) {
     geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -1)));
   }
   else {
@@ -80,14 +80,40 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
         continue;
       }
       geometries.emplace_back(std::move(vert_data));
-      materials.emplace_back(glm::fvec3{obj_materials[i].diffuse[0], obj_materials[i].diffuse[1], obj_materials[i].diffuse[2]}, obj_materials[i].diffuse_texname);
+      material_t material{};
+      material.vec_diffuse = glm::fvec3{obj_materials[i].diffuse[0], obj_materials[i].diffuse[1], obj_materials[i].diffuse[2]};
+      if (!obj_materials[i].diffuse_texname.empty()) {
+        material.textures.emplace("diffuse", obj_materials[i].diffuse_texname);
+      }
+
+      if (!obj_materials[i].normal_texname.empty()) {
+        material.textures.emplace("normal", obj_materials[i].normal_texname);
+      }
+
+      if (!obj_materials[i].roughness_texname.empty()) {
+        material.textures.emplace("roughness", obj_materials[i].roughness_texname);
+      }
+      // fallback
+      else if (!obj_materials[i].specular_highlight_texname.empty()) {
+        material.textures.emplace("roughness", obj_materials[i].specular_highlight_texname);
+      }
+
+      if (!obj_materials[i].metallic_texname.empty()) {
+        material.textures.emplace("metalness", obj_materials[i].metallic_texname);
+      }
+      // fallback
+      else if (!obj_materials[i].ambient_texname.empty()) {
+        material.textures.emplace("metalness", obj_materials[i].ambient_texname);
+      }
+
+      materials.emplace_back(std::move(material));
     }
   }
   return make_pair(std::move(geometries), std::move(materials));
 }
 
 vertex_data obj(std::string const& file_path, vertex_data::attrib_flag_t import_attribs) {
-  return objs(file_path, import_attribs).first[0];
+  return objs(file_path, import_attribs, true).first[0];
 }
 
 vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shapes, vertex_data::attrib_flag_t import_attribs, int idx_mat_store) {

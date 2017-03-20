@@ -1,4 +1,6 @@
-#include "ren/transform_database.hpp"
+#include "ren/database_camera.hpp"
+
+#include "ren/camera.hpp"
 
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"
@@ -8,26 +10,26 @@
 #include <utility>
 
 
-TransformDatabase::TransformDatabase()
+CameraDatabase::CameraDatabase()
  :Database{}
 {}
 
-TransformDatabase::TransformDatabase(TransformDatabase && rhs)
+CameraDatabase::CameraDatabase(CameraDatabase && rhs)
 {
   swap(rhs);
 }
 
-TransformDatabase::TransformDatabase(Device const& device)
+CameraDatabase::CameraDatabase(Device const& device)
  :Database{}
 {
   m_device = & device;
-  m_buffer = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
+  m_buffer = Buffer{*m_device, sizeof(gpu_camera_t) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eUniformBuffer};
   auto mem_type = m_device->findMemoryType(m_buffer.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocator = StaticAllocator(*m_device, mem_type, m_buffer.requirements().size);
   m_allocator.allocate(m_buffer);
 
-  m_buffer_stage = Buffer{*m_device, sizeof(glm::fmat4) * 100, vk::BufferUsageFlagBits::eTransferSrc};
+  m_buffer_stage = Buffer{*m_device, sizeof(gpu_camera_t) * 100, vk::BufferUsageFlagBits::eTransferSrc};
   mem_type = m_device->findMemoryType(m_buffer_stage.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eHostVisible
                                            | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -37,22 +39,22 @@ TransformDatabase::TransformDatabase(Device const& device)
   m_ptr_mem_stage = static_cast<uint8_t*>(m_buffer_stage.map());
 }
 
-TransformDatabase& TransformDatabase::operator=(TransformDatabase&& rhs) {
+CameraDatabase& CameraDatabase::operator=(CameraDatabase&& rhs) {
   swap(rhs);
   return *this;
 }
 
-void TransformDatabase::store(std::string const& name, glm::fmat4&& resource) {
+void CameraDatabase::store(std::string const& name, Camera&& resource) {
   m_indices.emplace(name, m_indices.size());
   // storge gpu representation
-  set(name, resource);
+  Database::store(name, std::move(resource));
 }
 
-size_t TransformDatabase::index(std::string const& name) const {
+size_t CameraDatabase::index(std::string const& name) const {
   return m_indices.at(name);
 }
 
-void TransformDatabase::swap(TransformDatabase& rhs) {
+void CameraDatabase::swap(CameraDatabase& rhs) {
   Database::swap(rhs);
   std::swap(m_indices, rhs.m_indices);
   // std::swap(m_views, rhs.m_views);
@@ -64,23 +66,31 @@ void TransformDatabase::swap(TransformDatabase& rhs) {
   std::swap(m_dirties, rhs.m_dirties);
 }
 
-glm::fmat4 const& TransformDatabase::get(std::string const& name) {
-  return *reinterpret_cast<glm::fmat4 const*>(m_ptr_mem_stage + index(name) * SIZE_RESOURCE);
-}
+// Camera const& CameraDatabase::get(std::string const& name) {
+//   return *reinterpret_cast<Camera const*>(m_ptr_mem_stage + index(name) * sizeof(gpu_camera_t));
+// }
 
-void TransformDatabase::set(std::string const& name, glm::fmat4 const& mat) {
+void CameraDatabase::set(std::string const& name, Camera&& cam) {
+  // set gpu camera
+  gpu_camera_t gpu_cam{cam.viewMatrix(), cam.projectionMatrix()};
   auto const& index_transform = index(name);
   m_dirties.emplace_back(index_transform);
-  std::memcpy(m_ptr_mem_stage + SIZE_RESOURCE * index_transform, &mat, SIZE_RESOURCE);
+  std::memcpy(m_ptr_mem_stage + sizeof(gpu_camera_t) * index_transform, &gpu_cam, sizeof(gpu_camera_t));
+  // set cpu camera
+  Database::set(name, std::move(cam));
 }
 
-void TransformDatabase::updateCommand(CommandBuffer const& command_buffer) const {
+void CameraDatabase::set(std::string const& name, Camera const& cam) {
+  set(name, Camera{cam});
+}
+
+void CameraDatabase::updateCommand(CommandBuffer const& command_buffer) const {
   if (m_dirties.empty()) return;
 
   std::vector<vk::BufferCopy> copy_views{};
   for(auto const& dirty_index : m_dirties) {
-    auto const& offset = dirty_index * SIZE_RESOURCE;
-    copy_views.emplace_back(offset, offset, SIZE_RESOURCE);
+    auto const& offset = dirty_index * sizeof(gpu_camera_t);
+    copy_views.emplace_back(offset, offset, sizeof(gpu_camera_t));
   }
   command_buffer->copyBuffer(m_buffer_stage, m_buffer, copy_views);
   // barrier to make new data visible to vertex shader

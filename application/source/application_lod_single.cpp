@@ -277,7 +277,7 @@ void ApplicationLodSingle::createPipelines() {
   info_pipe.setDepthStencil(depthStencil);
 
   info_pipe.setShader(m_shaders.at("lod"));
-  info_pipe.setVertexInput(m_model_lod);
+  info_pipe.setVertexInput(m_model_lod.vertexInfo());
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
@@ -392,8 +392,8 @@ void ApplicationLodSingle::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("lod"), 1);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lod"), 1);
-  m_frame_resource.descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lod"), 0);
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lod").setLayout(1));
+  m_frame_resource.descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lod").setLayout(0));
 }
 
 void ApplicationLodSingle::createUniformBuffers() {

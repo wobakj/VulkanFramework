@@ -2,39 +2,12 @@
 
 #include "wrap/device.hpp"
 #include "transferrer.hpp"
+#include "wrap/vertex_info.hpp"
 
 #include <iostream>
 
-vk::VertexInputBindingDescription model_to_bind(vertex_data const& m) {
-  vk::VertexInputBindingDescription bindingDescription{};
-  bindingDescription.binding = 0;
-  bindingDescription.stride = m.vertex_bytes;
-  bindingDescription.inputRate = vk::VertexInputRate::eVertex;
-  return bindingDescription;  
-}
-
-std::vector<vk::VertexInputAttributeDescription> model_to_attr(vertex_data const& model_) {
-  std::vector<vk::VertexInputAttributeDescription> attributeDescriptions{};
-
-  int attrib_index = 0;
-  for(vertex_data::attribute const& attribute : vertex_data::VERTEX_ATTRIBS) {
-    if(model_.offsets.find(attribute) != model_.offsets.end()) {
-      vk::VertexInputAttributeDescription desc{};
-      desc.binding = 0;
-      desc.location = attrib_index;
-      desc.format = attribute.type;
-      desc.offset = model_.offsets.at(attribute);
-      attributeDescriptions.emplace_back(std::move(desc));
-      ++attrib_index;
-    }
-  }
-  return attributeDescriptions;  
-}
-
 Geometry::Geometry()
  :m_model{}
- ,m_bind_info{}
- ,m_attrib_info{}
  ,m_buffer{}
 {}
 
@@ -46,13 +19,8 @@ Geometry::Geometry(Geometry && dev)
 
 Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
  :m_model{model}
- ,m_bind_info{}
- ,m_attrib_info{}
  ,m_buffer{}
 {
-  // TODO: support for multiple bindings
-  m_bind_info.emplace_back(model_to_bind(model));
-  m_attrib_info = model_to_attr(model);
   // create one buffer to store all data
   m_view_vertices = BufferView{m_model.vertex_num * m_model.vertex_bytes, vk::BufferUsageFlagBits::eVertexBuffer};
   m_view_indices = BufferView{uint32_t(m_model.indices.size() * vertex_data::INDEX.size), vk::BufferUsageFlagBits::eIndexBuffer};
@@ -82,9 +50,6 @@ Geometry::Geometry(Transferrer& transferrer, vertex_data const& model)
 
  void Geometry::swap(Geometry& dev) {
   std::swap(m_model, dev.m_model);
-  std::swap(m_bind_info, dev.m_bind_info);
-  std::swap(m_attrib_info, dev.m_attrib_info);
-
   std::swap(m_allocator, dev.m_allocator);
   std::swap(m_buffer, dev.m_buffer);
   m_buffer.setAllocator(m_allocator);
@@ -106,21 +71,13 @@ BufferView const& Geometry::indices() const {
   return m_view_indices;
 }
 
-std::vector<vk::VertexInputBindingDescription> const& Geometry::bindInfos() const {
-  return m_bind_info;
-}
+VertexInfo Geometry::vertexInfo() const {
+  vertex_data::attrib_flag_t attribs = 0;
+  for (auto const& offset : m_model.offsets) {
+    attribs |= offset.first;
+  }
 
-std::vector<vk::VertexInputAttributeDescription> const& Geometry::attributeInfos() const {
-  return m_attrib_info;
-}
-
-vk::PipelineVertexInputStateCreateInfo Geometry::inputInfo() const {
-  vk::PipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.vertexBindingDescriptionCount = std::uint32_t(m_bind_info.size());
-  vertexInputInfo.pVertexBindingDescriptions = m_bind_info.data();
-  vertexInputInfo.vertexAttributeDescriptionCount = std::uint32_t(m_attrib_info.size());
-  vertexInputInfo.pVertexAttributeDescriptions = m_attrib_info.data();
-  return vertexInputInfo;
+  return attribs_to_vert_info(attribs, true);
 }
 
 uint32_t Geometry::numIndices() const {

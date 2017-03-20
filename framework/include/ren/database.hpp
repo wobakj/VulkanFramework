@@ -26,6 +26,9 @@ class Database {
   virtual void swap(Database& dev);
 
   virtual T const& get(std::string const& tex_path);
+  
+  void set(std::string const& tex_path, T const& resource);
+  void set(std::string const& tex_path, T&& resource);
   // virtual void store(std::string const& path);
   virtual void store(std::string const& name, T&& resource);
   bool contains(std::string const& tex_path);
@@ -92,6 +95,16 @@ bool Database<T>::contains(std::string const& tex_path) {
 template<typename T>
 void Database<T>::store(std::string const& name, T&& resource) {
   m_resources.emplace(name, std::move(resource));  
+}
+
+template<typename T>
+void Database<T>::set(std::string const& name, T const& resource) {
+  m_resources.at(name) = resource;
+}
+
+template<typename T>
+void Database<T>::set(std::string const& name, T&& resource) {
+  m_resources.at(name) = std::move(resource);
 }
 
 template<typename T>

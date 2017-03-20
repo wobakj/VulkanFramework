@@ -2,7 +2,6 @@
 #define IMAGE_HPP
 
 #include "wrap/memory_resource.hpp"
-#include "wrap/pixel_data.hpp"
 
 #include <vulkan/vulkan.hpp>
 

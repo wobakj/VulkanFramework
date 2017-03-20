@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_LOADER_HPP
 #define GEOMETRY_LOADER_HPP
 
-#include "wrap/vertex_data.hpp"
+#include "vertex_data.hpp"
 #include "ren/material.hpp"
 
 #include <vector>
@@ -17,7 +17,7 @@ namespace ren {
 }
 
 namespace geometry_loader {
-std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string const& file_path, vertex_data::attrib_flag_t import_attribs);
+std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string const& file_path, vertex_data::attrib_flag_t import_attribs, bool all = false);
 vertex_data obj(std::string const& path, vertex_data::attrib_flag_t import_attribs = vertex_data::POSITION);
 
 vertex_data bvh(std::string const& path, std::size_t idx_node);

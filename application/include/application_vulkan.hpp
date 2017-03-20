@@ -28,7 +28,6 @@ class ApplicationVulkan : public ApplicationSingle {
   void updateDescriptors() override;
   
   void createLights();
-  void loadModel();
   void createUniformBuffers();
   void createVertexBuffer();
   void createTextureImage();
@@ -50,9 +49,6 @@ class ApplicationVulkan : public ApplicationSingle {
   Geometry m_model;
   Geometry m_model_2;
   Sampler m_sampler;
-  std::thread m_thread_load;
-  std::atomic<bool> m_model_dirty;
-  bool m_sphere;
   TextureDatabase m_database_tex;
 };
 

@@ -13,15 +13,11 @@
 #include <string>
 #include <cstdio>
 
-#include <platform.h>
-// #include <lamure/utils.h>
-#include <config.h>
-
 namespace lamure {
 namespace ren
 {
 
-class RENDERING_DLL lod_stream
+class lod_stream
 {
 public:
                         lod_stream();

@@ -33,7 +33,7 @@ void Renderer::swap(Renderer& rhs) {
   std::swap(m_instance, rhs.m_instance);
 }
 
-void Renderer::draw(CommandBuffer& buffer, std::vector<Node const*> const& nodes) {
+void Renderer::draw(CommandBuffer& buffer, std::vector<ModelNode const*> const& nodes) {
   // store transforms per geometry per material
   std::map<std::string, std::map<std::string, std::vector<size_t>>> material_geometries;
   // collect geometries for materials

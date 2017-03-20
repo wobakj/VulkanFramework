@@ -42,7 +42,7 @@ class Transferrer {
   void transitionToLayout(Image& img, vk::ImageLayout const& newLayout) const;
 
   // helper functions to create commandbuffer for staging an formating
-  vk::CommandBuffer const& beginSingleTimeCommands() const;
+  CommandBuffer const& beginSingleTimeCommands() const;
   void endSingleTimeCommands() const;
 
   void deallocate();

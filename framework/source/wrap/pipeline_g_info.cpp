@@ -17,7 +17,7 @@ GraphicsPipelineInfo::GraphicsPipelineInfo()
  ,info_viewport{}
  ,info_scissor{}
 {
-  info.pVertexInputState = &info_vert;
+  info.pVertexInputState = &info_vert.get();
   info.pInputAssemblyState = &info_assembly;
   info.pViewportState = &info_viewports;  
   info.pMultisampleState = &info_ms;
@@ -66,8 +66,7 @@ GraphicsPipelineInfo& GraphicsPipelineInfo::operator=(GraphicsPipelineInfo const
   m_spec_infos = rhs.m_spec_infos;
   setShaderStages(rhs.info_stages);
 
-  setVertexBindings(rhs.info_bindings);
-  setVertexAttributes(rhs.info_attributes);
+  setVertexInput(rhs.info_vert);
 
   setTopology(rhs.info_assembly.topology);
   setResolution(rhs.info_scissor.extent);
@@ -119,32 +118,15 @@ void GraphicsPipelineInfo::setShader(Shader const& shader) {
   }
 }
 
-void GraphicsPipelineInfo::setVertexInput(Geometry const& model) {
-  setVertexBindings(model.bindInfos());
-  setVertexAttributes(model.attributeInfos());
-}
-
-void GraphicsPipelineInfo::setVertexInput(GeometryLod const& model) {
-  setVertexBindings(model.bindInfos());
-  setVertexAttributes(model.attributeInfos());
+void GraphicsPipelineInfo::setVertexInput(VertexInfo const& input) {
+  info_vert = input;
+  info.pVertexInputState = &(info_vert.get());
 }
 
 void GraphicsPipelineInfo::setShaderStages(std::vector<vk::PipelineShaderStageCreateInfo> const& stages) {
   info_stages = stages;
   info.stageCount = uint32_t(info_stages.size());
   info.pStages = info_stages.data();
-}
-
-void GraphicsPipelineInfo::setVertexBindings(std::vector<vk::VertexInputBindingDescription> const& bindings) {
-  info_bindings = bindings;
-  info_vert.vertexBindingDescriptionCount = std::uint32_t(info_bindings.size());
-  info_vert.pVertexBindingDescriptions = info_bindings.data();
-}
-
-void GraphicsPipelineInfo::setVertexAttributes(std::vector<vk::VertexInputAttributeDescription> const& attributes) {
-  info_attributes = attributes;
-  info_vert.vertexAttributeDescriptionCount = std::uint32_t(info_attributes.size());
-  info_vert.pVertexAttributeDescriptions = info_attributes.data();
 }
 
 void GraphicsPipelineInfo::setTopology(vk::PrimitiveTopology const& topo) {

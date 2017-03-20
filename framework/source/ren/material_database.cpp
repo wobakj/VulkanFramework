@@ -19,7 +19,6 @@ MaterialDatabase::MaterialDatabase(MaterialDatabase && rhs)
 
 MaterialDatabase::MaterialDatabase(Transferrer& transferrer)
  :Database{transferrer}
- ,m_db_texture{*m_transferrer}
 {
   m_buffer = Buffer{transferrer.device(), sizeof(gpu_mat_t) * 100, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst};
 
@@ -35,12 +34,20 @@ MaterialDatabase& MaterialDatabase::operator=(MaterialDatabase&& rhs) {
 }
 
 void MaterialDatabase::store(std::string const& name, material_t&& resource) {
-  uint32_t index_diffuse = 0;
-  if (!resource.tex_diffuse.empty()) {
-    if (!m_db_texture.contains(resource.tex_diffuse)) {
-      m_db_texture.store(resource.tex_diffuse);
+  // update texture mappings
+  for (auto const& tex_pair : resource.textures) {
+    auto iter = m_tex_mapping.find(tex_pair.first);
+    // add map for type if does not exist
+    if (iter == m_tex_mapping.end()) {
+      iter = m_tex_mapping.emplace(tex_pair.first, std::map<std::string, int32_t>{}).first;
     }
-    index_diffuse = uint32_t(m_db_texture.index(resource.tex_diffuse));
+    // store continous increasing indices for types
+    iter->second.emplace(tex_pair.second, iter->second.size());
+  }
+  int32_t index_diffuse = -1;
+  if (resource.textures.find("diffuse") != resource.textures.end()) {
+    // lookup diffuse texture index
+    index_diffuse = m_tex_mapping.at("diffuse").at(resource.textures.at("diffuse"));
   }
 
   gpu_mat_t gpu_mat{resource.vec_diffuse, index_diffuse};
@@ -61,5 +68,5 @@ void MaterialDatabase::swap(MaterialDatabase& rhs) {
   std::swap(m_indices, rhs.m_indices);
   std::swap(m_allocator, rhs.m_allocator);
   std::swap(m_buffer, rhs.m_buffer);
-  std::swap(m_db_texture, rhs.m_db_texture);
+  std::swap(m_tex_mapping, rhs.m_tex_mapping);
 }

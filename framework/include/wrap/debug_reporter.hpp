@@ -17,20 +17,23 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
   std::string string_flag;
   bool throwing = false; 
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-    string_flag += "Error ";
-    throwing = true;
+    string_flag += "Error " + std::to_string(code);
+    // ignore descriptor binding error
+    if (code != 59) {
+      throwing = true;
+    }
   }
   if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
-    string_flag += "Warning ";
+    string_flag += "Warning " + std::to_string(code);
   }
   if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
-    string_flag += "Performance ";
+    string_flag += "Performance " + std::to_string(code);
   }
   if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
-    string_flag += "Info ";
+    string_flag += "Info " + std::to_string(code);
   }
   if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
-    string_flag += "Debug ";
+    string_flag += "Debug " + std::to_string(code);
   }
   std::cerr << string_flag << "- " << msg << std::endl;
   if (throwing) {

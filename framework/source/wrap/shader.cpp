@@ -1,7 +1,8 @@
 #include "wrap/shader.hpp"
 
-#include "shader_loader.hpp"
 #include "wrap/device.hpp"
+#include "wrap/descriptor_set_layout_info.hpp"
+#include "shader_loader.hpp"
 
 #include <spirv_cross.hpp>
 
@@ -238,30 +239,30 @@ std::vector<vk::DescriptorPoolSize> to_pool_sizes(std::map<std::string, vk::Desc
 }
 
 
-vk::DescriptorSetLayout to_set_layout(vk::Device const& device, std::map<std::string, vk::DescriptorSetLayoutBinding> const& set) {
-  std::vector<vk::DescriptorSetLayoutBinding> bindings{};
-  // collect set layout bindings
+DescriptorSetLayout to_set_layout(vk::Device const& device, std::map<std::string, vk::DescriptorSetLayoutBinding> const& set) {
+  DescriptorSetLayoutInfo layout_info{};
   for(auto const& pair_desc : set) {
-    bindings.emplace_back(pair_desc.second);
+    layout_info.setBinding(pair_desc.second);
   }
-  vk::DescriptorSetLayoutCreateInfo layoutInfo{};
-  layoutInfo.bindingCount = std::uint32_t(bindings.size());
-  layoutInfo.pBindings = bindings.data();
-  return device.createDescriptorSetLayout(layoutInfo);
+  return DescriptorSetLayout{device, layout_info};
 }
 
-std::vector<vk::DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader) {
-  std::vector<vk::DescriptorSetLayout> set_layouts{};
+std::vector<DescriptorSetLayout> to_set_layouts(vk::Device const& device, layout_shader_t const& shader) {
+  std::vector<DescriptorSetLayout> set_layouts{};
   for(auto const& set : shader.sets) {
     set_layouts.emplace_back(to_set_layout(device, set));
   }
   return set_layouts;
 }
 
-vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<vk::DescriptorSetLayout> const& set_layouts, std::vector<vk::PushConstantRange> const& push_constants) {
+vk::PipelineLayout to_pipe_layout(vk::Device const& device, std::vector<DescriptorSetLayout> const& set_layouts, std::vector<vk::PushConstantRange> const& push_constants) {
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.setLayoutCount = std::uint32_t(set_layouts.size());
-  pipelineLayoutInfo.pSetLayouts = set_layouts.data();
+  std::vector<vk::DescriptorSetLayout> vklayouts{};
+  for (auto const& layout : set_layouts) {
+    vklayouts.emplace_back(layout.get());
+  }
+  pipelineLayoutInfo.setLayoutCount = std::uint32_t(vklayouts.size());
+  pipelineLayoutInfo.pSetLayouts = vklayouts.data();
   pipelineLayoutInfo.pushConstantRangeCount = std::uint32_t(push_constants.size());
   pipelineLayoutInfo.pPushConstantRanges = push_constants.data();
 
@@ -299,9 +300,6 @@ void Shader::destroy() {
   for(auto const& module : m_modules) {
     (*m_device)->destroyShaderModule(module);
   }
-  for(auto const& set_layout : m_set_layouts) {
-    (*m_device)->destroyDescriptorSetLayout(set_layout);
-  }
 }
 
 Shader::Shader(Shader && dev)
@@ -335,11 +333,11 @@ vk::PipelineLayout const& Shader::pipelineLayout() const {
 // std::vector<vk::ShaderModule> const& Shader::shaderModules() const {
 //   return m_pipe;
 // }
-vk::DescriptorSetLayout const& Shader::setLayout(std::size_t index) const {
+DescriptorSetLayout const& Shader::setLayout(std::size_t index) const {
   return m_set_layouts[index];
 }
 
-std::vector<vk::DescriptorSetLayout> const& Shader::setLayouts() const {
+std::vector<DescriptorSetLayout> const& Shader::setLayouts() const {
   return m_set_layouts;
 }
 
@@ -365,30 +363,6 @@ vk::GraphicsPipelineCreateInfo Shader::startPipelineInfo() const {
   pipelineInfo.layout = pipelineLayout();
 
   return pipelineInfo;
-}
-
-vk::DescriptorSetAllocateInfo Shader::allocateInfos(vk::DescriptorPool const& pool) const {
-  vk::DescriptorSetAllocateInfo allocInfo{};
-  allocInfo.descriptorPool = pool;
-  allocInfo.descriptorSetCount = std::uint32_t(setLayouts().size());
-  allocInfo.pSetLayouts = setLayouts().data();
-  return allocInfo;
-}
-
-vk::DescriptorSetAllocateInfo Shader::allocateInfo(vk::DescriptorPool const& pool, uint32_t idx_set) const {
-  vk::DescriptorSetAllocateInfo allocInfo{};
-  allocInfo.descriptorPool = pool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &setLayouts().at(idx_set);
-  return allocInfo;
-}
-
-vk::DescriptorSet Shader::allocateSet(vk::DescriptorPool const& pool, uint32_t idx_set) const {
-  return (*m_device)->allocateDescriptorSets(allocateInfo(pool, idx_set))[0];
-}
-
-std::vector<vk::DescriptorSet> Shader::allocateSets(vk::DescriptorPool const& pool) const {
-  return (*m_device)->allocateDescriptorSets(allocateInfos(pool));
 }
 
 std::vector<std::string> const& Shader::paths() const {

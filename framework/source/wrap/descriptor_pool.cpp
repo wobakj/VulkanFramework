@@ -1,5 +1,7 @@
 #include "wrap/descriptor_pool.hpp"
 
+#include "wrap/descriptor_set_layout.hpp"
+
 #include "wrap/device.hpp"
 #include "wrap/shader.hpp"
 
@@ -41,18 +43,21 @@ void DescriptorPool::swap(DescriptorPool& DescriptorPool) {
   std::swap(m_device, DescriptorPool.m_device);
 }
 
-std::vector<vk::DescriptorSet> DescriptorPool::allocate(Shader const& shader) const {
+std::vector<vk::DescriptorSet> DescriptorPool::allocate(std::vector<DescriptorSetLayout> const& layouts) const {
   vk::DescriptorSetAllocateInfo info_alloc{};
   info_alloc.descriptorPool = get();
-  info_alloc.descriptorSetCount = std::uint32_t(shader.setLayouts().size());
-  info_alloc.pSetLayouts = shader.setLayouts().data();
+  info_alloc.descriptorSetCount = std::uint32_t(layouts.size());
+  std::vector<vk::DescriptorSetLayout> vklayouts{};
+  for (auto const& layout : layouts) {
+    vklayouts.emplace_back(layout.get());
+  }
+  info_alloc.pSetLayouts = vklayouts.data();
   return (*m_device)->allocateDescriptorSets(info_alloc);
 }
-
-vk::DescriptorSet DescriptorPool::allocate(Shader const& shader, uint32_t idx_set) const {
+vk::DescriptorSet DescriptorPool::allocate(DescriptorSetLayout const& layout) const {
   vk::DescriptorSetAllocateInfo info_alloc{};
   info_alloc.descriptorPool = get();
   info_alloc.descriptorSetCount = 1;
-  info_alloc.pSetLayouts = &shader.setLayouts().at(idx_set);
+  info_alloc.pSetLayouts = &layout.get();
   return (*m_device)->allocateDescriptorSets(info_alloc)[0];
 }

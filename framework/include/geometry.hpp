@@ -3,13 +3,14 @@
 
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"
-#include "wrap/vertex_data.hpp"
+#include "vertex_data.hpp"
 #include "allocator_static.hpp"
 
 #include <vulkan/vulkan.hpp>
 
 class Device;
 class Transferrer;
+class VertexInfo;
 
 class Geometry {
  public:  
@@ -27,9 +28,7 @@ class Geometry {
   BufferView const& vertices() const;
   BufferView const& indices() const;
 
-  vk::PipelineVertexInputStateCreateInfo inputInfo() const;
-  std::vector<vk::VertexInputBindingDescription> const& bindInfos() const;
-  std::vector<vk::VertexInputAttributeDescription> const& attributeInfos() const;
+  VertexInfo vertexInfo() const;
   uint32_t numIndices() const;
   uint32_t numVertices() const;
   uint32_t indexOffset() const;
@@ -37,8 +36,6 @@ class Geometry {
 
  private:
   vertex_data m_model;
-  std::vector<vk::VertexInputBindingDescription> m_bind_info;
-  std::vector<vk::VertexInputAttributeDescription> m_attrib_info;
   // destroy allocator after objects
   StaticAllocator m_allocator;
   Buffer m_buffer;

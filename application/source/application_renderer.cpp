@@ -12,27 +12,14 @@
 
 #include <iostream>
 
-// #define THREADING
-
 struct UniformBufferObject {
+    glm::mat4 view;
     glm::mat4 proj;
     glm::mat4 model;
-    glm::mat4 view;
     glm::mat4 normal;
 };
 
-struct light_t {
-  glm::fvec3 position;
-  float pad = 0.0f;
-  glm::fvec3 color;
-  float radius;
-};
 const std::size_t NUM_LIGHTS = 60;
-struct BufferLights {
-  light_t lights[NUM_LIGHTS];
-};
-BufferLights buff_l;
-
 // child classes must overwrite
 const uint32_t ApplicationRenderer::imageCount = 2;
 
@@ -45,8 +32,8 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
+  m_instance.dbCamera().store("cam", Camera{45.0f, 10, 10, 0.1f, 500.0f, window});
   createVertexBuffer();
-  createUniformBuffers();
   createLights();  
   createTextureImage();
   createTextureSampler();
@@ -66,9 +53,15 @@ FrameResource ApplicationRenderer::createFrameResource() {
 }
 
 void ApplicationRenderer::logic() {
-  if (m_camera.changed()) {
-    updateView();
-  }
+  static double time_last = glfwGetTime();
+  // calculate delta time
+  double time_current = glfwGetTime();
+  float time_delta = float(time_current - time_last);
+  time_last = time_current;
+
+  auto cam = m_instance.dbCamera().get("cam");
+  cam.update(time_delta);
+  m_instance.dbCamera().set("cam", std::move(cam));
 }
 
 void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
@@ -87,7 +80,7 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  std::vector<Node const*> nodes{};
+  std::vector<ModelNode const*> nodes{};
   nodes.emplace_back(&m_nodes.at("sponza"));
   nodes.emplace_back(&m_nodes.at("sphere"));
   nodes.emplace_back(&m_nodes.at("sphere2"));
@@ -117,6 +110,7 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // copy transform data
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
+  m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
@@ -174,13 +168,13 @@ void ApplicationRenderer::createPipelines() {
   info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
   info_pipe.setShader(m_shaders.at("scene"));
-  info_pipe.setVertexInput(m_model);
+  info_pipe.setVertexInput(m_model.vertexInfo());
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
 
-  uint32_t size_uint = uint32_t(m_instance.dbMaterial().dbDiffuse().size());
-  info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, size_uint);
+  // uint32_t size_uint = uint32_t(m_instance.dbMaterial().mapping().at("diffuse").size());
+  // info_pipe.setSpecConstant(vk::ShaderStageFlagBits::eFragment, 0, size_uint);
 
   vk::PipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.depthTestEnable = VK_TRUE;
@@ -207,7 +201,7 @@ void ApplicationRenderer::createPipelines() {
   colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
   info_pipe2.setAttachmentBlending(colorBlendAttachment2, 0);
 
-  info_pipe2.setVertexInput(m_model);
+  info_pipe2.setVertexInput(m_model.vertexInfo());
   info_pipe2.setShader(m_shaders.at("lights"));
   info_pipe2.setPass(m_render_pass, 1);
   info_pipe2.addDynamic(vk::DynamicState::eViewport);
@@ -240,15 +234,15 @@ void ApplicationRenderer::createVertexBuffer() {
   std::string model_path{m_resource_path + "models/sponza.obj"};
   m_model_loader.store(model_path, vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_instance.dbTransform().store(model_path, glm::scale(glm::fmat4{}, glm::fvec3{0.005f}));
-  m_nodes.emplace("sponza", Node{model_path, model_path});
+  m_nodes.emplace("sponza", ModelNode{model_path, model_path});
 
   auto model_path2 = m_resource_path + "models/sphere.obj";
   m_model_loader.store(model_path2, vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_instance.dbTransform().store(model_path2, glm::fmat4{1.0f});
-  m_nodes.emplace("sphere", Node{model_path2, model_path2});
+  m_nodes.emplace("sphere", ModelNode{model_path2, model_path2});
 
   m_instance.dbTransform().store("test2", glm::translate(glm::fmat4{1.0f}, glm::fvec3{2.0f, 0.0f, 0.0f}));
-  m_nodes.emplace("sphere2", Node{model_path2, "test2"});
+  m_nodes.emplace("sphere2", ModelNode{model_path2, "test2"});
 }
 
 void ApplicationRenderer::createLights() {
@@ -257,11 +251,13 @@ void ApplicationRenderer::createLights() {
     light_t light;
     light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
-    // light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f * 100.0f;
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
-    buff_l.lights[i] = light;
+    m_instance.dbLight().store(std::to_string(i), std::move(light));
+
   }
-  m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
+  auto const& command_buffer = m_transferrer.beginSingleTimeCommands();
+  m_instance.dbLight().updateCommand(command_buffer);
+  m_transferrer.endSingleTimeCommands();
 }
 
 void ApplicationRenderer::createFramebufferAttachments() {
@@ -313,17 +309,14 @@ void ApplicationRenderer::updateDescriptors() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
-  m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
+  m_instance.dbLight().buffer().writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
-  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
+  m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
+  m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
-  m_instance.dbMaterial().dbDiffuse().writeToSet(m_descriptor_sets.at("material"), 1);
-  m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
-
-  // m_instance.dbTexture().get(m_resource_path + "textures/test.tga").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
-  // m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
+  m_instance.dbTexture().writeToSet(m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
+  // m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
 }
 
 void ApplicationRenderer::createDescriptorPools() {
@@ -332,35 +325,12 @@ void ApplicationRenderer::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("lights"), 1, 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["camera"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
-  m_descriptor_sets["transform"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 1);
-  m_descriptor_sets["material"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 2);
+  m_descriptor_sets["camera"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(0));
+  m_descriptor_sets["transform"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(1));
+  m_descriptor_sets["material"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(2));
 
-  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 0);
-}
-
-void ApplicationRenderer::createUniformBuffers() {
-  m_buffers["uniforms"] = Buffer{m_device, (sizeof(UniformBufferObject) + sizeof(BufferLights)) * 2, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
-  m_buffer_views["light"] = BufferView{sizeof(BufferLights), vk::BufferUsageFlagBits::eStorageBuffer};
-  m_buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
-
-  m_allocators.at("buffers").allocate(m_buffers.at("uniforms"));
-
-  m_buffer_views.at("light").bindTo(m_buffers.at("uniforms"));
-  m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
-}
-
-///////////////////////////// update functions ////////////////////////////////
-void ApplicationRenderer::updateView() {
-  UniformBufferObject ubo{};
-  // ubo.model = glm::fmat4{};
-  // ubo.model = glm::scale(glm::fmat4{}, glm::fvec3{0.001f});
-  ubo.view = m_camera.viewMatrix();
-  // ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
-  ubo.proj = m_camera.projectionMatrix();
-
-  m_transferrer.uploadBufferData(&ubo, m_buffer_views.at("uniform"));
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(1));
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(0));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

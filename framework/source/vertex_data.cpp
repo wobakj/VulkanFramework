@@ -1,6 +1,34 @@
-#include "wrap/vertex_data.hpp"
+#include "vertex_data.hpp"
+
+#include "wrap/vertex_info.hpp"
 
 #include <cstdint>
+
+VertexInfo attribs_to_vert_info(vertex_data::attrib_flag_t const& active_attributes, bool interleaved) {
+  VertexInfo info{};
+  uint32_t vertex_bytes = 0;
+  uint32_t index = 0;
+  for (auto const& curr_attribute : vertex_data::VERTEX_ATTRIBS) {
+    // check if buffer contains attribute
+    if (curr_attribute.flag & active_attributes) {
+      // write offset, explicit cast to prevent narrowing warning
+      if (interleaved) {
+        info.setAttribute(0, index, curr_attribute.type, vertex_bytes);
+      }
+      else {
+        info.setBinding(index, curr_attribute.size, vk::VertexInputRate::eVertex);
+        info.setAttribute(index, index, curr_attribute.type, 0);
+      }
+      // move offset pointer forward
+      vertex_bytes += curr_attribute.size;
+      ++index;
+    }
+  }
+  if (interleaved) {
+    info.setBinding(0, vertex_bytes, vk::VertexInputRate::eVertex);
+  }
+  return info;  
+}
 
 std::vector<vertex_data::attribute> const vertex_data::VERTEX_ATTRIBS
  = {  

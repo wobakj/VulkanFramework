@@ -111,19 +111,17 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
   res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("gbuffer")->bindVertexBuffers(0, {m_model.buffer()}, {0});
-  res.command_buffers.at("gbuffer")->bindIndexBuffer(m_model.buffer(), m_model.indexOffset(), vk::IndexType::eUint32);
+  res.command_buffers.at("gbuffer").bindGeometry(m_model);
+  res.command_buffers.at("gbuffer").drawGeometry(1);
 
-  res.command_buffers.at("gbuffer")->drawIndexed(m_model.numIndices(), 1, 0, 0, 0);
-
-  res.command_buffers.at("gbuffer")->end();
+  res.command_buffers.at("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting")->reset({});
@@ -200,7 +198,7 @@ void ApplicationClustered::createPipelines() {
   info_pipe.setAttachmentBlending(colorBlendAttachment, 2);
 
   info_pipe.setShader(m_shaders.at("simple"));
-  info_pipe.setVertexInput(m_model);
+  info_pipe.setVertexInput(m_model.vertexInfo());
   info_pipe.setPass(m_render_pass, 0);
   info_pipe.addDynamic(vk::DynamicState::eViewport);
   info_pipe.addDynamic(vk::DynamicState::eScissor);
@@ -325,9 +323,9 @@ void ApplicationClustered::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("quad"), 1, 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 0);
-  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("simple"), 1);
-  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("quad"), 1);
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("simple").setLayout(0));
+  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("simple").setLayout(1));
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("quad").setLayout(1));
 }
 
 void ApplicationClustered::createUniformBuffers() {

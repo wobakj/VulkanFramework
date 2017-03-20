@@ -5,29 +5,42 @@
 // use floats and med precision operations
 #include <glm/gtc/type_precision.hpp>
 
-// #include <tiny_obj_loader.h>
+#include <map>
 struct gpu_mat_t {
-  gpu_mat_t(glm::fvec3 const& diff, uint32_t tex)
+  gpu_mat_t(glm::fvec3 const& diff, int32_t tex)
    :diffuse{diff.x, diff.y, diff.z, 0.0f}
-   ,texture{tex}
+   ,tex_diffuse{tex}
   {}
 
   glm::fvec4 diffuse;
   glm::fvec3 pad;
-  uint32_t texture;
+  int32_t tex_diffuse;
+  int32_t tex_normal;
+  int32_t tex_metalness;
+  int32_t tex_roughness;
 };
 
+// enum tex_type : uint8_t {
+
+// }
+
 struct material_t {
-material_t(glm::fvec3 const& color, std::string const& path)
+material_t()
+ :vec_diffuse{0.0f}
+ ,textures{}
+{}
+
+material_t(glm::fvec3 const& color, std::map<std::string, std::string> const& paths)
  :vec_diffuse{color}
- ,tex_diffuse{path}
+ ,textures{paths}
 {}
 // material_t(tinyobj::material_t const& mat)
 //  :vec_diffuse{mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]}
 //  ,tex_diffuse{mat.diffuse_texname}
 // {}
   glm::fvec3 vec_diffuse;
-  std::string tex_diffuse;
+
+  std::map<std::string, std::string> textures;
 };
 
 #endif
