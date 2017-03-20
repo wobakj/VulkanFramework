@@ -45,7 +45,7 @@ ApplicationVulkan::ApplicationVulkan(std::string const& resource_path, Device& d
 
   createVertexBuffer();
   createUniformBuffers();
-  createLights();  
+  createLights();
   createTextureImage();
   createTextureSampler();
 

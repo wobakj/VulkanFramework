@@ -238,7 +238,7 @@ void ApplicationVulkan::createPipelines() {
   info_pipe2.setAttachmentBlending(colorBlendAttachment, 2);
 
   info_pipe2.setShader(m_shaders.at("scene_model"));
-  info_pipe2.setVertexInput(m_model);
+  info_pipe2.setVertexInput(m_model.vertexInfo());
   info_pipe2.setPass(m_render_pass, 0);
   info_pipe2.addDynamic(vk::DynamicState::eViewport);
   info_pipe2.addDynamic(vk::DynamicState::eScissor);
@@ -270,7 +270,7 @@ void ApplicationVulkan::createPipelines() {
   colorBlendAttachment3.alphaBlendOp = vk::BlendOp::eAdd;
   info_pipe3.setAttachmentBlending(colorBlendAttachment3, 0);
 
-  info_pipe3.setVertexInput(m_model);
+  info_pipe3.setVertexInput(m_model.vertexInfo());
   info_pipe3.setShader(m_shaders.at("lights"));
   info_pipe3.setPass(m_render_pass, 1);
   info_pipe3.addDynamic(vk::DynamicState::eViewport);
@@ -391,10 +391,10 @@ void ApplicationVulkan::createDescriptorPools() {
   info_pool.reserve(m_shaders.at("lights"), 2);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["sdf_matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene"), 0);
-  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene_model"), 0);
-  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene_model"), 1);
-  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights"), 1);
+  m_descriptor_sets["sdf_matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene").setLayout(0));
+  m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("scene_model").setLayout(0));
+  m_descriptor_sets["textures"] = m_descriptor_pool.allocate(m_shaders.at("scene_model").setLayout(1));
+  m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(1));
 }
 
 void ApplicationVulkan::createUniformBuffers() {
