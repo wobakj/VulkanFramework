@@ -24,7 +24,7 @@ public:
 	std::unique_ptr<Node> createLightNode(std::string const& name, light_t light);
 
 	void removeNode(std::unique_ptr<Node> n);
-	Node* findNode(std::string name);
+	Node* findNode(std::string const& name);
 	bool hasChildren(std::unique_ptr<Node> n);
 	void addCamNode(CameraNode* cam);
 

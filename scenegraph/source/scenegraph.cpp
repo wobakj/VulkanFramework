@@ -41,7 +41,7 @@ void Scenegraph::removeNode(std::unique_ptr<Node> n)
 	//auto parent = foundNode->getParent();
 }
 
-Node* Scenegraph::findNode(std::string name)
+Node* Scenegraph::findNode(std::string const& name)
 {
 	std::vector<Node*> visited;
 	visited.push_back(m_root.get());
@@ -49,9 +49,10 @@ Node* Scenegraph::findNode(std::string name)
 	{
 		auto& current = visited.back();
 		visited.pop_back();
-		if (current->getName() == name) return current;
-		for (auto child : current->getChildren())
-		{
+		if (current->getName() == name) {
+      return current;
+    }
+		for (auto const& child : current->getChildren()) {
 			visited.push_back(child);
 		}
 	}
