@@ -52,6 +52,12 @@ include_directories(SYSTEM external/gli-0.8.2.0)
 include_directories(external/tinyobjloader-1.0.5)
 # just one file so it can be directly compiled into main exe
 file(GLOB TINYOBJLOADER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/tinyobjloader-1.0.5/*.cc)
+
+# add tinyobjloader
+include_directories(external/jsoncpp-1.8.0)
+# just one file so it can be directly compiled into main exe
+file(GLOB JSONCPP_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/external/jsoncpp-1.8.0/*.cpp)
+
 # bvh loading files
 add_sublibrary(bvh ${CMAKE_CURRENT_SOURCE_DIR}/external/bvh "")
 
@@ -76,7 +82,7 @@ target_link_libraries(framework glfw ${GLFW_LIBRARIES} ${VULKAN_LIBRARY} spirv-c
 
 # create framework helper library 
 file(GLOB_RECURSE SCENEGRAPH_SOURCES scenegraph/source/*.cpp)
-add_library(scenegraph STATIC ${SCENEGRAPH_SOURCES})
+add_library(scenegraph STATIC ${SCENEGRAPH_SOURCES} ${JSONCPP_SOURCES})
 target_include_directories(scenegraph PUBLIC scenegraph/include)
 target_link_libraries(scenegraph ${VULKAN_LIBRARY} framework)
 

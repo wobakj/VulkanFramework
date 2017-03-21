@@ -10,12 +10,14 @@
 #include "visit/visitor_transform.hpp"
 #include "visit/visitor_bbox.hpp"
 #include "visit/visitor_pick.hpp"
+#include "loader_scene.hpp"
 #include "ray.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/string_cast.hpp>
+
 
 #include <iostream>
 
@@ -37,6 +39,8 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
  ,m_renderer{m_instance}
  ,m_graph{"graph", m_instance}
 {
+  scene_loader::json(m_resource_path + "scenes/test.json", &m_graph);
+
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
