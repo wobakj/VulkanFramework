@@ -423,7 +423,7 @@ void ApplicationVulkan::updateView() {
   ubo.view = m_camera.viewMatrix();
   ubo.proj = m_camera.projectionMatrix();
   ubo.model = glm::fmat4{1.0f};
-  ubo.model = glm::scale(ubo.model, glm::vec3(0.005));
+  ubo.model = glm::scale(ubo.model, glm::vec3(0.01));
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
   m_transferrer.uploadBufferData(&sdf_ubo, m_buffer_views.at("sdf_uniform"));

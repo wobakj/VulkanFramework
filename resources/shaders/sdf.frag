@@ -224,6 +224,7 @@ float scene(vec3 p) {
   float hit4 = sdfTorus(p - vec3(0.0,0.0,-5.0 + 1.0 * sin(ubo.time * 0.5)), torus);
   float hit5 = sdfTorus(p - vec3(0.0,0.0,-4.0 + 1.0 * sin(ubo.time * 0.5)), torus);
   float hit6 = sdfTorus(p - vec3(0.0,0.0,-6.0 + 1.0 * sin(ubo.time * 0.5)), torus);
+  float hit7 = opUnion(opUnion(hit4, hit5), hit6);
   mat3 rot = createRotMat(PI * 0.5, 0.0, 0.0);
   vec3 r = opRot(p, rot);
   float hit3 = sdfTorus(r - vec3(0.0,5.0 - 1.0 * sin(ubo.time * 0.5),0.0 + 1.0 * sin(ubo.time * 0.5)), torus);
@@ -261,9 +262,23 @@ float scene(vec3 p) {
   float hit13 = sdfCylinder(opRot(p, rot5) - vec3(0.0,0.0,-10.0), cyl);
   hit13 = opUnion(hit13,sdfCylinder(opRot(p, rot4) - vec3(0.0,0.0,-12.0), cyl));
   hit13 = opUnion(hit13,sdfCylinder(opRot(p, rot5) - vec3(0.0,0.0,-14.0), cyl)); 
-  float hit15 = opIntersection(sdfSphere(p - vec3(8.0, 0.0, -5.0), 2.0 + 1.0 * sin(ubo.time)), sdfBox(p - vec3(8.0, 0.0, -5.0), vec3(2.0 + 1.0 * -sin(ubo.time))));    
-  float hit7 = opUnion(opUnion(hit4, hit5), hit6);
-  float hit = opUnion(hit15,opUnion(hit14,opUnion(hit13,opUnion(hit12,opUnion(hit11,opUnion(hit10,opUnion(hit9,opUnion(hit8,opUnion(hit3, hit7)))))))));
+  float hit15 = opIntersection(sdfSphere(p - vec3(8.0, 0.0, -5.0), 2.0 + 1.0 * sin(ubo.time)), sdfBox(p - vec3(8.0, 0.0, -5.0), vec3(2.0 + 1.0 * -sin(ubo.time))));
+  vec3 p7 = p - vec3(2.0, 1.5, 0.0);
+  mat3 rot6 = createRotMat(PI * ubo.time, 0.0,0.0);
+  mat3 rot7 = createRotMat(0.0, PI * ubo.time, 0.0);
+  vec3 r5 = opRot(p7, rot6);
+  vec3 r6 = opRot(p7, rot7);
+  vec3 r7 = opRot(p7, rot);
+  r7 = opRot(r7, rot7);
+  float hit16 = opUnion(sdfTorus(r7, torus2 + vec2(0.6, 0.0)),opUnion(sdfTorus(r5, torus2), sdfTorus(r6, torus2 + vec2(0.3, 0.0))));
+  hit16 = opUnion(sdfSphere(p - vec3(2.0, 1.5, 0.0), 0.5), hit16); 
+  mat3 rot8 = createRotMat(0.0,0.0,PI * .5);
+  vec3 p8 = p - vec3(-2.5,1.5,0.0);
+  r7 = opRot(p8, rot8);
+  rot8 = createRotMat(0.0,PI * .5, 0.0);
+  r6 = opRot(p8, rot8);
+  hit16 = opUnion(hit16, opDifference(opUnion(sdfCylinder(p8, vec2(0.2 + 0.1 * sin(ubo.time), 2.0)), opUnion(sdfCylinder(r7, vec2(0.2 + 0.1 * sin(ubo.time), 2.0)),sdfCylinder(r6, vec2(0.2 + 0.1 * sin(ubo.time), 2.0)))),sdfSphere(p - vec3(-2.5, 1.5, 0.0), 0.5)));
+  float hit = opUnion(hit16,opUnion(hit15,opUnion(hit14,opUnion(hit13,opUnion(hit12,opUnion(hit11,opUnion(hit10,opUnion(hit9,opUnion(hit8,opUnion(hit3, hit7))))))))));
   // float hit = opDifference(hit1, hit2);
   return hit;
 }
