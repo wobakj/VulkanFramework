@@ -8,7 +8,7 @@
 class Scenegraph;
 namespace scene_loader {
 
-void json(std::string const& file_path, Scenegraph* graph);
+void json(std::string const& file_path, std::string const&m_resource_path, Scenegraph* graph);
 
 };
 

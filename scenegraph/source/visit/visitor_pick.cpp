@@ -50,7 +50,7 @@ void PickVisitor::visit(ModelNode * node)
 		auto local_hit = curr_box.intersects(ray_local);
 		if (local_hit.success())
 		{
-			std::cout<<"local hit "<<node->getName() << std::endl;
+			// std::cout<<"local hit "<<node->getName() << std::endl;
 			local_hit.setNode(node);
 			local_hit.setWorld(node->getWorld() * glm::fvec4{local_hit.getLocal(),1.0f});
 			m_hits.push_back(local_hit);

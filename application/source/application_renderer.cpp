@@ -39,12 +39,14 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
  ,m_renderer{m_instance}
  ,m_graph{"graph", m_instance}
 {
-  scene_loader::json(m_resource_path + "scenes/test.json", &m_graph);
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
   m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window});
+
+  scene_loader::json(m_resource_path + "scenes/sponza.json", m_resource_path, &m_graph);
+
   createVertexBuffer();
   createLights();  
 
@@ -270,20 +272,6 @@ void ApplicationRenderer::updatePipelines() {
 void ApplicationRenderer::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
-
-  auto node_sphere = m_graph.createGeometryNode("sphere", m_resource_path + "models/sphere.obj");
-  node_sphere->scale(glm::fvec3{0.2f});
-  node_sphere->translate(glm::fvec3{0.0f, 1.0f, 0.0f});
-  m_graph.getRoot()->addChild(std::move(node_sphere));
-
-  auto node_sphere2 = m_graph.createGeometryNode("sphere2", m_resource_path + "models/sphere.obj");
-  node_sphere2->translate(glm::fvec3{0.0f, 0.0f, 4.0f});
-  m_graph.getRoot()->getChild("sphere")->addChild(std::move(node_sphere2));
-
-  auto node_sponza = m_graph.createGeometryNode("sponza", m_resource_path + "models/sponza.obj");
-  node_sponza->scale(glm::fvec3{0.005f});
-  node_sponza->translate(glm::fvec3{0.0f, 30.0f, 0.0f});
-  m_graph.getRoot()->addChild(std::move(node_sponza));
 }
 
 void ApplicationRenderer::createLights() {

@@ -14,10 +14,10 @@ Node::Node()
 	m_children = std::vector<std::unique_ptr<Node>>();
 }
 
-Node::Node(std::string const & name, glm::mat4 const& world)
+Node::Node(std::string const & name, glm::mat4 const& local)
  :m_parent{nullptr}
  ,m_name(name)
- ,m_world(world)
+ ,m_local(local)
  ,m_box(Bbox())
 {
 	m_children = std::vector<std::unique_ptr<Node>>();

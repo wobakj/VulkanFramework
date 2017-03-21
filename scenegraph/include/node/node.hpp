@@ -17,7 +17,7 @@ class Node
 {
 public:
 	Node();
-	Node(std::string const&name, glm::mat4 const& mat  = glm::fmat4{1.0f});
+	Node(std::string const&name, glm::mat4 const& local  = glm::fmat4{1.0f});
 
 	void setLocal(glm::mat4 const &local);
 
