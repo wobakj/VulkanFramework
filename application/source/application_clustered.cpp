@@ -421,6 +421,7 @@ void ApplicationClustered::createTextureSamplers() {
 void ApplicationClustered::updateDescriptors() {
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
   m_buffer_views.at("lightgrid").writeToSet(m_descriptor_sets.at("lightgrid"), 1, vk::DescriptorType::eUniformBuffer);
+  m_buffer_views.at("lightgrid").writeToSet(m_descriptor_sets.at("lighting"), 5, vk::DescriptorType::eUniformBuffer);
 
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);

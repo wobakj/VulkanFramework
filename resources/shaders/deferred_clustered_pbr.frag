@@ -28,12 +28,15 @@ struct light_t {
 layout(set = 1, binding = 4) uniform usampler3D volumeLight;
 
 layout(set = 1, binding = 3) buffer LightBuffer {
-  uvec4 lightGridSize;
-  float near;
-  float far;
-  vec2 pad;
   light_t[] Lights;
 };
+
+layout(set = 1, binding = 5) uniform LightGridBuffer {
+  uvec2 grid_size;
+  float near;
+  float far;
+  vec3 frustum_corners[4];
+} light_grid;
 
 #define M_PI 3.1415926535897932384626433832795
 #define INV_4_PI 0.07957747154594766788
@@ -136,7 +139,8 @@ vec3 sRGB_to_linear(vec3 c)
 }
 
 // relative depths (regarding depth range: far - near) for the depth slices
-const float[16 + 1] rel_slice_depths = float[](
+const uint depth_slices = 16;
+const float[depth_slices + 1] rel_slice_depths = float[](
   0.0, 0.009801960392078417, 0.013402680536107223, 0.01820364072814563,
   0.02500500100020004, 0.03400680136027206, 0.04620924184836967,
   0.0628125625125025, 0.08561712342468493, 0.11642328465693139,
@@ -144,7 +148,7 @@ const float[16 + 1] rel_slice_depths = float[](
   0.3978795759151831, 0.5419083816763353, 0.7359471894378876, 1.0);
 
 float z_from_slice(uint slice) {
-  return -(near + rel_slice_depths[slice] * (far - near));
+  return -(light_grid.near + rel_slice_depths[slice] * (light_grid.far - light_grid.near));
 }
 
 void main() {
@@ -157,15 +161,20 @@ void main() {
   uint mask_lights = 0;
   // find the cluster according to the depth of this fragment and store its
   // lights that are then used for shading this fragment
-  for (uint slice = 0; slice < lightGridSize.z; ++slice) {
+  for (uint slice = 0; slice < depth_slices; ++slice) {
     // check if the fragment's depth is in the depth range of the current
     // fragment
     if (depth <= z_from_slice(slice) && depth > z_from_slice(slice + 1)) {
-      ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
-                               (1.0 - frag_positionNdc.y) * lightGridSize.y,
+      ivec3 cell_index = ivec3(frag_positionNdc.x * light_grid.grid_size.x,
+                               (1.0 - frag_positionNdc.y) * light_grid.grid_size.y,
                                slice);
       mask_lights = texelFetch(volumeLight, cell_index, 0).r;
-      break;
+
+      // break;
+      // FIXME: with the break the shading is only done for pixels from the
+      // first depth slice; the if should only be triggered for one and only one
+      // cluster and therefore work with the break. Something is not yet correct
+      // in the depth range check
     }
   }
 
