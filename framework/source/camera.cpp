@@ -140,6 +140,9 @@ void Camera::queryKeyboard(float delta_time) {
     if (glfwGetKey(window, GLFW_KEY_D)) {
       movement_.x += delta_time * translation_speed;
     }
+    if (glfwGetKey(window, GLFW_KEY_E)) {
+      movement_.y += delta_time * translation_speed;
+    }
   }
 
   if (movement_ != glm::fvec3{0.0f}) {
