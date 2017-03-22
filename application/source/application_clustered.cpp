@@ -163,6 +163,25 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting")->reset({});
   res.command_buffers.at("lighting")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
+  vk::ImageMemoryBarrier barrier_image{};
+  barrier_image.image = m_images.at("light_vol");
+  barrier_image.subresourceRange = img_to_resource_range(m_images.at("light_vol").info());
+  barrier_image.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
+  barrier_image.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  barrier_image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_image.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_image.oldLayout = vk::ImageLayout::eGeneral;
+  barrier_image.newLayout = vk::ImageLayout::eGeneral;
+
+  res.commandBuffer("lighting")->pipelineBarrier(
+    vk::PipelineStageFlagBits::eComputeShader,
+    vk::PipelineStageFlagBits::eFragmentShader,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier_image}
+  );
+
   res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad"));
   res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("quad").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting")->setViewport(0, {m_swap_chain.asViewport()});
