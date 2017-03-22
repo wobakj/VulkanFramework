@@ -11,7 +11,7 @@ layout(location = 0) out vec4 out_Color;
 
 struct light_t {
   vec3 position;
-  float pad;
+  float intensity;
   vec3 color;
   float radius;
 };
@@ -66,6 +66,7 @@ void main() {
   vec3 pos_light = (ubo.view * vec4(Lights[frag_InstanceId].position, 1.0)).xyz;
   float dist = distance(frag_Position, pos_light);
   float radius = Lights[frag_InstanceId].radius;
+  float intensity = Lights[frag_InstanceId].intensity;
 
   vec2 diffSpec = phongDiffSpec(frag_Position, frag_Normal, n, pos_light);
   vec3 color = Lights[frag_InstanceId].color.rgb;
@@ -74,6 +75,6 @@ void main() {
   // return;
   out_Color = vec4(color * 0.1 * diffuseColor 
                   + color * diffuseColor * diffSpec.x
-                  + color * ks * diffSpec.y, 1.0 - dist / radius);
+                  + color * ks * diffSpec.y, (1.0 - dist / radius) * intensity);
   // out_Color = vec4(diffuseColor, 1.0);
 }

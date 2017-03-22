@@ -48,7 +48,6 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
   scene_loader::json(m_resource_path + "scenes/sponza.json", m_resource_path, &m_graph);
 
   createVertexBuffer();
-  createLights();  
 
   createRenderResources();
 }
@@ -272,20 +271,6 @@ void ApplicationRenderer::updatePipelines() {
 void ApplicationRenderer::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
-}
-
-void ApplicationRenderer::createLights() {
-  std::srand(5);
-  for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
-    light_t light;
-    light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
-    light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
-    light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
-    
-    auto node_light = m_graph.createLightNode("Light" + std::to_string(i), light);
-    node_light->setLocal(glm::translate(glm::fmat4{1.0f}, light.position));
-    m_graph.getRoot()->addChild(std::move(node_light));
-  }
 }
 
 void ApplicationRenderer::createFramebufferAttachments() {

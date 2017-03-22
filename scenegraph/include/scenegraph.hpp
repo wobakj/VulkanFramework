@@ -21,7 +21,7 @@ public:
 	Scenegraph(std::string name, ApplicationInstance & instance);
 
 	std::unique_ptr<Node> createGeometryNode(std::string const& name, std::string const& path);
-	std::unique_ptr<Node> createLightNode(std::string const& name, light_t light);
+	std::unique_ptr<Node> createLightNode(std::string const& name, light_t const& light);
 
 	void removeNode(std::unique_ptr<Node> n);
 	Node* findNode(std::string const& name);

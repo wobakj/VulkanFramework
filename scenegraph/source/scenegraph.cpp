@@ -30,8 +30,8 @@ std::unique_ptr<Node> Scenegraph::createGeometryNode(std::string const& name, st
   return std::unique_ptr<Node>(new ModelNode{name, path, name_transform});
 }
 
-std::unique_ptr<Node> Scenegraph::createLightNode(std::string const& name, light_t light) {
-  m_instance->dbLight().store(name, std::move(light));
+std::unique_ptr<Node> Scenegraph::createLightNode(std::string const& name, light_t const& light) {
+  m_instance->dbLight().store(name, light_t{light});
   return std::unique_ptr<Node>(new LightNode{name, name});
 }
 

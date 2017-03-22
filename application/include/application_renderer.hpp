@@ -30,8 +30,7 @@ class ApplicationRenderer : public ApplicationSingle {
   FrameResource createFrameResource() override;
   void updatePipelines() override;
   void updateDescriptors() override;
-  
-  void createLights();
+
   void createVertexBuffer();
   void onResize(std::size_t width, std::size_t height) override;
 

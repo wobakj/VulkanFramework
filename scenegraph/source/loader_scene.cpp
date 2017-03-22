@@ -8,6 +8,7 @@
 #include <json/json.h>
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <fstream>
 #include <memory>
@@ -44,8 +45,8 @@ Node* parseLight(Json::Value const& val, Scenegraph* graph, Node* node_parent, s
   auto val_pos = val["location"];
 
   light_t light{};
-  light.position = glm::fvec3{val_pos[0].asFloat(), val_pos[1].asFloat(), val_pos[2].asFloat()};
   light.color = glm::fvec3{val_color[0].asFloat(), val_color[1].asFloat(), val_color[2].asFloat()};
+  light.position = glm::fvec3{val_pos[0].asFloat(), val_pos[1].asFloat(), val_pos[2].asFloat()};
   light.radius = val["radius"].asFloat();
   light.intensity = val["intensity"].asFloat();
     
@@ -55,7 +56,6 @@ Node* parseLight(Json::Value const& val, Scenegraph* graph, Node* node_parent, s
   parseChildren(val, graph, node.get(), resource_path);
   // attach to tree
   node_parent->addChild(std::move(node));
-
   std::cout << "attaching light " << name << " to " << node_parent->getName() << std::endl;
   return node_parent->getChild(name);
 }
@@ -138,6 +138,10 @@ void parseVal(Json::Value const& val, Scenegraph* graph, Node* node_parent, std:
     }
     else if (type == "Group") {
       parseGroup(val, graph, node_parent, resource_path);
+    }
+    else {
+      std::cout << "Node " << name.asString() << " has unsupported type " << type.asString() << std::endl;
+      parseChildren(val, graph, node_parent, resource_path);
     }
   }
   else if (val.isArray()) {
