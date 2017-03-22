@@ -133,11 +133,11 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
   res.command_buffers.at("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("lightgrid")}, {});
 
-  glm::uvec3 workers{8, 8, 8};
+  glm::vec3 workers(8.0f);
   res.command_buffers.at("compute")->dispatch(
-      (m_lightGridSize.x) / workers.x + 1,
-      (m_lightGridSize.y) / workers.y + 1,
-      (m_lightGridSize.z) / workers.z + 1);
+      glm::ceil(m_lightGridSize.x / workers.x),
+      glm::ceil(m_lightGridSize.y / workers.y),
+      glm::ceil(m_lightGridSize.z / workers.z));
 
   res.command_buffers.at("compute")->end();
 
