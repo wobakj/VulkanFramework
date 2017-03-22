@@ -339,8 +339,7 @@ void ApplicationClustered::createLights() {
   for (unsigned int i = 0; i < lightPositions.size(); ++i) {
     buff_l.lights[i].position = lightPositions[i];
     buff_l.lights[i].radius = 7.0f;
-    // buff_l.lights[i].color = glm::fvec3(0.996, 0.9531, 0.8945);
-    buff_l.lights[i].color = glm::fvec3(0.9, 0.4, 0.4);
+    buff_l.lights[i].color = glm::fvec3(0.996, 0.9531, 0.8945);
     buff_l.lights[i].intensity = 30.0f;
   }
 
@@ -398,7 +397,6 @@ void ApplicationClustered::createFramebufferAttachments() {
 
   // update light grid so its extent is computed
   updateLightGrid();
-  std::cout << glm::to_string(m_lightGridSize) << std::endl;
   auto lightVolExtent =
       vk::Extent3D{m_lightGridSize.x, m_lightGridSize.y, m_lightGridSize.z};
 
