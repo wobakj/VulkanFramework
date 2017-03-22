@@ -33,6 +33,8 @@ layout(set = 1, binding = 3) buffer LightBuffer {
 
 layout(set = 1, binding = 5) uniform LightGridBuffer {
   uvec2 grid_size;
+  uvec2 tile_size;
+  uvec2 resolution;
   float near;
   float far;
   vec3 frustum_corners[4];

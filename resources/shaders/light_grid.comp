@@ -3,28 +3,135 @@
 
 layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
+struct light_t {
+  vec3 position;
+  float intensity;
+  vec3 color;
+  float radius;
+};
+
 layout(set = 0, binding = 0, r32ui) uniform uimage3D destTexture;
 
 layout(set = 0, binding = 1) uniform LightGridBuffer {
   uvec2 grid_size;
+  uvec2 tile_size;
+  uvec2 resolution;
   float near;
   float far;
   vec3 frustum_corners[4];
 } light_grid;
 
+layout(set = 0, binding = 2) buffer LightBuffer {
+  light_t[] Lights;
+};
+
 // relative depths (regarding depth range: far - near) for the depth slices
-const float[16 + 1] rel_slice_depths = float[](
+const uint depht_slices = 16;
+const float[depht_slices + 1] rel_slice_depths = float[](
   0.0, 0.009801960392078417, 0.013402680536107223, 0.01820364072814563,
   0.02500500100020004, 0.03400680136027206, 0.04620924184836967,
   0.0628125625125025, 0.08561712342468493, 0.11642328465693139,
   0.15823164632926587, 0.21584316863372677, 0.29185837167433487,
   0.3978795759151831, 0.5419083816763353, 0.7359471894378876, 1.0);
 
-void main() {
-  ivec3 storePos = ivec3(gl_GlobalInvocationID.xyz);
+float z_from_slice(uint slice) {
+  return -(light_grid.near +
+    rel_slice_depths[slice] * (light_grid.far - light_grid.near));
+}
 
-  // TODO: insert actual value instead of -1; this value will set all bits and
-  // hence lead to every cluster being marked to overlap all lights which is of
-  // course bad for performance
-  imageStore(destTexture, storePos, uvec4(-1));
+vec3 viewRay(uint x, uint y) {
+  vec2 t = vec2(x * light_grid.tile_size.x / float(light_grid.resolution.x),
+                y * light_grid.tile_size.y / float(light_grid.resolution.y));
+  vec3 ray = mix(
+    mix(light_grid.frustum_corners[0], light_grid.frustum_corners[1], t.x),
+    mix(light_grid.frustum_corners[3], light_grid.frustum_corners[2], t.x),
+    t.y);
+
+  return normalize(ray);
+}
+
+vec3 froxelCorner(uint tile_x, uint tile_y, uint slice) {
+  vec3 ray = viewRay(tile_x, tile_y);
+  float z = z_from_slice(slice);
+  return ray * (z / ray.z);
+}
+
+// adapted from: https://github.com/Oculus-VR/UnrealEngine/blob/4.12-ofr/Engine/Shaders/ClusteredLightGridInjection.usf#L60
+float pointFroxelDistance(uint tile_x, uint tile_y, uint slice, vec3 point) {
+  vec3 topLeftNear = froxelCorner(tile_x, tile_y + 1, slice);
+  vec3 bottomRightNear = froxelCorner(tile_x + 1, tile_y, slice);
+  vec3 topLeftFar = froxelCorner(tile_x, tile_y + 1, slice + 1);
+  vec3 bottomRightFar = froxelCorner(tile_x + 1, tile_y, slice + 1);
+
+  vec3 center = (topLeftNear + bottomRightFar) * 0.5;
+  vec3 planeNormal = normalize(center - point);
+
+  float min1 = -dot(planeNormal, point);
+  float min2 = min1;
+
+  // factors out a ton of common terms.
+  min1 += min(planeNormal.x * topLeftNear.x, planeNormal.x * bottomRightNear.x);
+  min1 += min(planeNormal.y * topLeftNear.y, planeNormal.y * bottomRightNear.y);
+  min1 += planeNormal.z * topLeftNear.z;
+  min2 += min(planeNormal.x * topLeftFar.x, planeNormal.x * bottomRightFar.x);
+  min2 += min(planeNormal.y * topLeftFar.y, planeNormal.y * bottomRightFar.y);
+  min2 += planeNormal.z * bottomRightFar.z;
+
+  return min(min1, min2);
+}
+
+bool sphereFroxelTest(uint tile_x, uint tile_y, uint slice,
+                      vec3 center, float radius) {
+  vec3 topLeftNear = froxelCorner(tile_x, tile_y + 1, slice);
+  vec3 bottomRightNear = froxelCorner(tile_x + 1, tile_y, slice);
+  vec3 topLeftFar = froxelCorner(tile_x, tile_y + 1, slice + 1);
+  vec3 bottomRightFar = froxelCorner(tile_x + 1, tile_y, slice + 1);
+
+  vec3 froxelAABBMin = vec3(min(topLeftNear.x, topLeftFar.x),
+                            min(bottomRightNear.y, bottomRightFar.y),
+                            min(topLeftFar.z, bottomRightFar.z));
+  vec3 froxelAABBMax = vec3(max(bottomRightNear.x, bottomRightFar.x),
+                            max(topLeftNear.y, topLeftFar.y),
+                            max(topLeftNear.z, bottomRightNear.z));
+
+  vec3 sphereAABBMin = center - vec3(radius);
+  vec3 sphereAABBMax = center + vec3(radius);
+
+  // check if there is an overlap between the AABBs
+    if ((sphereAABBMin.x > froxelAABBMax.x) ||
+        (sphereAABBMax.x < froxelAABBMin.x))
+      return false;
+    if ((sphereAABBMin.y > froxelAABBMax.y) ||
+        (sphereAABBMax.y < froxelAABBMin.y))
+      return false;
+    if ((sphereAABBMin.z > froxelAABBMax.z) ||
+        (sphereAABBMax.z < froxelAABBMin.z))
+      return false;
+    return true;
+}
+
+void main() {
+  ivec3 cluster = ivec3(gl_GlobalInvocationID.xyz);
+
+  if (cluster.x >= light_grid.grid_size.x ||
+      cluster.y >= light_grid.grid_size.y ||
+      cluster.z >= depht_slices) {
+    return;
+  }
+
+  uint light_mask = 0;
+  for (uint i = 0u; i < Lights.length(); ++i) {
+#if 1
+    float dist = pointFroxelDistance(cluster.x, cluster.y, cluster.z,
+                                     Lights[i].position);
+    if (dist < Lights[i].radius) {
+#else
+    if (sphereFroxelTest(cluster.x, cluster.y, cluster.z,
+                         Lights[i].position, Lights[i].radius)) {
+#endif
+      // this light overlaps this cluster, add it to the light mask
+      light_mask |= (1 << i);
+    }
+  }
+  imageStore(destTexture, cluster, uvec4(light_mask));
 }
