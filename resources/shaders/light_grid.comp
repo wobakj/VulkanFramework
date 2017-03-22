@@ -121,7 +121,7 @@ void main() {
 
   uint light_mask = 0;
   for (uint i = 0u; i < Lights.length(); ++i) {
-#if 1
+#if 0
     float dist = pointFroxelDistance(cluster.x, cluster.y, cluster.z,
                                      Lights[i].position);
     if (dist < Lights[i].radius) {
