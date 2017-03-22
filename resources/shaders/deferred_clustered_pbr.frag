@@ -172,11 +172,7 @@ void main() {
                                slice);
       mask_lights = texelFetch(volumeLight, cell_index, 0).r;
 
-      // break;
-      // FIXME: with the break the shading is only done for pixels from the
-      // first depth slice; the if should only be triggered for one and only one
-      // cluster and therefore work with the break. Something is not yet correct
-      // in the depth range check
+      break;
     }
   }
 
