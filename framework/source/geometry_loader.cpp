@@ -183,11 +183,14 @@ vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shape
       uint8_t num_face_verts = shape.mesh.num_face_vertices[idx_face];
       assert(num_face_verts == 3);
       int idx_mat = shape.mesh.material_ids[idx_face];
-      if (idx_mat < 0) {
-        // std::cerr << "Face " << idx_face << " of shape " << shape.name << " has no assigned material" << std::endl;
+      if (idx_mat <  -1) {
+        std::cerr << "Face " << idx_face << " of shape " << shape.name << " has invalid material" << std::endl;
       }
       // either store faces for all material or only for one
-      if (idx_mat_store >= -1 && idx_mat != idx_mat_store) continue;
+      if (idx_mat_store >= -1 && idx_mat != idx_mat_store) {
+        offset_face += num_face_verts;
+        continue;
+      }
       // iterate over the face vertices
       for (uint8_t idx_vert = 0; idx_vert < num_face_verts; ++idx_vert) {
         tinyobj::index_t const& vert_properties = shape.mesh.indices[offset_face + idx_vert];

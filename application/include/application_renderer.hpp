@@ -33,7 +33,7 @@ class ApplicationRenderer : public ApplicationSingle {
   void createLights();
   // void createUniformBuffers();
   void createVertexBuffer();
-  void createTextureImage();
+  // void createTextureImage();
   void createTextureSampler();
 
   // void updateView() override;

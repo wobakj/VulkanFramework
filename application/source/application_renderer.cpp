@@ -35,7 +35,6 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
   m_instance.dbCamera().store("cam", Camera{45.0f, 10, 10, 0.1f, 500.0f, window});
   createVertexBuffer();
   createLights();  
-  createTextureImage();
   createTextureSampler();
 
   createRenderResources();
@@ -305,18 +304,6 @@ void ApplicationRenderer::createFramebufferAttachments() {
   m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
-}
-
-void ApplicationRenderer::createTextureImage() {
-  // pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
-
-  // m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
-  // m_allocators.at("images").allocate(m_images.at("texture"));
- 
-  // m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
-  // m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
-
-  m_instance.dbTexture().store(m_resource_path + "textures/test.tga");
 }
 
 void ApplicationRenderer::createTextureSampler() {
