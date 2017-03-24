@@ -21,7 +21,7 @@ CommandPool::CommandPool(Device const& device, uint32_t idx_queue, vk::CommandPo
 
   m_info.queueFamilyIndex = idx_queue;
   m_info.flags = flags;
-  m_object = device->createCommandPool({flags});
+  m_object = device->createCommandPool(info());
 }
 
 CommandPool::~CommandPool() {
@@ -58,6 +58,7 @@ std::vector<CommandBuffer> CommandPool::createBuffers(vk::CommandBufferLevel con
 CommandBuffer CommandPool::createBuffer(vk::CommandBufferLevel const& level) const {
   auto buffer = CommandBuffer{};
   buffer.swap(createBuffers(level, 1)[0]); 
+  std::cout << "allocated " << buffer.get() << " from pool " << get() << std::endl;
   return std::move(buffer);
 }
 

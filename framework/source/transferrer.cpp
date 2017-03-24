@@ -38,6 +38,7 @@ void Transferrer::swap(Transferrer& dev) {
   std::swap(m_device, dev.m_device);
   std::swap(m_command_buffer_help, dev.m_command_buffer_help);
   std::swap(m_buffer_stage, dev.m_buffer_stage);
+  std::swap(m_memory_stage, dev.m_memory_stage);
 }
 
 void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {

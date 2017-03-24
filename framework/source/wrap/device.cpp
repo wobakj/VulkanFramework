@@ -8,6 +8,26 @@
 #include <vector>
 #include <set>
 
+uint32_t find_queue_family(vk::PhysicalDevice device, vk::QueueFlags const& flags) {
+  auto queue_families = device.getQueueFamilyProperties();
+  // find optimal queue
+  for (size_t i = 0; i < queue_families.size(); ++i) {
+    // flags must be identical
+    if (queue_families[i].queueCount > 0 && queue_families[i].queueFlags == flags) {
+        return uint32_t(i);
+    }
+  }
+  // find suitable queue
+  for (size_t i = 0; i < queue_families.size(); ++i) {
+    if (queue_families[i].queueCount > 0 && (queue_families[i].queueFlags & flags)) {
+        return uint32_t(i);
+    }
+  }
+  throw std::runtime_error{"no suiable queue found"};
+  return 0;
+}
+
+
 Device::Device()
  :WrapperDevice{}
  ,m_queue_indices{}
@@ -22,7 +42,8 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   m_extensions = deviceExtensions;
   m_queue_indices.emplace("graphics", queues.graphicsFamily);
   m_queue_indices.emplace("present", queues.presentFamily);
-  m_queue_indices.emplace("transfer", queues.graphicsFamily);
+  m_queue_indices.emplace("transfer", find_queue_family(physical(), vk::QueueFlagBits::eTransfer));
+  // m_queue_indices.emplace("transfer", queues.graphicsFamily);
 
   std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
   std::set<int> uniqueQueueFamilies{};

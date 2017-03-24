@@ -62,7 +62,7 @@ void Application::acquireImage(FrameResource& res) {
 }
 
 void Application::presentFrame(FrameResource& res) {
-  presentFrame(res, m_device.getQueue("graphics"));
+  presentFrame(res, m_device.getQueue("present"));
 }
 
 void Application::presentFrame(FrameResource& res, vk::Queue const& queue) {
