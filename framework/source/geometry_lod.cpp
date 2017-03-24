@@ -200,22 +200,6 @@ void GeometryLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) 
   }
   command_buffer.copyBuffer(m_buffer_stage, m_buffer, copies_nodes);
 
-  // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier_nodes{};
-  barrier_nodes.buffer = buffer();
-  barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_nodes.dstAccessMask = vk::AccessFlagBits::eVertexAttributeRead;
-  barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  command_buffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eVertexInput,
-    vk::DependencyFlags{},
-    {},
-    {barrier_nodes},
-    {}
-  );
 
   std::vector<float> levels(m_num_slots + 1, 0.0f);
   float depth = float(m_bvh.get_depth());
@@ -233,23 +217,6 @@ void GeometryLod::performCopiesCommand(vk::CommandBuffer const& command_buffer) 
     levels.data()
   );
 
-  // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier_levels{};
-  barrier_levels.buffer = m_view_levels.buffer();
-  barrier_levels.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_levels.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  barrier_levels.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_levels.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  command_buffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eFragmentShader,
-    vk::DependencyFlags{},
-    {},
-    {barrier_levels},
-    {}
-  );
-
   // std::cout << "uploading " << m_node_uploads.size() << " nodes with "<< float(m_node_uploads.size() * m_size_node) / 1024.0f / 1024.0f << " MB" << std::endl;
   m_node_uploads.clear();
 }
@@ -261,22 +228,6 @@ void GeometryLod::updateDrawCommands(vk::CommandBuffer const& command_buffer) {
     m_view_draw_commands.offset(),
     numNodes() * sizeof(vk::DrawIndirectCommand),
     drawCommands().data()
-  );
-  // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier_cmds{};
-  barrier_cmds.buffer = m_view_draw_commands.buffer();
-  barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
-  barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  command_buffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eDrawIndirect,
-    vk::DependencyFlags{},
-    {},
-    {barrier_cmds},
-    {}
   );
 }
 

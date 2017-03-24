@@ -180,7 +180,8 @@ void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
     sizeof(ubo_cam),
     &ubo_cam
   );
-  // barrier to make new data visible to vertex shader
+
+  // make matrices visible to vertex shader
   vk::BufferMemoryBarrier barrier_buffer{};
   barrier_buffer.buffer = res.buffer_views.at("uniform").buffer();
   barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
@@ -197,9 +198,59 @@ void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
     {}
   );
 
-
   // res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
+
+  // make draw commands visible to drawindirect
+  vk::BufferMemoryBarrier barrier_cmds{};
+  barrier_cmds.buffer = m_model_lod.viewDrawCommands().buffer();
+  barrier_cmds.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_cmds.dstAccessMask = vk::AccessFlagBits::eIndirectCommandRead;
+  barrier_cmds.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_cmds.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  res.commandBuffer("draw")->pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eDrawIndirect,
+    vk::DependencyFlags{},
+    {},
+    {barrier_cmds},
+    {}
+  );
+
+  // make node data visible to vertex shader
+  vk::BufferMemoryBarrier barrier_nodes{};
+  barrier_nodes.buffer = m_model_lod.buffer();
+  barrier_nodes.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_nodes.dstAccessMask = vk::AccessFlagBits::eVertexAttributeRead;
+  barrier_nodes.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_nodes.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  res.commandBuffer("draw")->pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eVertexInput,
+    vk::DependencyFlags{},
+    {},
+    {barrier_nodes},
+    {}
+  );
+
+  // make node level data visible to fragment shader
+  vk::BufferMemoryBarrier barrier_levels{};
+  barrier_levels.buffer = m_model_lod.viewNodeLevels().buffer();
+  barrier_levels.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier_levels.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  barrier_levels.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier_levels.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  res.commandBuffer("draw")->pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eFragmentShader,
+    vk::DependencyFlags{},
+    {},
+    {barrier_levels},
+    {}
+  );
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer

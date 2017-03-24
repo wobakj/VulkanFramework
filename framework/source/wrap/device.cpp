@@ -50,8 +50,8 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   for(auto const& index : m_queue_indices) {
     uniqueQueueFamilies.emplace(index.second);
   }
-
-  float queuePriority = 1.0f;
+  // reserve enough space for all queues
+  std::vector<float> queue_priorities(m_queue_indices.size(), 1.0f);
   for (int queueFamily : uniqueQueueFamilies) {
     uint num = 0;
     for(auto const& index : m_queue_indices) {
@@ -62,7 +62,7 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
     vk::DeviceQueueCreateInfo queueCreateInfo{};
     queueCreateInfo.queueFamilyIndex = queueFamily;
     queueCreateInfo.queueCount = num;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
+    queueCreateInfo.pQueuePriorities = queue_priorities.data();
     queueCreateInfos.push_back(queueCreateInfo);
     std::cout << "creating " << num << " queues from family " << queueFamily << std::endl;
   }
@@ -79,7 +79,7 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   m_info.enabledExtensionCount = uint32_t(deviceExtensions.size());
   m_info.ppEnabledExtensionNames = deviceExtensions.data();
 
-  m_object =phys_dev.createDevice(info());
+  m_object = phys_dev.createDevice(info());
 
   std::map<int, uint> num_used{};
   for(auto const& index : m_queue_indices) {

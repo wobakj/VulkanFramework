@@ -48,7 +48,7 @@ void ApplicationThreadedTransfer::shutDown() {
 FrameResource ApplicationThreadedTransfer::createFrameResource() {
   auto res = ApplicationThreaded::createFrameResource();
   // separate transfer
-  res.addCommandBuffer("transfer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary));
+  res.addCommandBuffer("transfer", m_command_pools.at("transfer").createBuffer(vk::CommandBufferLevel::ePrimary));
   res.addSemaphore("transfer");
   res.addFence("transfer");
   return res;
