@@ -32,10 +32,9 @@ ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Devic
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
-  m_instance.dbCamera().store("cam", Camera{45.0f, 10, 10, 0.1f, 500.0f, window});
+  m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window});
   createVertexBuffer();
   createLights();  
-  createTextureSampler();
 
   createRenderResources();
 }
@@ -306,10 +305,6 @@ void ApplicationRenderer::createFramebufferAttachments() {
   m_allocators.at("images").allocate(m_images.at("color_2"));
 }
 
-void ApplicationRenderer::createTextureSampler() {
-  m_sampler = Sampler{m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat};
-}
-
 void ApplicationRenderer::updateDescriptors() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
@@ -321,7 +316,6 @@ void ApplicationRenderer::updateDescriptors() {
   m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbTexture().writeToSet(m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
-  // m_sampler.writeToSet(m_descriptor_sets.at("material"), 2, vk::DescriptorType::eSampler);
 }
 
 void ApplicationRenderer::createDescriptorPools() {
@@ -336,6 +330,12 @@ void ApplicationRenderer::createDescriptorPools() {
 
   m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(1));
   m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(0));
+}
+
+void ApplicationRenderer::onResize(std::size_t width, std::size_t height) {
+  auto cam = m_instance.dbCamera().get("cam");
+  cam.setAspect(width, height);
+  m_instance.dbCamera().set("cam", std::move(cam));
 }
 
 ///////////////////////////// misc functions ////////////////////////////////

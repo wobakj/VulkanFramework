@@ -31,10 +31,8 @@ class ApplicationRenderer : public ApplicationSingle {
   void updateDescriptors() override;
   
   void createLights();
-  // void createUniformBuffers();
   void createVertexBuffer();
-  // void createTextureImage();
-  void createTextureSampler();
+  void onResize(std::size_t width, std::size_t height) override;
 
   // void updateView() override;
   void createFramebuffers();
@@ -50,7 +48,6 @@ class ApplicationRenderer : public ApplicationSingle {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   Geometry m_model;
-  Sampler m_sampler;
   ApplicationInstance m_instance;
   ModelLoader m_model_loader;
   Renderer m_renderer;
