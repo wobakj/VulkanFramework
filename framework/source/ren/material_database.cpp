@@ -26,6 +26,8 @@ MaterialDatabase::MaterialDatabase(Transferrer& transferrer)
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocator = StaticAllocator(transferrer.device(), mem_type, m_buffer.requirements().size);
   m_allocator.allocate(m_buffer);
+  // store fallback material
+  store("default", material_t{});
 }
 
 MaterialDatabase& MaterialDatabase::operator=(MaterialDatabase&& rhs) {

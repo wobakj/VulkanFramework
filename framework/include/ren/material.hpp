@@ -33,7 +33,7 @@ struct gpu_mat_t {
 
 struct material_t {
 material_t()
- :diffuse{0.0f}
+ :diffuse{0.0f, 1.0f, 0.0f}
  ,textures{}
 {}
 

@@ -51,7 +51,7 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
   std::vector<tinyobj::material_t> obj_materials;
   // load obj and triangulate by default
   auto obj_dir = file_path.substr(0, file_path.find_last_of("/\\") + 1);
-  bool success = tinyobj::LoadObj(&attribs, &shapes, &obj_materials, &err, file_path.c_str(), obj_dir.c_str());
+  bool success = tinyobj::LoadObj(&attribs, &shapes, &obj_materials, &err, file_path.c_str(), obj_dir.c_str(), true);
   if (!success) {
     throw std::runtime_error("tinyobjloader: '" + file_path + "' - failed to load");
   }
@@ -68,7 +68,7 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
   std::vector<material_t> materials{};
 
   if (obj_materials.empty() || all) {
-    geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -1)));
+    geometries.emplace_back(std::move(obj(attribs, shapes, import_attribs, -2)));
   }
   else {
     for (size_t i = 0; i < obj_materials.size(); ++i) {
@@ -112,6 +112,11 @@ std::pair<std::vector<vertex_data>, std::vector<material_t>> objs(std::string co
 
       materials.emplace_back(std::move(material));
     }
+    auto vert_data = obj(attribs, shapes, import_attribs, -1);
+    if (!vert_data.data.empty()) {
+      geometries.emplace_back(std::move(vert_data));
+      materials.emplace_back(material_t{});
+    }
   }
   return make_pair(std::move(geometries), std::move(materials));
 }
@@ -120,6 +125,8 @@ vertex_data obj(std::string const& file_path, vertex_data::attrib_flag_t import_
   return objs(file_path, import_attribs, true).first[0];
 }
 
+// idx_mat_store = -1 --no assgined material
+// idx_mat_store = -2 --all materials
 vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shapes, vertex_data::attrib_flag_t import_attribs, int idx_mat_store) {
 // parameter handling
   vertex_data::attrib_flag_t attributes{vertex_data::POSITION | import_attribs};
@@ -174,9 +181,13 @@ vertex_data obj(tinyobj::attrib_t& attribs, std::vector<tinyobj::shape_t>& shape
     for (uint32_t idx_face = 0; idx_face < shape.mesh.num_face_vertices.size(); ++idx_face) {
       // get face and material
       uint8_t num_face_verts = shape.mesh.num_face_vertices[idx_face];
+      assert(num_face_verts == 3);
       int idx_mat = shape.mesh.material_ids[idx_face];
+      if (idx_mat < 0) {
+        // std::cerr << "Face " << idx_face << " of shape " << shape.name << " has no assigned material" << std::endl;
+      }
       // either store faces for all material or only for one
-      if (idx_mat_store >= 0 && idx_mat != idx_mat_store) continue;
+      if (idx_mat_store >= -1 && idx_mat != idx_mat_store) continue;
       // iterate over the face vertices
       for (uint8_t idx_vert = 0; idx_vert < num_face_verts; ++idx_vert) {
         tinyobj::index_t const& vert_properties = shape.mesh.indices[offset_face + idx_vert];

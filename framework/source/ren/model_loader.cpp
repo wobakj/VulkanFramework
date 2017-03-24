@@ -49,12 +49,21 @@ Model ModelLoader::load(std::string const& filename, vertex_data::attrib_flag_t 
         m_instance->dbTexture().store(tex_pair.second);
       }
     }
-    // store material
     std::string key_mat{filename + '|' + std::to_string(i)};
-    m_instance->dbMaterial().store(key_mat, std::move(mat_datas[i]));
+    if (mat_datas.empty()) {
+      std::string key_mat{"default"};
+    }
+    else {
+      if (!m_instance->dbMaterial().contains(key_mat)) {
+        // store material
+        m_instance->dbMaterial().store(key_mat, std::move(mat_datas[i]));
+      }
+    }
     keys_mat.emplace_back(key_mat);
   }
-
+  if (mat_datas.empty()) {
+    std::cerr << "Model " << filename << " has no materials, using default." << std::endl;
+  }
   return Model{keys_geo, keys_mat};
 }
 
