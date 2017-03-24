@@ -37,7 +37,7 @@ struct LightGridBufferObject {
   glm::uvec2 resolution;
   float near;
   float far;
-  glm::vec3 frustum_corners[4];
+  glm::vec4 frustum_corners[4];
 };
 
 
@@ -109,7 +109,7 @@ void ApplicationClustered::updateLightGrid() {
   auto invProj = glm::inverse(m_camera.projectionMatrix());
   for (unsigned int i = 0; i < 4; ++i) {
     auto corner = invProj * m_nearFrustumCornersClipSpace[i];
-    lightGridBuff.frustum_corners[i] = glm::vec3(corner) / corner.w;
+    lightGridBuff.frustum_corners[i] = glm::vec4(glm::vec3(corner) / corner.w, 1.0f);
   }
 
   // some other required values
