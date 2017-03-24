@@ -112,6 +112,23 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
   m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
+  // barrier to make light data visible to vertex shader
+  vk::BufferMemoryBarrier barrier{};
+  barrier.buffer = m_instance.dbLight().buffer();
+  barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  res.command_buffers.at("draw")->pipelineBarrier(
+    vk::PipelineStageFlagBits::eTransfer,
+    vk::PipelineStageFlagBits::eFragmentShader,
+    vk::DependencyFlags{},
+    {},
+    {barrier},
+    {}
+  );
+
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
@@ -258,6 +275,7 @@ void ApplicationRenderer::createLights() {
   auto const& command_buffer = m_transferrer.beginSingleTimeCommands();
   m_instance.dbLight().updateCommand(command_buffer);
   m_transferrer.endSingleTimeCommands();
+
 }
 
 void ApplicationRenderer::createFramebufferAttachments() {

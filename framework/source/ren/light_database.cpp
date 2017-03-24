@@ -84,21 +84,21 @@ void LightDatabase::updateCommand(CommandBuffer const& command_buffer) const {
   }
   command_buffer->copyBuffer(m_buffer_stage, m_buffer, copy_views);
   // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier{};
-  barrier.buffer = m_buffer;
-  barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  // vk::BufferMemoryBarrier barrier{};
+  // barrier.buffer = m_buffer;
+  // barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+  // barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+  // barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  // barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  command_buffer->pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eFragmentShader,
-    vk::DependencyFlags{},
-    {},
-    {barrier},
-    {}
-  );
+  // command_buffer->pipelineBarrier(
+  //   vk::PipelineStageFlagBits::eTransfer,
+  //   vk::PipelineStageFlagBits::eFragmentShader,
+  //   vk::DependencyFlags{},
+  //   {},
+  //   {barrier},
+  //   {}
+  // );
 
   m_dirties.clear();
 }

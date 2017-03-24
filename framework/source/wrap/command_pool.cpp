@@ -58,7 +58,6 @@ std::vector<CommandBuffer> CommandPool::createBuffers(vk::CommandBufferLevel con
 CommandBuffer CommandPool::createBuffer(vk::CommandBufferLevel const& level) const {
   auto buffer = CommandBuffer{};
   buffer.swap(createBuffers(level, 1)[0]); 
-  std::cout << "allocated " << buffer.get() << " from pool " << get() << std::endl;
   return std::move(buffer);
 }
 
