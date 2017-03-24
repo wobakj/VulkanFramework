@@ -32,7 +32,7 @@ class Database {
   // virtual void store(std::string const& path);
   virtual void store(std::string const& name, T&& resource);
   bool contains(std::string const& tex_path);
-  size_t size() const;
+  virtual size_t size() const;
  protected:
   Device const* m_device;
   Transferrer* m_transferrer;

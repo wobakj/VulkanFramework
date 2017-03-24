@@ -1,4 +1,4 @@
-#include "application_renderer.hpp"
+#include "application_scenegraph.hpp"
 
 #include "app/launcher.hpp"
 #include "wrap/descriptor_pool_info.hpp"
@@ -28,42 +28,51 @@ struct UniformBufferObject {
     glm::mat4 normal;
 };
 
-const std::size_t NUM_LIGHTS = 60;
 // child classes must overwrite
-const uint32_t ApplicationRenderer::imageCount = 2;
+const uint32_t ApplicationScenegraph::imageCount = 2;
 
-ApplicationRenderer::ApplicationRenderer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
  ,m_instance{m_device, m_command_pools.at("transfer")}
  ,m_model_loader{m_instance}
  ,m_renderer{m_instance}
  ,m_graph{"graph", m_instance}
 {
+  // check if input file was specified
+  if (cmd_parse.rest().size() != 1) {
+    if (cmd_parse.rest().size() < 1) {
+      std::cerr << "No filename specified" << std::endl;
+    }
+    else {
+      std::cerr << cmd_parse.usage();
+    }
+    exit(0);
+  }
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
 
   m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window});
 
-  scene_loader::json(m_resource_path + "scenes/sponza.json", m_resource_path, &m_graph);
+  scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
   createVertexBuffer();
 
   createRenderResources();
 }
 
-ApplicationRenderer::~ApplicationRenderer() {
+ApplicationScenegraph::~ApplicationScenegraph() {
   shutDown();
 }
 
-FrameResource ApplicationRenderer::createFrameResource() {
+FrameResource ApplicationScenegraph::createFrameResource() {
   auto res = Application::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   return res;
 }
 
-void ApplicationRenderer::logic() {
+void ApplicationScenegraph::logic() {
   static double time_last = glfwGetTime();
   // calculate delta time
   double time_current = glfwGetTime();
@@ -88,7 +97,7 @@ void ApplicationRenderer::logic() {
   m_graph.accept(pick_visitor);
 }
 
-void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
+void ApplicationScenegraph::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
@@ -122,12 +131,12 @@ void ApplicationRenderer::updateResourceCommandBuffers(FrameResource& res) {
 
   res.command_buffers.at("lighting").bindGeometry(m_model);
 
-  res.command_buffers.at("lighting").drawGeometry(NUM_LIGHTS);
+  res.command_buffers.at("lighting").drawGeometry(uint32_t(m_instance.dbLight().size()));
 
   res.command_buffers.at("lighting").end();
 }
 
-void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
+void ApplicationScenegraph::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->reset({});
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
@@ -178,11 +187,11 @@ void ApplicationRenderer::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->end();
 }
 
-void ApplicationRenderer::createFramebuffers() {
+void ApplicationScenegraph::createFramebuffers() {
   m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
 }
 
-void ApplicationRenderer::createRenderPasses() {
+void ApplicationScenegraph::createRenderPasses() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
@@ -190,7 +199,7 @@ void ApplicationRenderer::createRenderPasses() {
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
 }
 
-void ApplicationRenderer::createPipelines() {
+void ApplicationScenegraph::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
 
@@ -258,7 +267,7 @@ void ApplicationRenderer::createPipelines() {
   m_pipelines.emplace("lights", GraphicsPipeline{m_device, info_pipe2, m_pipeline_cache});
 }
 
-void ApplicationRenderer::updatePipelines() {
+void ApplicationScenegraph::updatePipelines() {
   auto info_pipe = m_pipelines.at("scene").info();
   info_pipe.setShader(m_shaders.at("scene"));
   m_pipelines.at("scene").recreate(info_pipe);
@@ -268,12 +277,12 @@ void ApplicationRenderer::updatePipelines() {
   m_pipelines.at("lights").recreate(info_pipe2);
 }
 
-void ApplicationRenderer::createVertexBuffer() {
+void ApplicationScenegraph::createVertexBuffer() {
   vertex_data tri = geometry_loader::obj(m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{m_transferrer, tri};
 }
 
-void ApplicationRenderer::createFramebufferAttachments() {
+void ApplicationScenegraph::createFramebufferAttachments() {
  auto depthFormat = findSupportedFormat(
   m_device.physical(),
     {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
@@ -302,7 +311,7 @@ void ApplicationRenderer::createFramebufferAttachments() {
   m_allocators.at("images").allocate(m_images.at("color_2"));
 }
 
-void ApplicationRenderer::updateDescriptors() {
+void ApplicationScenegraph::updateDescriptors() {
   m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
   m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
@@ -315,7 +324,7 @@ void ApplicationRenderer::updateDescriptors() {
   m_instance.dbTexture().writeToSet(m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
 }
 
-void ApplicationRenderer::createDescriptorPools() {
+void ApplicationScenegraph::createDescriptorPools() {
   DescriptorPoolInfo info_pool{};
   info_pool.reserve(m_shaders.at("scene"), 2);
   info_pool.reserve(m_shaders.at("lights"), 1, 2);
@@ -329,7 +338,7 @@ void ApplicationRenderer::createDescriptorPools() {
   m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(0));
 }
 
-void ApplicationRenderer::onResize(std::size_t width, std::size_t height) {
+void ApplicationScenegraph::onResize(std::size_t width, std::size_t height) {
   auto cam = m_instance.dbCamera().get("cam");
   cam.setAspect(width, height);
   m_instance.dbCamera().set("cam", std::move(cam));
@@ -337,7 +346,7 @@ void ApplicationRenderer::onResize(std::size_t width, std::size_t height) {
 
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
-void ApplicationRenderer::keyCallback(int key, int scancode, int action, int mods) {
+void ApplicationScenegraph::keyCallback(int key, int scancode, int action, int mods) {
   // if (key == GLFW_KEY_L && action == GLFW_PRESS) {
   //   }
   // }
@@ -345,5 +354,5 @@ void ApplicationRenderer::keyCallback(int key, int scancode, int action, int mod
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  Launcher::run<ApplicationRenderer>(argc, argv);
+  Launcher::run<ApplicationScenegraph>(argc, argv);
 }

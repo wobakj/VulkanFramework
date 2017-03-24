@@ -17,10 +17,10 @@
 #include <atomic>
 #include <thread>
 
-class ApplicationRenderer : public ApplicationSingle {
+class ApplicationScenegraph : public ApplicationSingle {
  public:
-  ApplicationRenderer(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
-  ~ApplicationRenderer();
+  ApplicationScenegraph(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ~ApplicationScenegraph();
   static const uint32_t imageCount;
   
  private:

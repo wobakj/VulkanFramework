@@ -34,6 +34,9 @@ class LightDatabase : public Database<light_t> {
   Buffer const& buffer() const {
     return m_buffer;
   }
+  size_t size() const override {
+    return m_indices.size();
+  }
   
  private:
   std::map<std::string, size_t> m_indices;

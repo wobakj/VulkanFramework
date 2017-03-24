@@ -117,9 +117,9 @@ add_executable(vulkan_compute application/source/application_compute.cpp)
 target_link_libraries(vulkan_compute framework)
 install(TARGETS vulkan_compute DESTINATION .)
 
-add_executable(vulkan_renderer application/source/application_renderer.cpp)
-target_link_libraries(vulkan_renderer scenegraph)
-install(TARGETS vulkan_renderer DESTINATION .)
+add_executable(vulkan_scenegraph application/source/application_scenegraph.cpp)
+target_link_libraries(vulkan_scenegraph scenegraph)
+install(TARGETS vulkan_scenegraph DESTINATION .)
 
 # set build type dependent flags
 if(UNIX)
