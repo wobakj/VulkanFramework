@@ -123,8 +123,6 @@ void ApplicationClustered::updateLightGrid() {
 }
 
 void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer")->reset({});
-
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
 
   // light grid compute
@@ -147,6 +145,7 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
 
   // first pass
   inheritanceInfo.subpass = 0;
+  res.command_buffers.at("gbuffer")->reset({});
   res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
