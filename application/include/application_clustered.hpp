@@ -19,6 +19,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+#include <random>
 #include <thread>
 
 class ApplicationClustered : public ApplicationSingle {
