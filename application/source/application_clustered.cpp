@@ -129,7 +129,9 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("compute")->reset({});
   res.command_buffers.at("compute")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
   res.command_buffers.at("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
-  res.command_buffers.at("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("lightgrid")}, {});
+  res.command_buffers.at("compute")->bindDescriptorSets(
+      vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0,
+      {m_descriptor_sets.at("lightgrid")}, {});
 
   glm::vec3 workers(8.0f);
   res.command_buffers.at("compute")->dispatch(
@@ -357,7 +359,8 @@ void ApplicationClustered::createLights() {
   for (unsigned int i = 0; i < lightPositions.size(); ++i) {
     buff_l.lights[i].position = lightPositions[i];
     buff_l.lights[i].radius = 7.0f;
-    buff_l.lights[i].color = glm::fvec3(0.996, 0.9531, 0.8945);
+    buff_l.lights[i].color = glm::fvec3(0.996, 0.1, 0.1);
+    // buff_l.lights[i].color = glm::fvec3(0.996, 0.9531, 0.8945);
     buff_l.lights[i].intensity = 30.0f;
   }
 
@@ -448,6 +451,7 @@ void ApplicationClustered::updateDescriptors() {
   m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lightgrid"), 2, vk::DescriptorType::eStorageBuffer);
+  m_buffer_views.at("uniform").writeToSet(m_descriptor_sets.at("lightgrid"), 3, vk::DescriptorType::eUniformBuffer);
   
   m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());

@@ -25,6 +25,14 @@ layout(set = 0, binding = 2) buffer LightBuffer {
   light_t[] Lights;
 };
 
+layout(set = 0, binding = 3) uniform MatrixBuffer {
+    mat4 view;
+    mat4 proj;
+    mat4 model;
+    mat4 normal;
+    vec4 eye_world_space;
+} ubo;
+
 // relative depths (regarding depth range: far - near) for the depth slices
 const uint depht_slices = 16;
 const float[depht_slices + 1] rel_slice_depths = float[](
@@ -121,13 +129,14 @@ void main() {
 
   uint light_mask = 0;
   for (uint i = 0u; i < Lights.length(); ++i) {
+    vec3 light_pos_view_space = (ubo.view * vec4(Lights[i].position, 1.0)).xyz;
 #if 0
     float dist = pointFroxelDistance(cluster.x, cluster.y, cluster.z,
-                                     Lights[i].position);
+                                     light_pos_view_space);
     if (dist < Lights[i].radius) {
 #else
     if (sphereFroxelTest(cluster.x, cluster.y, cluster.z,
-                         Lights[i].position, Lights[i].radius)) {
+                         light_pos_view_space, Lights[i].radius)) {
 #endif
       // this light overlaps this cluster, add it to the light mask
       light_mask |= (1 << i);
