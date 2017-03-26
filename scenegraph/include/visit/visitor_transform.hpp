@@ -2,7 +2,6 @@
 #define VISITORTRANSFORM_HPP
 
 #include "visit/visitor_node.hpp"
-#include <glm/mat4x4.hpp>
 
 class ApplicationInstance;
 
@@ -15,7 +14,8 @@ public:
 	void visit(ModelNode* node) override;
 	void visit(CameraNode* node) override;
 	void visit(LightNode* node) override;
-	void visit(ScreenNode* node) override;
+  void visit(ScreenNode* node) override;
+	void visit(NavigationNode* node) override;
 
 private:
   ApplicationInstance* m_instance;

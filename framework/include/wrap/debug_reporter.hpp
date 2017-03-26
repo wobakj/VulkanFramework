@@ -19,7 +19,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
     string_flag += "Error " + std::to_string(code);
     // ignore descriptor binding error
-    if (code != 59) {
+    if (code != 59 && code != 60) {
       throwing = true;
     }
   }

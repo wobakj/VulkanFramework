@@ -5,6 +5,7 @@
 #include "node/node_light.hpp"
 #include "node/node_screen.hpp"
 #include "node/node_camera.hpp"
+#include "node/node_navigation.hpp"
 
 #include "ren/application_instance.hpp"
 #include "glm/gtc/matrix_access.hpp"
@@ -34,6 +35,14 @@ void TransformVisitor::visit(ModelNode * node) {
 }
 
 void TransformVisitor::visit(CameraNode * node) {
+	visit(static_cast<Node*>(node));
+  auto cam = m_instance->dbCamera().get(node->m_cam);
+  cam.update(1.0f / 60.0f);
+  // m_instance.dbCamera().set("cam", std::move(cam));
+  m_instance->dbCamera().set(node->m_cam, std::move(cam));
+}
+
+void TransformVisitor::visit(NavigationNode * node) {
 	visit(static_cast<Node*>(node));
 }
 

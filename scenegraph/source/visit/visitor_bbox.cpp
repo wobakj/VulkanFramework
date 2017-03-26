@@ -5,6 +5,7 @@
 #include "node/node_light.hpp"
 #include "node/node_screen.hpp"
 #include "node/node_camera.hpp"
+#include "node/node_navigation.hpp"
 
 #include "ren/application_instance.hpp"
 
@@ -57,6 +58,10 @@ void BboxVisitor::visit(CameraNode * node)
 
 void BboxVisitor::visit(LightNode * node)
 {
+	visit(static_cast<Node*>(node));
+}
+
+void BboxVisitor::visit(NavigationNode * node) {
 	visit(static_cast<Node*>(node));
 }
 

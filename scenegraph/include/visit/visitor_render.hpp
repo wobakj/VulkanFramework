@@ -25,6 +25,7 @@ public:
 	void visit(CameraNode* node) override;
 	void visit(LightNode* node) override;
 	void visit(ScreenNode* node) override;
+	void visit(NavigationNode* node) override;
 
 	std::vector<ModelNode const*> const& visibleNodes() {
 		return m_toRender;

@@ -1,6 +1,7 @@
 #include "scenegraph.hpp"
 
 #include "light.hpp"
+#include "camera.hpp"
 #include "node/node_model.hpp"
 #include "node/node_light.hpp"
 // #include "geometry.hpp"
@@ -33,6 +34,11 @@ std::unique_ptr<Node> Scenegraph::createGeometryNode(std::string const& name, st
 std::unique_ptr<Node> Scenegraph::createLightNode(std::string const& name, light_t const& light) {
   m_instance->dbLight().store(name, light_t{light});
   return std::unique_ptr<Node>(new LightNode{name, name});
+}
+
+std::unique_ptr<Node> Scenegraph::createCameraNode(std::string const& name, Camera const& cam) {
+  m_instance->dbCamera().store(name, Camera{cam});
+  return std::unique_ptr<Node>(new CameraNode{name, name});
 }
 
 void Scenegraph::removeNode(std::unique_ptr<Node> n)

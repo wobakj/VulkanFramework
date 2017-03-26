@@ -5,6 +5,7 @@
 #include "node/node_light.hpp"
 #include "node/node_screen.hpp"
 #include "node/node_camera.hpp"
+#include "node/node_navigation.hpp"
 
 #include <iostream>
 
@@ -36,6 +37,10 @@ void RenderVisitor::visit(ModelNode * node)
 void RenderVisitor::visit(CameraNode * node)
 {
 	visit(reinterpret_cast<Node*>(node));
+}
+
+void RenderVisitor::visit(NavigationNode * node) {
+	visit(static_cast<Node*>(node));
 }
 
 void RenderVisitor::visit(LightNode * node)

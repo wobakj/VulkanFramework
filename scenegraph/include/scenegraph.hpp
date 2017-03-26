@@ -13,6 +13,7 @@ class CameraNode;
 class NodeVisitor;
 class ApplicationInstance;
 struct light_t;
+struct Camera;
 
 class Scenegraph
 {
@@ -20,6 +21,7 @@ public:
 	Scenegraph();
 	Scenegraph(std::string name, ApplicationInstance & instance);
 
+	std::unique_ptr<Node> createCameraNode(std::string const& name, Camera const& cam);
 	std::unique_ptr<Node> createGeometryNode(std::string const& name, std::string const& path);
 	std::unique_ptr<Node> createLightNode(std::string const& name, light_t const& light);
 

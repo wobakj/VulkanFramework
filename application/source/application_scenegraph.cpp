@@ -53,9 +53,9 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_pbr_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
 
-  m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window});
-
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
+
+  m_graph.getRoot()->addChild(m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window}));
 
   createVertexBuffer();
 
@@ -81,11 +81,7 @@ void ApplicationScenegraph::logic() {
   float time_delta = float(time_current - time_last);
   time_last = time_current;
 
-  auto cam = m_instance.dbCamera().get("cam");
-  cam.update(time_delta);
-
-  // m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
-  m_instance.dbCamera().set("cam", std::move(cam));
+  m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
 
   // update transforms every frame
   TransformVisitor transform_visitor{m_instance};

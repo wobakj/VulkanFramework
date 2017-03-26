@@ -14,20 +14,26 @@
 class CameraNode : public Node
 {
 public:
+
+  CameraNode();
+  CameraNode(std::string const& name, std::string const& cam);
+
+  Frustum makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf);
+  void accept(NodeVisitor &v) override;
+
+private:
+  std::string m_cam;
 	float m_near;
 	float m_far;
 	glm::vec2 m_resolution;
-
-	CameraNode();
-	CameraNode(std::string name, glm::mat4 transf);
-
-	Frustum makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf);
-	void accept(NodeVisitor &v) override;
-
-private:
-
 	unsigned int m_id;
 	float m_eye_distance;
+
+  friend class TransformVisitor;
+  friend class PickVisitor;
+  friend class BboxVisitor;
+  friend class RenderVisitor;
+  friend class Renderer;
 };
 
 #endif

@@ -3,12 +3,16 @@
 #include <iostream>
 
 
-CameraNode::CameraNode() : Node() {}
+CameraNode::CameraNode()
+ :Node()
+{}
 
-CameraNode::CameraNode(std::string name, glm::mat4 transf) : Node(name, transf) {}
+CameraNode::CameraNode(std::string const& name, std::string const& cam)
+ :Node(name, glm::fmat4{1.0f})
+ ,m_cam{cam}
+{}
 
-Frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf)
-{
+Frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_transf, glm::mat4 screen_transf) {
 	Frustum f = Frustum{};
 	// f.setNear(m_near);
 	// f.setFar(m_far);
@@ -16,8 +20,8 @@ Frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_trans
 	// f.calculatePlanes(cam_transf, screen_transf, f);
 	return f;
 }
-void CameraNode::accept(NodeVisitor &v)
-{
+
+void CameraNode::accept(NodeVisitor &v) {
 	v.visit(this);
 }
 /*

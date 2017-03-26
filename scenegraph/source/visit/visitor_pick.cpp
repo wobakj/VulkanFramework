@@ -6,6 +6,7 @@
 #include "node/node_light.hpp"
 #include "node/node_camera.hpp"
 #include "node/node_screen.hpp"
+#include "node/node_navigation.hpp"
 
 #include "ren/application_instance.hpp"
 
@@ -67,6 +68,10 @@ void PickVisitor::visit(CameraNode * node)
 	visit(static_cast<Node*>(node));
 }
 
+
+void PickVisitor::visit(NavigationNode * node) {
+	visit(static_cast<Node*>(node));
+}
 
 void PickVisitor::visit(LightNode * node)
 {
