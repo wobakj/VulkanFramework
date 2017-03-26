@@ -9,7 +9,7 @@ const uint32_t Application::imageCount = 0;
 
 Application::Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse)
  :m_resource_path{resource_path}
- ,m_camera{45.0f, 10, 10, 0.1f, 500.0f, window}
+ ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, window}
  ,m_device(device)
  ,m_swap_chain(chain)
  ,m_pipeline_cache{m_device}
@@ -107,7 +107,7 @@ void Application::updateShaderPrograms() {
 }
 
 void Application::resize(std::size_t width, std::size_t height) {
-  m_camera.setAspect(width, height);
+  m_camera.setAspect(float(width) / float(height));
   // draw queue is emptied in launcher::resize
   createFramebufferAttachments();
   createFramebuffers();

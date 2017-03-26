@@ -11,10 +11,10 @@
 
 class Camera {
  public:
-  Camera(float fov, std::size_t width, std::size_t height, float near_z, float far_z, GLFWwindow* w = nullptr);
+  Camera(float fov, float aspect, float near_z, float far_z, GLFWwindow* w = nullptr);
 
   void update(float delta_time);
-  void setAspect(std::size_t width, std::size_t height);
+  void setAspect(float aspect);
 
   glm::fmat4 const& viewMatrix() const;
   glm::fmat4 const& projectionMatrix() const;

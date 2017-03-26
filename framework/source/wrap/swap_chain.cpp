@@ -260,6 +260,10 @@ vk::Extent2D const& SwapChain::extent() const {
   return m_info.imageExtent;
 }
 
+float SwapChain::aspect() const {
+  return float(m_info.imageExtent.width) / float(m_info.imageExtent.height);
+}
+
 vk::Viewport SwapChain::asViewport() const {
   return vk::Viewport{0.0f, 0.0f, float(extent().width), float(extent().height), 0.0f, 1.0f};
 }

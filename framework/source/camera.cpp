@@ -6,7 +6,7 @@
 const float Camera::rotation_speed = 0.01f;
 const float Camera::translation_speed = 1.0f;
 
-Camera::Camera(float fov, std::size_t width, std::size_t height, float near_z, float far_z, GLFWwindow* w)
+Camera::Camera(float fov, float aspect, float near_z, float far_z, GLFWwindow* w)
    :window{w}
    ,movement_{0.0f}
    ,position_{0.0f, 0.5f, 1.0f}
@@ -20,7 +20,7 @@ Camera::Camera(float fov, std::size_t width, std::size_t height, float near_z, f
    ,z_far_{far_z}
    ,m_changed{true}
   {
-    setAspect(width, height);
+    setAspect(aspect);
   }
 
 void Camera::update(float delta_time) {
@@ -52,11 +52,10 @@ void Camera::update(float delta_time) {
   m_frustum.update(projection_matrix_ * view_matrix_);
 }
 
-void Camera::setAspect(std::size_t width, std::size_t height) {
-  float aspect = float(width) / float(height);
+void Camera::setAspect(float aspect) {
   float fov_y = fov_y_;
   // if width is smaller, extend vertical fov 
-  if(width < height) {
+  if(aspect < 1.0f) {
     fov_y = 2.0f * glm::atan(glm::tan(fov_y_ * 0.5f) * (1.0f / aspect));
   }
   // projection is hor+ 

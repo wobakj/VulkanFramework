@@ -55,7 +55,7 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
 
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
-  m_graph.getRoot()->addChild(m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window}));
+  m_graph.getRoot()->addChild(m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window}));
 
   createVertexBuffer();
 
@@ -379,7 +379,7 @@ void ApplicationScenegraph::createDescriptorPools() {
 
 void ApplicationScenegraph::onResize(std::size_t width, std::size_t height) {
   auto cam = m_instance.dbCamera().get("cam");
-  cam.setAspect(width, height);
+  cam.setAspect(float(width) / float(height));
   m_instance.dbCamera().set("cam", std::move(cam));
 }
 
