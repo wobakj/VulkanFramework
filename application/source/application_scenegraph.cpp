@@ -84,7 +84,7 @@ void ApplicationScenegraph::logic() {
   auto cam = m_instance.dbCamera().get("cam");
   cam.update(time_delta);
 
-  m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
+  // m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
   m_instance.dbCamera().set("cam", std::move(cam));
 
   // update transforms every frame
@@ -231,7 +231,7 @@ void ApplicationScenegraph::createPipelines() {
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+  // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
   info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};

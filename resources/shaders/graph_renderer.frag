@@ -5,6 +5,8 @@ layout(location = 0) in vec3 frag_Position;
 layout(location = 1) in vec3 frag_Normal;
 layout(location = 2) in vec2 frag_Texcoord;
 
+#define ADDNA
+
 struct material_t {
   vec4 diffuse;
   float metalness;
@@ -29,8 +31,15 @@ layout(constant_id = 0) const uint NUM_TEXTURES = 1;
 // hardcode texture num, is limited by glslang bug
 // validation bug prevents usage of spec constant
 layout(set = 2, binding = 1) uniform sampler2D diffuseTextures[75];
-layout(set = 2, binding = 2) uniform sampler2D metalnessTextures[75];
-layout(set = 2, binding = 3) uniform sampler2D normalTextures[75];
+#ifdef ADDNA
+  #define BIND_ROUGH 2
+  #define BIND_METAL 3
+#else
+  #define BIND_ROUGH 3
+  #define BIND_METAL 2
+#endif
+layout(set = 2, binding = BIND_METAL) uniform sampler2D metalnessTextures[75];
+layout(set = 2, binding = BIND_ROUGH) uniform sampler2D normalTextures[75];
 layout(set = 2, binding = 4) uniform sampler2D roughnessTextures[75];
 
 layout(push_constant) uniform PushFragment {
@@ -64,10 +73,20 @@ void main() {
       frag_Position);
     // vec3 V = normalize(ubo.eyeWorldSpace.xyz - v_PositionWorldSpace);
     out_Normal.rgb = perturb_normal(normalTextures[index_norm], normalize(frag_Normal), -V, frag_Texcoord);
+    // out_Normal.rgb = frag_Normal;
+    // use inverted shinyness
+    #ifdef ADDNA
+      out_Normal.a = 1.0 - texture(normalTextures[index_norm], frag_Texcoord).a;
+    #endif
   }
   else {
+    #ifdef ADDNA
+      out_Normal.a = 1.0;
+    #endif
     out_Normal.rgb = frag_Normal;
+    out_Normal.rgb = vec3(1.0);
   }
+  #ifndef ADDNA
   // metalness
   int index_metal = materials[material.index].index_metal;
   if (index_metal >= 0) {
@@ -76,14 +95,17 @@ void main() {
   else {
     out_Color.a = materials[material.index].metalness;
   }
-  // roughness
-  int index_rough = materials[material.index].index_rough;
-  if (index_rough >= 0) {
-    out_Normal.a = texture(roughnessTextures[index_rough], frag_Texcoord).r;
-  }
-  else {
-    out_Normal.a = materials[material.index].roughness;
-  }
+  #endif
+  #ifndef ADDNA
+    // roughness
+    int index_rough = materials[material.index].index_rough;
+    if (index_rough >= 0) {
+        out_Normal.a = texture(normalTextures[index_norm], frag_Texcoord).a;
+    }
+    else {
+        out_Normal.a = materials[material.index].roughness;
+    }
+  #endif
 }
 
 mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv) {
