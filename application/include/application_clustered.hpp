@@ -4,7 +4,6 @@
 #include "app/application_single.hpp"
 
 #include "deleter.hpp"
-#include "light_grid.hpp"
 #include "frame_resource.hpp"
 #include "geometry.hpp"
 #include "wrap/render_pass.hpp"
@@ -20,6 +19,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+#include <random>
 #include <thread>
 
 class ApplicationClustered : public ApplicationSingle {
@@ -44,7 +44,7 @@ class ApplicationClustered : public ApplicationSingle {
   void createTextureImages();
   void createTextureSamplers();
 
-  void updateLightVolume();
+  void updateLightGrid();
 
   void updateView() override;
 
@@ -54,21 +54,22 @@ class ApplicationClustered : public ApplicationSingle {
   void createDescriptorPools() override;
   void createFramebufferAttachments() override;
 
-  void onResize(std::size_t width, std::size_t height) override;
-
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
 
   // path to the resource folders
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
+  ComputePipeline m_pipeline_compute;
   Geometry m_model;
   Sampler m_sampler;
   Sampler m_volumeSampler;
   std::thread m_thread_load;
 
-  LightGrid m_light_grid;
-  std::vector<uint32_t> m_data_light_volume;
+  // required for light culling
+  glm::uvec3 m_lightGridSize;
+  glm::uvec2 m_tileSize;
+  std::array<glm::vec4, 4> m_nearFrustumCornersClipSpace;
 };
 
 #endif

@@ -27,18 +27,13 @@ struct light_t {
 layout(set = 1, binding = 4) uniform usampler3D volumeLight;
 
 layout(set = 1, binding = 3) buffer LightBuffer {
-  uvec3 lightGridSize;
+  uvec4 lightGridSize;
   light_t[] Lights;
 };
 
 // material
 const float ks = 0.9;            // specular intensity
 const float n = 20.0;            //specular exponent 
-
-ivec3 calculateFragCell(const in vec3 pos_view) {
-  ivec3 index_cell = ivec3(frag_positionNdc.x * lightGridSize.x, frag_positionNdc.y * lightGridSize.y, 0);
-  return index_cell;
-}
 
 // phong diff and spec coefficient calculation in viewspace
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos) {
@@ -73,7 +68,15 @@ void main() {
   vec3 frag_Position = subpassLoad(position).xyz;
   vec3 frag_Normal = subpassLoad(normal).xyz;
 
-  uint mask_lights = texelFetch(volumeLight, calculateFragCell(frag_Position), 0).r;
+  uint mask_lights;
+  // iterate over all depth slices of the light grid and write all relevant
+  // light indices into the mask
+  for (uint slice = 0; slice < lightGridSize.z; ++slice) {
+    ivec3 cell_index = ivec3(frag_positionNdc.x * lightGridSize.x,
+                             frag_positionNdc.y * lightGridSize.y,
+                             slice);
+    mask_lights |= texelFetch(volumeLight, cell_index, 0).r;
+  }
 
   out_Color = vec4(0.0);
   for (uint i = 0u; i < Lights.length(); ++i) {

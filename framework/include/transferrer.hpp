@@ -36,7 +36,7 @@ class Transferrer {
 
   // image functions
   void uploadImageData(void const* data_ptr, Image& image);
-  void copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height) const;
+  void copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height, uint32_t depth = 1) const;
   void copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const;
   void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const;
   void transitionToLayout(Image& img, vk::ImageLayout const& newLayout) const;
