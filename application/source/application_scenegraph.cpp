@@ -5,6 +5,7 @@
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
 #include "node/node_model.hpp"
+#include "node/node_navigation.hpp"
 #include "visit/visitor_render.hpp"
 #include "visit/visitor_node.hpp"
 #include "visit/visitor_transform.hpp"
@@ -55,7 +56,10 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
 
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
-  m_graph.getRoot()->addChild(m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window}));
+  auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
+  auto navi = std::unique_ptr<Node>{new NavigationNode{"navi_cam", window}};
+  navi->addChild(std::move(cam));
+  m_graph.getRoot()->addChild(std::move(navi));
 
   createVertexBuffer();
 

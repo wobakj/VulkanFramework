@@ -9,12 +9,10 @@ class GLFWwindow;
 class NavigationNode : public Node
 {
 public:
-	NavigationNode(GLFWwindow* w);
+	NavigationNode(std::string const& name, GLFWwindow* w);
 
 	void accept(NodeVisitor &v) override;
   
-  glm::fmat4 const& viewMatrix() const;
-  glm::fmat4 const& projectionMatrix() const;
   glm::fvec3 position() const;
   bool changed() const;
   void update(float delta_time);
@@ -33,8 +31,6 @@ public:
   // camera position
   glm::fvec3 m_position;
   glm::fvec2 m_rotation;
-  // world transformation
-  glm::fmat4 m_transformation;
   // inverted transformation
   glm::fmat4 m_view_matrix;
   // whether 1stperson cma is on

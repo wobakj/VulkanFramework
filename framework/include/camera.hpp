@@ -24,7 +24,7 @@ class Camera {
   float far() const;
   Frustum2 const& frustum() const;
   bool changed() const;
-
+  void setTransform(glm::fmat4 const& transform);
  private:
   void queryKeyboard(float delta_time);
   void queryMouse(float delta_time);

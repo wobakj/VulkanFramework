@@ -35,22 +35,28 @@ void TransformVisitor::visit(ModelNode * node) {
 }
 
 void TransformVisitor::visit(CameraNode * node) {
+	// update world pos & children
 	visit(static_cast<Node*>(node));
+	// update 
   auto cam = m_instance->dbCamera().get(node->m_cam);
-  cam.update(1.0f / 60.0f);
-  // m_instance.dbCamera().set("cam", std::move(cam));
+  cam.setTransform(node->getWorld());
+  // cam.update(1.0f / 60.0f);
   m_instance->dbCamera().set(node->m_cam, std::move(cam));
 }
 
 void TransformVisitor::visit(NavigationNode * node) {
+	// first update local transform
+	node->update();
+	// update world pos & children
 	visit(static_cast<Node*>(node));
 }
 
 void TransformVisitor::visit(LightNode * node) {
-	visit(static_cast<Node*>(node));
 	// store new position in buffer and mark for upload
 	auto& light = m_instance->dbLight().getEdit(node->id());
 	light.position = glm::fvec3(glm::column(node->getWorld(), 3));
+	// update children
+	visit(static_cast<Node*>(node));
 }
 
 void TransformVisitor::visit(ScreenNode * node) {

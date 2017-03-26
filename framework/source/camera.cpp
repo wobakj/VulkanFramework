@@ -71,6 +71,11 @@ void Camera::setAspect(float aspect) {
   projection_matrix_ = clip_matrix * projection_matrix_;
 }
 
+void Camera::setTransform(glm::fmat4 const& transform) {
+  transformation_ = transform;
+  view_matrix_ = glm::inverse(transformation_);
+}
+
 glm::fmat4 const& Camera::viewMatrix() const {
   return view_matrix_;
 }

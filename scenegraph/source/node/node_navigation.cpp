@@ -9,13 +9,12 @@
 const float NavigationNode::s_rotation_speed = 0.05f;
 const float NavigationNode::s_translation_speed = 1.0f;
 
-NavigationNode::NavigationNode(GLFWwindow* window)
- :Node()
+NavigationNode::NavigationNode(std::string const& name, GLFWwindow* window)
+ :Node(name, glm::fmat4{1.0f})
  ,m_window{window}
  ,m_movement{0.0f}
  ,m_position{0.0f, 0.5f, 1.0f}
  ,m_rotation{0.0f, 0.0f}
- ,m_transformation{0.0f}
  ,m_view_matrix{0.0f}
  ,m_flying_cam{true}
  ,m_changed{true}
@@ -35,25 +34,25 @@ void NavigationNode::update(float delta_time) {
   queryKeyboard(delta_time);
   queryMouse(delta_time);
 
-  m_transformation = glm::fmat4{1.0f};
+  m_local = glm::fmat4{1.0f};
   // yaw
-  m_transformation = glm::rotate(m_transformation, m_rotation.y, glm::fvec3{0.0f, 1.0f, 0.0f});
+  m_local = glm::rotate(m_local, m_rotation.y, glm::fvec3{0.0f, 1.0f, 0.0f});
   // pitch
-  m_transformation = glm::rotate(m_transformation, m_rotation.x, glm::fvec3{1.0f, 0.0f, 0.0f});
+  m_local = glm::rotate(m_local, m_rotation.x, glm::fvec3{1.0f, 0.0f, 0.0f});
 
   if (m_flying_cam) {
     // calculate direction camera is facing
-    glm::fvec3 direction = glm::mat3{m_transformation} * m_movement;
+    glm::fvec3 direction = glm::mat3{m_local} * m_movement;
     m_position += direction;
     // move rotated camera in global space to position
-    m_transformation[3] += glm::vec4{m_position, 0.0f}; 
+    m_local[3] += glm::vec4{m_position, 0.0f}; 
   }
   else {
     m_position += m_movement;
-    m_transformation = glm::translate(m_transformation, m_position);
+    m_local = glm::translate(m_local, m_position);
   }
   //invert the camera transformation to move the vertices
-  m_view_matrix = glm::inverse(m_transformation);
+  m_view_matrix = glm::inverse(m_local);
   // reset applied movement 
   m_movement = glm::fvec3{0.0f};
 }
@@ -63,7 +62,7 @@ void NavigationNode::accept(NodeVisitor & v) {
 }
 
 glm::fvec3 NavigationNode::position() const {
-  return glm::fvec3(m_transformation[3] / m_transformation[3][3]);
+  return glm::fvec3(m_local[3] / m_local[3][3]);
 }
 
 bool NavigationNode::changed() const {

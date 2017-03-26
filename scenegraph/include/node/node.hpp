@@ -40,6 +40,7 @@ public:
 
  protected:
 	virtual void accept(NodeVisitor &v);
+	glm::fmat4 m_local;
  
  private:	
 	std::vector<std::unique_ptr<Node>>::iterator findChild(std::string const& name);
@@ -50,7 +51,6 @@ public:
 	Node* m_parent;
 	std::string m_name;
 	glm::fmat4 m_world;
-	glm::fmat4 m_local;
 	Bbox m_box;
 	std::vector<std::unique_ptr<Node>> m_children;
 
