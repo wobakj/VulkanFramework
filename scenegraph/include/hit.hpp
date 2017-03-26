@@ -15,6 +15,7 @@ public:
 	Node* const& getNode() const;
 	bool intersected() const;
 	bool success();
+	float dist() const;
 	void setDistToHit(float const& d);
 	void setLocal(glm::vec3 const& l);
 	void setWorld(glm::vec3 const& w);

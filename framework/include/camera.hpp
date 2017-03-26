@@ -1,9 +1,7 @@
 #ifndef CAMERA_HPP
 #define CAMERA_HPP
 
-//dont load gl bindings from glfw
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+class GLFWwindow;
 
 // use floats and med precision operations
 #include <glm/gtc/type_precision.hpp>

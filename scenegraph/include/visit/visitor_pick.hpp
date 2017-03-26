@@ -22,7 +22,7 @@ public:
 	PickVisitor(ApplicationInstance& instance, Ray const& ray);
 
 	void setRay(Ray const& r);
-	std::vector<Hit> const& getHits() const;
+	std::vector<Hit> const& hits() const;
 
 	void visit(Node* node) override;
 	void visit(ModelNode* node) override;

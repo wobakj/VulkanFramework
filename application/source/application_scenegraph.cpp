@@ -6,6 +6,7 @@
 #include "geometry_loader.hpp"
 #include "node/node_model.hpp"
 #include "node/node_navigation.hpp"
+#include "node/node_ray.hpp"
 #include "visit/visitor_render.hpp"
 #include "visit/visitor_node.hpp"
 #include "visit/visitor_transform.hpp"
@@ -18,7 +19,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/string_cast.hpp>
-
+//dont load gl bindings from glfw
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 #include <iostream>
 
@@ -57,8 +60,10 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
   auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
+  auto ray = std::unique_ptr<Node>{new RayNode{"ray"}};
   auto navi = std::unique_ptr<Node>{new NavigationNode{"navi_cam", window}};
   navi->addChild(std::move(cam));
+  navi->addChild(std::move(ray));
   m_graph.getRoot()->addChild(std::move(navi));
 
   createVertexBuffer();
@@ -94,9 +99,21 @@ void ApplicationScenegraph::logic() {
   BboxVisitor box_visitor{m_instance};
   m_graph.accept(box_visitor);
 
-  Ray r{glm::fvec3(0.0f, 1.0f, 0.0f), glm::fvec3(0.0f, 0.0f, 1.0f)};
+  Ray r = dynamic_cast<RayNode*>(m_graph.getRoot()->getChild("navi_cam")->getChild("ray"))->worldRay();
   PickVisitor pick_visitor{m_instance, r};
   m_graph.accept(pick_visitor);
+  
+  if (!pick_visitor.hits().empty()) {
+    Node* ptr_closest = pick_visitor.hits().front().getNode();
+    float dist_closest = pick_visitor.hits().front().dist();
+    for (auto const& hit : pick_visitor.hits()) {
+      if (hit.dist() < dist_closest) {
+        dist_closest = hit.dist();
+        ptr_closest = hit.getNode();
+      }
+    }
+    std::cout << "hit node " << ptr_closest->getName() << std::endl;
+  }
 }
 
 void ApplicationScenegraph::updateResourceCommandBuffers(FrameResource& res) {

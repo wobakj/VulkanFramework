@@ -5,12 +5,14 @@
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
 
-// c++ warpper
 #include <vulkan/vulkan.hpp>
 
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+//dont load gl bindings from glfw
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 #include <iostream>
 #include <chrono>

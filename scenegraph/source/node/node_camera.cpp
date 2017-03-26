@@ -24,8 +24,3 @@ Frustum CameraNode::makePerspective(Scenegraph const& scene, glm::mat4 cam_trans
 void CameraNode::accept(NodeVisitor &v) {
 	v.visit(this);
 }
-/*
-std::set<hit> const camera_node::rayTest(rayNode const & ray)
-{
-	return std::set<hit>() ;
-}*/

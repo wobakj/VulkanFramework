@@ -29,6 +29,11 @@ Node * const& Hit::getNode() const
 	return m_node;
 }
 
+float Hit::dist() const {
+	return m_dist_to_hit;
+}
+
+
 void Hit::setDistToHit(float const & d)
 {
 	m_dist_to_hit = d;

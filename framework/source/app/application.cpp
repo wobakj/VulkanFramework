@@ -1,6 +1,9 @@
 #include "app/application.hpp"
 
 #include "frame_resource.hpp"
+//dont load gl bindings from glfw
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 #include <iostream>
 

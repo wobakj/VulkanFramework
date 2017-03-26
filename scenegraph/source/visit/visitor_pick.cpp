@@ -23,7 +23,7 @@ void PickVisitor::setRay(Ray const & r)
 	m_ray = r;
 }
 
-std::vector<Hit> const& PickVisitor::getHits() const
+std::vector<Hit> const& PickVisitor::hits() const
 {
 	return m_hits;
 }

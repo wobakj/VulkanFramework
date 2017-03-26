@@ -3,7 +3,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
-const float Camera::rotation_speed = 0.01f;
+//dont load gl bindings from glfw
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+
+const float Camera::rotation_speed = 0.02f;
 const float Camera::translation_speed = 1.0f;
 
 Camera::Camera(float fov, float aspect, float near_z, float far_z, GLFWwindow* w)
