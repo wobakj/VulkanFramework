@@ -170,7 +170,7 @@ void main() {
     // check if the fragment's depth is in the depth range of the current
     // fragment
     if ((depth >= z_from_slice(slice)) && (depth < z_from_slice(slice + 1))) {
-      mask_lights |= texelFetch(volumeLight, ivec3(tile_index, slice), 0).rgba;
+      mask_lights = texelFetch(volumeLight, ivec3(tile_index, slice), 0).rgba;
 
       // FIXME: this break should work as every point should be in one and only
       // one cluster; but when breaking here, the shading does not work for
