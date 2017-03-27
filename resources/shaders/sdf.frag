@@ -43,7 +43,63 @@ vec4[10] materials  = vec4[10](
   vec4(0.913, 0.368, 0.109, 1.0)  // 9 - Custom Orange
 );
 
+float rand(){
+  return abs(fract(sin(dot(vec2(ubo.time, 34.586) ,vec2(12.9898,78.233))) * 43758.5453));
+}
+
+vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+
+// License  for snoise()
+// Copyright (C) 2011 by Ashima Arts (Simplex noise)
+// Copyright (C) 2011-2016 by Stefan Gustavson (Classic noise and others)
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+float snoise(vec2 v){
+  const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+           -0.577350269189626, 0.024390243902439);
+  vec2 i  = floor(v + dot(v, C.yy) );
+  vec2 x0 = v -   i + dot(i, C.xx);
+  vec2 i1;
+  i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+  vec4 x12 = x0.xyxy + C.xxzz;
+  x12.xy -= i1;
+  i = mod(i, 289.0);
+  vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+  + i.x + vec3(0.0, i1.x, 1.0 ));
+  vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),
+    dot(x12.zw,x12.zw)), 0.0);
+  m = m*m ;
+  m = m*m ;
+  vec3 x = 2.0 * fract(p * C.www) - 1.0;
+  vec3 h = abs(x) - 0.5;
+  vec3 ox = floor(x + 0.5);
+  vec3 a0 = x - ox;
+  m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+  vec3 g;
+  g.x  = a0.x  * x0.x  + h.x  * x0.y;
+  g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+  return 130.0 * dot(m, g);
+}
+
 // PRIMITIVES
+// by iq http://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+// by Mercury http://mercury.sexy/hg_sdf/ 
 /*
 * r - radius of sphere
 */
@@ -158,7 +214,11 @@ float sdfPyramid4( vec3 p, vec3 h ) {
 }
 
 float sdfWater(vec3 p) {
-  return p.y - ((0.5 * sin(dot(p.xz, vec2(0.0,1.0)) + ubo.time * 0.1)) + (0.5 * sin(dot(p.xz, vec2(0.5)) + ubo.time * 0.5)));
+  //return p.y - 0.005 * snoise(5.0 * p.xz + 0.5 * ubo.time);
+
+  return p.y - 0.005 * snoise(5.0 * p.xz + 0.5 * ubo.time) + 0.1 * sin(ubo.time + p.x);
+  // return p.y - (
+  //   (0.1 * sin(dot(p.xz, vec2(0.0, 1.0) * 10.0) + ubo.time));
   //return p.y - 0.5 * sin(p.x * 0.1 + ubo.time);
 }
 
@@ -190,7 +250,7 @@ float opDifference(float dist1, float dist2)
   return max(-dist1, dist2);
 }
 
-/*
+/*by Mercury http://mercury.sexy/hg_sdf/ 
 * r - smoothing factor
 */
 float opUnionRound(float dist1, float dist2, float r) {
@@ -210,6 +270,7 @@ float opDifferenceRound (float dist1, float dist2, float r) {
 
 
 // DOMAIN MANIPULATION
+// by iq
 /*
 * Well, it does not do, what one would think it shoul do. Still here because of amusement factor
 * p - vector with plane you want to rotate (eg. p = vec2(point.x, poit.z) -- > rotate xz-plane around y-axis)
