@@ -23,6 +23,8 @@ class ApplicationScenegraph : public ApplicationSingle {
   ApplicationScenegraph(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraph();
   static const uint32_t imageCount;
+
+  Scenegraph& getGraph();
   
  private:
   void logic() override;
@@ -42,12 +44,13 @@ class ApplicationScenegraph : public ApplicationSingle {
   void createDescriptorPools();
   void createFramebufferAttachments();
   // handle key input
-  void keyCallback(int key, int scancode, int action, int mods) override;
+  static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
   static void mouseCallback(GLFWwindow* window, int button, int action, int mods);
   void updateModel();
 
   void startTargetNavigation();
   void navigateToTarget();
+  void manipulate();
 
   // path to the resource folders
   RenderPass m_render_pass;
