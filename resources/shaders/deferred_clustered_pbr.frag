@@ -161,8 +161,10 @@ void main() {
   vec3 V = normalize(E - P);
 
   float depth = -(ubo.view * vec4(P, 1.0)).z;
+
   const ivec2 tile_index = ivec2(frag_positionNdc.x * light_grid.grid_size.x,
     (1.0 - frag_positionNdc.y) * light_grid.grid_size.y);
+  ivec3 cluster_idx;
   uvec4 mask_lights = uvec4(0);
   // find the cluster according to the depth of this fragment and store its
   // lights that are then used for shading this fragment
@@ -170,7 +172,8 @@ void main() {
     // check if the fragment's depth is in the depth range of the current
     // fragment
     if ((depth >= z_from_slice(slice)) && (depth < z_from_slice(slice + 1))) {
-      mask_lights = texelFetch(volumeLight, ivec3(tile_index, slice), 0).rgba;
+      cluster_idx = ivec3(tile_index, slice);
+      mask_lights = texelFetch(volumeLight, cluster_idx, 0).rgba;
 
       // FIXME: this break should work as every point should be in one and only
       // one cluster; but when breaking here, the shading does not work for
@@ -179,6 +182,7 @@ void main() {
     }
   }
 
+  uint light_count = 0;
   for (uint i = 0u; i < Lights.length(); ++i) {
     uvec4 flag_curr = uvec4(0);
     flag_curr.a |= (1 << i);
@@ -187,6 +191,7 @@ void main() {
     flag_curr.r |= (1 << max(i - 96, 0));
     // skip if light is not in mask
     if ((mask_lights & flag_curr) != flag_curr) continue;
+    light_count += 1;
 
     // point light calculation
     vec3 lightPosition = Lights[i].position;
@@ -213,4 +218,7 @@ void main() {
 
     out_Color += vec4(col, 1.0);
   }
+
+  // for visualizing light count
+  // out_Color = vec4(light_count / 128.0, 0.0, 0.0, 1.0);
 }
