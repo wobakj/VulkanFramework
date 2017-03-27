@@ -16,6 +16,11 @@ struct material_t {
   int index_rough;
 };
 
+layout(set = 0, binding = 0) uniform Camera {
+  mat4 ViewMatrix;
+  mat4 ProjectionMatrix;
+};
+
 layout(set = 2, binding = 0) buffer Materials {
   material_t[] materials;
 };
@@ -55,7 +60,8 @@ void main() {
   // normal
   int index_norm = materials[material.index].index_norm;
   if (index_norm >= 0) {
-    vec3 V = normalize(-frag_Position);
+    vec3 V = normalize((inverse(ViewMatrix) * vec4(0.0, 0.0, 0.0, 1.0)).xyz -
+      frag_Position);
     // vec3 V = normalize(ubo.eyeWorldSpace.xyz - v_PositionWorldSpace);
     out_Normal.rgb = perturb_normal(normalTextures[index_norm], normalize(frag_Normal), -V, frag_Texcoord);
   }

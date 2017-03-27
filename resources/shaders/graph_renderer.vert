@@ -29,7 +29,8 @@ layout(location = 2) out vec2 frag_Texcoord;
 void main() {
   mat4 modelView = ViewMatrix * ModelMatrices[transform.index];
   gl_Position =  ProjectionMatrix * modelView * vec4(in_Position, 1.0);
-  frag_Position = (modelView * vec4(in_Position, 1.0)).xyz;
-  frag_Normal =  normalize((transpose(inverse(modelView)) * vec4(in_Normal, 0.0)).xyz);
+  frag_Position = (ModelMatrices[transform.index] * vec4(in_Position, 1.0)).xyz;
+  frag_Normal =  normalize((transpose(inverse(ModelMatrices[transform.index])) *
+    vec4(in_Normal, 0.0)).xyz);
   frag_Texcoord = in_TexCoord;
 }

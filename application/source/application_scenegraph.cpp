@@ -50,7 +50,8 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
   }
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
-  m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_blinn_frag.spv"}});
+  m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_pbr_frag.spv"}});
+  m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
 
   m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window});
 
@@ -69,6 +70,7 @@ FrameResource ApplicationScenegraph::createFrameResource() {
   auto res = Application::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("tonemapping", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   return res;
 }
 
@@ -134,6 +136,20 @@ void ApplicationScenegraph::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting").drawGeometry(uint32_t(m_instance.dbLight().size()));
 
   res.command_buffers.at("lighting").end();
+
+  // tonemapping
+  inheritanceInfo.subpass = 2;
+  res.command_buffers.at("tonemapping")->reset({});
+  res.command_buffers.at("tonemapping")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+
+  res.command_buffers.at("tonemapping")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("tonemapping"));
+  res.command_buffers.at("tonemapping")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("tonemapping").layout(), 0, {m_descriptor_sets.at("tonemapping")}, {});
+  res.command_buffers.at("tonemapping")->setViewport(0, {m_swap_chain.asViewport()});
+  res.command_buffers.at("tonemapping")->setScissor(0, {m_swap_chain.asRect()});
+
+  res.command_buffers.at("tonemapping")->draw(3, 1, 0, 0);
+
+  res.command_buffers.at("tonemapping")->end();
 }
 
 void ApplicationScenegraph::recordDrawBuffer(FrameResource& res) {
@@ -170,25 +186,29 @@ void ApplicationScenegraph::recordDrawBuffer(FrameResource& res) {
   // execute lighting buffer
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("lighting")});
 
+  res.command_buffers.at("draw")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  // execute tonemapping buffer
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("tonemapping")});
+
   res.command_buffers.at("draw")->endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
-  blit.srcSubresource = img_to_resource_layer(m_images.at("color_2").info());
+  blit.srcSubresource = img_to_resource_layer(m_images.at("tonemapping_result").info());
   blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
   blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color_2"), m_images.at("color_2").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw")->blitImage(m_images.at("tonemapping_result"), m_images.at("tonemapping_result").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
 }
 
 void ApplicationScenegraph::createFramebuffers() {
-  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2")}, m_render_pass};
+  m_framebuffer = FrameBuffer{m_device, {&m_images.at("color"), &m_images.at("pos"), &m_images.at("normal"), &m_images.at("depth"), &m_images.at("color_2"), &m_images.at("tonemapping_result")}, m_render_pass};
 }
 
 void ApplicationScenegraph::createRenderPasses() {
@@ -196,12 +216,15 @@ void ApplicationScenegraph::createRenderPasses() {
   sub_pass_t pass_1({0, 1, 2},{},3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
   sub_pass_t pass_2({4},{0,1,2}, 3);
-  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_1, pass_2}};
+  // third pass receives lighting result (4) and writes to tonemapping result (5)
+  sub_pass_t pass_3({5},{4});
+  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info(), m_images.at("tonemapping_result").info()}, {pass_1, pass_2, pass_3}};
 }
 
 void ApplicationScenegraph::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
+  GraphicsPipelineInfo info_pipe3;
 
   info_pipe.setResolution(m_swap_chain.extent());
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
@@ -243,12 +266,9 @@ void ApplicationScenegraph::createPipelines() {
   vk::PipelineColorBlendAttachmentState colorBlendAttachment2{};
   colorBlendAttachment2.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
   colorBlendAttachment2.blendEnable = VK_TRUE;
-  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eDstAlpha;
+  colorBlendAttachment2.srcColorBlendFactor = vk::BlendFactor::eOne;
+  colorBlendAttachment2.dstColorBlendFactor = vk::BlendFactor::eOne;
   colorBlendAttachment2.colorBlendOp = vk::BlendOp::eAdd;
-  colorBlendAttachment2.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.dstAlphaBlendFactor = vk::BlendFactor::eOne;
-  colorBlendAttachment2.alphaBlendOp = vk::BlendOp::eAdd;
   info_pipe2.setAttachmentBlending(colorBlendAttachment2, 0);
 
   info_pipe2.setVertexInput(m_model.vertexInfo());
@@ -263,8 +283,22 @@ void ApplicationScenegraph::createPipelines() {
   depthStencil2.depthCompareOp = vk::CompareOp::eGreater;
   info_pipe2.setDepthStencil(depthStencil2);
 
+  // pipeline for tonemapping
+  info_pipe3.setResolution(m_swap_chain.extent());
+  info_pipe3.setTopology(vk::PrimitiveTopology::eTriangleStrip);
+
+  info_pipe3.setRasterizer(rasterizer2);
+
+  info_pipe3.setAttachmentBlending(colorBlendAttachment, 0);
+
+  info_pipe3.setShader(m_shaders.at("tonemapping"));
+  info_pipe3.setPass(m_render_pass, 2);
+  info_pipe3.addDynamic(vk::DynamicState::eViewport);
+  info_pipe3.addDynamic(vk::DynamicState::eScissor);
+
   m_pipelines.emplace("scene", GraphicsPipeline{m_device, info_pipe, m_pipeline_cache});
   m_pipelines.emplace("lights", GraphicsPipeline{m_device, info_pipe2, m_pipeline_cache});
+  m_pipelines.emplace("tonemapping", GraphicsPipeline{m_device, info_pipe3, m_pipeline_cache});
 }
 
 void ApplicationScenegraph::updatePipelines() {
@@ -294,7 +328,7 @@ void ApplicationScenegraph::createFramebufferAttachments() {
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
 
-  m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_images["color"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 
@@ -306,9 +340,13 @@ void ApplicationScenegraph::createFramebufferAttachments() {
   m_transferrer.transitionToLayout(m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("normal"));
 
-  m_images["color_2"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
-  m_transferrer.transitionToLayout(m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
+  m_images["color_2"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_transferrer.transitionToLayout(m_images.at("color_2"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
+
+  m_images["tonemapping_result"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_transferrer.transitionToLayout(m_images.at("tonemapping_result"), vk::ImageLayout::eTransferSrcOptimal);
+  m_allocators.at("images").allocate(m_images.at("tonemapping_result"));
 }
 
 void ApplicationScenegraph::updateDescriptors() {
@@ -322,6 +360,8 @@ void ApplicationScenegraph::updateDescriptors() {
   m_instance.dbTransform().buffer().writeToSet(m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbTexture().writeToSet(m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
+
+  m_images.at("color_2").writeToSet(m_descriptor_sets.at("tonemapping"), 0, vk::DescriptorType::eInputAttachment);
 }
 
 void ApplicationScenegraph::createDescriptorPools() {
@@ -336,6 +376,8 @@ void ApplicationScenegraph::createDescriptorPools() {
 
   m_descriptor_sets["lighting"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(1));
   m_descriptor_sets["matrix"] = m_descriptor_pool.allocate(m_shaders.at("lights").setLayout(0));
+
+  m_descriptor_sets["tonemapping"] = m_descriptor_pool.allocate(m_shaders.at("tonemapping").setLayout(0));
 }
 
 void ApplicationScenegraph::onResize(std::size_t width, std::size_t height) {
