@@ -231,7 +231,7 @@ void ApplicationScenegraph::createPipelines() {
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
   rasterizer.lineWidth = 1.0f;
-  // rasterizer.cullMode = vk::CullModeFlagBits::eBack;
+  rasterizer.cullMode = vk::CullModeFlagBits::eNone;
   info_pipe.setRasterizer(rasterizer);
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
