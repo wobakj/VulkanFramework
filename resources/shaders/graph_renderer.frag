@@ -77,6 +77,9 @@ void main() {
     // use inverted shinyness
     #ifdef ADDNA
       out_Normal.a = 1.0 - texture(normalTextures[index_norm], frag_Texcoord).a;
+      if (out_Normal.a <= 0.0 ) {
+        out_Normal.a = 1.0;
+      }
     #endif
   }
   else {
@@ -84,7 +87,6 @@ void main() {
       out_Normal.a = 1.0;
     #endif
     out_Normal.rgb = frag_Normal;
-    out_Normal.rgb = vec3(1.0);
   }
   #ifndef ADDNA
   // metalness

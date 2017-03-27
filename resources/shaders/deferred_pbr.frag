@@ -157,4 +157,5 @@ void main() {
   vec3 col = Cl * brdf * NdotL;
 
   out_Color = vec4(col, 1.0);
+  // out_Color = vec4(roughness, roughness, roughness, 1.0);
 }
