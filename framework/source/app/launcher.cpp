@@ -16,8 +16,8 @@ void glfw_error(int error, const char* description);
 
 Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& cmd_parse) 
  :m_camera_fov{glm::radians(60.0f)}
- ,m_window_width{640u}
- ,m_window_height{480u}
+ ,m_window_width{1920u}
+ ,m_window_height{1080u}
  ,m_window{nullptr}
  ,m_last_second_time{0.0}
  ,m_frames_per_second{0u}

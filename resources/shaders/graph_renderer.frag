@@ -59,7 +59,7 @@ void main() {
   int index_diff = materials[material.index].index_diff;
   if (index_diff >= 0) {
     out_Color = texture(diffuseTextures[index_diff], frag_Texcoord);
-    if (out_Color.a == 0.0) {
+    if (out_Color.a < 1.0) {
       discard;
     }
   }
@@ -76,6 +76,7 @@ void main() {
     // out_Normal.rgb = frag_Normal;
     // use inverted shinyness
     #ifdef ADDNA
+    // set roughness
       out_Normal.a = 1.0 - texture(normalTextures[index_norm], frag_Texcoord).a;
       if (out_Normal.a <= 0.0 ) {
         out_Normal.a = 1.0;
@@ -88,8 +89,8 @@ void main() {
     #endif
     out_Normal.rgb = frag_Normal;
   }
-  #ifndef ADDNA
   // metalness
+  #ifndef ADDNA
   int index_metal = materials[material.index].index_metal;
   if (index_metal >= 0) {
     out_Color.a = texture(metalnessTextures[index_metal], frag_Texcoord).r;
@@ -97,6 +98,8 @@ void main() {
   else {
     out_Color.a = materials[material.index].metalness;
   }
+  #else
+    out_Color.a = 0.0;
   #endif
   #ifndef ADDNA
     // roughness
@@ -130,6 +133,7 @@ mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv) {
 
 vec3 perturb_normal(sampler2D normalMap, vec3 N, vec3 p, vec2 texcoord) {
   vec3 normalTS = normalize(texture(normalMap, texcoord).rgb * 2.0 - 1.0);
+  // vec3 normalTS = normalize(texture(normalMap, texcoord).rgb * vec3(2.0, 1.0, 2.0) - vec3(1.0, 0.0, 1.0));
   //normalTS.y = -normalTS.y;
   mat3 TBN = cotangent_frame(N, p, texcoord);
   return TBN * normalTS;
