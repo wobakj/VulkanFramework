@@ -10,7 +10,7 @@ struct light_t {
   float radius;
 };
 
-layout(set = 0, binding = 0, r32ui) uniform uimage3D destTexture;
+layout(set = 0, binding = 0, rgba32ui) uniform uimage3D destTexture;
 
 layout(set = 0, binding = 1) uniform LightGridBuffer {
   uvec2 grid_size;
@@ -18,7 +18,7 @@ layout(set = 0, binding = 1) uniform LightGridBuffer {
   uvec2 resolution;
   float near;
   float far;
-  vec3 frustum_corners[4];
+  vec4 frustum_corners[4];
 } light_grid;
 
 layout(set = 0, binding = 2) buffer LightBuffer {
@@ -51,8 +51,10 @@ vec3 viewRay(uint x, uint y) {
   vec2 t = vec2(x * light_grid.tile_size.x / float(light_grid.resolution.x),
                 y * light_grid.tile_size.y / float(light_grid.resolution.y));
   vec3 ray = mix(
-    mix(light_grid.frustum_corners[0], light_grid.frustum_corners[1], t.x),
-    mix(light_grid.frustum_corners[3], light_grid.frustum_corners[2], t.x),
+    mix(light_grid.frustum_corners[0].xyz, light_grid.frustum_corners[1].xyz,
+      t.x),
+    mix(light_grid.frustum_corners[3].xyz, light_grid.frustum_corners[2].xyz,
+      t.x),
     t.y);
 
   return normalize(ray);
@@ -127,7 +129,7 @@ void main() {
     return;
   }
 
-  uint light_mask = 0;
+  uvec4 light_mask = uvec4(0);
   for (uint i = 0u; i < Lights.length(); ++i) {
     vec3 light_pos_view_space = (ubo.view * vec4(Lights[i].position, 1.0)).xyz;
 #if 0
@@ -139,8 +141,11 @@ void main() {
                          light_pos_view_space, Lights[i].radius)) {
 #endif
       // this light overlaps this cluster, add it to the light mask
-      light_mask |= (1 << i);
+      light_mask.a |= (1 << i);
+      light_mask.b |= (1 << max(i - 32, 0));
+      light_mask.g |= (1 << max(i - 64, 0));
+      light_mask.r |= (1 << max(i - 96, 0));
     }
   }
-  imageStore(destTexture, cluster, uvec4(light_mask));
+  imageStore(destTexture, cluster, light_mask);
 }

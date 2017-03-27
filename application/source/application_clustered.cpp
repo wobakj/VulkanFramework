@@ -25,7 +25,7 @@ struct light_t {
   glm::fvec3 color;
   float radius;
 };
-const std::size_t NUM_LIGHTS = 32;
+const std::size_t NUM_LIGHTS = 128;
 struct BufferLights {
   light_t lights[NUM_LIGHTS];
 };
@@ -54,7 +54,7 @@ ApplicationClustered::ApplicationClustered(std::string const& resource_path,
                                            GLFWwindow* window,
                                            cmdline::parser const& cmd_parse)
     : ApplicationSingle{resource_path, device, chain, window, cmd_parse},
-      m_tileSize{64, 64},
+      m_tileSize{32, 32},
       m_nearFrustumCornersClipSpace{
           glm::vec4(-1.0f, +1.0f, 0.0f, 1.0f),  // bottom left
           glm::vec4(+1.0f, +1.0f, 0.0f, 1.0f),  // bottom right
@@ -357,9 +357,9 @@ void ApplicationClustered::createLights() {
   // create random lights
   for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
     buff_l.lights[i].position =
-        glm::vec3(dis(gen) * 12.0f - 6.0f, dis(gen) * 5.0f + 0.5f,
-                  dis(gen) * 24.0f - 12.0f);
-    buff_l.lights[i].radius = dis(gen) * 5.0f + 2.0f;
+        glm::vec3(dis(gen) * 10.0f - 5.0f, dis(gen) * 3.0f + 0.5f,
+                  dis(gen) * 26.0f - 13.0f);
+    buff_l.lights[i].radius = dis(gen) * 2.0f + 1.0f;
     buff_l.lights[i].color =
         glm::vec3(dis(gen) * 0.7f + 0.3f, dis(gen) * 0.7f + 0.3f,
                   dis(gen) * 0.7f + 0.3f);
@@ -407,7 +407,7 @@ void ApplicationClustered::createFramebufferAttachments() {
       vk::Extent3D{m_lightGridSize.x, m_lightGridSize.y, m_lightGridSize.z};
 
   // light volume
-  m_images["light_vol"] = Image{m_device, lightVolExtent, vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
+  m_images["light_vol"] = Image{m_device, lightVolExtent, vk::Format::eR32G32B32A32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
   m_transferrer.transitionToLayout(m_images.at("light_vol"), vk::ImageLayout::eGeneral);
 }
