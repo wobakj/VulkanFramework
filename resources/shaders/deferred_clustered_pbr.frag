@@ -37,7 +37,7 @@ layout(set = 1, binding = 5) uniform LightGridBuffer {
   uvec2 resolution;
   float near;
   float far;
-  vec3 frustum_corners[4];
+  vec4 frustum_corners[4];
 } light_grid;
 
 #define M_PI 3.1415926535897932384626433832795

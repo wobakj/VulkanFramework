@@ -18,7 +18,7 @@ layout(set = 0, binding = 1) uniform LightGridBuffer {
   uvec2 resolution;
   float near;
   float far;
-  vec3 frustum_corners[4];
+  vec4 frustum_corners[4];
 } light_grid;
 
 layout(set = 0, binding = 2) buffer LightBuffer {
@@ -51,8 +51,10 @@ vec3 viewRay(uint x, uint y) {
   vec2 t = vec2(x * light_grid.tile_size.x / float(light_grid.resolution.x),
                 y * light_grid.tile_size.y / float(light_grid.resolution.y));
   vec3 ray = mix(
-    mix(light_grid.frustum_corners[0], light_grid.frustum_corners[1], t.x),
-    mix(light_grid.frustum_corners[3], light_grid.frustum_corners[2], t.x),
+    mix(light_grid.frustum_corners[0].xyz, light_grid.frustum_corners[1].xyz,
+      t.x),
+    mix(light_grid.frustum_corners[3].xyz, light_grid.frustum_corners[2].xyz,
+      t.x),
     t.y);
 
   return normalize(ray);
