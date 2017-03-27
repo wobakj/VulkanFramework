@@ -13,6 +13,7 @@
 #include "ren/renderer.hpp"
 #include "node/node_model.hpp"
 #include "scenegraph.hpp"
+#include "navigation.hpp"
 
 #include <atomic>
 #include <thread>
@@ -42,7 +43,11 @@ class ApplicationScenegraph : public ApplicationSingle {
   void createFramebufferAttachments();
   // handle key input
   void keyCallback(int key, int scancode, int action, int mods) override;
+  static void mouseCallback(GLFWwindow* window, int button, int action, int mods);
   void updateModel();
+
+  void startTargetNavigation();
+  void navigateToTarget();
 
   // path to the resource folders
   RenderPass m_render_pass;
@@ -53,6 +58,15 @@ class ApplicationScenegraph : public ApplicationSingle {
   Renderer m_renderer;
   Scenegraph m_graph;
   std::map<std::string, ModelNode> m_nodes;
+  bool m_selection_phase_flag;
+  bool m_target_navi_phase_flag;
+  bool m_navi_phase_flag;
+  bool m_manipulation_phase_flag;
+  double m_target_navi_start;
+  double m_target_navi_duration;
+  Node* m_curr_hit;
+  Navigation m_navigator;
+
 };
 
 #endif

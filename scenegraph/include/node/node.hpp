@@ -38,13 +38,14 @@ public:
 	void rotate(float angle, glm::vec3 const& r);
 	void translate(glm::vec3 const& t);
 
+	void setWorld(glm::mat4 const &world);
+	
  protected:
 	virtual void accept(NodeVisitor &v);
 	glm::fmat4 m_local;
  
  private:	
 	std::vector<std::unique_ptr<Node>>::iterator findChild(std::string const& name);
-	void setWorld(glm::mat4 const &world);
 	void setBox(Bbox const& box);
 	void setParent(Node* const p);
 

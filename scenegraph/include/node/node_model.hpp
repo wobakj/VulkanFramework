@@ -11,6 +11,8 @@ public:
   ModelNode();
   ModelNode(std::string const& name, std::string const& model, std::string const& transform);
 
+  std::string getModel() const;
+
   void accept(NodeVisitor &v) override;
 
  private:

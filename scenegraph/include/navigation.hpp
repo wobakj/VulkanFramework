@@ -1,23 +1,23 @@
-#ifndef NODENAVIGATION_HPP
-#define NODENAVIGATION_HPP
+#ifndef NAVIGATION_HPP
+#define NAVIGATION_HPP
 
-#include "node.hpp"
 #include <glm/gtc/type_precision.hpp>
 
 class GLFWwindow;
 
-class NavigationNode : public Node
+class Navigation
 {
 public:
-	NavigationNode(std::string const& name, GLFWwindow* w);
-
-	void accept(NodeVisitor &v) override;
+	Navigation(GLFWwindow* w);
   
   glm::fvec3 position() const;
   bool changed() const;
   void update(float delta_time);
   void update();
   void setMovement(glm::fvec3 movement);
+
+  glm::mat4 const& getTransform() const;
+  void setTransform(glm::mat4 const& transform);
   
  private:
   void queryKeyboard(float delta_time);
@@ -27,6 +27,7 @@ public:
   //variables for mouse transformation input
   double m_last_x;
   double m_last_y;
+  glm::mat4 m_local;
   // camera movement to apply in frame
   glm::fvec3 m_movement;
   // camera position

@@ -11,6 +11,11 @@ ModelNode::ModelNode(std::string const & name, std::string const& model, std::st
  ,m_transform{transform}
 {}
 
+std::string ModelNode::getModel() const
+{
+	return m_model;
+}
+
 void ModelNode::accept(NodeVisitor &v)
 {
 	v.visit(this);

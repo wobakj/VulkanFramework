@@ -1,4 +1,4 @@
-#include "node/node_navigation.hpp"
+#include "navigation.hpp"
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -6,12 +6,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
-const float NavigationNode::s_rotation_speed = 0.05f;
-const float NavigationNode::s_translation_speed = 1.0f;
+const float Navigation::s_rotation_speed = 0.05f;
+const float Navigation::s_translation_speed = 1.0f;
 
-NavigationNode::NavigationNode(std::string const& name, GLFWwindow* window)
- :Node(name, glm::fmat4{1.0f})
- ,m_window{window}
+Navigation::Navigation(GLFWwindow* window)
+ :m_window{window}
+ ,m_local{glm::mat4{1.0f}}
  ,m_movement{0.0f}
  ,m_position{0.0f, 0.5f, 1.0f}
  ,m_rotation{0.0f, 0.0f}
@@ -20,7 +20,17 @@ NavigationNode::NavigationNode(std::string const& name, GLFWwindow* window)
  ,m_changed{true}
 {}
 
-void NavigationNode::update() {
+glm::mat4 const& Navigation::getTransform() const
+{
+  return m_local;
+}
+
+void Navigation::setTransform(glm::mat4 const& transform)
+{
+  m_local = transform;
+} 
+
+void Navigation::update() {
   // ugly static initialisation
   static double time_last = glfwGetTime();
   // calculate delta time
@@ -30,7 +40,7 @@ void NavigationNode::update() {
   update(time_delta);
 }
 
-void NavigationNode::update(float delta_time) {
+void Navigation::update(float delta_time) {
   queryKeyboard(delta_time);
   queryMouse(delta_time);
 
@@ -57,26 +67,22 @@ void NavigationNode::update(float delta_time) {
   m_movement = glm::fvec3{0.0f};
 }
 
-void NavigationNode::accept(NodeVisitor & v) {
-	v.visit(this);
-}
-
-void NavigationNode::setMovement(glm::fvec3 movement)
+void Navigation::setMovement(glm::fvec3 movement)
 {
   m_movement = movement;
 }
 
-glm::fvec3 NavigationNode::position() const {
+glm::fvec3 Navigation::position() const {
   return glm::fvec3(m_local[3] / m_local[3][3]);
 }
 
-bool NavigationNode::changed() const {
+bool Navigation::changed() const {
   bool changed = m_changed;
   m_changed = false;
   return changed;
 }
 
-void NavigationNode::queryKeyboard(float delta_time) {
+void Navigation::queryKeyboard(float delta_time) {
   if (glfwGetKey(m_window, GLFW_KEY_ENTER)) {
     m_flying_cam = !m_flying_cam;
     //reset camera transforms
@@ -116,7 +122,7 @@ void NavigationNode::queryKeyboard(float delta_time) {
   }
 }
 
-void NavigationNode::queryMouse(float delta_time) {
+void Navigation::queryMouse(float delta_time) {
   glm::fvec2 curr_mouse{0.0f};
   double curr_x = 0.0;
   double curr_y = 0.0;

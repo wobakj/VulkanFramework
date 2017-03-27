@@ -41,9 +41,15 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
  ,m_model_loader{m_instance}
  ,m_renderer{m_instance}
  ,m_graph{"graph", m_instance}
+ ,m_selection_phase_flag{true}
+ ,m_target_navi_phase_flag{false}
+ ,m_manipulation_phase_flag{false}
+ ,m_target_navi_start{0.0}
+ ,m_target_navi_duration{3.0}
+ ,m_navigator{window}
 {
   // check if input file was specified
-  if (cmd_parse.rest().size() != 1) {
+ /* if (cmd_parse.rest().size() != 1) {
     if (cmd_parse.rest().size() < 1) {
       std::cerr << "No filename specified" << std::endl;
     }
@@ -51,17 +57,21 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
       std::cerr << cmd_parse.usage();
     }
     exit(0);
-  }
+  }*/
+
+  glfwSetWindowUserPointer(window, this);
+  glfwSetMouseButtonCallback(window, mouseCallback);
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_pbr_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
 
-  scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
+  std::string sponza = "resources/scenes/sponza.json";
+  scene_loader::json(sponza, m_resource_path, &m_graph);
 
   auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
   auto ray = std::unique_ptr<Node>{new RayNode{"ray"}};
-  auto navi = std::unique_ptr<Node>{new NavigationNode{"navi_cam", window}};
+  auto navi = std::unique_ptr<Node>{new Node{"navi_cam"}};
   navi->addChild(std::move(cam));
   navi->addChild(std::move(ray));
   m_graph.getRoot()->addChild(std::move(navi));
@@ -90,6 +100,10 @@ void ApplicationScenegraph::logic() {
   float time_delta = float(time_current - time_last);
   time_last = time_current;
 
+  m_navigator.update();
+  auto navi_node = m_graph.findNode("navi_cam");
+  navi_node->setLocal(m_navigator.getTransform());
+
   m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
 
   // update transforms every frame
@@ -112,7 +126,18 @@ void ApplicationScenegraph::logic() {
         ptr_closest = hit.getNode();
       }
     }
-    std::cout << "hit node " << ptr_closest->getName() << std::endl;
+    if (m_selection_phase_flag) m_curr_hit = ptr_closest;
+  }
+
+  if (m_target_navi_phase_flag)
+  {
+    double elapsed_time = glfwGetTime() - m_target_navi_start;
+    if (elapsed_time < m_target_navi_duration) navigateToTarget();
+    else 
+    {
+      m_target_navi_phase_flag = false;
+      m_target_navi_start = 0.0;
+    }
   }
 }
 
@@ -410,6 +435,47 @@ void ApplicationScenegraph::keyCallback(int key, int scancode, int action, int m
   // if (key == GLFW_KEY_L && action == GLFW_PRESS) {
   //   }
   // }
+}
+
+void ApplicationScenegraph::mouseCallback(GLFWwindow* window, int button, int action, int mods)
+{
+  auto app = glfwGetWindowUserPointer(window);
+  auto application = static_cast<ApplicationScenegraph*>(app);
+  application->startTargetNavigation();
+}
+
+void ApplicationScenegraph::startTargetNavigation()
+{
+  m_target_navi_phase_flag = true;
+  m_selection_phase_flag = false;
+  m_manipulation_phase_flag = false;
+
+  m_target_navi_start = glfwGetTime();
+}
+
+void ApplicationScenegraph::navigateToTarget()
+{
+  auto navi = m_graph.findNode("navi_cam");
+  auto model_node = static_cast<ModelNode*>(m_curr_hit);
+  double elapsed_time = glfwGetTime() - m_target_navi_start;
+  std::cout<<"navigating to "<< m_curr_hit->getName() <<" elapsed time" << elapsed_time << std::endl;
+  glm::vec3 cam_old_pos = glm::vec3(navi->getWorld()[3][0], navi->getWorld()[3][1], navi->getWorld()[3][2]);
+  
+  auto curr_box = m_instance.dbModel().get(model_node->getModel()).getBox();
+  curr_box.transform(model_node->getWorld());
+
+  glm::vec3 box_min = curr_box.getMin();
+  glm::vec3 box_max = curr_box.getMax();
+
+  float width = box_max.x - box_min.x;
+  float height = box_max.y - box_min.y;
+  float depth = box_max.z - box_min.z;
+
+  glm::vec3 cam_new_pos = glm::vec3(box_min.x - width / 2, box_max.y + height / 2, box_min.z + depth / 2);
+  std::cout<<"cam new pos " << cam_new_pos.x << " " << cam_new_pos.y << " " << cam_new_pos.z << std::endl;
+  cam_new_pos = glm::vec3(0.1, 0.1, 0.1);
+  glm::vec3 cam_curr_pos = glm::mix(cam_old_pos, cam_new_pos, (elapsed_time - m_target_navi_start) / m_target_navi_duration);
+  //navi_node->setMovement(cam_curr_pos);
 }
 
 // exe entry point
