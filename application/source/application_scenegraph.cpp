@@ -459,7 +459,9 @@ void ApplicationScenegraph::startTargetNavigation()
 
   m_target_navi_start = glfwGetTime();
 
-  m_cam_old_pos = glm::vec3(navi->getWorld()[3][0], navi->getWorld()[3][1], navi->getWorld()[3][2]);
+  m_cam_old_pos = glm::vec3(navi->getLocal()[3][0], navi->getLocal()[3][1], navi->getLocal()[3][2]);
+
+  std::cout<<"cam old pos " << m_cam_old_pos.x << " " << m_cam_old_pos.y << " " << m_cam_old_pos.z << std::endl;
   
   auto curr_box = m_instance.dbModel().get(model_node->getModel()).getBox();
   curr_box.transform(model_node->getWorld());
@@ -467,11 +469,13 @@ void ApplicationScenegraph::startTargetNavigation()
   glm::vec3 box_min = curr_box.getMin();
   glm::vec3 box_max = curr_box.getMax();
 
-  float width = box_max.x - box_min.x;
-  float height = box_max.y - box_min.y;
-  float depth = box_max.z - box_min.z;
+  // float width = box_max.x - box_min.x;
+  // float height = box_max.y - box_min.y;
+  // float depth = box_max.z - box_min.z;
 
-  m_cam_new_pos = glm::vec3(box_min.x - width / 2, box_max.y + height / 2, box_min.z + depth / 2);
+  m_cam_new_pos = glm::vec3(box_min.x, box_max.y, box_min.z);
+  auto p = glm::vec4(m_cam_new_pos, 1.0) * m_curr_hit->getLocal() ;
+  m_cam_new_pos = glm::vec3(p.x, p.y, p.z);
 }
 
 void ApplicationScenegraph::navigateToTarget()
@@ -479,12 +483,12 @@ void ApplicationScenegraph::navigateToTarget()
   auto navi = m_graph.findNode("navi_cam");
 
   double elapsed_time = glfwGetTime() - m_target_navi_start;
-  std::cout<<"navigating to "<< m_curr_hit->getName() <<" elapsed time" << elapsed_time << std::endl;
+  //std::cout<<"navigating to "<< m_curr_hit->getName() <<" elapsed time" << elapsed_time << std::endl;
   
- // std::cout<<"cam new pos " << cam_new_pos.x << " " << cam_new_pos.y << " " << cam_new_pos.z << std::endl;
+ //std::cout<<"cam new pos " << m_cam_new_pos.x << " " << m_cam_new_pos.y << " " << m_cam_new_pos.z << std::endl;
   //cam_new_pos = glm::vec3(0.1, 0.1, 0.1);
-  glm::vec3 cam_curr_disp = glm::mix(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5, 0.5, 0.5), (elapsed_time - m_target_navi_start) / m_target_navi_duration);
-  navi->translate(glm::vec3(0.1,0.1,0.1));
+  glm::vec3 cam_curr_disp = glm::mix(glm::vec3(0.0, 0.0, 0.0), m_cam_new_pos, (elapsed_time - m_target_navi_start) / m_target_navi_duration);
+  navi->translate(cam_curr_disp);
 }
 
 // exe entry point
