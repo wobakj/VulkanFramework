@@ -152,7 +152,7 @@ void Application::createMemoryPools() {
                                                | vk::BufferUsageFlagBits::eTransferSrc 
                                                | vk::BufferUsageFlagBits::eUniformBuffer
                                                , vk::MemoryPropertyFlagBits::eDeviceLocal);
-  m_allocators.emplace("buffers", BlockAllocator{m_device, type_buffer, 4 * 16 * 128});
+  m_allocators.emplace("buffers", BlockAllocator{m_device, type_buffer, 4 * 16 * 128 * 2});
 }
 
 void Application::createCommandPools() {

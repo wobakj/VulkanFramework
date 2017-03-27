@@ -25,7 +25,7 @@ struct light_t {
   glm::fvec3 color;
   float radius;
 };
-const std::size_t NUM_LIGHTS = 32;
+const std::size_t NUM_LIGHTS = 128;
 struct BufferLights {
   light_t lights[NUM_LIGHTS];
 };
@@ -407,7 +407,7 @@ void ApplicationClustered::createFramebufferAttachments() {
       vk::Extent3D{m_lightGridSize.x, m_lightGridSize.y, m_lightGridSize.z};
 
   // light volume
-  m_images["light_vol"] = Image{m_device, lightVolExtent, vk::Format::eR32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
+  m_images["light_vol"] = Image{m_device, lightVolExtent, vk::Format::eR32G32B32A32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
   m_transferrer.transitionToLayout(m_images.at("light_vol"), vk::ImageLayout::eGeneral);
 }
