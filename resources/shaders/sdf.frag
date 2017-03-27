@@ -28,6 +28,7 @@ layout(location = 1) out vec4 outPosition;
 layout(location = 2) out vec4 outNormals;
 
 #define PI 3.14159265359
+#define FASTFLOOR(x) ( ((x)>0) ? ((int)x) : (((int)x)-1) )
 
 vec4[10] materials  = vec4[10](
   vec4(0.752, 0.223, 0.168, 1.0), // 0 - Pomegranate
@@ -156,6 +157,11 @@ float sdfPyramid4( vec3 p, vec3 h ) {
         return sdfPlane(p, vec4( n, 0.0 ) ); // cut off bottom
 }
 
+float sdfWater(vec3 p) {
+  return p.y - ((0.5 * sin(dot(p.xz, vec2(0.0,1.0)) + ubo.time * 0.1)) + (0.5 * sin(dot(p.xz, vec2(0.5)) + ubo.time * 0.5)));
+  //return p.y - 0.5 * sin(p.x * 0.1 + ubo.time);
+}
+
 
 //OBJECT COMBINATION
 /*
@@ -230,6 +236,8 @@ mat3 createRotMat(float x, float y, float z) {
               cos(y)*sin(z), cos(x)*cos(z)+sin(x)*sin(y)*sin(z), cos(x)*sin(y)*sin(z)-cos(z)*sin(x),
               -sin(y),       cos(y)*sin(x),                      cos(x)*cos(y));
 }
+
+
 
 
 // (OB)SCENE
@@ -383,6 +391,9 @@ vec2 scene(vec3 p) {
   hit = opUnion(hit, vec2(sdfCapsule(r7 - vec3(-2.0,0.0,-1.1), 0.2, 0.4), 9.0 - sin(ubo.time)));
   hit = opUnion(hit, vec2(sdfCapsule(r8 - vec3(-2.0,2.0, 1.1), 0.2, 0.4), 9.0 - sin(ubo.time)));
   hit = opUnion(hit, vec2(sdfCapsule(r8 - vec3(-2.0,0.0, 1.1), 0.2, 0.4), 8.0 + sin(ubo.time)));
+
+  //Water?
+  hit = opUnion(hit, vec2(sdfWater(p - vec3(0.0,0.5,0.0)), 1.0));
 
   return hit;
 }
