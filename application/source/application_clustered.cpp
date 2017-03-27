@@ -348,6 +348,12 @@ void ApplicationClustered::createVertexBuffer() {
 }
 
 void ApplicationClustered::createLights() {
+  // one big light for ambient
+  buff_l.lights[0].position = glm::vec3(0.0f, 4.0f, 0.0f);
+  buff_l.lights[0].radius = 25.0f;
+  buff_l.lights[0].color = glm::vec3(0.996, 0.9531, 0.8945);
+  buff_l.lights[0].intensity = 50.0f;
+
   std::uniform_real_distribution<float> dis(0.0f, 1.0f);
   // std::random_device rd;
   std::mt19937 gen(1);  // rd() as param for different seed
@@ -355,15 +361,20 @@ void ApplicationClustered::createLights() {
     return static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
   };
   // create random lights
-  for (std::size_t i = 0; i < NUM_LIGHTS; ++i) {
-    buff_l.lights[i].position =
+  std::vector<glm::vec3> colors = {
+    glm::vec3(1.0f, 0.0f, 0.0f),
+    glm::vec3(1.0f, 1.0f, 0.0f),
+    glm::vec3(1.0f, 0.0f, 1.0f),
+    glm::vec3(0.0f, 1.0f, 1.0f),
+    glm::vec3(0.0f, 0.0f, 1.0f)
+  };
+  for (std::size_t i = 0; i < NUM_LIGHTS - 1; ++i) {
+    buff_l.lights[i + 1].position =
         glm::vec3(dis(gen) * 10.0f - 5.0f, dis(gen) * 3.0f + 0.5f,
                   dis(gen) * 26.0f - 13.0f);
-    buff_l.lights[i].radius = dis(gen) * 2.0f + 1.0f;
-    buff_l.lights[i].color =
-        glm::vec3(dis(gen) * 0.7f + 0.3f, dis(gen) * 0.7f + 0.3f,
-                  dis(gen) * 0.7f + 0.3f);
-    buff_l.lights[i].intensity = dis(gen) * 30.0f + 30.0f;
+    buff_l.lights[i + 1].radius = dis(gen) * 2.0f + 1.0f;
+    buff_l.lights[i + 1].color = colors[i % colors.size()];
+    buff_l.lights[i + 1].intensity = dis(gen) * 30.0f + 30.0f;
   }
 
   m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
