@@ -104,22 +104,24 @@ void ApplicationScenegraph::logic() {
   static double time_last = glfwGetTime();
   // calculate delta time
   double time_current = glfwGetTime();
-  float time_delta = float(time_current - time_last);
+  m_frame_time = float(time_current - time_last);
   time_last = time_current;
 
-  m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
+  // m_graph.getRoot()->getChild("sphere")->rotate(m_frame_time, glm::fvec3{0.0f, 1.0f, 0.0f});
 
   Ray r = dynamic_cast<RayNode*>(m_graph.getRoot()->getChild("navi_cam")->getChild("ray"))->worldRay();
   PickVisitor pick_visitor{m_instance, r};
   m_graph.accept(pick_visitor);
-  
+
   if (!pick_visitor.hits().empty()) {
-    Node* ptr_closest = pick_visitor.hits().front().getNode();
+    Hit closest_hit = pick_visitor.hits().front();
+    // Node* ptr_closest = pick_visitor.hits().front().getNode();
     float dist_closest = pick_visitor.hits().front().dist();
     for (auto const& hit : pick_visitor.hits()) {
       if (hit.dist() < dist_closest) {
+        closest_hit = hit;
         dist_closest = hit.dist();
-        ptr_closest = hit.getNode();
+        // ptr_closest = hit.getNode();
       }
     }
     if (m_selection_phase_flag) 
@@ -127,7 +129,8 @@ void ApplicationScenegraph::logic() {
         m_navigator.update();
         auto navi_node = m_graph.findNode("navi_cam");
         navi_node->setLocal(m_navigator.getTransform());
-        m_curr_hit = ptr_closest;
+        m_curr_hit = closest_hit;
+        if (m_curr_hit.getNode() != nullptr)std::cout<<"curr hit" <<m_curr_hit.getNode()->getName()<<std::endl;
       }
   }
 
@@ -142,6 +145,7 @@ void ApplicationScenegraph::logic() {
       m_target_navi_phase_flag = false;
       m_target_navi_start = 0.0;
       m_manipulation_phase_flag = true;
+      m_offset = glm::inverse(navi_node->getWorld()) * m_curr_hit.getNode()->getWorld();
       // m_navigator.update(); 
     }
   }
@@ -149,9 +153,13 @@ void ApplicationScenegraph::logic() {
   if (m_manipulation_phase_flag) 
   {
     auto navi = m_graph.findNode("navi_cam");
-
     m_navigator.setTransform(navi->getLocal());
+    m_last_translation = glm::vec3(navi->getLocal()[3]);
+    m_last_rotation = m_navigator.getRotation();
     m_navigator.update();
+    navi->setLocal(m_navigator.getTransform());
+    manipulate();
+
   }
 
   // update transforms every frame
@@ -455,24 +463,6 @@ void ApplicationScenegraph::onResize(std::size_t width, std::size_t height) {
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void ApplicationScenegraph::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  auto app = glfwGetWindowUserPointer(window);
-  auto application = static_cast<ApplicationScenegraph*>(app);
-  auto navi = application->getGraph().findNode("navi_cam");
-  if (key == GLFW_KEY_W && action == GLFW_PRESS) {
-    navi->translate(glm::vec3(0.0, 0.3, 0.0));
-    }
-
-  if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-    navi->translate(glm::vec3(0.0, -0.3, 0.0));
-    }
-
-  if (key == GLFW_KEY_A && action == GLFW_PRESS) {
-    navi->translate(glm::vec3(-0.3, 0.0, 0.0));
-    }
-
-  if (key == GLFW_KEY_D && action == GLFW_PRESS) {
-    navi->translate(glm::vec3(0.3, 0.0, 0.0));
-    }
   // }
 }
 
@@ -480,13 +470,18 @@ void ApplicationScenegraph::mouseCallback(GLFWwindow* window, int button, int ac
 {
   auto app = glfwGetWindowUserPointer(window);
   auto application = static_cast<ApplicationScenegraph*>(app);
-  application->startTargetNavigation();
+  if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    application->startTargetNavigation();
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    application->endTargetManipulation();
 }
 
 void ApplicationScenegraph::startTargetNavigation()
 {
   auto navi = m_graph.findNode("navi_cam");
-  auto model_node = static_cast<ModelNode*>(m_curr_hit);
+  auto ray = m_graph.findNode("ray");
+  auto ray_world = static_cast<RayNode*>(ray);
+  auto model_node = static_cast<ModelNode*>(m_curr_hit.getNode());
 
   m_target_navi_phase_flag = true;
   m_selection_phase_flag = false;
@@ -494,37 +489,35 @@ void ApplicationScenegraph::startTargetNavigation()
 
   m_target_navi_start = glfwGetTime();
 
-  m_cam_old_pos = glm::vec3(navi->getLocal()[3][0], navi->getLocal()[3][1], navi->getLocal()[3][2]);
+  m_cam_old_pos = glm::vec3(navi->getLocal()[3]);
 
-  // std::cout<<"cam old pos " << m_cam_old_pos.x << " " << m_cam_old_pos.y << " " << m_cam_old_pos.z << std::endl;
   
   auto curr_box = m_instance.dbModel().get(model_node->getModel()).getBox();
   curr_box.transform(model_node->getWorld());
 
-  glm::vec3 box_min = curr_box.getMin();
-  // glm::vec3 box_max = curr_box.getMax();
-
-  // float width = box_max.x - box_min.x;
-  // float height = box_max.y - box_min.y;
-  // float depth = box_max.z - box_min.z;
-
-  m_cam_new_pos = glm::vec3(box_min.x, box_min.y, box_min.z) - m_cam_old_pos;
-  auto p = glm::vec4(m_cam_new_pos, 1.0) * m_curr_hit->getLocal();
-  m_cam_new_pos = glm::vec3(p.x, p.y, p.z);
+  m_cam_new_pos = glm::vec3(ray_world->worldRay().direction().x, ray_world->worldRay().direction().y, ray_world->worldRay().direction().z) * (m_curr_hit.dist() * 0.5f);
+  std::cout<<"dist" << m_curr_hit.dist()<<std::endl;
+  std::cout<<"cam old pos " << m_cam_new_pos.x << " " << m_cam_new_pos.y << " " << m_cam_new_pos.z << std::endl;
 }
 
 void ApplicationScenegraph::navigateToTarget()
 {
   auto navi = m_graph.findNode("navi_cam");
-
-  double elapsed_time = glfwGetTime() - m_target_navi_start;
-  glm::vec3 cam_curr_disp = glm::mix(glm::vec3(0.0, 0.0, 0.0), m_cam_new_pos, (elapsed_time - m_target_navi_start) / m_target_navi_duration);
+  glm::vec3 cam_curr_disp = m_cam_new_pos * m_frame_time / float(m_target_navi_duration);
   navi->translate(cam_curr_disp);
 }
 
 void ApplicationScenegraph::manipulate()
 {
-  
+  auto navi = m_graph.findNode("navi_cam");
+  m_curr_hit.getNode()->setLocal(glm::inverse(m_curr_hit.getNode()->getParent()->getWorld()) * navi->getWorld() * m_offset);
+}
+
+void ApplicationScenegraph::endTargetManipulation()
+{
+  m_selection_phase_flag = true;
+  m_target_navi_phase_flag = false;
+  m_manipulation_phase_flag = false;
 }
 
 // exe entry point

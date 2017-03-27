@@ -17,6 +17,7 @@ public:
   void setMovement(glm::fvec3 movement);
 
   glm::mat4 const& getTransform() const;
+  glm::fvec2 const& getRotation() const;
   void setTransform(glm::mat4 const& transform);
   
  private:

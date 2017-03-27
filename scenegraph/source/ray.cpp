@@ -30,5 +30,5 @@ glm::uvec3 const& Ray::sign() const
 }
 
 Ray Ray::transform(glm::fmat4 const& mat) const {
-	return Ray{mat * glm::fvec4{origin(), 1.0f}, mat * glm::fvec4{direction(), 0.0f}};
+	return Ray{mat * glm::fvec4{origin(), 1.0f}, glm::normalize(glm::fvec3(mat * glm::fvec4{direction(), 0.0f}))};
 }

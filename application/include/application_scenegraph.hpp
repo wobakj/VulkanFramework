@@ -51,6 +51,7 @@ class ApplicationScenegraph : public ApplicationSingle {
   void startTargetNavigation();
   void navigateToTarget();
   void manipulate();
+  void endTargetManipulation();
 
   // path to the resource folders
   RenderPass m_render_pass;
@@ -67,11 +68,15 @@ class ApplicationScenegraph : public ApplicationSingle {
   bool m_manipulation_phase_flag;
   double m_target_navi_start;
   double m_target_navi_duration;
-  Node* m_curr_hit;
+  // Node* m_curr_hit;
+  Hit m_curr_hit;
   Navigation m_navigator;
   glm::vec3 m_cam_old_pos;
   glm::vec3 m_cam_new_pos;
-
+  float m_frame_time;
+  glm::vec3 m_last_translation;
+  glm::fvec2 m_last_rotation;
+  glm::fmat4 m_offset;
 };
 
 #endif

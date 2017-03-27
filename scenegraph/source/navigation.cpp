@@ -28,7 +28,13 @@ glm::mat4 const& Navigation::getTransform() const
 void Navigation::setTransform(glm::mat4 const& transform)
 {
   m_local = transform;
+  m_position = glm::vec3(m_local[3]);
 } 
+
+glm::fvec2 const& Navigation::getRotation() const
+{
+  return m_rotation;
+}
 
 void Navigation::update() {
   // ugly static initialisation

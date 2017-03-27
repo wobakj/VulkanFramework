@@ -49,11 +49,12 @@ void PickVisitor::visit(ModelNode * node)
 		// intersect model-space bbox
 		auto curr_box = m_instance->dbModel().get(node->m_model).getBox();
 		auto local_hit = curr_box.intersects(ray_local);
-		if (local_hit.success())
+		if (local_hit.success() && local_hit.dist() > 0.0f)
 		{
 			// std::cout<<"local hit "<<node->getName() << std::endl;
 			local_hit.setNode(node);
 			local_hit.setWorld(node->getWorld() * glm::fvec4{local_hit.getLocal(),1.0f});
+			local_hit.setDistToHit(glm::distance(local_hit.getWorld(), m_ray.origin()));
 			m_hits.push_back(local_hit);
 		}
 		for (auto child : node->getChildren())
