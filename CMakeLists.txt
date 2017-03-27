@@ -121,6 +121,10 @@ add_executable(vulkan_scenegraph application/source/application_scenegraph.cpp)
 target_link_libraries(vulkan_scenegraph scenegraph)
 install(TARGETS vulkan_scenegraph DESTINATION .)
 
+add_executable(vulkan_scenegraph_clustered application/source/application_scenegraph_clustered.cpp)
+target_link_libraries(vulkan_scenegraph_clustered scenegraph)
+install(TARGETS vulkan_scenegraph_clustered DESTINATION .)
+
 # set build type dependent flags
 if(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
