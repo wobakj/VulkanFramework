@@ -47,6 +47,8 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
  ,m_target_navi_start{0.0}
  ,m_target_navi_duration{3.0}
  ,m_navigator{window}
+ ,m_cam_old_pos{0.0f}
+ ,m_cam_new_pos{0.0f}
 {
   // check if input file was specified
  /* if (cmd_parse.rest().size() != 1) {
@@ -100,18 +102,7 @@ void ApplicationScenegraph::logic() {
   float time_delta = float(time_current - time_last);
   time_last = time_current;
 
-  m_navigator.update();
-  auto navi_node = m_graph.findNode("navi_cam");
-  navi_node->setLocal(m_navigator.getTransform());
-
   m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
-
-  // update transforms every frame
-  TransformVisitor transform_visitor{m_instance};
-  m_graph.accept(transform_visitor);
-
-  BboxVisitor box_visitor{m_instance};
-  m_graph.accept(box_visitor);
 
   Ray r = dynamic_cast<RayNode*>(m_graph.getRoot()->getChild("navi_cam")->getChild("ray"))->worldRay();
   PickVisitor pick_visitor{m_instance, r};
@@ -126,7 +117,13 @@ void ApplicationScenegraph::logic() {
         ptr_closest = hit.getNode();
       }
     }
-    if (m_selection_phase_flag) m_curr_hit = ptr_closest;
+    if (m_selection_phase_flag) 
+      {
+        m_navigator.update();
+        auto navi_node = m_graph.findNode("navi_cam");
+        navi_node->setLocal(m_navigator.getTransform());
+        m_curr_hit = ptr_closest;
+      }
   }
 
   if (m_target_navi_phase_flag)
@@ -139,6 +136,13 @@ void ApplicationScenegraph::logic() {
       m_target_navi_start = 0.0;
     }
   }
+
+  // update transforms every frame
+  TransformVisitor transform_visitor{m_instance};
+  m_graph.accept(transform_visitor);
+
+  BboxVisitor box_visitor{m_instance};
+  m_graph.accept(box_visitor);
 }
 
 void ApplicationScenegraph::updateResourceCommandBuffers(FrameResource& res) {
@@ -446,20 +450,16 @@ void ApplicationScenegraph::mouseCallback(GLFWwindow* window, int button, int ac
 
 void ApplicationScenegraph::startTargetNavigation()
 {
+  auto navi = m_graph.findNode("navi_cam");
+  auto model_node = static_cast<ModelNode*>(m_curr_hit);
+
   m_target_navi_phase_flag = true;
   m_selection_phase_flag = false;
   m_manipulation_phase_flag = false;
 
   m_target_navi_start = glfwGetTime();
-}
 
-void ApplicationScenegraph::navigateToTarget()
-{
-  auto navi = m_graph.findNode("navi_cam");
-  auto model_node = static_cast<ModelNode*>(m_curr_hit);
-  double elapsed_time = glfwGetTime() - m_target_navi_start;
-  std::cout<<"navigating to "<< m_curr_hit->getName() <<" elapsed time" << elapsed_time << std::endl;
-  glm::vec3 cam_old_pos = glm::vec3(navi->getWorld()[3][0], navi->getWorld()[3][1], navi->getWorld()[3][2]);
+  m_cam_old_pos = glm::vec3(navi->getWorld()[3][0], navi->getWorld()[3][1], navi->getWorld()[3][2]);
   
   auto curr_box = m_instance.dbModel().get(model_node->getModel()).getBox();
   curr_box.transform(model_node->getWorld());
@@ -471,11 +471,20 @@ void ApplicationScenegraph::navigateToTarget()
   float height = box_max.y - box_min.y;
   float depth = box_max.z - box_min.z;
 
-  glm::vec3 cam_new_pos = glm::vec3(box_min.x - width / 2, box_max.y + height / 2, box_min.z + depth / 2);
-  std::cout<<"cam new pos " << cam_new_pos.x << " " << cam_new_pos.y << " " << cam_new_pos.z << std::endl;
-  cam_new_pos = glm::vec3(0.1, 0.1, 0.1);
-  glm::vec3 cam_curr_pos = glm::mix(cam_old_pos, cam_new_pos, (elapsed_time - m_target_navi_start) / m_target_navi_duration);
-  //navi_node->setMovement(cam_curr_pos);
+  m_cam_new_pos = glm::vec3(box_min.x - width / 2, box_max.y + height / 2, box_min.z + depth / 2);
+}
+
+void ApplicationScenegraph::navigateToTarget()
+{
+  auto navi = m_graph.findNode("navi_cam");
+
+  double elapsed_time = glfwGetTime() - m_target_navi_start;
+  std::cout<<"navigating to "<< m_curr_hit->getName() <<" elapsed time" << elapsed_time << std::endl;
+  
+ // std::cout<<"cam new pos " << cam_new_pos.x << " " << cam_new_pos.y << " " << cam_new_pos.z << std::endl;
+  //cam_new_pos = glm::vec3(0.1, 0.1, 0.1);
+  glm::vec3 cam_curr_disp = glm::mix(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5, 0.5, 0.5), (elapsed_time - m_target_navi_start) / m_target_navi_duration);
+  navi->translate(glm::vec3(0.1,0.1,0.1));
 }
 
 // exe entry point

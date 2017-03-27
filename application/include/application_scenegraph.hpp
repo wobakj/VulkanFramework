@@ -66,6 +66,8 @@ class ApplicationScenegraph : public ApplicationSingle {
   double m_target_navi_duration;
   Node* m_curr_hit;
   Navigation m_navigator;
+  glm::vec3 m_cam_old_pos;
+  glm::vec3 m_cam_new_pos;
 
 };
 
