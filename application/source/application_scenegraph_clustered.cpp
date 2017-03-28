@@ -5,6 +5,7 @@
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
 #include "node/node_model.hpp"
+#include "node/node_ray.hpp"
 #include "visit/visitor_render.hpp"
 #include "visit/visitor_node.hpp"
 #include "visit/visitor_transform.hpp"
@@ -55,6 +56,15 @@ ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const
           glm::vec4(+1.0f, -1.0f, 0.0f, 1.0f),  // top right
           glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f)   // top left
   }    
+ ,m_fly_phase_flag{true}
+ ,m_selection_phase_flag{false}
+ ,m_target_navi_phase_flag{false}
+ ,m_manipulation_phase_flag{false}
+ ,m_target_navi_start{0.0}
+ ,m_target_navi_duration{3.0}
+ ,m_navigator{window}
+ ,m_cam_old_pos{0.0f}
+ ,m_cam_new_pos{0.0f}
 {
   // check if input file was specified
   if (cmd_parse.rest().size() != 1) {
@@ -66,17 +76,24 @@ ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const
     }
     exit(0);
   }
+  scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
-  // m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_pbr_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
-
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/light_grid_comp.spv"}});
 
-  m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
-
-  scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
+  auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
+  auto geo = m_graph.createGeometryNode("ray_geo", m_resource_path + "/models/sphere.obj");
+  geo->scale(glm::fvec3{.01f, 0.01f, 10.0f});
+  geo->translate(glm::fvec3{0.0f, 0.00f, -3.0f});
+  auto ray = std::unique_ptr<Node>{new RayNode{"ray"}};
+  ray->translate(glm::fvec3{0.0f, -0.4f, 0.0f});
+  auto navi = std::unique_ptr<Node>{new Node{"navi_cam"}};
+  ray->addChild(std::move(geo));
+  navi->addChild(std::move(cam));
+  navi->addChild(std::move(ray));
+  m_graph.getRoot()->addChild(std::move(navi));
 
   createVertexBuffer();
   createUniformBuffers();
@@ -106,11 +123,60 @@ void ApplicationScenegraphClustered::logic() {
   float time_delta = float(time_current - time_last);
   time_last = time_current;
 
-  auto cam = m_instance.dbCamera().get("cam");
-  cam.update(time_delta);
+  if (m_fly_phase_flag) {
+    m_navigator.update();
+    auto navi_node = m_graph.findNode("navi_cam");
+    navi_node->setLocal(m_navigator.getTransform());
+      
+    if (m_selection_phase_flag) {
+      Ray r = dynamic_cast<RayNode*>(m_graph.getRoot()->getChild("navi_cam")->getChild("ray"))->worldRay();
+      PickVisitor pick_visitor{m_instance, r};
+      m_graph.accept(pick_visitor);
 
-  // m_graph.getRoot()->getChild("sphere")->rotate(time_delta, glm::fvec3{0.0f, 1.0f, 0.0f});
-  m_instance.dbCamera().set("cam", std::move(cam));
+      if (!pick_visitor.hits().empty()) {
+        Hit closest_hit = pick_visitor.hits().front();
+        // Node* ptr_closest = pick_visitor.hits().front().getNode();
+        float dist_closest = pick_visitor.hits().front().dist();
+        for (auto const& hit : pick_visitor.hits()) {
+          if (hit.dist() < dist_closest) {
+            closest_hit = hit;
+            dist_closest = hit.dist();
+            // ptr_closest = hit.getNode();
+          }
+        }
+          m_curr_hit = closest_hit;
+          if (m_curr_hit.getNode() != nullptr)std::cout<<"curr hit" <<m_curr_hit.getNode()->getName()<<std::endl;
+        startTargetNavigation();
+      }
+    }
+  }
+  if (m_target_navi_phase_flag)
+  {
+    double elapsed_time = glfwGetTime() - m_target_navi_start;
+    if (elapsed_time < m_target_navi_duration) navigateToTarget();
+    else 
+    {
+      auto navi_node = m_graph.findNode("navi_cam");
+      m_navigator.setTransform(navi_node->getLocal());
+      m_target_navi_phase_flag = false;
+      m_target_navi_start = 0.0;
+      m_manipulation_phase_flag = true;
+      m_offset = glm::inverse(navi_node->getWorld()) * m_curr_hit.getNode()->getWorld();
+      // m_navigator.update(); 
+    }
+  }
+
+  if (m_manipulation_phase_flag) 
+  {
+    auto navi = m_graph.findNode("navi_cam");
+    m_navigator.setTransform(navi->getLocal());
+    m_last_translation = glm::vec3(navi->getLocal()[3]);
+    m_last_rotation = m_navigator.getRotation();
+    m_navigator.update();
+    navi->setLocal(m_navigator.getTransform());
+    manipulate();
+  }
+
 
   // update transforms every frame
   TransformVisitor transform_visitor{m_instance};
@@ -118,10 +184,6 @@ void ApplicationScenegraphClustered::logic() {
 
   BboxVisitor box_visitor{m_instance};
   m_graph.accept(box_visitor);
-
-  Ray r{glm::fvec3(0.0f, 1.0f, 0.0f), glm::fvec3(0.0f, 0.0f, 1.0f)};
-  PickVisitor pick_visitor{m_instance, r};
-  m_graph.accept(pick_visitor);
 }
 
 void ApplicationScenegraphClustered::updateLightGrid() {
@@ -489,8 +551,8 @@ void ApplicationScenegraphClustered::updateDescriptors() {
   m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
   m_instance.dbLight().buffer().writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
   // read
-  m_buffer_views.at("lightgrid").writeToSet(m_descriptor_sets.at("lighting"), 5, vk::DescriptorType::eUniformBuffer);
   m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
+  m_buffer_views.at("lightgrid").writeToSet(m_descriptor_sets.at("lighting"), 5, vk::DescriptorType::eUniformBuffer);
 
   m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
   m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
@@ -559,6 +621,65 @@ void ApplicationScenegraphClustered::keyCallback(int key, int scancode, int acti
   // if (key == GLFW_KEY_L && action == GLFW_PRESS) {
   //   }
   // }
+}
+
+void ApplicationScenegraphClustered::mouseCallback(GLFWwindow* window, int button, int action, int mods)
+{
+  auto app = glfwGetWindowUserPointer(window);
+  auto application = static_cast<ApplicationScenegraphClustered*>(app);
+  if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    application->m_selection_phase_flag = true;
+  else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+    application->m_selection_phase_flag = false;
+  if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    application->endTargetManipulation();
+}
+
+///////////////////////////// interaction ////////////////////////////////
+void ApplicationScenegraphClustered::startTargetNavigation()
+{
+  auto navi = m_graph.findNode("navi_cam");
+  auto ray = m_graph.findNode("ray");
+  auto ray_world = static_cast<RayNode*>(ray);
+  auto model_node = static_cast<ModelNode*>(m_curr_hit.getNode());
+
+  m_target_navi_phase_flag = true;
+  m_selection_phase_flag = false;
+  m_manipulation_phase_flag = false;
+  m_fly_phase_flag = false;
+
+  m_target_navi_start = glfwGetTime();
+
+  m_cam_old_pos = glm::vec3(navi->getLocal()[3]);
+
+  
+  auto curr_box = m_instance.dbModel().get(model_node->getModel()).getBox();
+  curr_box.transform(model_node->getWorld());
+
+  m_cam_new_pos = glm::vec3(ray_world->worldRay().direction().x, ray_world->worldRay().direction().y, ray_world->worldRay().direction().z) * (m_curr_hit.dist() * 0.5f);
+  std::cout<<"dist" << m_curr_hit.dist()<<std::endl;
+  std::cout<<"cam old pos " << m_cam_new_pos.x << " " << m_cam_new_pos.y << " " << m_cam_new_pos.z << std::endl;
+}
+
+void ApplicationScenegraphClustered::navigateToTarget()
+{
+  auto navi = m_graph.findNode("navi_cam");
+  glm::vec3 cam_curr_disp = m_cam_new_pos * m_frame_time / float(m_target_navi_duration);
+  navi->translate(cam_curr_disp);
+}
+
+void ApplicationScenegraphClustered::manipulate()
+{
+  auto navi = m_graph.findNode("navi_cam");
+  m_curr_hit.getNode()->setLocal(glm::inverse(m_curr_hit.getNode()->getParent()->getWorld()) * navi->getWorld() * m_offset);
+}
+
+void ApplicationScenegraphClustered::endTargetManipulation()
+{
+  m_fly_phase_flag = true;
+  m_selection_phase_flag = false;
+  m_target_navi_phase_flag = false;
+  m_manipulation_phase_flag = false;
 }
 
 // exe entry point
