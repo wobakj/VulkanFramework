@@ -52,7 +52,7 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
  ,m_cam_new_pos{0.0f}
 {
   // check if input file was specified
- /* if (cmd_parse.rest().size() != 1) {
+  if (cmd_parse.rest().size() != 1) {
     if (cmd_parse.rest().size() < 1) {
       std::cerr << "No filename specified" << std::endl;
     }
@@ -60,7 +60,8 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
       std::cerr << cmd_parse.usage();
     }
     exit(0);
-  }*/
+  }
+  scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
   glfwSetWindowUserPointer(window, this);
   glfwSetMouseButtonCallback(window, mouseCallback);
@@ -70,12 +71,17 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
   m_shaders.emplace("lights", Shader{m_device, {m_resource_path + "shaders/lighting_vert.spv", m_resource_path + "shaders/deferred_pbr_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
 
-  std::string sponza = "resources/scenes/sponza.json";
-  scene_loader::json(sponza, m_resource_path, &m_graph);
+  // std::string sponza = "resources/scenes/sponza.json";
+  // scene_loader::json(sponza, m_resource_path, &m_graph);
 
   auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
+  auto geo = m_graph.createGeometryNode("ray_geo", m_resource_path + "/models/sphere.obj");
+  geo->scale(glm::fvec3{.01f, 0.01f, 10.0f});
+  geo->translate(glm::fvec3{0.0f, 0.00f, -5.0f});
   auto ray = std::unique_ptr<Node>{new RayNode{"ray"}};
+  ray->translate(glm::fvec3{0.0f, -0.4f, 0.0f});
   auto navi = std::unique_ptr<Node>{new Node{"navi_cam"}};
+  ray->addChild(std::move(geo));
   navi->addChild(std::move(cam));
   navi->addChild(std::move(ray));
   m_graph.getRoot()->addChild(std::move(navi));

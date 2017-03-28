@@ -6,7 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
-const float Navigation::s_rotation_speed = 0.05f;
+const float Navigation::s_rotation_speed = 0.01f;
 const float Navigation::s_translation_speed = 1.0f;
 
 Navigation::Navigation(GLFWwindow* window)
