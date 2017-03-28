@@ -78,9 +78,7 @@ void main() {
     #ifdef ADDNA
     // set roughness
       out_Normal.a = 1.0 - texture(normalTextures[index_norm], frag_Texcoord).a;
-      if (out_Normal.a <= 0.0 ) {
-        out_Normal.a = 1.0;
-      }
+
     #endif
   }
   else {
@@ -111,6 +109,9 @@ void main() {
         out_Normal.a = materials[material.index].roughness;
     }
   #endif
+    if (out_Normal.a <= 0.0 ) {
+      out_Normal.a = 1.0;
+    }
 }
 
 mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv) {

@@ -77,7 +77,7 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
   auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
   auto geo = m_graph.createGeometryNode("ray_geo", m_resource_path + "/models/sphere.obj");
   geo->scale(glm::fvec3{.01f, 0.01f, 10.0f});
-  geo->translate(glm::fvec3{0.0f, 0.00f, -5.0f});
+  geo->translate(glm::fvec3{0.0f, 0.00f, -3.0f});
   auto ray = std::unique_ptr<Node>{new RayNode{"ray"}};
   ray->translate(glm::fvec3{0.0f, -0.4f, 0.0f});
   auto navi = std::unique_ptr<Node>{new Node{"navi_cam"}};

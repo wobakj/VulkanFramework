@@ -59,7 +59,8 @@ Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& 
   #endif
   m_instance.create(validate);
   createSurface();
-
+  // capure mouse
+  glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   std::vector<const char*> deviceExtensions = {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME
   };
