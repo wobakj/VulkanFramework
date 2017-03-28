@@ -65,6 +65,7 @@ class ApplicationScenegraph : public ApplicationSingle {
   bool m_selection_phase_flag;
   bool m_target_navi_phase_flag;
   bool m_navi_phase_flag;
+  bool m_fly_phase_flag;
   bool m_manipulation_phase_flag;
   double m_target_navi_start;
   double m_target_navi_duration;

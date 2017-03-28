@@ -41,7 +41,8 @@ ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, D
  ,m_model_loader{m_instance}
  ,m_renderer{m_instance}
  ,m_graph{"graph", m_instance}
- ,m_selection_phase_flag{true}
+ ,m_fly_phase_flag{true}
+ ,m_selection_phase_flag{false}
  ,m_target_navi_phase_flag{false}
  ,m_manipulation_phase_flag{false}
  ,m_target_navi_start{0.0}
@@ -109,31 +110,33 @@ void ApplicationScenegraph::logic() {
 
   // m_graph.getRoot()->getChild("sphere")->rotate(m_frame_time, glm::fvec3{0.0f, 1.0f, 0.0f});
 
-  Ray r = dynamic_cast<RayNode*>(m_graph.getRoot()->getChild("navi_cam")->getChild("ray"))->worldRay();
-  PickVisitor pick_visitor{m_instance, r};
-  m_graph.accept(pick_visitor);
+  if (m_fly_phase_flag) {
+    m_navigator.update();
+    auto navi_node = m_graph.findNode("navi_cam");
+    navi_node->setLocal(m_navigator.getTransform());
+      
+    if (m_selection_phase_flag) {
+      Ray r = dynamic_cast<RayNode*>(m_graph.getRoot()->getChild("navi_cam")->getChild("ray"))->worldRay();
+      PickVisitor pick_visitor{m_instance, r};
+      m_graph.accept(pick_visitor);
 
-  if (!pick_visitor.hits().empty()) {
-    Hit closest_hit = pick_visitor.hits().front();
-    // Node* ptr_closest = pick_visitor.hits().front().getNode();
-    float dist_closest = pick_visitor.hits().front().dist();
-    for (auto const& hit : pick_visitor.hits()) {
-      if (hit.dist() < dist_closest) {
-        closest_hit = hit;
-        dist_closest = hit.dist();
-        // ptr_closest = hit.getNode();
+      if (!pick_visitor.hits().empty()) {
+        Hit closest_hit = pick_visitor.hits().front();
+        // Node* ptr_closest = pick_visitor.hits().front().getNode();
+        float dist_closest = pick_visitor.hits().front().dist();
+        for (auto const& hit : pick_visitor.hits()) {
+          if (hit.dist() < dist_closest) {
+            closest_hit = hit;
+            dist_closest = hit.dist();
+            // ptr_closest = hit.getNode();
+          }
+        }
+          m_curr_hit = closest_hit;
+          if (m_curr_hit.getNode() != nullptr)std::cout<<"curr hit" <<m_curr_hit.getNode()->getName()<<std::endl;
+        startTargetNavigation();
       }
     }
-    if (m_selection_phase_flag) 
-      {
-        m_navigator.update();
-        auto navi_node = m_graph.findNode("navi_cam");
-        navi_node->setLocal(m_navigator.getTransform());
-        m_curr_hit = closest_hit;
-        if (m_curr_hit.getNode() != nullptr)std::cout<<"curr hit" <<m_curr_hit.getNode()->getName()<<std::endl;
-      }
   }
-
   if (m_target_navi_phase_flag)
   {
     double elapsed_time = glfwGetTime() - m_target_navi_start;
@@ -168,8 +171,6 @@ void ApplicationScenegraph::logic() {
 
   BboxVisitor box_visitor{m_instance};
   m_graph.accept(box_visitor);
-
-
 }
 
 void ApplicationScenegraph::updateResourceCommandBuffers(FrameResource& res) {
@@ -471,7 +472,9 @@ void ApplicationScenegraph::mouseCallback(GLFWwindow* window, int button, int ac
   auto app = glfwGetWindowUserPointer(window);
   auto application = static_cast<ApplicationScenegraph*>(app);
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    application->startTargetNavigation();
+    application->m_selection_phase_flag = true;
+  else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+    application->m_selection_phase_flag = false;
   if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
     application->endTargetManipulation();
 }
@@ -486,6 +489,7 @@ void ApplicationScenegraph::startTargetNavigation()
   m_target_navi_phase_flag = true;
   m_selection_phase_flag = false;
   m_manipulation_phase_flag = false;
+  m_fly_phase_flag = false;
 
   m_target_navi_start = glfwGetTime();
 
@@ -515,7 +519,8 @@ void ApplicationScenegraph::manipulate()
 
 void ApplicationScenegraph::endTargetManipulation()
 {
-  m_selection_phase_flag = true;
+  m_fly_phase_flag = true;
+  m_selection_phase_flag = false;
   m_target_navi_phase_flag = false;
   m_manipulation_phase_flag = false;
 }
