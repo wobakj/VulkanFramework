@@ -17,7 +17,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/string_cast.hpp>
-
+//dont load gl bindings from glfw
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 #include <iostream>
 
@@ -72,7 +74,7 @@ ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/light_grid_comp.spv"}});
 
-  m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.extent().width, m_swap_chain.extent().height, 0.1f, 500.0f, window});
+  m_instance.dbCamera().store("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
 
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
@@ -160,9 +162,9 @@ void ApplicationScenegraphClustered::updateResourceCommandBuffers(FrameResource&
 
   glm::vec3 workers(8.0f);
   res.command_buffers.at("compute")->dispatch(
-      glm::ceil(m_lightGridSize.x / workers.x),
-      glm::ceil(m_lightGridSize.y / workers.y),
-      glm::ceil(m_lightGridSize.z / workers.z));
+      uint32_t(glm::ceil(float(m_lightGridSize.x) / workers.x)),
+      uint32_t(glm::ceil(float(m_lightGridSize.y) / workers.y)),
+      uint32_t(glm::ceil(float(m_lightGridSize.z) / workers.z)));
 
   res.command_buffers.at("compute")->end();
 
@@ -547,7 +549,7 @@ void ApplicationScenegraphClustered::createUniformBuffers() {
 
 void ApplicationScenegraphClustered::onResize(std::size_t width, std::size_t height) {
   auto cam = m_instance.dbCamera().get("cam");
-  cam.setAspect(width, height);
+  cam.setAspect(float(width) /  float(height));
   m_instance.dbCamera().set("cam", std::move(cam));
 }
 

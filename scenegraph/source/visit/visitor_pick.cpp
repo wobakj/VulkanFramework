@@ -43,7 +43,7 @@ void PickVisitor::visit(Node * node)
 void PickVisitor::visit(ModelNode * node)
 {
 	auto hierarchy_hit = node->getBox().intersects(m_ray);
-	if (hierarchy_hit.success()) {
+	if (hierarchy_hit.success() && node->getName() != "ground") {
 		// calculate ray in model space
 		Ray ray_local = m_ray.transform(glm::inverse(node->getWorld()));
 		// intersect model-space bbox
