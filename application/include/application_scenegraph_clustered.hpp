@@ -47,7 +47,7 @@ class ApplicationScenegraphClustered : public ApplicationSingle {
   void createDescriptorPools();
   void createFramebufferAttachments();
   // handle key input
-  void keyCallback(int key, int scancode, int action, int mods) override;
+  static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
   static void mouseCallback(GLFWwindow* window, int button, int action, int mods);
   void updateModel();
 

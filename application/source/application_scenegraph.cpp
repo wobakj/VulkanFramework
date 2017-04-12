@@ -505,7 +505,7 @@ void ApplicationScenegraph::startTargetNavigation()
   auto curr_box = m_instance.dbModel().get(model_node->getModel()).getBox();
   curr_box.transform(model_node->getWorld());
 
-  m_cam_new_pos = glm::vec3(ray_world->worldRay().direction().x, ray_world->worldRay().direction().y, ray_world->worldRay().direction().z) * (m_curr_hit.dist() * 0.5f);
+  m_cam_new_pos = glm::vec3(ray_world->worldRay().direction().x, ray_world->worldRay().direction().y, ray_world->worldRay().direction().z) * (m_curr_hit.dist() * 0.3f);
   std::cout<<"dist" << m_curr_hit.dist()<<std::endl;
   std::cout<<"cam old pos " << m_cam_new_pos.x << " " << m_cam_new_pos.y << " " << m_cam_new_pos.z << std::endl;
 }

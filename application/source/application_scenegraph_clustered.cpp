@@ -78,6 +78,10 @@ ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const
   }
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
+  glfwSetWindowUserPointer(window, this);
+  glfwSetMouseButtonCallback(window, mouseCallback);
+  glfwSetKeyCallback(window, keyCallback);
+
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
@@ -120,6 +124,7 @@ void ApplicationScenegraphClustered::logic() {
   static double time_last = glfwGetTime();
   // calculate delta time
   double time_current = glfwGetTime();
+  m_frame_time = float(time_current - time_last);
   float time_delta = float(time_current - time_last);
   time_last = time_current;
 
@@ -617,9 +622,7 @@ void ApplicationScenegraphClustered::onResize(std::size_t width, std::size_t hei
 
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
-void ApplicationScenegraphClustered::keyCallback(int key, int scancode, int action, int mods) {
-  // if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-  //   }
+void ApplicationScenegraphClustered::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   // }
 }
 
