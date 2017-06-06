@@ -32,6 +32,9 @@ set(GLOBAL_EXT_DIR ${CMAKE_SOURCE_DIR}/external)
 include(FindDependency)
 include(AddSubLibrary)
 
+#open mpi
+find_package(MPI REQUIRED)
+
 # vulkan SDK
 find_package(Vulkan REQUIRED)
 include_directories(${VULKAN_INCLUDE_DIR})
@@ -104,6 +107,11 @@ install(TARGETS vulkan_threaded_min DESTINATION .)
 add_executable(vulkan_lod application/source/application_lod.cpp)
 target_link_libraries(vulkan_lod framework)
 install(TARGETS vulkan_lod DESTINATION .)
+
+add_executable(vulkan_lod_mpi application/source/application_lod_mpi.cpp)
+target_link_libraries(vulkan_lod_mpi framework ${MPI_CXX_LIBRARIES})
+target_include_directories(vulkan_lod_mpi SYSTEM PRIVATE ${MPI_CXX_INCLUDE_PATH})
+install(TARGETS vulkan_lod_mpi DESTINATION .)
 
 add_executable(vulkan_lod_single application/source/application_lod_single.cpp)
 target_link_libraries(vulkan_lod_single framework)

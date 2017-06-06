@@ -10,7 +10,7 @@
 #include <queue>
 #include <set>
 
-#define FULL_UPLOAD
+// #define FULL_UPLOAD
 
 template<typename T, typename U>
 bool contains(T const& container, U const& element) {
