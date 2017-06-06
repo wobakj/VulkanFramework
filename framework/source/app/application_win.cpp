@@ -84,3 +84,12 @@ void ApplicationWin::resize(std::size_t width, std::size_t height) {
 
   Application::resize(width, height);
 }
+
+void ApplicationWin::logic() {
+  static double time_last = glfwGetTime();
+  // calculate delta time
+  double time_current = glfwGetTime();
+  float time_delta = float(time_current - time_last);
+  time_last = time_current;
+  m_camera.update(time_delta);
+}

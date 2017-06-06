@@ -34,11 +34,6 @@ FrameResource Application::createFrameResource() {
 }
 
 void Application::frame() {
-  static double time_last = glfwGetTime();
-  // calculate delta time
-  double time_current = glfwGetTime();
-  float time_delta = float(time_current - time_last);
-  time_last = time_current;
   // do logic
   logic();
   // do actual rendering

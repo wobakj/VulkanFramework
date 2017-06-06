@@ -30,7 +30,7 @@ class ApplicationWin : public Application {
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);
   virtual void presentFrame(FrameResource& res, vk::Queue const&);
-
+  void logic() override;
   // container for the shader programs
   Camera m_camera;
   SwapChain m_swap_chain;
