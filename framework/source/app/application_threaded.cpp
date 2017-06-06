@@ -24,7 +24,7 @@ ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Devic
 ApplicationThreaded::~ApplicationThreaded() {
   std::cout << std::endl;
   std::cout << "Average present semaphore time: " << m_statistics.get("sema_present") << " milliseconds " << std::endl;
-  std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
+  // std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
   std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds " << std::endl;
   std::cout << "Average record time: " << m_statistics.get("record") << " milliseconds " << std::endl;
   std::cout << std::endl;
@@ -84,9 +84,7 @@ void ApplicationThreaded::present() {
   auto frame_present = pullForPresent();
   // present frame if one is avaible
   if (frame_present >= 0) {
-    m_statistics.start("queue_present");
-    presentFrame(m_frame_resources.at(frame_present), m_device.getQueue("present"));
-    m_statistics.stop("queue_present");
+    presentFrame(m_frame_resources.at(frame_present));
     m_queue_record_frames.push(uint32_t(frame_present));
   }  
 }
@@ -104,10 +102,7 @@ void ApplicationThreaded::render() {
   auto frame_record = pullForRecord();
   // get resource to record
   auto& resource_record = m_frame_resources.at(frame_record);
-  // wait for last acquisition until acquiring again
-  m_statistics.start("fence_acquire");
-  resource_record.fence("acquire").wait();
-  m_statistics.stop("fence_acquire");
+
   acquireImage(resource_record);
   recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing

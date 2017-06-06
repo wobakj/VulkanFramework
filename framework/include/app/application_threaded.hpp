@@ -6,7 +6,6 @@
 #include "app/application_win.hpp"
 #include "semaphore.hpp"
 #include "frame_resource.hpp"
-#include "statistics.hpp"
 
 #include <vector>
 #include <atomic>
@@ -53,7 +52,6 @@ class ApplicationThreaded : public ApplicationWin {
   virtual void present();
   virtual void draw();
   std::atomic<bool> m_should_draw;
-  Statistics m_statistics;
 
  private:
   virtual void render() override;

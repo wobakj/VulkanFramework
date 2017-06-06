@@ -3,7 +3,6 @@
 
 #include "app/application_win.hpp"
 #include "frame_resource.hpp"
-#include "statistics.hpp"
 
 class Surface;
 
@@ -29,7 +28,6 @@ class ApplicationSingle : public ApplicationWin {
   virtual FrameResource createFrameResource();
   
   FrameResource m_frame_resource;
-  Statistics m_statistics;
 
  private:
   void render() override;

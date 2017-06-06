@@ -3,6 +3,7 @@
 
 #include "app/application.hpp"
 #include "wrap/swap_chain.hpp"
+#include "statistics.hpp"
 
 #include "camera.hpp"
 
@@ -16,7 +17,7 @@ class ApplicationWin : public Application {
   // allocate and initialize objects
   ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse);
   // free resources
-  virtual ~ApplicationWin(){};
+  virtual ~ApplicationWin();
 
   // react to key input
   inline virtual void keyCallback(int key, int scancode, int action, int mods) {};
@@ -34,6 +35,7 @@ class ApplicationWin : public Application {
   // container for the shader programs
   Camera m_camera;
   SwapChain m_swap_chain;
+  Statistics m_statistics;
 
  private:
   // create chain

@@ -20,6 +20,15 @@ ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device,
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
 {
   createSwapChain(surf, cmd_parse, image_count);
+
+  m_statistics.addTimer("fence_acquire");
+  m_statistics.addTimer("queue_present");
+}
+
+ApplicationWin::~ApplicationWin() {
+  std::cout << std::endl;
+  std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
+  std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
 }
 
 void ApplicationWin::createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t image_count) {
@@ -45,6 +54,11 @@ FrameResource ApplicationWin::createFrameResource() {
 }
 
 void ApplicationWin::acquireImage(FrameResource& res) {
+  // wait for last acquisition until acquiring again
+  m_statistics.start("fence_acquire");
+  res.fence("acquire").wait();
+  m_statistics.stop("fence_acquire");
+
   res.fence("acquire").reset();
   auto result = m_device->acquireNextImageKHR(m_swap_chain, 1000, res.semaphore("acquire"), res.fence("acquire"), &res.image);
   if (result == vk::Result::eErrorOutOfDateKHR) {
@@ -65,6 +79,8 @@ void ApplicationWin::presentFrame(FrameResource& res) {
 }
 
 void ApplicationWin::presentFrame(FrameResource& res, vk::Queue const& queue) {
+   m_statistics.start("queue_present");
+  
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = &res.semaphore("draw");
@@ -76,6 +92,7 @@ void ApplicationWin::presentFrame(FrameResource& res, vk::Queue const& queue) {
   // do wait before present to prevent cpu stalling
   m_device.getQueue("present").waitIdle();
   queue.presentKHR(presentInfo);
+  m_statistics.stop("queue_present");
 }
 
 void ApplicationWin::resize(std::size_t width, std::size_t height) {
