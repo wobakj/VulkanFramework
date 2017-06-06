@@ -95,10 +95,6 @@ void Launcher::mainLoop() {
   // resize(m_window, m_window_width, m_window_height);
   m_device->waitIdle();
 
-  // do before framebuffer_resize call as it requires the projection uniform location
-  // throw exception if shader compilation was unsuccessfull
-  // update_shader_programs(true);
-
   // rendering loop
   while (!glfwWindowShouldClose(m_window)) {
     // query input
@@ -111,12 +107,6 @@ void Launcher::mainLoop() {
 
   quit(EXIT_SUCCESS);
 }
-
-// void Launcher::createSurface() {
-//   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
-//     throw std::runtime_error("failed to create window surface!");
-//   }
-// }
 
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view

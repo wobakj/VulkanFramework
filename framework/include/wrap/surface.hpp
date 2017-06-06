@@ -21,7 +21,8 @@ class Surface : public WrapperSurface {
   Surface& operator=(Surface&& dev);
 
   void swap(Surface& dev);
-  GLFWwindow const& window() const;
+  // GLFWwindow const& window() const;
+  GLFWwindow& window() const;
 
  private:
   void destroy() override;

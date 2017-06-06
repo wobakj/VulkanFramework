@@ -33,8 +33,8 @@ class Launcher {
   // run application
   template<typename T>
   void runApp(cmdline::parser const& cmd_parse){
-    m_application = new T{m_resource_path, m_device, m_surface, m_window, cmd_parse};
-// >>>>>>> 9548162... implement ApplicationWin clas that owns a swapchain for presenting, camera not update anymore
+    m_application = new T{m_resource_path, m_device, m_surface, cmd_parse};
+
     mainLoop();
   };
   
@@ -80,8 +80,6 @@ class Launcher {
 
   Instance m_instance;
   Device m_device;
-  // SwapChain m_swap_chain;
-  // Deleter<VkSurfaceKHR> m_surface;
   Surface m_surface;
 
   const std::vector<const char*> m_validation_layers;

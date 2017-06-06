@@ -25,7 +25,7 @@
 
 class ApplicationLodMpi : public ApplicationThreadedTransfer {
  public:
-  ApplicationLodMpi(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationLodMpi(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLodMpi();
   static cmdline::parser getParser(); 
   static const uint32_t imageCount;

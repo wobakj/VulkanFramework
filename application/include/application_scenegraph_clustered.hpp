@@ -20,7 +20,7 @@
 
 class ApplicationScenegraphClustered : public ApplicationSingle {
  public:
-  ApplicationScenegraphClustered(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationScenegraphClustered(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraphClustered();
   static const uint32_t imageCount;
   static cmdline::parser getParser(); 
@@ -75,10 +75,10 @@ class ApplicationScenegraphClustered : public ApplicationSingle {
   glm::uvec2 m_tileSize;
   std::array<glm::vec4, 4> m_nearFrustumCornersClipSpace;
   // interaction
+  bool m_fly_phase_flag;
   bool m_selection_phase_flag;
   bool m_target_navi_phase_flag;
   bool m_navi_phase_flag;
-  bool m_fly_phase_flag;
   bool m_manipulation_phase_flag;
   double m_target_navi_start;
   double m_target_navi_duration;

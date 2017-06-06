@@ -25,7 +25,7 @@
 
 class ApplicationLod : public ApplicationThreadedTransfer {
  public:
-  ApplicationLod(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationLod(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLod();
   static cmdline::parser getParser(); 
   static const uint32_t imageCount;

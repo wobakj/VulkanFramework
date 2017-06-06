@@ -7,8 +7,9 @@ cmdline::parser ApplicationThreaded::getParser() {
   return ApplicationWin::getParser();
 }
 
-ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse, uint32_t num_frames) 
- :ApplicationWin{resource_path, device, surf, window, cmd_parse}
+ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
+ :ApplicationWin{resource_path, device, surf, cmd_parse}
+
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_present{num_frames}

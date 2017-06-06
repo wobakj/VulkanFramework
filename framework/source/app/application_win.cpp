@@ -1,5 +1,7 @@
 #include "app/application_win.hpp"
 
+#include "wrap/surface.hpp"
+
 #include "frame_resource.hpp"
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
@@ -16,14 +18,14 @@ cmdline::parser ApplicationWin::getParser() {
   return cmd_parse;
 }
 
-ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse)
+ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse)
  :Application{resource_path, device, cmd_parse}
- ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, window}
+ ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
 {
   // createSwapChain(surf, cmd_parse, image_count);
 }
 
-void ApplicationWin::createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse, uint32_t image_count) {
+void ApplicationWin::createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t image_count) {
   vk::PresentModeKHR present_mode{};
   std::string mode = cmd_parse.get<std::string>("present");
   if (mode == "fifo") {
@@ -79,10 +81,9 @@ void ApplicationWin::presentFrame(FrameResource& res, vk::Queue const& queue) {
   queue.presentKHR(presentInfo);
 }
 
-
 void ApplicationWin::resize(std::size_t width, std::size_t height) {
   m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
-
   m_camera.setAspect(float(width) / float(height));
+
   Application::resize(width, height);
 }

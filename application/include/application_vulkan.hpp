@@ -14,7 +14,7 @@
 
 class ApplicationVulkan : public ApplicationSingle {
  public:
-  ApplicationVulkan(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationVulkan(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationVulkan();
   static const uint32_t imageCount;
   static cmdline::parser getParser(); 

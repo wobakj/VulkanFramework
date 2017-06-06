@@ -45,6 +45,10 @@ void Surface::swap(Surface& rhs) {
   std::swap(m_instance, rhs.m_instance);
 }
 
-GLFWwindow const& Surface::window() const {
+// GLFWwindow const& Surface::window() const {
+//   return *info();
+// }
+
+GLFWwindow& Surface::window() const {
   return *info();
 }

@@ -1,5 +1,7 @@
 #include "app/application_single.hpp"
 
+#include "wrap/surface.hpp"
+
 #include <vulkan/vulkan.hpp>
 
 // child classes must overwrite
@@ -9,8 +11,8 @@ cmdline::parser ApplicationSingle::getParser() {
   return ApplicationWin::getParser();
 }
 
-ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationWin{resource_path, device, surf, window, cmd_parse}
+ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
+ :ApplicationWin{resource_path, device, surf, cmd_parse}
 {
   createSwapChain(surf, cmd_parse, imageCount);
 

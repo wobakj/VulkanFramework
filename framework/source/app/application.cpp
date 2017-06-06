@@ -19,11 +19,8 @@ cmdline::parser Application::getParser() {
 Application::Application(std::string const& resource_path, Device& device, cmdline::parser const& cmd_parse)
 
  :m_resource_path{resource_path}
- // ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, window}
  ,m_device(device)
- // ,m_swap_chain(chain)
  ,m_pipeline_cache{m_device}
- // ,m_transferrer{m_device}
 {
   createMemoryPools();
   createCommandPools();
@@ -79,8 +76,6 @@ void Application::updateShaderPrograms() {
 }
 
 void Application::resize(std::size_t width, std::size_t height) {
-  // m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
-  // m_camera.setAspect(float(width) / float(height));
   // draw queue is emptied in launcher::resize
   createFramebufferAttachments();
   createFramebuffers();

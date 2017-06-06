@@ -9,11 +9,12 @@
 #include "cmdline.h"
 
 class FrameResource;
+class Surface;
 
 class ApplicationWin : public Application {
  public:
   // allocate and initialize objects
-  ApplicationWin(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   // free resources
   virtual ~ApplicationWin(){};
 
@@ -26,13 +27,12 @@ class ApplicationWin : public Application {
 
  protected:
   // create chain
-  void createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse, uint32_t img_count);
-  virtual FrameResource createFrameResource() override;
+  void createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t img_count);
   
+  virtual FrameResource createFrameResource() override;
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);
   virtual void presentFrame(FrameResource& res, vk::Queue const&);
-  // virtual void onResize(std::size_t width, std::size_t height);
 
   // container for the shader programs
   Camera m_camera;
