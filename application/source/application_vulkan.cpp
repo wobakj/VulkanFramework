@@ -1,6 +1,6 @@
 #include "application_vulkan.hpp"
 
-#include "app/launcher.hpp"
+#include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
@@ -345,5 +345,5 @@ void ApplicationVulkan::keyCallback(int key, int scancode, int action, int mods)
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  Launcher::run<ApplicationVulkan>(argc, argv);
+  LauncherWin::run<ApplicationVulkan>(argc, argv);
 }

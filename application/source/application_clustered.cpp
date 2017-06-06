@@ -1,6 +1,6 @@
 #include "application_clustered.hpp"
 
-#include "app/launcher.hpp"
+#include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
@@ -501,5 +501,5 @@ void ApplicationClustered::keyCallback(int key, int scancode, int action, int mo
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  Launcher::run<ApplicationClustered>(argc, argv);
+  LauncherWin::run<ApplicationClustered>(argc, argv);
 }

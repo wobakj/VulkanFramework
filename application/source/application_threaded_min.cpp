@@ -1,6 +1,6 @@
 #include "application_threaded_min.hpp"
 
-#include "app/launcher.hpp"
+#include "app/launcher_win.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
 
@@ -135,5 +135,5 @@ void ApplicationThreadedMin::createFramebufferAttachments() {
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  Launcher::run<ApplicationThreadedMin>(argc, argv);
+  LauncherWin::run<ApplicationThreadedMin>(argc, argv);
 }

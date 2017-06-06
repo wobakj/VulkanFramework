@@ -1,6 +1,6 @@
 #include "application_lod_mpi.hpp"
 
-#include "app/launcher.hpp"
+#include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
@@ -495,6 +495,6 @@ int main(int argc, char* argv[]) {
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
   if (MPI::COMM_WORLD.Get_rank() == 0) {
-    Launcher::run<ApplicationLodMpi>(argc, argv);
+    LauncherWin::run<ApplicationLodMpi>(argc, argv);
   }
 }

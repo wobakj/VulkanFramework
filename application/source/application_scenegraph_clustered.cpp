@@ -1,6 +1,6 @@
 #include "application_scenegraph_clustered.hpp"
 
-#include "app/launcher.hpp"
+#include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
@@ -688,5 +688,5 @@ void ApplicationScenegraphClustered::endTargetManipulation()
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  Launcher::run<ApplicationScenegraphClustered>(argc, argv);
+  LauncherWin::run<ApplicationScenegraphClustered>(argc, argv);
 }

@@ -50,15 +50,15 @@ bool checkValidationLayerSupport(std::vector<std::string> const& validationLayer
 }
 
 bool checkDeviceExtensionSupport(vk::PhysicalDevice device, std::vector<const char*> const& deviceExtensions) {
-    auto availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
+  auto availableExtensions = device.enumerateDeviceExtensionProperties(nullptr);
 
-    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+  std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-    for (const auto& extension : availableExtensions) {
-        requiredExtensions.erase(extension.extensionName);
-    }
+  for (const auto& extension : availableExtensions) {
+      requiredExtensions.erase(extension.extensionName);
+  }
 
-    return requiredExtensions.empty();
+  return requiredExtensions.empty();
 }
 
 bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions) {
