@@ -14,15 +14,12 @@
 #include <iostream>
 #include <chrono>
 
-// child classes must overwrite
-const uint32_t ApplicationThreadedMin::imageCount = 3;
-
 cmdline::parser ApplicationThreadedMin::getParser() {
   return ApplicationThreaded::getParser();
 }
 
-ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationThreaded{resource_path, device, surf, window, cmd_parse}
+ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
+ :ApplicationThreaded{resource_path, device, surf, cmd_parse}
 {  
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/solid_frag.spv"}});
 

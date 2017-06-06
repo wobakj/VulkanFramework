@@ -18,10 +18,10 @@ class Surface;
 class ApplicationThreaded : public ApplicationWin {
  public:
   // possibly override number of frames in abstract child classes
-  ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames = imageCount - 1);
+  ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames = 2);
   virtual ~ApplicationThreaded();
 
-  static const uint32_t imageCount;
+  
   void emptyDrawQueue() override;
   // default parser without arguments
   static cmdline::parser getParser();

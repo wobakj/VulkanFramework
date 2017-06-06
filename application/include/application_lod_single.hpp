@@ -27,8 +27,8 @@ class ApplicationLodSingle : public ApplicationSingle {
  public:
   ApplicationLodSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLodSingle();
+  
   static cmdline::parser getParser(); 
-  static const uint32_t imageCount;
 
  private:
   void recordTransferBuffer(FrameResource& res);

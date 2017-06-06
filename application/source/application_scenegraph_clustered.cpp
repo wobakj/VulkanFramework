@@ -40,15 +40,12 @@ struct LightGridBufferObject {
   glm::vec4 frustum_corners[4];
 };
 
-// child classes must overwrite
-const uint32_t ApplicationScenegraphClustered::imageCount = 2;
-
 cmdline::parser ApplicationScenegraphClustered::getParser() {
   return ApplicationSingle::getParser();
 }
 
-ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationSingle{resource_path, device, surf, window, cmd_parse}
+ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
+ :ApplicationSingle{resource_path, device, surf, cmd_parse}
  ,m_instance{m_device, m_command_pools.at("transfer")}
  ,m_model_loader{m_instance}
  ,m_renderer{m_instance}
@@ -66,7 +63,7 @@ ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const
  ,m_manipulation_phase_flag{false}
  ,m_target_navi_start{0.0}
  ,m_target_navi_duration{3.0}
- ,m_navigator{window}
+ ,m_navigator{&surf.window()}
  ,m_cam_old_pos{0.0f}
  ,m_cam_new_pos{0.0f}
 {
@@ -82,16 +79,16 @@ ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const
   }
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
-  glfwSetWindowUserPointer(window, this);
-  glfwSetMouseButtonCallback(window, mouseCallback);
-  glfwSetKeyCallback(window, keyCallback);
+  glfwSetWindowUserPointer(&surf.window(), this);
+  glfwSetMouseButtonCallback(&surf.window(), mouseCallback);
+  glfwSetKeyCallback(&surf.window(), keyCallback);
 
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/light_grid_comp.spv"}});
 
-  auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, window});
+  auto cam = m_graph.createCameraNode("cam", Camera{45.0f, m_swap_chain.aspect(), 0.1f, 500.0f, &surf.window()});
   auto geo = m_graph.createGeometryNode("ray_geo", m_resource_path + "/models/sphere.obj");
   geo->scale(glm::fvec3{.01f, 0.01f, 10.0f});
   geo->translate(glm::fvec3{0.0f, 0.00f, -3.0f});

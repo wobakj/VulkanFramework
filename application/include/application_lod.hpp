@@ -27,8 +27,8 @@ class ApplicationLod : public ApplicationThreadedTransfer {
  public:
   ApplicationLod(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLod();
-  static cmdline::parser getParser(); 
-  static const uint32_t imageCount;
+  
+  static cmdline::parser getParser();
 
  private:
   void recordTransferBuffer(FrameResource& res) override;

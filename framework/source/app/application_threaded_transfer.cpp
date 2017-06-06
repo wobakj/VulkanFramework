@@ -3,20 +3,15 @@
 // c++ wrapper
 #include <vulkan/vulkan.hpp>
 
-// child classes must overwrite
-const uint32_t ApplicationThreadedTransfer::imageCount = 4;
-
 cmdline::parser ApplicationThreadedTransfer::getParser() {
   return ApplicationThreaded::getParser();
 }
 
 ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
- :ApplicationThreaded{resource_path, device, surf, cmd_parse, imageCount - 1}
+ :ApplicationThreaded{resource_path, device, surf, cmd_parse, 3}
  ,m_semaphore_transfer{0}
  ,m_should_transfer{true}
 {
-  createSwapChain(surf, cmd_parse, imageCount);
-  
   m_statistics.addTimer("fence_transfer");
   m_statistics.addTimer("sema_transfer");
   m_statistics.addTimer("transfer");

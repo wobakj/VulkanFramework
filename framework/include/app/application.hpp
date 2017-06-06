@@ -44,7 +44,7 @@ class Application {
   // default parser without arguments
   static cmdline::parser getParser();
 
-  static const uint32_t imageCount;
+  
 
  protected:
   // call at construction

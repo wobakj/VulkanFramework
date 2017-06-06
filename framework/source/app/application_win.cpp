@@ -9,20 +9,17 @@
 
 #include <iostream>
 
-// child classes must overwrite
-const uint32_t ApplicationWin::imageCount = 0;
-
 cmdline::parser ApplicationWin::getParser() {
   cmdline::parser cmd_parse{Application::getParser()};
   cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
   return cmd_parse;
 }
 
-ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse)
+ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse)
  :Application{resource_path, device, cmd_parse}
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
 {
-  // createSwapChain(surf, cmd_parse, image_count);
+  createSwapChain(surf, cmd_parse, image_count);
 }
 
 void ApplicationWin::createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t image_count) {

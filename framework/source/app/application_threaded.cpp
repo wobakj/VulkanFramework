@@ -1,22 +1,16 @@
 #include "app/application_threaded.hpp"
 
-// child classes must overwrite
-const uint32_t ApplicationThreaded::imageCount = 3;
-
 cmdline::parser ApplicationThreaded::getParser() {
   return ApplicationWin::getParser();
 }
 
 ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
- :ApplicationWin{resource_path, device, surf, cmd_parse}
-
+ :ApplicationWin{resource_path, device, surf, 3, cmd_parse}
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_present{num_frames}
  ,m_should_draw{true}
 {
-  createSwapChain(surf, cmd_parse, imageCount);
-
   m_statistics.addTimer("sema_present");
   m_statistics.addTimer("sema_draw");
   m_statistics.addTimer("fence_draw");

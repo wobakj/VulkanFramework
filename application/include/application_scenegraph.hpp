@@ -22,7 +22,7 @@ class ApplicationScenegraph : public ApplicationSingle {
  public:
   ApplicationScenegraph(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraph();
-  static const uint32_t imageCount;
+
   static cmdline::parser getParser(); 
 
   Scenegraph& getGraph();
@@ -63,10 +63,10 @@ class ApplicationScenegraph : public ApplicationSingle {
   Renderer m_renderer;
   Scenegraph m_graph;
   std::map<std::string, ModelNode> m_nodes;
+  bool m_fly_phase_flag;
   bool m_selection_phase_flag;
   bool m_target_navi_phase_flag;
   bool m_navi_phase_flag;
-  bool m_fly_phase_flag;
   bool m_manipulation_phase_flag;
   double m_target_navi_start;
   double m_target_navi_duration;

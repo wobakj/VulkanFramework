@@ -21,11 +21,9 @@
 cmdline::parser ApplicationCompute::getParser() {
   return ApplicationSingle::getParser();
 }
-// child classes must overwrite
-const uint32_t ApplicationCompute::imageCount = 2;
 
-ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationSingle{resource_path, device, surf, window, cmd_parse}
+ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
+ :ApplicationSingle{resource_path, device, surf, cmd_parse}
 {  
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/transfer_frag.spv"}});
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});

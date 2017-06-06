@@ -4,18 +4,13 @@
 
 #include <vulkan/vulkan.hpp>
 
-// child classes must overwrite
-const uint32_t ApplicationSingle::imageCount = 2;
-
 cmdline::parser ApplicationSingle::getParser() {
   return ApplicationWin::getParser();
 }
 
 ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
- :ApplicationWin{resource_path, device, surf, cmd_parse}
+ :ApplicationWin{resource_path, device, surf, 2, cmd_parse}
 {
-  createSwapChain(surf, cmd_parse, imageCount);
-
   m_statistics.addTimer("gpu_draw");
   m_statistics.addTimer("render");
   m_statistics.addTimer("fence_acquire");

@@ -21,7 +21,7 @@ class ApplicationCompute : public ApplicationSingle {
  public:
   ApplicationCompute(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationCompute();
-  static const uint32_t imageCount;
+
   static cmdline::parser getParser(); 
 
  private:

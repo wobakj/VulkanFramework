@@ -11,7 +11,7 @@ class ApplicationSingle : public ApplicationWin {
  public:
   ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationSingle();
-  static const uint32_t imageCount;
+  
   
   void emptyDrawQueue() override;
   // default parser without arguments

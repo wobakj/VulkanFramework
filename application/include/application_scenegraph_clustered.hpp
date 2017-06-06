@@ -22,7 +22,7 @@ class ApplicationScenegraphClustered : public ApplicationSingle {
  public:
   ApplicationScenegraphClustered(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraphClustered();
-  static const uint32_t imageCount;
+
   static cmdline::parser getParser(); 
   
  private:

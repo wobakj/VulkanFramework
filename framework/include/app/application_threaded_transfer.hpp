@@ -11,11 +11,9 @@ class ApplicationThreadedTransfer : public ApplicationThreaded {
  public:
   ApplicationThreadedTransfer(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   virtual ~ApplicationThreadedTransfer();
-  
-  static const uint32_t imageCount;
-  // default parser without arguments
+
   static cmdline::parser getParser();
-  
+
  protected:
   virtual FrameResource createFrameResource() override;
   void startTransferThread();

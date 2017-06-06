@@ -14,7 +14,7 @@ class Surface;
 class ApplicationWin : public Application {
  public:
   // allocate and initialize objects
-  ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
+  ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse);
   // free resources
   virtual ~ApplicationWin(){};
 
@@ -23,12 +23,9 @@ class ApplicationWin : public Application {
   void resize(std::size_t width, std::size_t height) override;
   static cmdline::parser getParser(); 
 
-  static const uint32_t imageCount;
+  
 
  protected:
-  // create chain
-  void createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t img_count);
-  
   virtual FrameResource createFrameResource() override;
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);
@@ -37,6 +34,10 @@ class ApplicationWin : public Application {
   // container for the shader programs
   Camera m_camera;
   SwapChain m_swap_chain;
+
+ private:
+  // create chain
+  void createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t img_count);
 };
 
 #endif

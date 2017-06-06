@@ -8,9 +8,6 @@
 
 #include <iostream>
 
-// child classes must overwrite
-const uint32_t Application::imageCount = 0;
-
 cmdline::parser Application::getParser() {
   cmdline::parser cmd_parse{};
   return cmd_parse;
