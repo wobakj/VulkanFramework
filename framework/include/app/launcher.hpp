@@ -4,6 +4,7 @@
 #include "wrap/device.hpp"
 #include "wrap/instance.hpp"
 #include "wrap/swap_chain.hpp"
+#include "wrap/surface.hpp"
 
 #include "cmdline.h"
 
@@ -32,21 +33,8 @@ class Launcher {
   // run application
   template<typename T>
   void runApp(cmdline::parser const& cmd_parse){
-    // vk::PresentModeKHR present_mode{};
-    // std::string mode = cmd_parse.get<std::string>("present");
-    // if (mode == "fifo") {
-    //   present_mode = vk::PresentModeKHR::eFifo;
-    // }
-    // else if (mode == "mailbox") {
-    //   present_mode = vk::PresentModeKHR::eMailbox;
-    // }
-    // else if (mode == "immediate") {
-    //   present_mode = vk::PresentModeKHR::eImmediate;
-    // }
-    // m_swap_chain.create(m_device, vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height}, present_mode, T::imageCount);
-
-    // m_application = new T{m_resource_path, m_device, m_swap_chain, m_window, cmd_parse};
-    m_application = new T{m_resource_path, m_device, vk::SurfaceKHR{m_surface}, m_window, cmd_parse};
+    m_application = new T{m_resource_path, m_device, m_surface, m_window, cmd_parse};
+// >>>>>>> 9548162... implement ApplicationWin clas that owns a swapchain for presenting, camera not update anymore
     mainLoop();
   };
   
@@ -54,7 +42,6 @@ class Launcher {
   static cmdline::parser getParser() {
     auto cmd_parse = T::getParser();
     cmd_parse.add("debug", 'd', "debug with validation layers");
-    // cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
     return cmd_parse;
   }
 
@@ -94,7 +81,8 @@ class Launcher {
   Instance m_instance;
   Device m_device;
   // SwapChain m_swap_chain;
-  Deleter<VkSurfaceKHR> m_surface;
+  // Deleter<VkSurfaceKHR> m_surface;
+  Surface m_surface;
 
   const std::vector<const char*> m_validation_layers;
 };

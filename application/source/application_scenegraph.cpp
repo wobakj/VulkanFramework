@@ -104,7 +104,7 @@ Scenegraph& ApplicationScenegraph::getGraph(){
 }
 
 FrameResource ApplicationScenegraph::createFrameResource() {
-  auto res = Application::createFrameResource();
+  auto res = ApplicationSingle::createFrameResource();
   res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("lighting", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.command_buffers.emplace("tonemapping", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));

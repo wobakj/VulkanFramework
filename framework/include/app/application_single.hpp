@@ -1,13 +1,13 @@
 #ifndef APPLICATION_SINGLE_HPP
 #define APPLICATION_SINGLE_HPP
 
-#include "app/application.hpp"
+#include "app/application_win.hpp"
 #include "frame_resource.hpp"
 #include "statistics.hpp"
 
-class ApplicationSingle : public Application {
+class ApplicationSingle : public ApplicationWin {
  public:
-  ApplicationSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationSingle();
   static const uint32_t imageCount;
   

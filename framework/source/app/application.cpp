@@ -13,45 +13,28 @@ const uint32_t Application::imageCount = 0;
 
 cmdline::parser Application::getParser() {
   cmdline::parser cmd_parse{};
-  // cmd_parse.add("debug", 'd', "debug with validation layers");
-  cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
   return cmd_parse;
 }
 
-Application::Application(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse)
+Application::Application(std::string const& resource_path, Device& device, cmdline::parser const& cmd_parse)
+
  :m_resource_path{resource_path}
- ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, window}
+ // ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, window}
  ,m_device(device)
  // ,m_swap_chain(chain)
  ,m_pipeline_cache{m_device}
  // ,m_transferrer{m_device}
 {
-  createSwapChain(chain, cmd_parse);
   createMemoryPools();
   createCommandPools();
 
   m_transferrer = Transferrer{m_command_pools.at("transfer")};
 }
-void Application::createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse) {
-  vk::PresentModeKHR present_mode{};
-  std::string mode = cmd_parse.get<std::string>("present");
-  if (mode == "fifo") {
-  }
-  else if (mode == "mailbox") {
-    present_mode = vk::PresentModeKHR::eMailbox;
-  }
-  else if (mode == "immediate") {
-    present_mode = vk::PresentModeKHR::eImmediate;
-  }
-    // present_mode = vk::PresentModeKHR::eFifo;
-  m_swap_chain.create(m_device, surf, vk::Extent2D{1280, 720}, present_mode, 2);
-}
+
 FrameResource Application::createFrameResource() {
   auto res = FrameResource{m_device};
-  res.addSemaphore("acquire");
   res.addSemaphore("draw");
   res.addFence("draw");
-  res.addFence("acquire");
   res.addCommandBuffer("draw", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
   return res;
 }
@@ -62,46 +45,10 @@ void Application::frame() {
   double time_current = glfwGetTime();
   float time_delta = float(time_current - time_last);
   time_last = time_current;
-  // update buffers
-  m_camera.update(time_delta);
   // do logic
   logic();
   // do actual rendering
   render();
-}
-
-void Application::acquireImage(FrameResource& res) {
-  res.fence("acquire").reset();
-  auto result = m_device->acquireNextImageKHR(m_swap_chain, 1000, res.semaphore("acquire"), res.fence("acquire"), &res.image);
-  if (result == vk::Result::eErrorOutOfDateKHR) {
-      // handle swapchain recreation
-      // recreateSwapChain();
-      throw std::runtime_error("swapchain out if date!");
-  } 
-  else if (result == vk::Result::eTimeout) {
-      throw std::runtime_error("image requiest time out!");
-  }
-  else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-      throw std::runtime_error("failed to acquire swap chain image!");
-  }
-}
-
-void Application::presentFrame(FrameResource& res) {
-  presentFrame(res, m_device.getQueue("present"));
-}
-
-void Application::presentFrame(FrameResource& res, vk::Queue const& queue) {
-  vk::PresentInfoKHR presentInfo{};
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &res.semaphore("draw");
-
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = &m_swap_chain.get();
-  presentInfo.pImageIndices = &res.image;
-
-  // do wait before present to prevent cpu stalling
-  m_device.getQueue("present").waitIdle();
-  queue.presentKHR(presentInfo);
 }
 
 void Application::submitDraw(FrameResource& res) {
@@ -132,9 +79,8 @@ void Application::updateShaderPrograms() {
 }
 
 void Application::resize(std::size_t width, std::size_t height) {
-    m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
-
-  m_camera.setAspect(float(width) / float(height));
+  // m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
+  // m_camera.setAspect(float(width) / float(height));
   // draw queue is emptied in launcher::resize
   createFramebufferAttachments();
   createFramebuffers();

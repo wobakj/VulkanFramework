@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "app/application.hpp"
+#include "app/application_win.hpp"
 #include "semaphore.hpp"
 #include "frame_resource.hpp"
 #include "statistics.hpp"
@@ -13,10 +13,10 @@
 #include <queue>
 #include <thread>
 
-class ApplicationThreaded : public Application {
+class ApplicationThreaded : public ApplicationWin {
  public:
   // possibly override number of frames in abstract child classes
-  ApplicationThreaded(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse, uint32_t num_frames = imageCount - 1);
+  ApplicationThreaded(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse, uint32_t num_frames = imageCount - 1);
   virtual ~ApplicationThreaded();
 
   static const uint32_t imageCount;

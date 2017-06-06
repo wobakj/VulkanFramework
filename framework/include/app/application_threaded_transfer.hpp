@@ -7,7 +7,7 @@
 
 class ApplicationThreadedTransfer : public ApplicationThreaded {
  public:
-  ApplicationThreadedTransfer(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationThreadedTransfer(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
   virtual ~ApplicationThreadedTransfer();
   
   static const uint32_t imageCount;

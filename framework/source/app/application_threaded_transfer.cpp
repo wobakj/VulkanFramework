@@ -10,12 +10,13 @@ cmdline::parser ApplicationThreadedTransfer::getParser() {
   return ApplicationThreaded::getParser();
 }
 
-
-ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, imageCount - 1}
+ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationThreaded{resource_path, device, surf, window, cmd_parse, imageCount - 1}
  ,m_semaphore_transfer{0}
  ,m_should_transfer{true}
 {
+  createSwapChain(surf, cmd_parse, imageCount);
+  
   m_statistics.addTimer("fence_transfer");
   m_statistics.addTimer("sema_transfer");
   m_statistics.addTimer("transfer");

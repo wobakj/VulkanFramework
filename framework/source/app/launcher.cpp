@@ -27,7 +27,7 @@ Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& 
  ,m_instance{}
  ,m_device{}
  // ,m_swap_chain{}
- ,m_surface{m_instance, vkDestroySurfaceKHR}
+ // ,m_surface{m_instance, vkDestroySurfaceKHR}
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
 {
   glfwSetErrorCallback(glfw_error);
@@ -59,7 +59,8 @@ Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& 
     }
   #endif
   m_instance.create(validate);
-  createSurface();
+  m_surface = Surface{m_instance, *m_window};
+  // createSurface();
   // capure mouse
   glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   std::vector<const char*> deviceExtensions = {
@@ -111,11 +112,11 @@ void Launcher::mainLoop() {
   quit(EXIT_SUCCESS);
 }
 
-void Launcher::createSurface() {
-  if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create window surface!");
-  }
-}
+// void Launcher::createSurface() {
+//   if (glfwCreateWindowSurface(m_instance.get(), m_window, nullptr, m_surface.replace()) != VK_SUCCESS) {
+//     throw std::runtime_error("failed to create window surface!");
+//   }
+// }
 
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view
@@ -123,9 +124,7 @@ void Launcher::resize(GLFWwindow* m_window, int width, int height) {
   if (width > 0 && height > 0) {
     // draw remaining recorded frames
     m_application->emptyDrawQueue();
-    // m_device->waitIdle();
     // rebuild resources
-    // m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
     m_application->resize(width, height);
   }
 }

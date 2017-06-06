@@ -134,9 +134,9 @@ void ApplicationClustered::updateResourceCommandBuffers(FrameResource& res) {
 
   glm::vec3 workers(8.0f);
   res.command_buffers.at("compute")->dispatch(
-      glm::ceil(m_lightGridSize.x / workers.x),
-      glm::ceil(m_lightGridSize.y / workers.y),
-      glm::ceil(m_lightGridSize.z / workers.z));
+      uint32_t(glm::ceil(float(m_lightGridSize.x) / workers.x)),
+      uint32_t(glm::ceil(float(m_lightGridSize.y) / workers.y)),
+      uint32_t(glm::ceil(float(m_lightGridSize.z) / workers.z)));
 
   res.command_buffers.at("compute")->end();
 

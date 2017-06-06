@@ -3,15 +3,17 @@
 #include <vulkan/vulkan.hpp>
 
 // child classes must overwrite
-const uint32_t ApplicationSingle::imageCount = 1;
+const uint32_t ApplicationSingle::imageCount = 2;
 
 cmdline::parser ApplicationSingle::getParser() {
-  return Application::getParser();
+  return ApplicationWin::getParser();
 }
 
-ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :Application{resource_path, device, chain, window, cmd_parse}
+ApplicationSingle::ApplicationSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationWin{resource_path, device, surf, window, cmd_parse}
 {
+  createSwapChain(surf, cmd_parse, imageCount);
+
   m_statistics.addTimer("gpu_draw");
   m_statistics.addTimer("render");
   m_statistics.addTimer("fence_acquire");
@@ -43,7 +45,7 @@ void ApplicationSingle::updateResourcesDescriptors() {
 }
 
 FrameResource ApplicationSingle::createFrameResource() {
-  return Application::createFrameResource();
+  return ApplicationWin::createFrameResource();
 }
 
 void ApplicationSingle::render() { 
