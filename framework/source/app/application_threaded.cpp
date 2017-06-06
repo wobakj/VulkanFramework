@@ -5,7 +5,7 @@ cmdline::parser ApplicationThreaded::getParser() {
 }
 
 ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
- :ApplicationWin{resource_path, device, surf, 3, cmd_parse}
+ :ApplicationWin{resource_path, device, surf, num_frames + 1, cmd_parse}
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_present{num_frames}
