@@ -3,7 +3,7 @@
 #include "wrap/memory.hpp"
 #include "wrap/device.hpp"
 #include "wrap/buffer.hpp"
-#include "wrap/image.hpp"
+#include "wrap/image_res.hpp"
 #include "wrap/buffer_view.hpp"
 #include "wrap/command_pool.hpp"
 #include "wrap/command_buffer.hpp"
@@ -50,7 +50,7 @@ void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-void Transferrer::uploadImageData(void const* data_ptr, Image& image) {
+void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image) {
   auto prev_layout = image.layout();
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
@@ -99,7 +99,7 @@ void Transferrer::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstB
   endSingleTimeCommands();
 }
 
-void Transferrer::copyImage(Image const& srcImage, Image& dstImage, uint32_t width, uint32_t height) const {
+void Transferrer::copyImage(ImageRes const& srcImage, ImageRes& dstImage, uint32_t width, uint32_t height) const {
   vk::ImageSubresourceLayers subResource{};
   if (is_depth(srcImage.format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
@@ -135,7 +135,7 @@ void Transferrer::copyImage(Image const& srcImage, Image& dstImage, uint32_t wid
 }
 
 
-void Transferrer::copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
+void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
   vk::ImageSubresourceLayers subResource{};
   if (is_depth(dstImage.format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
@@ -171,7 +171,7 @@ void Transferrer::copyBufferToImage(Buffer const& srcBuffer, Image& dstImage, ui
   endSingleTimeCommands();
 }
 
-void Transferrer::transitionToLayout(Image& img, vk::ImageLayout const& newLayout) const {
+void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& newLayout) const {
   transitionToLayout(img.get(), img.info(), newLayout);
   // store new layout
   img.m_info.initialLayout = newLayout;

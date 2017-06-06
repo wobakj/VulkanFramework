@@ -3,6 +3,7 @@
 
 #include "wrap/shader.hpp"
 #include "wrap/image.hpp"
+#include "wrap/image_res.hpp"
 #include "wrap/pipeline.hpp"
 #include "wrap/pipeline_cache.hpp"
 #include "wrap/buffer.hpp"
@@ -96,7 +97,7 @@ class Application {
   std::map<std::string, Shader> m_shaders;
   std::map<std::string, GraphicsPipeline> m_pipelines;
   std::map<std::string, BlockAllocator> m_allocators;
-  std::map<std::string, Image> m_images;
+  std::map<std::string, ImageRes> m_images;
   std::map<std::string, Buffer> m_buffers;
   std::map<std::string, BufferView> m_buffer_views;
   std::map<std::string, CommandPool> m_command_pools;

@@ -380,27 +380,27 @@ void ApplicationClustered::createFramebufferAttachments() {
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
-  m_images["depth"] = Image{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
+  m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
 
-  m_images["color"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_images["color"] = ImageRes{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 
-  m_images["pos"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_images["pos"] = ImageRes{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_transferrer.transitionToLayout(m_images.at("pos"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("pos"));
 
-  m_images["normal"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_images["normal"] = ImageRes{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_transferrer.transitionToLayout(m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("normal"));
 
-  m_images["color_2"] = Image{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  m_images["color_2"] = ImageRes{m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   m_transferrer.transitionToLayout(m_images.at("color_2"), vk::ImageLayout::eColorAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("color_2"));
 
-  m_images["tonemapping_result"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_images["tonemapping_result"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("tonemapping_result"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("tonemapping_result"));
 
@@ -410,7 +410,7 @@ void ApplicationClustered::createFramebufferAttachments() {
       vk::Extent3D{m_lightGridSize.x, m_lightGridSize.y, m_lightGridSize.z};
 
   // light volume
-  m_images["light_vol"] = Image{m_device, lightVolExtent, vk::Format::eR32G32B32A32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
+  m_images["light_vol"] = ImageRes{m_device, lightVolExtent, vk::Format::eR32G32B32A32Uint, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("light_vol"));
   m_transferrer.transitionToLayout(m_images.at("light_vol"), vk::ImageLayout::eGeneral);
 }
@@ -418,7 +418,7 @@ void ApplicationClustered::createFramebufferAttachments() {
 void ApplicationClustered::createTextureImages() {
   // test texture
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
-  m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  m_images["texture"] = ImageRes{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   // bind and upload test texture data
   m_allocators.at("images").allocate(m_images.at("texture"));
 

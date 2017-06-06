@@ -18,13 +18,12 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 
-using ResourceImage = MemoryResourceT<vk::Image, vk::ImageCreateInfo>;
-class Image : public ResourceImage {
+class Image {
  public:
   
   Image();
   Image(Device const& device, vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage); 
-  ~Image();
+  virtual ~Image();
 
   Image(Image && dev);
   Image(Image const&) = delete;
@@ -32,32 +31,30 @@ class Image : public ResourceImage {
   Image& operator=(Image const&) = delete;
   Image& operator=(Image&& dev);
 
-  void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
+  virtual void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
 
-  void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) override;
-
-  virtual res_handle_t handle() const override {
-    return res_handle_t{m_object};
-  }
   void swap(Image& dev);
 
-  vk::ImageLayout const& layout() const;
-  vk::AttachmentDescription toAttachment(bool clear = true) const;
-  vk::Format const& format() const;
-  vk::ImageView const& view() const;
-  vk::Extent3D const& extent() const;
+  virtual vk::ImageLayout const& layout() const;
+  virtual vk::AttachmentDescription toAttachment(bool clear = true) const;
+  virtual vk::Format const& format() const;
+  virtual vk::ImageView const& view() const;
+  virtual vk::Extent3D const& extent() const;
   // write as combined sampler
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
+  virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
   // write as input attachment
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
-  vk::MemoryRequirements requirements() const override;
+  virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
 
- private:
-  void destroy() override;
-  void createView();
+  virtual vk::ImageCreateInfo const& info() const = 0;
+ 
+ protected:
+  // virtual vk::ImageCreateInfo& info() = 0;
+  virtual vk::Image const& obj() const = 0;
+  virtual Device const& device() const = 0;
+  virtual void destroy();
+  virtual void createView();
 
   vk::ImageView m_view;
-
   friend class Transferrer;
 };
 

@@ -139,8 +139,7 @@ vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::ve
 }
 
 Image::Image()
- :ResourceImage{}
- ,m_view{}
+ :m_view{}
 {}
 
 Image::Image(Image && dev)
@@ -149,70 +148,15 @@ Image::Image(Image && dev)
   swap(dev);
 }
 
-Image::Image(Device const& device,  vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
- :Image{}
-{  
-  m_device = &device;
-
-  if (extent.height > 1) {
-    if (extent.depth > 1) {
-      m_info.imageType = vk::ImageType::e3D;
-    }
-    else {
-      m_info.imageType = vk::ImageType::e2D;
-    }
-  }
-  else {
-    m_info.imageType = vk::ImageType::e1D;
-  }
-
-  m_info.extent = extent;
-  m_info.mipLevels = 1;
-  m_info.arrayLayers = 1;
-  m_info.format = format;
-  m_info.tiling = tiling;
-  // if image is linear, its probably for data upload
-  if (tiling == vk::ImageTiling::eLinear) {
-    m_info.initialLayout = vk::ImageLayout::ePreinitialized;
-  }
-  else {
-    m_info.initialLayout = vk::ImageLayout::eUndefined;
-  }
-  m_info.usage = usage;
-
-  auto queueFamilies = device.ownerIndices();
-  if (queueFamilies.size() > 1) {
-    m_info.sharingMode = vk::SharingMode::eConcurrent;
-    m_info.queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
-    m_info.pQueueFamilyIndices = queueFamilies.data();
-  }
-  else {
-    m_info.sharingMode = vk::SharingMode::eExclusive;
-  }
-
-  m_object = device->createImage(info());
-}
-
 Image::~Image() {
-  cleanup();
-}
-
-void Image::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
-  ResourceImage::bindTo(mem, offst);
-  (*m_device)->bindImageMemory(get(), memory(), offset());
-
-  if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
-      (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
-      (info().usage ^ (vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc))) {
-    createView();
-  }
+  // cleanup();
 }
 
 void Image::destroy() {
   if (m_view) {
-    (*m_device)->destroyImageView(m_view);
+    device()->destroyImageView(m_view);
   }
-  (*m_device)->destroyImage(get());
+  // device()->destroyImage(obj());
 }
 
 Image& Image::operator=(Image&& dev) {
@@ -221,7 +165,7 @@ Image& Image::operator=(Image&& dev) {
 }
 
 vk::ImageLayout const& Image::layout() const {
-  return m_info.initialLayout;
+  return info().initialLayout;
 }
 
 vk::ImageView const& Image::view() const {
@@ -229,11 +173,11 @@ vk::ImageView const& Image::view() const {
 }
 
 vk::Format const& Image::format() const {
-  return m_info.format;
+  return info().format;
 }
 
 vk::Extent3D const& Image::extent() const {
-  return m_info.extent;
+  return info().extent;
 }
 
 vk::AttachmentDescription Image::toAttachment(bool clear) const {
@@ -241,13 +185,13 @@ vk::AttachmentDescription Image::toAttachment(bool clear) const {
 }
 
 void Image::createView() {
-  auto view_info = img_to_view(get(), info()); 
-  m_view = (*m_device)->createImageView(view_info);  
+  auto view_info = img_to_view(obj(), info()); 
+  m_view = device()->createImageView(view_info);  
 }
 
 void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = m_info.initialLayout;
+  imageInfo.imageLayout = info().initialLayout;
   // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
   imageInfo.imageView = m_view;
   imageInfo.sampler = sampler;
@@ -260,12 +204,12 @@ void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sample
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &imageInfo;
 
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  device()->updateDescriptorSets({descriptorWrite}, 0);
 }
 
 void Image::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = m_info.initialLayout;
+  imageInfo.imageLayout = info().initialLayout;
   // if (type == vk::DescriptorType::eSampledImage) {
     // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
   // }
@@ -285,15 +229,10 @@ void Image::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorT
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &imageInfo;
 
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
-}
-
-vk::MemoryRequirements Image::requirements() const {
-  return (*m_device)->getImageMemoryRequirements(get());
+  device()->updateDescriptorSets({descriptorWrite}, 0);
 }
 
 void Image::swap(Image& dev) {
-  ResourceImage::swap(dev);
   std::swap(m_view, dev.m_view);
  }
 
@@ -304,7 +243,7 @@ void Image::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk:
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  barrier.image = get();
+  barrier.image = obj();
 
   if (is_depth(format())) {
     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;

@@ -409,10 +409,10 @@ void ApplicationLodSingle::createFramebufferAttachments() {
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
   auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
-  m_images["depth"] = Image{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
+  m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
-  m_images["color"] = Image{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_images["color"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
   
   m_allocators.at("images").allocate(m_images.at("depth"));
@@ -422,7 +422,7 @@ void ApplicationLodSingle::createFramebufferAttachments() {
 void ApplicationLodSingle::createTextureImage() {
   pixel_data pix_data = texture_loader::file(m_resource_path + "textures/test.tga");
 
-  m_images["texture"] = Image{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  m_images["texture"] = ImageRes{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("texture"));
   
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);

@@ -24,8 +24,6 @@ class ApplicationWin : public Application {
   void resize(std::size_t width, std::size_t height) override;
   static cmdline::parser getParser(); 
 
-  
-
  protected:
   virtual FrameResource createFrameResource() override;
   void acquireImage(FrameResource& res);

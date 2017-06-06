@@ -2,7 +2,7 @@
 #define DATABASE_TEXTURE_HPP
 
 #include "ren/database.hpp"
-#include "wrap/image.hpp"
+#include "wrap/image_res.hpp"
 #include "deleter.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -12,7 +12,7 @@
 class Device;
 class Transferrer;
 
-class TextureDatabase : public Database<Image> {
+class TextureDatabase : public Database<ImageRes> {
  public:
   TextureDatabase();
   TextureDatabase(Transferrer& transferrer);
@@ -24,7 +24,7 @@ class TextureDatabase : public Database<Image> {
 
   void swap(TextureDatabase& dev);
 
-  void store(std::string const& tex_path, Image&& texture) override;
+  void store(std::string const& tex_path, ImageRes&& texture) override;
   void store(std::string const& tex_path);
   
   size_t index(std::string const& name) const;

@@ -79,7 +79,7 @@ void ApplicationWin::presentFrame(FrameResource& res) {
 }
 
 void ApplicationWin::presentFrame(FrameResource& res, vk::Queue const& queue) {
-   m_statistics.start("queue_present");
+  m_statistics.start("queue_present");
   
   vk::PresentInfoKHR presentInfo{};
   presentInfo.waitSemaphoreCount = 1;
