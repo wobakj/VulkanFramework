@@ -32,6 +32,8 @@ class Application {
 
   // react to key input
   inline virtual void keyCallback(int key, int scancode, int action, int mods) {};
+  inline virtual void mouseCallback(double x, double y) {};
+  inline virtual void mouseButtonCallback(int button, int action, int mods) {};
   // reload shader source and recreate pipeline
   void updateShaderPrograms();
   // draw all objects

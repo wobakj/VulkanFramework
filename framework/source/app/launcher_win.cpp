@@ -12,7 +12,6 @@
 // SwapChain m_swap_chain;
 
 // helper functions
-std::string resourcePath(std::vector<std::string> const& args);
 void glfw_error(int error, const char* description);
 
 LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser const& cmd_parse) 
@@ -81,6 +80,17 @@ LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser c
         static_cast<LauncherWin*>(glfwGetWindowUserPointer(w))->key_callback(w, a, b, c, d);
   };
   glfwSetKeyCallback(m_window, key_func);
+  // // register mouse input function
+  auto mouse_func = [](GLFWwindow* w, double a, double b) {
+        static_cast<LauncherWin*>(glfwGetWindowUserPointer(w))->mouse_callback(w, a, b);
+  };
+  // glfwSetMouseCallback(m_window, mouse_func);
+  // // register mouse input function
+  auto mouse_b_func = [](GLFWwindow* w, int a, int b, int c) {
+        static_cast<LauncherWin*>(glfwGetWindowUserPointer(w))->mouse_button_callback(w, a, b, c);
+  };
+  glfwSetMouseButtonCallback(m_window, mouse_b_func);
+
 }
 
 std::string resourcePath(std::vector<std::string> const& args) {
@@ -111,12 +121,7 @@ void LauncherWin::mainLoop() {
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view
 void LauncherWin::resize(GLFWwindow* m_window, int width, int height) {
-  if (width > 0 && height > 0) {
-    // draw remaining recorded frames
-    m_application->emptyDrawQueue();
-    // rebuild resources
-    m_application->resize(width, height);
-  }
+  Launcher::resize(width, height);
 }
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
@@ -130,12 +135,16 @@ void LauncherWin::key_callback(GLFWwindow* m_window, int key, int scancode, int 
   m_application->keyCallback(key, scancode, action, mods);
 }
 
-//handle mouse movement input
-// void LauncherWin::mouse_callback(GLFWwindow* window, double pos_x, double pos_y) {
-//   m_application->mouseCallback(pos_x, pos_y);
-//   // reset cursor pos to receive position delta next frame
-//   glfwSetCursorPos(m_window, 0.0, 0.0);
-// }
+void LauncherWin::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+  m_application->mouseButtonCallback(button, action, mods);
+}
+
+// handle mouse movement input
+void LauncherWin::mouse_callback(GLFWwindow* window, double pos_x, double pos_y) {
+  m_application->mouseCallback(pos_x, pos_y);
+  // reset cursor pos to receive position delta next frame
+  glfwSetCursorPos(m_window, 0.0, 0.0);
+}
 
 // calculate fps and show in m_window title
 void LauncherWin::show_fps() {

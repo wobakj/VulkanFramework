@@ -53,7 +53,8 @@ class LauncherWin {
   // handle key input
   void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
   //handle mouse movement input
-  // void mouse_callback(GLFWwindow* window, double pos_x, double pos_y);
+  void mouse_callback(GLFWwindow* window, double pos_x, double pos_y);
+  void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
   // calculate fps and show in window title
   void show_fps();

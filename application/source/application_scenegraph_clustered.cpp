@@ -79,10 +79,6 @@ ApplicationScenegraphClustered::ApplicationScenegraphClustered(std::string const
   }
   scene_loader::json(cmd_parse.rest()[0], m_resource_path, &m_graph);
 
-  glfwSetWindowUserPointer(&surf.window(), this);
-  glfwSetMouseButtonCallback(&surf.window(), mouseCallback);
-  glfwSetKeyCallback(&surf.window(), keyCallback);
-
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/graph_renderer_vert.spv", m_resource_path + "shaders/graph_renderer_frag.spv"}});
   m_shaders.emplace("tonemapping", Shader{m_device, {m_resource_path + "shaders/fullscreen_vert.spv", m_resource_path + "shaders/tone_mapping_frag.spv"}});
   m_shaders.emplace("quad", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
@@ -622,21 +618,14 @@ void ApplicationScenegraphClustered::onResize(std::size_t width, std::size_t hei
 }
 
 ///////////////////////////// misc functions ////////////////////////////////
-// handle key input
-void ApplicationScenegraphClustered::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  // }
-}
-
-void ApplicationScenegraphClustered::mouseCallback(GLFWwindow* window, int button, int action, int mods)
+void ApplicationScenegraphClustered::mouseButtonCallback(int button, int action, int mods)
 {
-  auto app = glfwGetWindowUserPointer(window);
-  auto application = static_cast<ApplicationScenegraphClustered*>(app);
   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    application->m_selection_phase_flag = true;
+    m_selection_phase_flag = true;
   else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
-    application->m_selection_phase_flag = false;
+    m_selection_phase_flag = false;
   if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
-    application->endTargetManipulation();
+    endTargetManipulation();
 }
 
 ///////////////////////////// interaction ////////////////////////////////
