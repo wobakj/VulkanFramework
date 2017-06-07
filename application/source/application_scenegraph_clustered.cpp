@@ -122,7 +122,7 @@ void ApplicationScenegraphClustered::logic() {
   // calculate delta time
   double time_current = glfwGetTime();
   m_frame_time = float(time_current - time_last);
-  float time_delta = float(time_current - time_last);
+  // float time_delta = float(time_current - time_last);
   time_last = time_current;
 
   if (m_fly_phase_flag) {

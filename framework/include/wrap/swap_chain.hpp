@@ -23,10 +23,6 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
 
 SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device, vk::SurfaceKHR surface);
 
-vk::ImageCreateInfo chain_to_img(SwapChain const& swap_info);
-
-vk::ImageView createImageView(vk::Device const& device, vk::Image const& image, vk::ImageCreateInfo const& img_info);
-
 using WrapperSwap = Wrapper<vk::SwapchainKHR, vk::SwapchainCreateInfoKHR>;
 class SwapChain : public WrapperSwap {
  public:
@@ -51,23 +47,19 @@ class SwapChain : public WrapperSwap {
   std::vector<vk::Image> const& images() const;
   vk::Image const& image(uint32_t index) const;
 
-  vk::ImageCreateInfo imgInfo() const;
   uint32_t numImages() const;
   vk::Format format() const;
   vk::Extent2D const& extent() const;
   float aspect() const;
   vk::Viewport asViewport() const;
   vk::Rect2D asRect() const;
-  // vk::ImageLayout const& layout() const;
 
  private:
-
   void destroy() override ;
 
   Device const* m_device;
   std::vector<vk::Image> m_images_swap;
   std::vector<ImageView> m_views_swap;
-  vk::ImageLayout m_layout;
 };
 
 #endif

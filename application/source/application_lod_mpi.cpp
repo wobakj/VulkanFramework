@@ -438,7 +438,7 @@ void ApplicationLodMpi::updateDescriptors() {
 
 void ApplicationLodMpi::createDescriptorPools() {
   DescriptorPoolInfo info_pool{};
-  info_pool.reserve(m_shaders.at("lod"), 0, m_frame_resources.size());
+  info_pool.reserve(m_shaders.at("lod"), 0, uint32_t(m_frame_resources.size()));
   info_pool.reserve(m_shaders.at("lod"), 1, 1);
 
   m_descriptor_pool = DescriptorPool{m_device, info_pool};

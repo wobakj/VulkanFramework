@@ -82,25 +82,20 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
       return vk::PresentModeKHR::eFifo;
   }
 
-vk::ImageCreateInfo chain_to_img(SwapChain const& chain) {
+static vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& info) {
   vk::ImageCreateInfo img_info{};
   img_info.imageType = vk::ImageType::e2D;
   img_info.tiling = vk::ImageTiling::eOptimal;
   img_info.mipLevels = 1;
-  img_info.format = chain.info().imageFormat;
-  img_info.arrayLayers = chain.info().imageArrayLayers;
-  img_info.extent = vk::Extent3D{chain.info().imageExtent.width, chain.info().imageExtent.height, 0};
-  img_info.usage = chain.info().imageUsage;
-  img_info.sharingMode = chain.info().imageSharingMode;
-  img_info.queueFamilyIndexCount = chain.info().queueFamilyIndexCount;
-  img_info.pQueueFamilyIndices = chain.info().pQueueFamilyIndices;
+  img_info.format = info.imageFormat;
+  img_info.arrayLayers = info.imageArrayLayers;
+  img_info.extent = vk::Extent3D{info.imageExtent.width, info.imageExtent.height, 0};
+  img_info.usage = info.imageUsage;
+  img_info.sharingMode = info.imageSharingMode;
+  img_info.queueFamilyIndexCount = info.queueFamilyIndexCount;
+  img_info.pQueueFamilyIndices = info.pQueueFamilyIndices;
   img_info.initialLayout = vk::ImageLayout::eUndefined;
-  // img_info.initialLayout = chain.layout();
   return img_info;
-}
-
-vk::ImageView createImageView(vk::Device const& device, vk::Image const& image, vk::ImageCreateInfo const& img_info) {
-  return device.createImageView(img_to_view(image, img_info), nullptr);
 }
 
 SwapChain::SwapChain()
@@ -108,7 +103,6 @@ SwapChain::SwapChain()
  ,m_device{nullptr}
  ,m_images_swap{}
  ,m_views_swap{}
- ,m_layout{vk::ImageLayout::eUndefined}
 {}
 
 SwapChain::SwapChain(SwapChain && chain)
@@ -131,7 +125,6 @@ SwapChain::~SwapChain() {
   std::swap(m_device, chain.m_device);
   std::swap(m_views_swap, chain.m_views_swap);
   std::swap(m_images_swap, chain.m_images_swap);
-  std::swap(m_layout, chain.m_layout);
  }
 
 void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkExtent2D const& extent, vk::PresentModeKHR const& present_mode, uint32_t num_images) {
@@ -186,10 +179,8 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
 
   m_images_swap = (*m_device)->getSwapchainImagesKHR(get());
   // transition images to present in case no render pass is applied
-  m_layout = vk::ImageLayout::eUndefined;
-  // transitionToLayout(vk::ImageLayout::ePresentSrcKHR);
 
-  auto image_info = chain_to_img(*this);
+  auto image_info = chain_to_img(info());
 
   m_views_swap.clear();
   for (uint32_t i = 0; i < m_images_swap.size(); i++) {
@@ -213,10 +204,6 @@ ImageView const& SwapChain::view(std::size_t i) const {
   return m_views_swap[i];
 }
 
-vk::ImageCreateInfo SwapChain::imgInfo() const {
-  return chain_to_img(*this);
-}
-
 uint32_t SwapChain::numImages() const {
   return uint32_t(m_views_swap.size());
 }
@@ -224,10 +211,6 @@ uint32_t SwapChain::numImages() const {
 vk::Format SwapChain::format() const {
   return m_info.imageFormat;
 }
-
-// vk::ImageLayout const& SwapChain::layout() const {
-//   return m_layout;
-// }
 
 vk::Extent2D const& SwapChain::extent() const {
   return m_info.imageExtent;
