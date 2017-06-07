@@ -3,6 +3,7 @@
 
 #include "deleter.hpp"
 #include "wrap/wrapper.hpp"
+#include "wrap/image_view.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <iostream>
@@ -46,8 +47,8 @@ class SwapChain : public WrapperSwap {
 
   void layoutTransitionCommand(vk::CommandBuffer const& buffer, uint32_t index, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
 
-  std::vector<Deleter<VkImageView>> const& views() const;
-  VkImageView const& view(std::size_t i) const;
+  std::vector<ImageView> const& views() const;
+  ImageView const& view(std::size_t i) const;
   
   std::vector<vk::Image> const& images() const;
   vk::Image const& image(uint32_t index) const;
@@ -67,7 +68,7 @@ class SwapChain : public WrapperSwap {
 
   Device const* m_device;
   std::vector<vk::Image> m_images_swap;
-  std::vector<Deleter<VkImageView>> m_views_swap;
+  std::vector<ImageView> m_views_swap;
   vk::ImageLayout m_layout;
 };
 

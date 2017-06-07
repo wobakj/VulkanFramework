@@ -191,9 +191,8 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
   auto image_info = chain_to_img(*this);
 
   m_views_swap.clear();
-  m_views_swap = {m_images_swap.size(), Deleter<VkImageView>{*m_device, vkDestroyImageView}};
   for (uint32_t i = 0; i < m_images_swap.size(); i++) {
-    m_views_swap[i] = createImageView(*m_device, m_images_swap[i], image_info);
+    m_views_swap.emplace_back(ImageView{*m_device, m_images_swap[i], image_info});
   }
 }
 
@@ -225,7 +224,7 @@ void SwapChain::layoutTransitionCommand(vk::CommandBuffer const& command_buffer,
   );
 }
 
-std::vector<Deleter<VkImageView>> const& SwapChain::views() const {
+std::vector<ImageView> const& SwapChain::views() const {
   return m_views_swap;
 }
 
@@ -237,8 +236,8 @@ vk::Image const& SwapChain::image(uint32_t index) const {
   return  m_images_swap.at(index);
 }
 
-VkImageView const& SwapChain::view(std::size_t i) const {
-  return m_views_swap[i].get();
+ImageView const& SwapChain::view(std::size_t i) const {
+  return m_views_swap[i];
 }
 
 vk::ImageCreateInfo SwapChain::imgInfo() const {

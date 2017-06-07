@@ -7,17 +7,6 @@
 
 #include <iostream>
 
-// bool is_depth(vk::Format const& format) {
-//   return format == vk::Format::eD32Sfloat
-//       || format == vk::Format::eD32SfloatS8Uint
-//       || format == vk::Format::eD24UnormS8Uint
-//       || format == vk::Format::eD16Unorm;
-// }
-
-// bool has_stencil(vk::Format const& format) {
-//   return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
-// }
-
 // vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_info) {
 //   vk::ImageSubresourceRange resource_range{};
 
@@ -120,25 +109,6 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
 //   }
 // }
 
-
-// vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features) {
-//   // prefer optimal tiling
-//   for (auto const& format : candidates) {
-//     vk::FormatProperties props = physicalDevice.getFormatProperties(format);
-//     if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features) {
-//       return format;
-//     }
-//   }
-//   for (auto const& format : candidates) {
-//     vk::FormatProperties props = physicalDevice.getFormatProperties(format);
-//     if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features) {
-//       return format;
-//     } 
-//   }
-//   throw std::runtime_error("failed to find supported format!");
-//   return vk::Format::eUndefined;
-// }
-
 ImageView::ImageView()
  :WrapperImageView{}
 {}
@@ -155,6 +125,16 @@ ImageView::ImageView(ImageRes const& rhs)
   m_device = &rhs.device();
   m_image = rhs.get();
   m_image_info = rhs.info();
+  m_info = img_to_view(m_image, m_image_info); 
+  m_object = (*m_device)->createImageView(m_info);  
+}
+
+ImageView::ImageView(Device const& dev, vk::Image const& rhs, vk::ImageCreateInfo const& img_info)
+ :ImageView{}
+{
+  m_device = &dev;
+  m_image = rhs;
+  m_image_info = img_info;
   m_info = img_to_view(m_image, m_image_info); 
   m_object = (*m_device)->createImageView(m_info);  
 }
@@ -268,7 +248,7 @@ void ImageView::swap(ImageView& rhs) {
   std::swap(m_image_info, rhs.m_image_info);
 }
 
-void ImageView::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) {
+void ImageView::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
   vk::ImageMemoryBarrier barrier{};
   barrier.oldLayout = layout_old;
   barrier.newLayout = layout_new;

@@ -18,8 +18,10 @@ class ImageView : public WrapperImageView {
  public:
   
   ImageView();
-  ImageView(ImageRes const& usage); 
-  ImageView(Image const& usage); 
+  ImageView(ImageRes const& rhs); 
+  ImageView(Image const& rhs); 
+  ImageView(Device const& dev, vk::Image const& rhs, vk::ImageCreateInfo const& img_info);
+
   virtual ~ImageView();
 
   ImageView(ImageView && dev);
@@ -28,7 +30,7 @@ class ImageView : public WrapperImageView {
   ImageView& operator=(ImageView const&) = delete;
   ImageView& operator=(ImageView&& dev);
 
-  virtual void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
+  virtual void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
 
   void swap(ImageView& dev);
 
