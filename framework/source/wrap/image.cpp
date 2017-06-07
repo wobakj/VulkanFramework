@@ -198,9 +198,9 @@ Image& Image::operator=(Image&& dev) {
   return *this;
 }
 
-vk::ImageLayout const& Image::layout() const {
-  return info().initialLayout;
-}
+// vk::ImageLayout const& Image::layout() const {
+//   return info().initialLayout;
+// }
 
 ImageView const& Image::view() const {
   return m_view;

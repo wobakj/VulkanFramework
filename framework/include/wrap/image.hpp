@@ -40,7 +40,7 @@ class Image {
   // virtual vk::Format const& format() const;
   virtual ImageView const& view() const;
   virtual vk::Extent3D const& extent() const;
-  vk::ImageLayout const& layout() const;
+  // vk::ImageLayout const& layout() const;
 
   // write as combined sampler
   // virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;

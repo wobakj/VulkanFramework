@@ -51,7 +51,7 @@ void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
 }
 
 void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image) {
-  auto prev_layout = image.layout();
+  auto prev_layout = image.view().layout();
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(image.size());
@@ -174,6 +174,7 @@ void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage,
 void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& newLayout) const {
   transitionToLayout(img.get(), img.info(), newLayout);
   // store new layout
+  img.m_view.m_image_info.initialLayout = newLayout;
   img.m_info.initialLayout = newLayout;
 }
 
