@@ -18,36 +18,6 @@ bool has_stencil(vk::Format const& format) {
   return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
 }
 
-vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_info) {
-  vk::ImageSubresourceRange resource_range{};
-
-  if(is_depth(img_info.format)) {
-    resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
-    if(has_stencil(img_info.format)) {
-      resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  }
-  else {
-    resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-  resource_range.baseMipLevel = 0;
-  resource_range.levelCount = img_info.mipLevels;
-  resource_range.baseArrayLayer = 0;
-  resource_range.layerCount = img_info.arrayLayers;
-
-  return resource_range;
-}
-
-vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const img_info, unsigned mip_level) {
-  vk::ImageSubresourceLayers layer{};
-  auto range = img_to_resource_range(img_info);
-  layer.aspectMask = range.aspectMask;
-  layer.layerCount = range.layerCount;
-  layer.baseArrayLayer = range.baseArrayLayer;
-  layer.mipLevel = mip_level;
-  return layer;
-}
-
 vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   if (layout == vk::ImageLayout::ePreinitialized) {
     return vk::AccessFlagBits::eHostWrite;

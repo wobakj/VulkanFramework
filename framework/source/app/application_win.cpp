@@ -72,6 +72,7 @@ void ApplicationWin::acquireImage(FrameResource& res) {
   else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
       throw std::runtime_error("failed to acquire swap chain image!");
   }
+  res.target_view = &m_swap_chain.view(res.image);
 }
 
 void ApplicationWin::presentFrame(FrameResource& res) {

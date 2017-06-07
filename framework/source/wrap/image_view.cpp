@@ -58,7 +58,23 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
   view_info.components.b = vk::ComponentSwizzle::eIdentity;
   view_info.components.a = vk::ComponentSwizzle::eIdentity;
 
-  view_info.subresourceRange = img_to_resource_range(img_info);
+  vk::ImageSubresourceRange resource_range{};
+  if(is_depth(img_info.format)) {
+    resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    if(has_stencil(img_info.format)) {
+      resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  }
+  else {
+    resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
+  resource_range.baseMipLevel = 0;
+  resource_range.levelCount = img_info.mipLevels;
+  resource_range.baseArrayLayer = 0;
+  resource_range.layerCount = img_info.arrayLayers;
+
+
+  view_info.subresourceRange = resource_range;
   return view_info;
 }
 
@@ -172,6 +188,10 @@ ImageView& ImageView::operator=(ImageView&& rhs) {
   return *this;
 }
 
+ImageView::operator vk::ImageSubresourceRange const&() const {
+  return info().subresourceRange;
+}
+
 vk::ImageLayout const& ImageView::layout() const {
   return m_image_info.initialLayout;
 }
@@ -188,7 +208,7 @@ vk::AttachmentDescription ImageView::toAttachment(bool clear) const {
   return img_to_attachment(m_image_info, clear);
 }
 
-vk::ImageSubresourceLayers ImageView::resourceLayers(unsigned layer, unsigned count, unsigned mip_level) const {
+vk::ImageSubresourceLayers ImageView::layers(unsigned layer, unsigned count, unsigned mip_level) const {
   vk::ImageSubresourceLayers layers{};
   auto range = info().subresourceRange;
   layers.aspectMask = range.aspectMask;
@@ -197,8 +217,8 @@ vk::ImageSubresourceLayers ImageView::resourceLayers(unsigned layer, unsigned co
   layers.mipLevel = mip_level;
   return layers;
 }
-vk::ImageSubresourceLayers ImageView::resourceLayer(unsigned layer, unsigned mip_level) const {
-  return resourceLayers(layer, 1, mip_level);
+vk::ImageSubresourceLayers ImageView::layer(unsigned layer, unsigned mip_level) const {
+  return layers(layer, 1, mip_level);
 }
 
 void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {

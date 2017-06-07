@@ -6,6 +6,7 @@
 #include "wrap/fence.hpp"
 #include "wrap/buffer.hpp"
 #include "wrap/buffer_view.hpp"
+#include "wrap/image_view.hpp"
 #include "wrap/query_pool.hpp"
 #include "wrap/command_buffer.hpp"
 
@@ -82,6 +83,7 @@ class FrameResource {
 
   void swap(FrameResource& rhs) {
     std::swap(image, rhs.image);
+    std::swap(target_view, rhs.target_view);
     std::swap(m_device, rhs.m_device);
     std::swap(command_buffers, rhs.command_buffers);
     std::swap(semaphores, rhs.semaphores);
@@ -93,7 +95,8 @@ class FrameResource {
     std::swap(num_uploads, rhs.num_uploads);
   }
 
-  uint32_t image;
+  uint32_t image; 
+  ImageView const* target_view;
   std::map<std::string, CommandBuffer> command_buffers;
   std::map<std::string, vk::Semaphore> semaphores;
   std::map<std::string, Fence> fences;

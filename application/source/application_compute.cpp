@@ -70,7 +70,7 @@ void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
   // barrier to make image data visible to vertex shader
   vk::ImageMemoryBarrier barrier_image{};
   barrier_image.image = m_images.at("texture");
-  barrier_image.subresourceRange = img_to_resource_range(m_images.at("texture").info());
+  barrier_image.subresourceRange = m_images.at("texture").view();
   barrier_image.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
   barrier_image.dstAccessMask = vk::AccessFlagBits::eShaderRead;
   barrier_image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -114,14 +114,14 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
-  blit.srcSubresource = m_images.at("color").view().resourceLayer();
-  blit.dstSubresource = m_swap_chain.view(res.image).resourceLayer();
-  blit.srcOffsets[1] = ex_to_off(m_swap_chain.view(res.image).extent());
-  blit.dstOffsets[1] = ex_to_off(m_swap_chain.view(res.image).extent());
+  blit.srcSubresource = m_images.at("color").view().layer();
+  blit.dstSubresource = res.target_view->layer();
+  blit.srcOffsets[1] = ex_to_off(res.target_view->extent());
+  blit.dstOffsets[1] = ex_to_off(res.target_view->extent());
 
-  m_swap_chain.view(res.image).layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw")->blitImage(m_images.at("color").get(), m_images.at("color").view().layout(), m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
-  m_swap_chain.view(res.image).layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
 }
