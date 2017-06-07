@@ -39,6 +39,7 @@ class ImageRes : public ResourceImage, public Image {
   void destroy() override;
 
   friend class Transferrer;
+  friend class ImageView;
 };
 
 #endif

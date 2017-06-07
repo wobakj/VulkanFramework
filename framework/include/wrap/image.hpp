@@ -15,7 +15,7 @@ vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_i
 vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const img_info, unsigned mip_level = 0);
 
 vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
-vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
+// vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 
 class Image {

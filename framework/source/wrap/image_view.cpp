@@ -1,0 +1,262 @@
+#include "wrap/image_view.hpp"
+
+#include "wrap/image.hpp"
+#include "wrap/image_res.hpp"
+#include "wrap/render_pass.hpp"
+#include "wrap/device.hpp"
+
+#include <iostream>
+
+// bool is_depth(vk::Format const& format) {
+//   return format == vk::Format::eD32Sfloat
+//       || format == vk::Format::eD32SfloatS8Uint
+//       || format == vk::Format::eD24UnormS8Uint
+//       || format == vk::Format::eD16Unorm;
+// }
+
+// bool has_stencil(vk::Format const& format) {
+//   return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
+// }
+
+// vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_info) {
+//   vk::ImageSubresourceRange resource_range{};
+
+//   if(is_depth(img_info.format)) {
+//     resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
+//     if(has_stencil(img_info.format)) {
+//       resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+//     }
+//   }
+//   else {
+//     resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
+//   }
+//   resource_range.baseMipLevel = 0;
+//   resource_range.levelCount = img_info.mipLevels;
+//   resource_range.baseArrayLayer = 0;
+//   resource_range.layerCount = img_info.arrayLayers;
+
+//   return resource_range;
+// }
+
+// vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const img_info, unsigned mip_level) {
+//   vk::ImageSubresourceLayers layer{};
+//   auto range = img_to_resource_range(img_info);
+//   layer.aspectMask = range.aspectMask;
+//   layer.layerCount = range.layerCount;
+//   layer.baseArrayLayer = range.baseArrayLayer;
+//   layer.mipLevel = mip_level;
+//   return layer;
+// }
+
+vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
+  vk::ImageViewCreateInfo view_info{};
+  view_info.image = image;
+  if (img_info.imageType == vk::ImageType::e1D) {
+    view_info.viewType = vk::ImageViewType::e1D;
+  }
+  else if(img_info.imageType == vk::ImageType::e2D) {
+    view_info.viewType = vk::ImageViewType::e2D;
+  }
+  else if (img_info.imageType == vk::ImageType::e3D){
+    view_info.viewType = vk::ImageViewType::e3D;
+  }
+  else throw std::runtime_error("wrong image format");
+
+  view_info.format = img_info.format;
+
+  view_info.components.r = vk::ComponentSwizzle::eIdentity;
+  view_info.components.g = vk::ComponentSwizzle::eIdentity;
+  view_info.components.b = vk::ComponentSwizzle::eIdentity;
+  view_info.components.a = vk::ComponentSwizzle::eIdentity;
+
+  view_info.subresourceRange = img_to_resource_range(img_info);
+  return view_info;
+}
+
+// vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
+//   if (layout == vk::ImageLayout::ePreinitialized) {
+//     return vk::AccessFlagBits::eHostWrite;
+//   }
+//   else if (layout == vk::ImageLayout::eUndefined) {
+//     return vk::AccessFlags{};
+//   }
+//   else if (layout == vk::ImageLayout::eTransferDstOptimal) {
+//     return vk::AccessFlagBits::eTransferWrite;
+//   }
+//   else if (layout == vk::ImageLayout::eTransferSrcOptimal) {
+//     return vk::AccessFlagBits::eTransferRead;
+//   } 
+//   else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+//     return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+//   } 
+//   else if (layout == vk::ImageLayout::eColorAttachmentOptimal) {
+//     return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+//   } 
+//   else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+//     // read but not from input attachment
+//     return vk::AccessFlagBits::eShaderRead;
+//   } 
+//   else if (layout == vk::ImageLayout::ePresentSrcKHR) {
+//     return vk::AccessFlagBits::eMemoryRead;
+//   } 
+//   else if (layout == vk::ImageLayout::eGeneral) {
+//     return vk::AccessFlagBits::eInputAttachmentRead
+//          | vk::AccessFlagBits::eShaderRead
+//          | vk::AccessFlagBits::eShaderWrite
+//          | vk::AccessFlagBits::eColorAttachmentRead
+//          | vk::AccessFlagBits::eColorAttachmentWrite
+//          | vk::AccessFlagBits::eDepthStencilAttachmentRead
+//          | vk::AccessFlagBits::eDepthStencilAttachmentWrite
+//          | vk::AccessFlagBits::eTransferRead
+//          | vk::AccessFlagBits::eTransferWrite
+//          | vk::AccessFlagBits::eHostRead
+//          | vk::AccessFlagBits::eHostWrite
+//          | vk::AccessFlagBits::eMemoryRead
+//          | vk::AccessFlagBits::eMemoryWrite;
+//   } 
+//   else {
+//     throw std::invalid_argument("unsupported layout for access mask!");
+//     return vk::AccessFlags{};
+//   }
+// }
+
+
+// vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features) {
+//   // prefer optimal tiling
+//   for (auto const& format : candidates) {
+//     vk::FormatProperties props = physicalDevice.getFormatProperties(format);
+//     if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features) {
+//       return format;
+//     }
+//   }
+//   for (auto const& format : candidates) {
+//     vk::FormatProperties props = physicalDevice.getFormatProperties(format);
+//     if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features) {
+//       return format;
+//     } 
+//   }
+//   throw std::runtime_error("failed to find supported format!");
+//   return vk::Format::eUndefined;
+// }
+
+ImageView::ImageView()
+ :WrapperImageView{}
+{}
+
+ImageView::ImageView(ImageView && rhs)
+ :ImageView{}
+{
+  swap(rhs);
+}
+
+ImageView::ImageView(ImageRes const& rhs)
+ :ImageView{}
+{
+  m_device = &rhs.device();
+  m_image = rhs.get();
+  m_image_info = rhs.info();
+  m_info = img_to_view(m_image, m_image_info); 
+  m_object = (*m_device)->createImageView(m_info);  
+}
+
+ImageView::~ImageView() {
+  cleanup();
+}
+
+void ImageView::destroy() {
+  (*m_device)->destroyImageView(get());
+}
+
+ImageView& ImageView::operator=(ImageView&& rhs) {
+  swap(rhs);
+  return *this;
+}
+
+vk::ImageLayout const& ImageView::layout() const {
+  return m_image_info.initialLayout;
+}
+
+vk::Format const& ImageView::format() const {
+  return info().format;
+}
+
+vk::Extent3D const& ImageView::extent() const {
+  return m_image_info.extent;
+}
+
+vk::AttachmentDescription ImageView::toAttachment(bool clear) const {
+  return img_to_attachment(m_image_info, clear);
+}
+
+void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
+  vk::DescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = m_image_info.initialLayout;
+  // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  imageInfo.imageView = get();
+  imageInfo.sampler = sampler;
+
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = set;
+  descriptorWrite.dstBinding = binding;
+  descriptorWrite.dstArrayElement = index;
+  descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pImageInfo = &imageInfo;
+
+  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+}
+
+void ImageView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+  vk::DescriptorImageInfo imageInfo{};
+  imageInfo.imageLayout = m_image_info.initialLayout;
+  // if (type == vk::DescriptorType::eSampledImage) {
+    // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  // }
+  // else if (type == vk::DescriptorType::eStorageImage) {
+  //   imageInfo.imageLayout = vk::ImageLayout::eGeneral;
+  // }
+  // else {
+  //   throw std::runtime_error{"descriptor type not supported"};
+  // }
+  imageInfo.imageView = get();
+
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = set;
+  descriptorWrite.dstBinding = binding;
+  descriptorWrite.dstArrayElement = index;
+  descriptorWrite.descriptorType = type;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pImageInfo = &imageInfo;
+
+  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+}
+
+void ImageView::swap(ImageView& rhs) {
+  WrapperImageView::swap(rhs);
+  std::swap(m_device, rhs.m_device);
+  std::swap(m_image, rhs.m_image);
+  std::swap(m_image_info, rhs.m_image_info);
+}
+
+void ImageView::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) {
+  vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = layout_old;
+  barrier.newLayout = layout_new;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  barrier.image = m_image;
+  barrier.subresourceRange = info().subresourceRange;
+
+  barrier.srcAccessMask = layout_to_access(layout_old);
+  barrier.dstAccessMask = layout_to_access(layout_new);
+
+  command_buffer.pipelineBarrier(
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier}
+  );
+}

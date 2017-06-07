@@ -4,6 +4,7 @@
 #include "wrap/wrapper.hpp"
 #include "wrap/device.hpp"
 #include "wrap/image.hpp"
+#include "wrap/image_view.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <iostream>

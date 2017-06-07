@@ -1,4 +1,5 @@
 #include "wrap/image.hpp"
+#include "wrap/image_view.hpp"
 
 #include "wrap/render_pass.hpp"
 #include "wrap/device.hpp"
@@ -47,30 +48,30 @@ vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const img_i
   return layer;
 }
 
-vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
-  vk::ImageViewCreateInfo view_info{};
-  view_info.image = image;
-  if (img_info.imageType == vk::ImageType::e1D) {
-    view_info.viewType = vk::ImageViewType::e1D;
-  }
-  else if(img_info.imageType == vk::ImageType::e2D) {
-    view_info.viewType = vk::ImageViewType::e2D;
-  }
-  else if (img_info.imageType == vk::ImageType::e3D){
-    view_info.viewType = vk::ImageViewType::e3D;
-  }
-  else throw std::runtime_error("wrong image format");
+// vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
+//   vk::ImageViewCreateInfo view_info{};
+//   view_info.image = image;
+//   if (img_info.imageType == vk::ImageType::e1D) {
+//     view_info.viewType = vk::ImageViewType::e1D;
+//   }
+//   else if(img_info.imageType == vk::ImageType::e2D) {
+//     view_info.viewType = vk::ImageViewType::e2D;
+//   }
+//   else if (img_info.imageType == vk::ImageType::e3D){
+//     view_info.viewType = vk::ImageViewType::e3D;
+//   }
+//   else throw std::runtime_error("wrong image format");
 
-  view_info.format = img_info.format;
+//   view_info.format = img_info.format;
 
-  view_info.components.r = vk::ComponentSwizzle::eIdentity;
-  view_info.components.g = vk::ComponentSwizzle::eIdentity;
-  view_info.components.b = vk::ComponentSwizzle::eIdentity;
-  view_info.components.a = vk::ComponentSwizzle::eIdentity;
+//   view_info.components.r = vk::ComponentSwizzle::eIdentity;
+//   view_info.components.g = vk::ComponentSwizzle::eIdentity;
+//   view_info.components.b = vk::ComponentSwizzle::eIdentity;
+//   view_info.components.a = vk::ComponentSwizzle::eIdentity;
 
-  view_info.subresourceRange = img_to_resource_range(img_info);
-  return view_info;
-}
+//   view_info.subresourceRange = img_to_resource_range(img_info);
+//   return view_info;
+// }
 
 vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   if (layout == vk::ImageLayout::ePreinitialized) {
