@@ -159,6 +159,26 @@ ImageView::ImageView(ImageRes const& rhs)
   m_object = (*m_device)->createImageView(m_info);  
 }
 
+ImageView::ImageView(Image const& rhs)
+ :ImageView{}
+{
+  m_device = &rhs.device();
+  m_image = rhs.obj();
+  m_image_info = rhs.info();
+  m_info = img_to_view(m_image, m_image_info); 
+  m_object = (*m_device)->createImageView(m_info);  
+}
+
+// ImageView::ImageView(Device const& dev, vk::Image )
+//  :ImageView{}
+// {
+//   m_device = &dev;
+//   m_image = rhs.get();
+//   m_image_info = rhs.info();
+//   m_info = img_to_view(m_image, m_image_info); 
+//   m_object = (*m_device)->createImageView(m_info);  
+// }
+
 ImageView::~ImageView() {
   cleanup();
 }

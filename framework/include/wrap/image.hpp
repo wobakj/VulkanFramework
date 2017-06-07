@@ -2,6 +2,7 @@
 #define IMAGE_HPP
 
 #include "wrap/memory_resource.hpp"
+#include "wrap/image_view.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -23,7 +24,7 @@ class Image {
   
   Image();
   Image(Device const& device, vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage); 
-  virtual ~Image();
+  virtual ~Image() {};
 
   Image(Image && dev);
   Image(Image const&) = delete;
@@ -38,7 +39,7 @@ class Image {
   virtual vk::ImageLayout const& layout() const;
   virtual vk::AttachmentDescription toAttachment(bool clear = true) const;
   virtual vk::Format const& format() const;
-  virtual vk::ImageView const& view() const;
+  virtual ImageView const& view() const;
   virtual vk::Extent3D const& extent() const;
   // write as combined sampler
   virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
@@ -51,11 +52,11 @@ class Image {
   // virtual vk::ImageCreateInfo& info() = 0;
   virtual vk::Image const& obj() const = 0;
   virtual Device const& device() const = 0;
-  virtual void destroy();
   virtual void createView();
 
-  vk::ImageView m_view;
+  ImageView m_view;
   friend class Transferrer;
+  friend class ImageView;
 };
 
 #endif

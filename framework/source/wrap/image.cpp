@@ -149,16 +149,49 @@ Image::Image(Image && dev)
   swap(dev);
 }
 
-Image::~Image() {
-  // cleanup();
-}
+// Image::Image(Device const& device,  vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
+//  :ImageRes{}
+// {  
+//   m_device = &device;
 
-void Image::destroy() {
-  if (m_view) {
-    device()->destroyImageView(m_view);
-  }
-  // device()->destroyImage(obj());
-}
+//   if (extent.height > 1) {
+//     if (extent.depth > 1) {
+//       m_info.imageType = vk::ImageType::e3D;
+//     }
+//     else {
+//       m_info.imageType = vk::ImageType::e2D;
+//     }
+//   }
+//   else {
+//     m_info.imageType = vk::ImageType::e1D;
+//   }
+
+//   m_info.extent = extent;
+//   m_info.mipLevels = 1;
+//   m_info.arrayLayers = 1;
+//   m_info.format = format;
+//   m_info.tiling = tiling;
+//   // if image is linear, its probably for data upload
+//   if (tiling == vk::ImageTiling::eLinear) {
+//     m_info.initialLayout = vk::ImageLayout::ePreinitialized;
+//   }
+//   else {
+//     m_info.initialLayout = vk::ImageLayout::eUndefined;
+//   }
+//   m_info.usage = usage;
+
+//   auto queueFamilies = device.ownerIndices();
+//   if (queueFamilies.size() > 1) {
+//     m_info.sharingMode = vk::SharingMode::eConcurrent;
+//     m_info.queueFamilyIndexCount = std::uint32_t(queueFamilies.size());
+//     m_info.pQueueFamilyIndices = queueFamilies.data();
+//   }
+//   else {
+//     m_info.sharingMode = vk::SharingMode::eExclusive;
+//   }
+
+//   m_object = device->createImage(info());
+// }
 
 Image& Image::operator=(Image&& dev) {
   swap(dev);
@@ -169,7 +202,7 @@ vk::ImageLayout const& Image::layout() const {
   return info().initialLayout;
 }
 
-vk::ImageView const& Image::view() const {
+ImageView const& Image::view() const {
   return m_view;
 }
 
@@ -186,8 +219,8 @@ vk::AttachmentDescription Image::toAttachment(bool clear) const {
 }
 
 void Image::createView() {
-  auto view_info = img_to_view(obj(), info()); 
-  m_view = device()->createImageView(view_info);  
+  // auto view_info = img_to_view(obj(), info()); 
+  m_view = ImageView{*this};  
 }
 
 void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {

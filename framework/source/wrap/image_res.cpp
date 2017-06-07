@@ -78,7 +78,6 @@ void ImageRes::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) 
 }
 
 void ImageRes::destroy() {
-  Image::destroy();
   (*m_device)->destroyImage(get());
 }
 
