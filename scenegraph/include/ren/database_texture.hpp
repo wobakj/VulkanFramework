@@ -3,6 +3,7 @@
 
 #include "ren/database.hpp"
 #include "wrap/image_res.hpp"
+#include "wrap/sampler.hpp"
 #include "deleter.hpp"
 
 #include <vulkan/vulkan.hpp>
@@ -33,7 +34,7 @@ class TextureDatabase : public Database<ImageRes> {
   void writeToSet(vk::DescriptorSet& set, uint32_t first_binding, std::map<std::string, std::map<std::string, int32_t>> const& mapping) const;
  private:
   std::map<std::string, uint32_t> m_indices;
-  Deleter<VkSampler> m_sampler;
+  Sampler m_sampler;
 };
 
 #endif

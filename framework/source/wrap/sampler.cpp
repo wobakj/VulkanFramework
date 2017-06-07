@@ -29,6 +29,7 @@ Sampler::Sampler(Device const& device, vk::Filter const& filter, vk::SamplerAddr
   m_info.addressModeU = address;
   m_info.addressModeV = address;
   m_info.addressModeW = address;
+  m_info.maxAnisotropy = 1.0;
   m_object = device->createSampler(m_info);
 }
 

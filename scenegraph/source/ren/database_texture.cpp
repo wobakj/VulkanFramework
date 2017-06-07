@@ -17,9 +17,9 @@ TextureDatabase::TextureDatabase(TextureDatabase && rhs)
 
 TextureDatabase::TextureDatabase(Transferrer& transferrer)
  :Database{transferrer}
- ,m_sampler{*m_device, vkDestroySampler}
+ ,m_sampler{*m_device, vk::Filter::eLinear, vk::SamplerAddressMode::eRepeat}
 {
-  m_sampler = (*m_device)->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
+  // m_sampler = (*m_device)->createSampler({{}, vk::Filter::eLinear, vk::Filter::eLinear});
   // find memory type which supports optimal image and specific depth format
   auto type_img = m_device->suitableMemoryType(vk::Format::eD32Sfloat, vk::ImageTiling::eOptimal, vk::MemoryPropertyFlagBits::eDeviceLocal);
   m_allocator = BlockAllocator{*m_device, type_img, 4 * 4 * 3840 * 2160};
