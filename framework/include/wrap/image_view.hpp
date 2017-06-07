@@ -36,6 +36,7 @@ class ImageView : public WrapperImageView {
 
   void swap(ImageView& dev);
 
+  vk::Image const& image() const;
   vk::ImageLayout const& layout() const;
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;

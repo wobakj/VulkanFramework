@@ -9,6 +9,7 @@
 class Device;
 class CommandPool;
 class Geometry;
+class ImageView;
 
 struct session_t {
   session_t()
@@ -45,6 +46,10 @@ class CommandBuffer : public WrapperCommandBuffer {
   void pushConstants(vk::ShaderStageFlags stage, uint32_t offset, uint32_t size, const void* pValues);
 
   void bindDescriptorSets(uint32_t first_set, vk::ArrayProxy<const vk::DescriptorSet> sets, vk::ArrayProxy<const uint32_t> dynamic_offsets);
+
+  void copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ArrayProxy<const vk::ImageCopy> regions) const;
+  void copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;
+  void copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;
   
   void drawGeometry(uint32_t instanceCount = 1, uint32_t firstInstance = 0);
  private:

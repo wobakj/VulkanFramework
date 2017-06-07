@@ -2,6 +2,7 @@
 
 #include "wrap/device.hpp"
 #include "wrap/command_pool.hpp"
+#include "wrap/image_view.hpp"
 #include "wrap/pipeline.hpp"
 #include "geometry.hpp"
 
@@ -86,6 +87,18 @@ void CommandBuffer::drawGeometry(uint32_t instanceCount, uint32_t firstInstance)
   else {
     get().draw(m_session.geometry->numVertices(), instanceCount, m_session.geometry->vertexOffset(), firstInstance);
   }
+}
+
+void CommandBuffer::copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ArrayProxy<const vk::ImageCopy> regions) const {
+  get().copyImage(srcImage, srcImageLayout, dstImage, dstImageLayout, regions);
+}
+
+void CommandBuffer::copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const {
+  get().copyImage(srcImage, srcImageLayout, dstImage, dstImageLayout, {region});
+}
+
+void CommandBuffer::copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const {
+  get().copyImage(srcImage.image(), srcImageLayout, dstImage.image(), dstImageLayout, {region});
 }
 
 void CommandBuffer::pushConstants(vk::ShaderStageFlags stage, uint32_t offset, uint32_t size, const void* pValues) {

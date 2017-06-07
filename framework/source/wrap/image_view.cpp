@@ -192,6 +192,10 @@ ImageView::operator vk::ImageSubresourceRange const&() const {
   return info().subresourceRange;
 }
 
+vk::Image const& ImageView::image() const {
+  return m_image;
+}
+
 vk::ImageLayout const& ImageView::layout() const {
   return m_image_info.initialLayout;
 }

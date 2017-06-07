@@ -178,6 +178,97 @@ void sub_pass_t::setInputAttachment(size_t i, uint32_t index) {
   input_refs[i] = vk::AttachmentReference{index, vk::ImageLayout::eShaderReadOnlyOptimal};
 }
 
+RenderPassInfo::RenderPassInfo(uint32_t num_subpasses)
+ :sub_passes(num_subpasses, sub_pass_t{}) 
+{}
+
+void RenderPassInfo::setAttachment(size_t i, vk::Format const& format, vk::ImageLayout const& layout_in, vk::ImageLayout const& layout_out, bool clear) {
+  vk::AttachmentDescription attachment{};
+  attachment.format = format;
+  // if image is cleared, initial layout doesnt matter as data is deleted 
+  if(clear) {
+    attachment.loadOp = vk::AttachmentLoadOp::eClear;    
+    attachment.stencilLoadOp = vk::AttachmentLoadOp::eClear;
+    attachment.initialLayout = vk::ImageLayout::eUndefined;
+  }
+  else {
+    attachment.loadOp = vk::AttachmentLoadOp::eLoad;
+    attachment.stencilLoadOp = vk::AttachmentLoadOp::eLoad;
+    attachment.initialLayout = layout_in;
+  }
+  // store data only when it is used afterwards
+  if (layout_out != vk::ImageLayout::eUndefined) {
+    attachment.storeOp = vk::AttachmentStoreOp::eStore;
+    attachment.stencilStoreOp = vk::AttachmentStoreOp::eStore;
+  }
+  else {
+    attachment.storeOp = vk::AttachmentStoreOp::eDontCare;
+    attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+  }
+  // layout should be preserved, so go back to original after pass
+  attachment.finalLayout = layout_out;
+
+  if (i >= attachments.size()) {
+    attachments.resize(i + 1);
+  }
+  attachments[i] = attachment;
+}
+
+sub_pass_t& RenderPassInfo::subPass(size_t i) {
+  return sub_passes[i];
+}
+
+vk::RenderPassCreateInfo RenderPassInfo::info() const {
+  sub_descriptions.clear();
+  for (auto& sub_pass : sub_passes) {
+    sub_pass.preserve_refs.clear();
+  }
+  // calculate preserve atachments
+  for(uint32_t i = 0; i < sub_passes.size(); ++i) {
+    sub_descriptions.emplace_back(sub_passes[i].to_description());
+    // check for each output, if it is consumed by a later pass 
+    for(auto const& ref_out : sub_passes[i].outputs()) {
+      for(uint32_t j = i + 1; j < sub_passes.size(); ++j) {
+        for(auto const& ref_in : sub_passes[j].inputs()) {
+          if (ref_in.attachment == ref_out.attachment) {
+            dependencies.emplace_back(img_to_dependency(ref_out.layout, ref_in.layout, i, j));
+            // add preserve attachments in passes between attachment ouput and usage
+            for(uint32_t k = i + 1; k < j; ++k) {
+              sub_passes[k].preserve_refs.push_back(ref_in.attachment);
+            }
+          }
+        }
+      }
+    }
+  }
+  // add dependency for present image as first stage output 
+  for(auto const& ref : sub_passes.front().outputs()) {
+    if (attachments[ref.attachment].initialLayout == vk::ImageLayout::ePresentSrcKHR
+     || attachments[ref.attachment].initialLayout == vk::ImageLayout::eTransferDstOptimal
+     || attachments[ref.attachment].initialLayout == vk::ImageLayout::eTransferSrcOptimal
+        ) {
+      dependencies.emplace_back(img_to_dependency(attachments[ref.attachment].initialLayout, ref.layout, VK_SUBPASS_EXTERNAL, 0));
+    }
+  }
+  // add dependency for present image as last stage output 
+  for(auto const& ref : sub_passes.back().outputs()) {
+    if (attachments[ref.attachment].finalLayout == vk::ImageLayout::ePresentSrcKHR
+     || attachments[ref.attachment].finalLayout == vk::ImageLayout::eTransferSrcOptimal) {
+      dependencies.emplace_back(img_to_dependency(ref.layout, attachments[ref.attachment].finalLayout, int32_t(sub_passes.size()) - 1, VK_SUBPASS_EXTERNAL));
+    }
+  }
+
+  vk::RenderPassCreateInfo pass_info{};
+  pass_info.attachmentCount = std::uint32_t(attachments.size());
+  pass_info.pAttachments = attachments.data();
+  pass_info.subpassCount = std::uint32_t(sub_descriptions.size());
+  pass_info.pSubpasses = sub_descriptions.data();
+  pass_info.dependencyCount = std::uint32_t(dependencies.size());
+  pass_info.pDependencies = dependencies.data();
+
+  return pass_info;
+}
+
 render_pass_t::render_pass_t() 
 {}
 
@@ -268,5 +359,42 @@ RenderPass& RenderPass::operator=(RenderPass&& dev) {
 
 void RenderPass::swap(RenderPass& dev) {
   WrapperRenderPass::swap(dev);
+  std::swap(m_device, dev.m_device);
+}
+
+
+
+RenderPass2::RenderPass2()
+{}
+
+RenderPass2::RenderPass2(Device const& device, RenderPassInfo const& info)
+ :WrapperRenderPass2{}
+ ,m_device{&device}
+{
+  m_info = info;
+  m_object = device->createRenderPass(m_info.info(), nullptr);
+}
+
+RenderPass2::~RenderPass2() {
+  cleanup();
+}
+
+void RenderPass2::destroy() {
+  (*m_device)->destroyRenderPass(m_object);
+}
+
+RenderPass2::RenderPass2(RenderPass2 && dev)
+ :RenderPass2{}
+{
+  swap(dev);
+}
+
+RenderPass2& RenderPass2::operator=(RenderPass2&& dev) {
+  swap(dev);
+  return *this;
+}
+
+void RenderPass2::swap(RenderPass2& dev) {
+  WrapperRenderPass2::swap(dev);
   std::swap(m_device, dev.m_device);
 }

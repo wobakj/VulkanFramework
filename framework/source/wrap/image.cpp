@@ -107,9 +107,9 @@ ImageView const& Image::view() const {
   return m_view;
 }
 
-// vk::Format const& Image::format() const {
-//   return info().format;
-// }
+vk::Format const& Image::format() const {
+  return info().format;
+}
 
 vk::Extent3D const& Image::extent() const {
   return info().extent;

@@ -32,7 +32,7 @@ class Image {
   void swap(Image& dev);
 
   virtual vk::AttachmentDescription toAttachment(bool clear = true) const;
-  // virtual vk::Format const& format() const;
+  virtual vk::Format const& format() const;
   virtual ImageView const& view() const;
   virtual vk::Extent3D const& extent() const;
   // vk::ImageLayout const& layout() const;

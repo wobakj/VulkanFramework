@@ -36,6 +36,7 @@ struct sub_pass_t {
   std::vector<uint32_t> preserve_refs;
 
   friend class render_pass_t;
+  friend class RenderPassInfo;
 };
 
 struct render_pass_t {
@@ -44,11 +45,26 @@ struct render_pass_t {
   render_pass_t(std::vector<vk::ImageCreateInfo> const& images, std::vector<sub_pass_t> const& subpasses);
 
   vk::RenderPassCreateInfo to_info() const;
-
   std::vector<sub_pass_t> sub_passes;
   std::vector<vk::AttachmentDescription> attachments;
   std::vector<vk::SubpassDescription> sub_descriptions;
   std::vector<vk::SubpassDependency> dependencies;
+};
+
+class RenderPassInfo {
+ public:
+  // dependencies for first pass inputs not supported
+  RenderPassInfo(uint32_t num_subpasses = 0);
+
+  vk::RenderPassCreateInfo info() const;
+  void setAttachment(size_t i, vk::Format const& format, vk::ImageLayout const& layout_in, vk::ImageLayout const& layout_out = vk::ImageLayout::eUndefined, bool clear = true);
+
+  sub_pass_t& subPass(size_t i);
+ private: 
+  mutable std::vector<sub_pass_t> sub_passes;
+  std::vector<vk::AttachmentDescription> attachments;
+  mutable std::vector<vk::SubpassDescription> sub_descriptions;
+  mutable std::vector<vk::SubpassDependency> dependencies;
 };
 
 using WrapperRenderPass = Wrapper<vk::RenderPass, render_pass_t>;
@@ -64,6 +80,26 @@ class RenderPass : public WrapperRenderPass {
   RenderPass& operator=(RenderPass&& dev);
 
   void swap(RenderPass& dev);
+
+ private:
+  void destroy() override;
+
+  Device const* m_device;
+};
+
+using WrapperRenderPass2 = Wrapper<vk::RenderPass, RenderPassInfo>;
+class RenderPass2 : public WrapperRenderPass2 {
+ public:
+  RenderPass2();
+  RenderPass2(Device const& device, RenderPassInfo const& info);
+  RenderPass2(RenderPass2 && dev);
+  RenderPass2(RenderPass2 const&) = delete;
+  ~RenderPass2();
+
+  RenderPass2& operator=(RenderPass2 const&) = delete;
+  RenderPass2& operator=(RenderPass2&& dev);
+
+  void swap(RenderPass2& dev);
 
  private:
   void destroy() override;
