@@ -256,13 +256,13 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   // barrier is now performed through renderpass dependency
 
   vk::ImageBlit blit{};
-  blit.srcSubresource = img_to_resource_layer(m_images.at("color").info());
-  blit.dstSubresource = img_to_resource_layer(m_swap_chain.imgInfo());
-  blit.srcOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
-  blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
+  blit.srcSubresource = m_images.at("color").view().resourceLayer();
+  blit.dstSubresource = m_swap_chain.view(res.image).resourceLayer();
+  blit.srcOffsets[1] = ex_to_off(m_swap_chain.view(res.image).extent());
+  blit.dstOffsets[1] = ex_to_off(m_swap_chain.view(res.image).extent());
 
   m_swap_chain.view(res.image).layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.commandBuffer("draw")->blitImage(m_images.at("color").get(), m_images.at("color").view().layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.commandBuffer("draw")->blitImage(m_images.at("color").get(), m_images.at("color").view().layout(), m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
   m_swap_chain.view(res.image).layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);

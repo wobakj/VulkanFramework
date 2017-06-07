@@ -197,6 +197,9 @@ vk::ImageSubresourceLayers ImageView::resourceLayers(unsigned layer, unsigned co
   layers.mipLevel = mip_level;
   return layers;
 }
+vk::ImageSubresourceLayers ImageView::resourceLayer(unsigned layer, unsigned mip_level) const {
+  return resourceLayers(layer, 1, mip_level);
+}
 
 void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};

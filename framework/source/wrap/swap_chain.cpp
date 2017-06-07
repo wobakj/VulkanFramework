@@ -94,7 +94,8 @@ vk::ImageCreateInfo chain_to_img(SwapChain const& chain) {
   img_info.sharingMode = chain.info().imageSharingMode;
   img_info.queueFamilyIndexCount = chain.info().queueFamilyIndexCount;
   img_info.pQueueFamilyIndices = chain.info().pQueueFamilyIndices;
-  img_info.initialLayout = chain.layout();
+  img_info.initialLayout = vk::ImageLayout::eUndefined;
+  // img_info.initialLayout = chain.layout();
   return img_info;
 }
 
@@ -196,34 +197,6 @@ void SwapChain::recreate(vk::Extent2D const& extent) {
   }
 }
 
-void SwapChain::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, uint32_t index, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
-  vk::ImageMemoryBarrier barrier{};
-  barrier.oldLayout = layout_old;
-  barrier.newLayout = layout_new;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  barrier.image = m_images_swap.at(index);
-  barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = imgInfo().mipLevels;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = imgInfo().arrayLayers;
-
-  barrier.srcAccessMask = layout_to_access(layout_old);
-  barrier.dstAccessMask = layout_to_access(layout_new);
-
-  command_buffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier}
-  );
-}
-
 std::vector<ImageView> const& SwapChain::views() const {
   return m_views_swap;
 }
@@ -252,9 +225,9 @@ vk::Format SwapChain::format() const {
   return m_info.imageFormat;
 }
 
-vk::ImageLayout const& SwapChain::layout() const {
-  return m_layout;
-}
+// vk::ImageLayout const& SwapChain::layout() const {
+//   return m_layout;
+// }
 
 vk::Extent2D const& SwapChain::extent() const {
   return m_info.imageExtent;

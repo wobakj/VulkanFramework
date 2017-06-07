@@ -6,6 +6,10 @@
 
 #include <vulkan/vulkan.hpp>
 
+inline vk::Offset3D ex_to_off(vk::Extent3D const& ex) {
+  return vk::Offset3D{int32_t(ex.width), int32_t(ex.height), std::max(int32_t(ex.depth), 1)};
+}
+
 class Device;
 class Memory;
 
@@ -32,8 +36,6 @@ class Image {
   Image& operator=(Image const&) = delete;
   Image& operator=(Image&& dev);
 
-  // virtual void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
-
   void swap(Image& dev);
 
   virtual vk::AttachmentDescription toAttachment(bool clear = true) const;
@@ -41,11 +43,6 @@ class Image {
   virtual ImageView const& view() const;
   virtual vk::Extent3D const& extent() const;
   // vk::ImageLayout const& layout() const;
-
-  // write as combined sampler
-  // virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
-  // write as input attachment
-  // virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
 
   virtual vk::ImageCreateInfo const& info() const = 0;
  

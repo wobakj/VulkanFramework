@@ -45,8 +45,6 @@ class SwapChain : public WrapperSwap {
   void create(Device const& dev, vk::SurfaceKHR const& surface, VkExtent2D const& extent, vk::PresentModeKHR const& present_mode, uint32_t num_images);
   void recreate(vk::Extent2D const& extent);
 
-  void layoutTransitionCommand(vk::CommandBuffer const& buffer, uint32_t index, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
-
   std::vector<ImageView> const& views() const;
   ImageView const& view(std::size_t i) const;
   
@@ -60,7 +58,7 @@ class SwapChain : public WrapperSwap {
   float aspect() const;
   vk::Viewport asViewport() const;
   vk::Rect2D asRect() const;
-  vk::ImageLayout const& layout() const;
+  // vk::ImageLayout const& layout() const;
 
  private:
 
