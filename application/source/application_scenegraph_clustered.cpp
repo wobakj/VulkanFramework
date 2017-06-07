@@ -347,8 +347,8 @@ void ApplicationScenegraphClustered::recordDrawBuffer(FrameResource& res) {
   vk::ImageBlit blit{};
   blit.srcSubresource = m_images.at("tonemapping_result").view().layer();
   blit.dstSubresource = res.target_view->layer();
-  blit.srcOffsets[1] = ex_to_off(res.target_view->extent());
-  blit.dstOffsets[1] = ex_to_off(res.target_view->extent());
+  blit.srcOffsets[1] = offset_3d(res.target_view->extent());
+  blit.dstOffsets[1] = offset_3d(res.target_view->extent());
 
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw")->blitImage(m_images.at("tonemapping_result"), m_images.at("tonemapping_result").view().layout(), m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
@@ -363,12 +363,23 @@ void ApplicationScenegraphClustered::createFramebuffers() {
 
 void ApplicationScenegraphClustered::createRenderPasses() {
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
-  sub_pass_t pass_1({0, 1, 2},{},3);
+  sub_pass_t pass_gbuffer{};
+  pass_gbuffer.setColorAttachment(0, 0);
+  pass_gbuffer.setColorAttachment(1, 1);
+  pass_gbuffer.setColorAttachment(2, 2);
+  pass_gbuffer.setDepthAttachment(3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
-  sub_pass_t pass_2({4},{0,1,2}, 3);
+  sub_pass_t pass_shade{};
+  pass_shade.setColorAttachment(0, 4);
+  pass_shade.setInputAttachment(0, 0);
+  pass_shade.setInputAttachment(1, 1);
+  pass_shade.setInputAttachment(2, 2);
+  pass_shade.setDepthAttachment(3);
   // third pass receives lighting result (4) and writes to tonemapping result (5)
-  sub_pass_t pass_3({5},{4});
-  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info(), m_images.at("tonemapping_result").info()}, {pass_1, pass_2, pass_3}};
+  sub_pass_t pass_tone{};
+  pass_tone.setColorAttachment(0, 5);
+  pass_tone.setInputAttachment(0, 4);
+  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info(), m_images.at("tonemapping_result").info()}, {pass_gbuffer, pass_shade, pass_tone}};
 }
 
 void ApplicationScenegraphClustered::createPipelines() {
@@ -511,7 +522,7 @@ void ApplicationScenegraphClustered::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
+  auto extent = extent_3d(m_swap_chain.extent()); 
   m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));

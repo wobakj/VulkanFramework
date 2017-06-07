@@ -111,6 +111,9 @@ vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info,
   return attachment;
 }
 
+sub_pass_t::sub_pass_t()
+{}   
+
 sub_pass_t::sub_pass_t(std::vector<uint32_t> const& colors, std::vector<uint32_t> const& inputs, int32_t depth) {   
   for(auto const& color : colors) {
     color_refs.emplace_back(vk::AttachmentReference{color, vk::ImageLayout::eColorAttachmentOptimal});
@@ -155,6 +158,24 @@ std::vector<vk::AttachmentReference> sub_pass_t::inputs() const {
   auto outs = outputs();
   inputs.insert( inputs.end(), outs.begin(), outs.end() );
   return inputs;
+}
+
+void sub_pass_t::setColorAttachment(size_t i, uint32_t index) {
+  if (i >= color_refs.size()) {
+    color_refs.resize(i + 1);
+  }
+  color_refs[i] = vk::AttachmentReference{index, vk::ImageLayout::eColorAttachmentOptimal};
+}
+
+void sub_pass_t::setDepthAttachment(uint32_t index) {
+  depth_ref = vk::AttachmentReference{index, vk::ImageLayout::eDepthStencilAttachmentOptimal};
+}
+
+void sub_pass_t::setInputAttachment(size_t i, uint32_t index) {
+  if (i >= input_refs.size()) {
+    input_refs.resize(i + 1);
+  }
+  input_refs[i] = vk::AttachmentReference{index, vk::ImageLayout::eShaderReadOnlyOptimal};
 }
 
 render_pass_t::render_pass_t() 

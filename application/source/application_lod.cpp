@@ -258,8 +258,8 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   vk::ImageBlit blit{};
   blit.srcSubresource = m_images.at("color").view().layer();
   blit.dstSubresource = res.target_view->layer();
-  blit.srcOffsets[1] = ex_to_off(res.target_view->extent());
-  blit.dstOffsets[1] = ex_to_off(res.target_view->extent());
+  blit.srcOffsets[1] = offset_3d(res.target_view->extent());
+  blit.dstOffsets[1] = offset_3d(res.target_view->extent());
 
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
   res.commandBuffer("draw")->blitImage(m_images.at("color").get(), m_images.at("color").view().layout(), m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
@@ -274,7 +274,9 @@ void ApplicationLod::createFramebuffers() {
 }
 
 void ApplicationLod::createRenderPasses() {
-  sub_pass_t pass_1({0},{},1);
+  sub_pass_t pass_1{};
+  pass_1.setColorAttachment(0, 0);
+  pass_1.setDepthAttachment(1);
   m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("depth").info()}, {pass_1}};
 }
 
@@ -402,7 +404,7 @@ void ApplicationLod::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
+  auto extent = extent_3d(m_swap_chain.extent()); 
   m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));

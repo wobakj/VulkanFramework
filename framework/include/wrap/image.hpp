@@ -6,10 +6,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-inline vk::Offset3D ex_to_off(vk::Extent3D const& ex) {
-  return vk::Offset3D{int32_t(ex.width), int32_t(ex.height), std::max(int32_t(ex.depth), 1)};
-}
-
 class Device;
 class Memory;
 

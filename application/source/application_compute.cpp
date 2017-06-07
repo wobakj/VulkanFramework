@@ -116,8 +116,8 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   vk::ImageBlit blit{};
   blit.srcSubresource = m_images.at("color").view().layer();
   blit.dstSubresource = res.target_view->layer();
-  blit.srcOffsets[1] = ex_to_off(res.target_view->extent());
-  blit.dstOffsets[1] = ex_to_off(res.target_view->extent());
+  blit.srcOffsets[1] = offset_3d(res.target_view->extent());
+  blit.dstOffsets[1] = offset_3d(res.target_view->extent());
 
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw")->blitImage(m_images.at("color").get(), m_images.at("color").view().layout(), m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
@@ -131,8 +131,9 @@ void ApplicationCompute::createFramebuffers() {
 }
 
 void ApplicationCompute::createRenderPasses() {
-  sub_pass_t pass_1({0},{});
-  m_render_pass = RenderPass{m_device, {m_images.at("color").info()}, {pass_1}};
+  sub_pass_t pass_blit{};
+  pass_blit.setColorAttachment(0, 0);
+  m_render_pass = RenderPass{m_device, {m_images.at("color").info()}, {pass_blit}};
 }
 
 void ApplicationCompute::createPipelines() {
@@ -173,7 +174,7 @@ void ApplicationCompute::updatePipelines() {
 }
 
 void ApplicationCompute::createFramebufferAttachments() {
-  auto extent = vk::Extent3D{m_swap_chain.extent().width, m_swap_chain.extent().height, 1}; 
+  auto extent = extent_3d(m_swap_chain.extent()); 
  
   m_images["color"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);

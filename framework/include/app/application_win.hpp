@@ -4,6 +4,7 @@
 #include "app/application.hpp"
 #include "wrap/swap_chain.hpp"
 #include "statistics.hpp"
+#include "wrap/conversions.hpp"
 
 #include "camera.hpp"
 
