@@ -548,12 +548,12 @@ void ApplicationScenegraphClustered::createFramebufferAttachments() {
 }
 
 void ApplicationScenegraphClustered::updateDescriptors() {
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
+  m_images.at("color").view().writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("pos").view().writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
+  m_images.at("normal").view().writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
   m_instance.dbLight().buffer().writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
   // read
-  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
+  m_images.at("light_vol").view().writeToSet(m_descriptor_sets.at("lighting"), 4, m_volumeSampler.get());
   m_buffer_views.at("lightgrid").writeToSet(m_descriptor_sets.at("lighting"), 5, vk::DescriptorType::eUniformBuffer);
 
   m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
@@ -562,14 +562,14 @@ void ApplicationScenegraphClustered::updateDescriptors() {
   m_instance.dbMaterial().buffer().writeToSet(m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbTexture().writeToSet(m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
 
-  m_images.at("color_2").writeToSet(m_descriptor_sets.at("tonemapping"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("color_2").view().writeToSet(m_descriptor_sets.at("tonemapping"), 0, vk::DescriptorType::eInputAttachment);
 
   // read
   m_instance.dbCamera().buffer().writeToSet(m_descriptor_sets.at("lightgrid"), 3, vk::DescriptorType::eUniformBuffer);
   m_instance.dbLight().buffer().writeToSet(m_descriptor_sets.at("lightgrid"), 2, vk::DescriptorType::eStorageBuffer);
   m_buffer_views.at("lightgrid").writeToSet(m_descriptor_sets.at("lightgrid"), 1, vk::DescriptorType::eUniformBuffer);
   // write
-  m_images.at("light_vol").writeToSet(m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
+  m_images.at("light_vol").view().writeToSet(m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
 }
 
 void ApplicationScenegraphClustered::createTextureSamplers() {

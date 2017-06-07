@@ -266,7 +266,7 @@ void ApplicationLodMpi::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = vk::Offset3D{int(m_swap_chain.extent().width), int(m_swap_chain.extent().height), 1};
 
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.commandBuffer("draw")->blitImage(m_images.at("color"), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
+  res.commandBuffer("draw")->blitImage(m_images.at("color").get(), m_images.at("color").layout(), m_swap_chain.image(res.image), m_swap_chain.layout(), {blit}, vk::Filter::eNearest);
   m_swap_chain.layoutTransitionCommand(res.command_buffers.at("draw").get(), res.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);
@@ -432,7 +432,7 @@ void ApplicationLodMpi::createTextureSampler() {
 
 void ApplicationLodMpi::updateDescriptors() {
   m_model_lod.viewNodeLevels().writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eStorageBuffer);
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("lighting"), 2, m_sampler.get());
+  m_images.at("texture").view().writeToSet(m_descriptor_sets.at("lighting"), 2, m_sampler.get());
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 }
 

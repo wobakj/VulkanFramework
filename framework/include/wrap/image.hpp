@@ -32,19 +32,20 @@ class Image {
   Image& operator=(Image const&) = delete;
   Image& operator=(Image&& dev);
 
-  virtual void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
+  // virtual void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new);
 
   void swap(Image& dev);
 
-  virtual vk::ImageLayout const& layout() const;
   virtual vk::AttachmentDescription toAttachment(bool clear = true) const;
-  virtual vk::Format const& format() const;
+  // virtual vk::Format const& format() const;
   virtual ImageView const& view() const;
   virtual vk::Extent3D const& extent() const;
+  vk::ImageLayout const& layout() const;
+
   // write as combined sampler
-  virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
+  // virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
   // write as input attachment
-  virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
+  // virtual void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
 
   virtual vk::ImageCreateInfo const& info() const = 0;
  

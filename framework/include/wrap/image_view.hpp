@@ -36,6 +36,8 @@ class ImageView : public WrapperImageView {
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
   vk::Extent3D const& extent() const;
+  vk::ImageSubresourceLayers resourceLayers(unsigned layer = 0, unsigned count = 1, unsigned mip_level = 0) const;
+
   // write as combined sampler
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
   // write as input attachment

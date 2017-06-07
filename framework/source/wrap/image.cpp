@@ -206,9 +206,9 @@ ImageView const& Image::view() const {
   return m_view;
 }
 
-vk::Format const& Image::format() const {
-  return info().format;
-}
+// vk::Format const& Image::format() const {
+//   return info().format;
+// }
 
 vk::Extent3D const& Image::extent() const {
   return info().extent;
@@ -223,87 +223,87 @@ void Image::createView() {
   m_view = ImageView{*this};  
 }
 
-void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
-  vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = info().initialLayout;
-  // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-  imageInfo.imageView = m_view;
-  imageInfo.sampler = sampler;
+// void Image::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
+//   vk::DescriptorImageInfo imageInfo{};
+//   imageInfo.imageLayout = info().initialLayout;
+//   // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+//   imageInfo.imageView = m_view;
+//   imageInfo.sampler = sampler;
 
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = set;
-  descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = index;
-  descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pImageInfo = &imageInfo;
+//   vk::WriteDescriptorSet descriptorWrite{};
+//   descriptorWrite.dstSet = set;
+//   descriptorWrite.dstBinding = binding;
+//   descriptorWrite.dstArrayElement = index;
+//   descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
+//   descriptorWrite.descriptorCount = 1;
+//   descriptorWrite.pImageInfo = &imageInfo;
 
-  device()->updateDescriptorSets({descriptorWrite}, 0);
-}
+//   device()->updateDescriptorSets({descriptorWrite}, 0);
+// }
 
-void Image::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
-  vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = info().initialLayout;
-  // if (type == vk::DescriptorType::eSampledImage) {
-    // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-  // }
-  // else if (type == vk::DescriptorType::eStorageImage) {
-  //   imageInfo.imageLayout = vk::ImageLayout::eGeneral;
-  // }
-  // else {
-  //   throw std::runtime_error{"descriptor type not supported"};
-  // }
-  imageInfo.imageView = m_view;
+// void Image::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+//   vk::DescriptorImageInfo imageInfo{};
+//   imageInfo.imageLayout = info().initialLayout;
+//   // if (type == vk::DescriptorType::eSampledImage) {
+//     // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+//   // }
+//   // else if (type == vk::DescriptorType::eStorageImage) {
+//   //   imageInfo.imageLayout = vk::ImageLayout::eGeneral;
+//   // }
+//   // else {
+//   //   throw std::runtime_error{"descriptor type not supported"};
+//   // }
+//   imageInfo.imageView = m_view;
 
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = set;
-  descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = index;
-  descriptorWrite.descriptorType = type;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pImageInfo = &imageInfo;
+//   vk::WriteDescriptorSet descriptorWrite{};
+//   descriptorWrite.dstSet = set;
+//   descriptorWrite.dstBinding = binding;
+//   descriptorWrite.dstArrayElement = index;
+//   descriptorWrite.descriptorType = type;
+//   descriptorWrite.descriptorCount = 1;
+//   descriptorWrite.pImageInfo = &imageInfo;
 
-  device()->updateDescriptorSets({descriptorWrite}, 0);
-}
+//   device()->updateDescriptorSets({descriptorWrite}, 0);
+// }
 
 void Image::swap(Image& dev) {
   std::swap(m_view, dev.m_view);
  }
 
-void Image::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) {
-  vk::ImageMemoryBarrier barrier{};
-  barrier.oldLayout = layout_old;
-  barrier.newLayout = layout_new;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+// void Image::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) {
+//   vk::ImageMemoryBarrier barrier{};
+//   barrier.oldLayout = layout_old;
+//   barrier.newLayout = layout_new;
+//   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+//   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  barrier.image = obj();
+//   barrier.image = obj();
 
-  if (is_depth(format())) {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+//   if (is_depth(format())) {
+//     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
 
-    if (has_stencil(format())) {
-      barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
+//     if (has_stencil(format())) {
+//       barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+//     }
+//   } 
+//   else {
+//     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+//   }
 
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = info().mipLevels;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = info().arrayLayers;
+//   barrier.subresourceRange.baseMipLevel = 0;
+//   barrier.subresourceRange.levelCount = info().mipLevels;
+//   barrier.subresourceRange.baseArrayLayer = 0;
+//   barrier.subresourceRange.layerCount = info().arrayLayers;
 
-  barrier.srcAccessMask = layout_to_access(layout_old);
-  barrier.dstAccessMask = layout_to_access(layout_new);
+//   barrier.srcAccessMask = layout_to_access(layout_old);
+//   barrier.dstAccessMask = layout_to_access(layout_new);
 
-  command_buffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier}
-  );
-}
+//   command_buffer.pipelineBarrier(
+//     vk::PipelineStageFlagBits::eTopOfPipe,
+//     vk::PipelineStageFlagBits::eTopOfPipe,
+//     vk::DependencyFlags{},
+//     {},
+//     {},
+//     {barrier}
+//   );
+// }

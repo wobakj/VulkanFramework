@@ -31,7 +31,7 @@ FrameBuffer::FrameBuffer(Device const& device, std::vector<Image const*> const& 
   m_object = (*m_device)->createFramebuffer(info());
 
   for(auto const& image : images) {
-    if (!is_depth(image->format())) {
+    if (!is_depth(image->view().format())) {
       m_clear_values.emplace_back(vk::ClearColorValue{std::array<float,4>{0.0f, 0.0f, 0.0f, 1.0f}});
     }
     else {

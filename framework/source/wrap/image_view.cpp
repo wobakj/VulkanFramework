@@ -208,6 +208,16 @@ vk::AttachmentDescription ImageView::toAttachment(bool clear) const {
   return img_to_attachment(m_image_info, clear);
 }
 
+vk::ImageSubresourceLayers ImageView::resourceLayers(unsigned layer, unsigned count, unsigned mip_level) const {
+  vk::ImageSubresourceLayers layers{};
+  auto range = info().subresourceRange;
+  layers.aspectMask = range.aspectMask;
+  layers.layerCount = count;
+  layers.baseArrayLayer = layer;
+  layers.mipLevel = mip_level;
+  return layers;
+}
+
 void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = m_image_info.initialLayout;

@@ -101,10 +101,10 @@ void Transferrer::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstB
 
 void Transferrer::copyImage(ImageRes const& srcImage, ImageRes& dstImage, uint32_t width, uint32_t height) const {
   vk::ImageSubresourceLayers subResource{};
-  if (is_depth(srcImage.format())) {
+  if (is_depth(srcImage.view().format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
 
-    if (has_stencil(srcImage.format())) {
+    if (has_stencil(srcImage.view().format())) {
       subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
     }
   } 
@@ -137,10 +137,10 @@ void Transferrer::copyImage(ImageRes const& srcImage, ImageRes& dstImage, uint32
 
 void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
   vk::ImageSubresourceLayers subResource{};
-  if (is_depth(dstImage.format())) {
+  if (is_depth(dstImage.view().format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
 
-    if (has_stencil(dstImage.format())) {
+    if (has_stencil(dstImage.view().format())) {
       subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
     }
   } 

@@ -47,7 +47,6 @@ class CommandBuffer : public WrapperCommandBuffer {
   void bindDescriptorSets(uint32_t first_set, vk::ArrayProxy<const vk::DescriptorSet> sets, vk::ArrayProxy<const uint32_t> dynamic_offsets);
   
   void drawGeometry(uint32_t instanceCount = 1, uint32_t firstInstance = 0);
-
  private:
   CommandBuffer(CommandPool const& pool, uint32_t idx_queue, vk::CommandBufferLevel const& level);
   void destroy() override;

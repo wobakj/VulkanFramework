@@ -356,11 +356,11 @@ void ApplicationThreadedSimple::createTextureSampler() {
 }
 
 void ApplicationThreadedSimple::updateDescriptors() {
-  m_images.at("texture").writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
+  m_images.at("texture").view().writeToSet(m_descriptor_sets.at("textures"), 0, m_sampler.get());
 
-  m_images.at("color").writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  m_images.at("pos").writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  m_images.at("normal").writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
+  m_images.at("color").view().writeToSet(m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
+  m_images.at("pos").view().writeToSet(m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
+  m_images.at("normal").view().writeToSet(m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
   m_buffer_views.at("light").writeToSet(m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 }
 
