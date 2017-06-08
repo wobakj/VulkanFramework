@@ -35,7 +35,6 @@ class Image {
   virtual vk::Format const& format() const;
   virtual ImageView const& view() const;
   virtual vk::Extent3D const& extent() const;
-  // vk::ImageLayout const& layout() const;
 
   virtual vk::ImageCreateInfo const& info() const = 0;
  

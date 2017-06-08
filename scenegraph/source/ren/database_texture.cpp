@@ -46,8 +46,7 @@ void TextureDatabase::store(std::string const& tex_path) {
   ImageRes img_new{*m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocator.allocate(img_new);
  
-  m_transferrer->transitionToLayout(img_new, vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_transferrer->uploadImageData(pix_data.ptr(), img_new);
+  m_transferrer->uploadImageData(pix_data.ptr(), img_new, vk::ImageLayout::eShaderReadOnlyOptimal);
 
   store(tex_path, std::move(img_new));  
 }
@@ -64,7 +63,6 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) 
   // TODO: support images with non-continous indices 
   for (auto img_index : m_indices) {
     vk::DescriptorImageInfo info{};
-    // info.imageLayout = m_info.initialLayout;
     info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
     info.imageView = m_resources.at(img_index.first).view();
     info.sampler = m_sampler;
@@ -98,7 +96,6 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, uint32_t first_binding,
     // TODO: support images with non-continous indices 
     for(auto const& tex_pair : type.second) {
       vk::DescriptorImageInfo info{};
-      // info.imageLayout = m_info.initialLayout;
       info.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
       info.imageView = m_resources.at(tex_pair.first).view();
       info.sampler = m_sampler;

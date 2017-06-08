@@ -196,10 +196,6 @@ vk::Image const& ImageView::image() const {
   return m_image;
 }
 
-vk::ImageLayout const& ImageView::layout() const {
-  return m_image_info.initialLayout;
-}
-
 vk::Format const& ImageView::format() const {
   return info().format;
 }

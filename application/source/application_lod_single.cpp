@@ -268,7 +268,7 @@ void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = offset_3d(res.target_view->extent());
 
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color").get(), m_images.at("color").view().layout(), m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw")->blitImage(m_images.at("color").get(), vk::ImageLayout::eTransferDstOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 3, vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -428,8 +428,7 @@ void ApplicationLodSingle::createTextureImage() {
   m_images["texture"] = ImageRes{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("texture"));
   
-  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
+  m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void ApplicationLodSingle::createTextureSampler() {

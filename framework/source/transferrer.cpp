@@ -50,8 +50,7 @@ void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image) {
-  auto prev_layout = image.view().layout();
+void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image, vk::ImageLayout const& newLayout) {
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(image.size());
@@ -60,7 +59,7 @@ void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image) {
     copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height, image.info().extent.depth);
   }
 
-  transitionToLayout(image, prev_layout);
+  transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal, newLayout);
 }
 
 void Transferrer::uploadBufferData(void const* data_ptr, BufferView& buffer_view) {
@@ -172,16 +171,14 @@ void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage,
 }
 
 void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& newLayout) const {
-  transitionToLayout(img.get(), img.info(), newLayout);
-  // store new layout
-  img.m_view.m_image_info.initialLayout = newLayout;
-  img.m_info.initialLayout = newLayout;
+  transitionToLayout(img.get(), img.info(), vk::ImageLayout::eUndefined, newLayout);
 }
 
-void Transferrer::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const {
-  // get current layout form creation info
-  vk::ImageLayout const& oldLayout = info.initialLayout;
-  
+void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
+  transitionToLayout(img.get(), img.info(), oldLayout, newLayout);
+}
+
+void Transferrer::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
   vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
   vk::ImageMemoryBarrier barrier{};
   barrier.oldLayout = oldLayout;
@@ -219,8 +216,6 @@ void Transferrer::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo c
     {barrier}
   );
   endSingleTimeCommands();
-  // store new layout
-  // m_info.initialLayout = newLayout;
 }
 
 CommandBuffer const& Transferrer::beginSingleTimeCommands() const {

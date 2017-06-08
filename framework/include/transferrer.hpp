@@ -36,10 +36,12 @@ class Transferrer {
 
   // image functions
   void uploadImageData(void const* data_ptr, ImageRes& image);
+  void uploadImageData(void const* data_ptr, ImageRes& image, vk::ImageLayout const& newLayout);
   void copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage, uint32_t width, uint32_t height, uint32_t depth = 1) const;
   void copyImage(ImageRes const& srcImage, ImageRes& dstImage, uint32_t width, uint32_t height) const;
-  void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& newLayout) const;
+  void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const;
   void transitionToLayout(ImageRes& img, vk::ImageLayout const& newLayout) const;
+  void transitionToLayout(ImageRes& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const;
 
   // helper functions to create commandbuffer for staging an formating
   CommandBuffer const& beginSingleTimeCommands() const;

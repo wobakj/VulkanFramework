@@ -191,7 +191,7 @@ void ApplicationThreadedSimple::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = offset_3d(res.target_view->extent());
 
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color_2"), m_images.at("color_2").view().layout(), m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw")->blitImage(m_images.at("color_2"), vk::ImageLayout::eTransferDstOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
@@ -357,8 +357,7 @@ void ApplicationThreadedSimple::createTextureImage() {
   m_images["texture"] = ImageRes{m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocators.at("images").allocate(m_images.at("texture"));
   
-  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
-  m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"));
+  m_transferrer.uploadImageData(pix_data.ptr(), m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void ApplicationThreadedSimple::createTextureSampler() {
