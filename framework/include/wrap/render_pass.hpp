@@ -54,7 +54,7 @@ struct render_pass_t {
 class RenderPassInfo {
  public:
   // dependencies for first pass inputs not supported
-  RenderPassInfo(uint32_t num_subpasses = 0);
+  RenderPassInfo(uint32_t num_subpasses = 1);
 
   vk::RenderPassCreateInfo info() const;
   void setAttachment(size_t i, vk::Format const& format, vk::ImageLayout const& layout_in, vk::ImageLayout const& layout_out = vk::ImageLayout::eUndefined, bool clear = true);

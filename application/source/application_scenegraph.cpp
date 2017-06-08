@@ -272,14 +272,9 @@ void ApplicationScenegraph::recordDrawBuffer(FrameResource& res) {
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
-  vk::ImageCopy copy{};
-  copy.srcSubresource = m_images.at("tonemapping_result").view().layer();
-  copy.dstSubresource = res.target_view->layer();
-  copy.extent = res.target_view->extent();
-
-  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(m_images.at("tonemapping_result").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal, copy);
-  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").copyImage(m_images.at("tonemapping_result").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
 }
@@ -289,28 +284,27 @@ void ApplicationScenegraph::createFramebuffers() {
 }
 
 void ApplicationScenegraph::createRenderPasses() {
+  // create renderpass with 3 subpasses
   RenderPassInfo info_pass{3};
   info_pass.setAttachment(0, m_images.at("color").format(), vk::ImageLayout::eColorAttachmentOptimal);
   info_pass.setAttachment(1, m_images.at("pos").format(), vk::ImageLayout::eColorAttachmentOptimal);
   info_pass.setAttachment(2, m_images.at("normal").format(), vk::ImageLayout::eColorAttachmentOptimal);
   info_pass.setAttachment(3, m_images.at("depth").format(), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   info_pass.setAttachment(4, m_images.at("color_2").format(), vk::ImageLayout::eColorAttachmentOptimal);
+  // result will be used after the pass
   info_pass.setAttachment(5, m_images.at("tonemapping_result").format(), vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eTransferSrcOptimal);
   //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
-  sub_pass_t pass_gbuffer{};
   info_pass.subPass(0).setColorAttachment(0, 0);
   info_pass.subPass(0).setColorAttachment(1, 1);
   info_pass.subPass(0).setColorAttachment(2, 2);
   info_pass.subPass(0).setDepthAttachment(3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
-  sub_pass_t pass_shade{};
   info_pass.subPass(1).setColorAttachment(0, 4);
   info_pass.subPass(1).setInputAttachment(0, 0);
   info_pass.subPass(1).setInputAttachment(1, 1);
   info_pass.subPass(1).setInputAttachment(2, 2);
   info_pass.subPass(1).setDepthAttachment(3);
   // third pass receives lighting result (4) and writes to tonemapping result (5)
-  sub_pass_t pass_tone{};
   info_pass.subPass(2).setColorAttachment(0, 5);
   info_pass.subPass(2).setInputAttachment(0, 4);
 

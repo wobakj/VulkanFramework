@@ -32,7 +32,7 @@ class ImageView : public WrapperImageView {
 
   operator vk::ImageSubresourceRange const&() const;
 
-  virtual void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
+  void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
 
   void swap(ImageView& dev);
 
@@ -40,13 +40,17 @@ class ImageView : public WrapperImageView {
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
   vk::Extent3D const& extent() const;
-  vk::ImageSubresourceLayers layers(unsigned layer, unsigned count, unsigned mip_level = 0) const;
+  // per default, return all layers of base level
+  vk::ImageSubresourceLayers layers(uint32_t mip_level = 0) const; 
+  vk::ImageSubresourceLayers layers(unsigned layer, unsigned count, unsigned mip_level) const;
   vk::ImageSubresourceLayers layer(unsigned layer = 0, unsigned mip_level = 0) const;
 
   // write as combined sampler
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
+  void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLayout const& layout, vk::Sampler const& sampler, uint32_t index = 0) const;
   // write as input attachment
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
+  void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index = 0) const;
  
  protected:
   void destroy() override;

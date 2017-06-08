@@ -47,7 +47,7 @@ class ApplicationThreadedSimple : public ApplicationThreaded {
   void updateModel();
 
   // path to the resource folders
-  RenderPass m_render_pass;
+  RenderPass2 m_render_pass;
   FrameBuffer m_framebuffer;
   Geometry m_model;
   Geometry m_model_2;

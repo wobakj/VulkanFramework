@@ -262,7 +262,7 @@ void ApplicationLod::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = offset_3d(res.target_view->extent());
 
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.commandBuffer("draw")->blitImage(m_images.at("color").get(), vk::ImageLayout::eTransferDstOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
+  res.commandBuffer("draw")->blitImage(m_images.at("color").get(), vk::ImageLayout::eTransferSrcOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);

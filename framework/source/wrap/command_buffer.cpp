@@ -101,6 +101,18 @@ void CommandBuffer::copyImage(ImageView const& srcImage, vk::ImageLayout srcImag
   get().copyImage(srcImage.image(), srcImageLayout, dstImage.image(), dstImageLayout, {region});
 }
 
+void CommandBuffer::copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, uint32_t level) const {
+  vk::ImageCopy copy{};
+  copy.srcSubresource = srcImage.layers();
+  copy.dstSubresource = dstImage.layers();
+  copy.extent = dstImage.extent();
+  get().copyImage(srcImage.image(), srcImageLayout, dstImage.image(), dstImageLayout, {copy});
+}
+
+void CommandBuffer::transitionLayout(ImageView const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
+  view.layoutTransitionCommand(get(), layout_old, layout_new);
+}
+
 void CommandBuffer::pushConstants(vk::ShaderStageFlags stage, uint32_t offset, uint32_t size, const void* pValues) {
   get().pushConstants(m_session.pipe_layout, stage, offset, size, pValues);
 }

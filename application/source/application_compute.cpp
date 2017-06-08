@@ -120,7 +120,7 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   blit.dstOffsets[1] = offset_3d(res.target_view->extent());
 
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color").get(), vk::ImageLayout::eTransferDstOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
+  res.command_buffers.at("draw")->blitImage(m_images.at("color").get(), vk::ImageLayout::eTransferSrcOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
   res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
@@ -194,7 +194,7 @@ void ApplicationCompute::createTextureSamplers() {
 }
 
 void ApplicationCompute::updateDescriptors() { 
-  m_images.at("texture").view().writeToSet(m_descriptor_sets.at("texture"), 0, m_sampler.get());
+  m_images.at("texture").view().writeToSet(m_descriptor_sets.at("texture"), 0, vk::ImageLayout::eGeneral, m_sampler.get());  
   m_images.at("texture").view().writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
   
   m_buffers.at("time").writeToSet(m_descriptor_sets.at("storage"), 1, vk::DescriptorType::eUniformBuffer);

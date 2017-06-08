@@ -58,7 +58,7 @@ class ApplicationClustered : public ApplicationSingle {
   void keyCallback(int key, int scancode, int action, int mods) override;
 
   // path to the resource folders
-  RenderPass m_render_pass;
+  RenderPass2 m_render_pass;
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;
   Geometry m_model;

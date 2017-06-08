@@ -143,21 +143,24 @@ void ApplicationVulkan::createFramebuffers() {
 }
 
 void ApplicationVulkan::createRenderPasses() {
-  //first pass receives attachment 0,1,2 as color, position and normal attachment and attachment 3 as depth attachments 
-  sub_pass_t pass_2({4},{0,1,2}, 3);
-  sub_pass_t pass_gbuffer{};
-  pass_gbuffer.setColorAttachment(0, 0);
-  pass_gbuffer.setColorAttachment(1, 1);
-  pass_gbuffer.setColorAttachment(2, 2);
-  pass_gbuffer.setDepthAttachment(3);
+  // create renderpass with 2 subpasses
+  RenderPassInfo info_pass{2};
+  info_pass.setAttachment(0, m_images.at("color").format(), vk::ImageLayout::eColorAttachmentOptimal);
+  info_pass.setAttachment(1, m_images.at("pos").format(), vk::ImageLayout::eColorAttachmentOptimal);
+  info_pass.setAttachment(2, m_images.at("normal").format(), vk::ImageLayout::eColorAttachmentOptimal);
+  info_pass.setAttachment(3, m_images.at("depth").format(), vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  info_pass.setAttachment(4, m_images.at("color_2").format(), vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
+  info_pass.subPass(0).setColorAttachment(0, 0);
+  info_pass.subPass(0).setColorAttachment(1, 1);
+  info_pass.subPass(0).setColorAttachment(2, 2);
+  info_pass.subPass(0).setDepthAttachment(3);
   // second pass receives attachments 0,1,2 and inputs and writes to 4
-  sub_pass_t pass_shade{};
-  pass_shade.setColorAttachment(0, 4);
-  pass_shade.setInputAttachment(0, 0);
-  pass_shade.setInputAttachment(1, 1);
-  pass_shade.setInputAttachment(2, 2);
-  pass_shade.setDepthAttachment(3);
-  m_render_pass = RenderPass{m_device, {m_images.at("color").info(), m_images.at("pos").info(), m_images.at("normal").info(), m_images.at("depth").info(), m_images.at("color_2").info()}, {pass_gbuffer, pass_shade}};
+  info_pass.subPass(1).setColorAttachment(0, 4);
+  info_pass.subPass(1).setInputAttachment(0, 0);
+  info_pass.subPass(1).setInputAttachment(1, 1);
+  info_pass.subPass(1).setInputAttachment(2, 2);
+  info_pass.subPass(1).setDepthAttachment(3);
+  m_render_pass = RenderPass2{m_device, info_pass};
 }
 
 void ApplicationVulkan::createPipelines() {

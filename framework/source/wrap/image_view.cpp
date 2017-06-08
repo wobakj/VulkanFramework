@@ -213,18 +213,46 @@ vk::ImageSubresourceLayers ImageView::layers(unsigned layer, unsigned count, uns
   auto range = info().subresourceRange;
   layers.aspectMask = range.aspectMask;
   layers.layerCount = count;
-  layers.baseArrayLayer = layer;
-  layers.mipLevel = mip_level;
+  // layer and level relative to base values covered by view
+  layers.baseArrayLayer = range.baseArrayLayer + layer;
+  layers.mipLevel =range.baseMipLevel + mip_level;
   return layers;
 }
 vk::ImageSubresourceLayers ImageView::layer(unsigned layer, unsigned mip_level) const {
   return layers(layer, 1, mip_level);
 }
 
+vk::ImageSubresourceLayers ImageView::layers(unsigned mip_level) const {
+  return layers(0, info().subresourceRange.layerCount, mip_level);
+}
+
 void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
+  writeToSet(set, binding, is_depth(format()) ? vk::ImageLayout::eDepthStencilReadOnlyOptimal : vk::ImageLayout::eShaderReadOnlyOptimal, sampler, index);
+}
+
+void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+  vk::ImageLayout layout = vk::ImageLayout::eUndefined;
+  // general layout is required for storage images
+  if (type == vk::DescriptorType::eStorageImage) {
+    layout = vk::ImageLayout::eGeneral;
+  }
+  else if (type == vk::DescriptorType::eInputAttachment) {
+    if (is_depth(format())) {
+      layout = vk::ImageLayout::eDepthStencilReadOnlyOptimal; 
+    }
+    else {
+      layout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    }
+  }
+  else {
+    throw std::runtime_error{"type not supported"};
+  }
+  writeToSet(set, binding, layout, type, index);
+}
+
+void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::ImageLayout const& layout, vk::Sampler const& sampler, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = m_image_info.initialLayout;
-  // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+  imageInfo.imageLayout = layout;
   imageInfo.imageView = get();
   imageInfo.sampler = sampler;
 
@@ -239,18 +267,9 @@ void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sa
   (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
 }
 
-void ImageView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+void ImageView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = m_image_info.initialLayout;
-  // if (type == vk::DescriptorType::eSampledImage) {
-    // imageInfo.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-  // }
-  // else if (type == vk::DescriptorType::eStorageImage) {
-  //   imageInfo.imageLayout = vk::ImageLayout::eGeneral;
-  // }
-  // else {
-  //   throw std::runtime_error{"descriptor type not supported"};
-  // }
+  imageInfo.imageLayout = layout;
   imageInfo.imageView = get();
 
   vk::WriteDescriptorSet descriptorWrite{};

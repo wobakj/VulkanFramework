@@ -188,7 +188,7 @@ void Transferrer::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo c
 
   barrier.image = img;
 
-  if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+  if (is_depth(info.format)) {
     barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
 
     if (has_stencil(info.format)) {

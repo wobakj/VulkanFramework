@@ -36,7 +36,7 @@ class ApplicationThreadedMin : public ApplicationThreaded {
   FrameResource createFrameResource() override;
 
   // path to the resource folders
-  RenderPass m_render_pass;
+  RenderPass2 m_render_pass;
   FrameBuffer m_framebuffer;
 };
 
