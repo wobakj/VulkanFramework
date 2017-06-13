@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+// SwapChain m_swap_chain;
 
 // helper functions
 std::string resourcePath(std::vector<std::string> const& args);
@@ -25,7 +26,7 @@ Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& 
  ,m_application{}
  ,m_instance{}
  ,m_device{}
- ,m_swap_chain{}
+ // ,m_swap_chain{}
  ,m_surface{m_instance, vkDestroySurfaceKHR}
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
 {
@@ -124,7 +125,7 @@ void Launcher::resize(GLFWwindow* m_window, int width, int height) {
     m_application->emptyDrawQueue();
     // m_device->waitIdle();
     // rebuild resources
-    m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
+    // m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
     m_application->resize(width, height);
   }
 }

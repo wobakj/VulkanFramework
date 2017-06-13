@@ -12,7 +12,7 @@
 // forward declarations
 class Application;
 class GLFWwindow;
-
+// extern SwapChain m_swap_chain;
 class Launcher {
  public:
   template<typename T>
@@ -32,20 +32,21 @@ class Launcher {
   // run application
   template<typename T>
   void runApp(cmdline::parser const& cmd_parse){
-    vk::PresentModeKHR present_mode{};
-    std::string mode = cmd_parse.get<std::string>("present");
-    if (mode == "fifo") {
-      present_mode = vk::PresentModeKHR::eFifo;
-    }
-    else if (mode == "mailbox") {
-      present_mode = vk::PresentModeKHR::eMailbox;
-    }
-    else if (mode == "immediate") {
-      present_mode = vk::PresentModeKHR::eImmediate;
-    }
-    m_swap_chain.create(m_device, vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height}, present_mode, T::imageCount);
+    // vk::PresentModeKHR present_mode{};
+    // std::string mode = cmd_parse.get<std::string>("present");
+    // if (mode == "fifo") {
+    //   present_mode = vk::PresentModeKHR::eFifo;
+    // }
+    // else if (mode == "mailbox") {
+    //   present_mode = vk::PresentModeKHR::eMailbox;
+    // }
+    // else if (mode == "immediate") {
+    //   present_mode = vk::PresentModeKHR::eImmediate;
+    // }
+    // m_swap_chain.create(m_device, vk::SurfaceKHR{m_surface}, vk::Extent2D{m_window_width, m_window_height}, present_mode, T::imageCount);
 
-    m_application = new T{m_resource_path, m_device, m_swap_chain, m_window, cmd_parse};
+    // m_application = new T{m_resource_path, m_device, m_swap_chain, m_window, cmd_parse};
+    m_application = new T{m_resource_path, m_device, vk::SurfaceKHR{m_surface}, m_window, cmd_parse};
     mainLoop();
   };
   
@@ -92,7 +93,7 @@ class Launcher {
 
   Instance m_instance;
   Device m_device;
-  SwapChain m_swap_chain;
+  // SwapChain m_swap_chain;
   Deleter<VkSurfaceKHR> m_surface;
 
   const std::vector<const char*> m_validation_layers;

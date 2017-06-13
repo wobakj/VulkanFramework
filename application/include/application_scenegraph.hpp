@@ -20,7 +20,7 @@
 
 class ApplicationScenegraph : public ApplicationSingle {
  public:
-  ApplicationScenegraph(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationScenegraph(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraph();
   static const uint32_t imageCount;
 

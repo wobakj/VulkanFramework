@@ -19,6 +19,7 @@ Sampler::Sampler(Device const& device, vk::Filter const& filter, vk::SamplerAddr
   m_device = &device;
   m_info.magFilter = filter;
   m_info.minFilter = filter;
+  m_info.maxAnisotropy = 1.0;
   if (filter == vk::Filter::eNearest) {
     m_info.mipmapMode = vk::SamplerMipmapMode::eNearest;
   }

@@ -3,7 +3,7 @@
 // child classes must overwrite
 const uint32_t ApplicationThreaded::imageCount = 3;
 
-ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse, uint32_t num_frames) 
+ApplicationThreaded::ApplicationThreaded(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse, uint32_t num_frames) 
  :Application{resource_path, device, chain, window, cmd_parse}
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}

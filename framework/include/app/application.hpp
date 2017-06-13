@@ -25,7 +25,7 @@ class FrameResource;
 class Application {
  public:
   // allocate and initialize objects
-  Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  Application(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   // free resources
   virtual ~Application(){};
 
@@ -81,11 +81,12 @@ class Application {
   virtual void recordDrawBuffer(FrameResource& res) = 0;
 
   std::string m_resource_path; 
+  void createSwapChain(vk::SurfaceKHR const& surf);
 
+  SwapChain m_swap_chain;
   // container for the shader programs
   Camera m_camera;
   Device& m_device;
-  SwapChain const& m_swap_chain;
   PipelineCache m_pipeline_cache;
   DescriptorPool m_descriptor_pool;
 

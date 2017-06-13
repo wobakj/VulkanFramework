@@ -19,7 +19,7 @@
 
 class ApplicationCompute : public ApplicationSingle {
  public:
-  ApplicationCompute(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationCompute(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationCompute();
   static const uint32_t imageCount;
 

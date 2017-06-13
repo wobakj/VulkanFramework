@@ -48,7 +48,7 @@ cmdline::parser ApplicationLod::getParser() {
 // child classes must overwrite
 const uint32_t ApplicationLod::imageCount = 4;
 
-ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ApplicationLod::ApplicationLod(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreadedTransfer{resource_path, device, chain, window, cmd_parse}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}

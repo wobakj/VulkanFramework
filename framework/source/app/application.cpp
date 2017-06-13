@@ -1,4 +1,5 @@
 #include "app/application.hpp"
+#include "app/launcher.hpp"
 
 #include "frame_resource.hpp"
 //dont load gl bindings from glfw
@@ -10,20 +11,34 @@
 // child classes must overwrite
 const uint32_t Application::imageCount = 0;
 
-Application::Application(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse)
+Application::Application(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse)
  :m_resource_path{resource_path}
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, window}
  ,m_device(device)
- ,m_swap_chain(chain)
+ // ,m_swap_chain(chain)
  ,m_pipeline_cache{m_device}
  // ,m_transferrer{m_device}
 {
+  createSwapChain(chain);
   createMemoryPools();
   createCommandPools();
 
   m_transferrer = Transferrer{m_command_pools.at("transfer")};
 }
-
+void Application::createSwapChain(vk::SurfaceKHR const& surf) {
+  vk::PresentModeKHR present_mode{};
+  // std::string mode = cmd_parse.get<std::string>("present");
+  // if (mode == "fifo") {
+  // }
+  // else if (mode == "mailbox") {
+  //   present_mode = vk::PresentModeKHR::eMailbox;
+  // }
+  // else if (mode == "immediate") {
+  //   present_mode = vk::PresentModeKHR::eImmediate;
+  // }
+    present_mode = vk::PresentModeKHR::eFifo;
+  m_swap_chain.create(m_device, surf, vk::Extent2D{1280, 720}, present_mode, 2);
+}
 FrameResource Application::createFrameResource() {
   auto res = FrameResource{m_device};
   res.addSemaphore("acquire");
@@ -110,6 +125,8 @@ void Application::updateShaderPrograms() {
 }
 
 void Application::resize(std::size_t width, std::size_t height) {
+    m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
+
   m_camera.setAspect(float(width) / float(height));
   // draw queue is emptied in launcher::resize
   createFramebufferAttachments();

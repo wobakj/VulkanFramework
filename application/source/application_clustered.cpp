@@ -50,7 +50,7 @@ const uint32_t ApplicationClustered::imageCount = 2;
 
 ApplicationClustered::ApplicationClustered(std::string const& resource_path,
                                            Device& device,
-                                           SwapChain const& chain,
+                                           vk::SurfaceKHR const& chain,
                                            GLFWwindow* window,
                                            cmdline::parser const& cmd_parse)
     : ApplicationSingle{resource_path, device, chain, window, cmd_parse},

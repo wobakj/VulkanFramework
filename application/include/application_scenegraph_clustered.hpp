@@ -20,7 +20,7 @@
 
 class ApplicationScenegraphClustered : public ApplicationSingle {
  public:
-  ApplicationScenegraphClustered(std::string const& resource_path, Device& device, SwapChain const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationScenegraphClustered(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraphClustered();
   static const uint32_t imageCount;
   
