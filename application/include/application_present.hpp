@@ -17,10 +17,10 @@
 #include <vector>
 #include <atomic>
 
-class ApplicationCompute : public ApplicationSingle {
+class ApplicationPresent : public ApplicationSingle {
  public:
-  ApplicationCompute(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
-  ~ApplicationCompute();
+  ApplicationPresent(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
+  ~ApplicationPresent();
 
   static cmdline::parser getParser(); 
 

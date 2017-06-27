@@ -1,4 +1,4 @@
-#include "application_compute.hpp"
+#include "application_present.hpp"
 
 #include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
@@ -18,11 +18,11 @@
 #include <iostream>
 #include <chrono>
 
-cmdline::parser ApplicationCompute::getParser() {
+cmdline::parser ApplicationPresent::getParser() {
   return ApplicationSingle::getParser();
 }
 
-ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
+ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, surf, cmd_parse}
 {  
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
@@ -33,17 +33,17 @@ ApplicationCompute::ApplicationCompute(std::string const& resource_path, Device&
   createRenderResources();
 }
 
-ApplicationCompute::~ApplicationCompute() {
+ApplicationPresent::~ApplicationPresent() {
   shutDown();
 }
 
-FrameResource ApplicationCompute::createFrameResource() {
+FrameResource ApplicationPresent::createFrameResource() {
   auto res = ApplicationSingle::createFrameResource();
   res.command_buffers.emplace("transfer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   return res;
 }
 
-void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
+void ApplicationPresent::updateResourceCommandBuffers(FrameResource& res) {
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   res.command_buffers.at("transfer")->reset({});
   res.command_buffers.at("transfer")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
@@ -58,7 +58,7 @@ void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("transfer")->end();
 }
 
-void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
+void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
   updateUniformBuffers();
 
   res.command_buffers.at("draw")->reset({});
@@ -77,19 +77,19 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->end();
 }
 
-void ApplicationCompute::createPipelines() {
+void ApplicationPresent::createPipelines() {
   ComputePipelineInfo info_pipe_comp;
   info_pipe_comp.setShader(m_shaders.at("compute"));
   m_pipeline_compute = ComputePipeline{m_device, info_pipe_comp, m_pipeline_cache};
 }
 
-void ApplicationCompute::updatePipelines() {
+void ApplicationPresent::updatePipelines() {
   auto info_pipe_comp = m_pipeline_compute.info();
   info_pipe_comp.setShader(m_shaders.at("compute"));
   m_pipeline_compute.recreate(info_pipe_comp);
 }
 
-void ApplicationCompute::createTextureImages() {
+void ApplicationPresent::createTextureImages() {
   auto extent = extent_3d(m_swap_chain.extent()); 
   m_images["texture"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
                                                                                                    | vk::ImageUsageFlagBits::eStorage};
@@ -97,13 +97,13 @@ void ApplicationCompute::createTextureImages() {
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eGeneral);
 }
 
-void ApplicationCompute::updateDescriptors() { 
+void ApplicationPresent::updateDescriptors() { 
   m_images.at("texture").view().writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
   
   m_buffers.at("time").writeToSet(m_descriptor_sets.at("storage"), 1, vk::DescriptorType::eUniformBuffer);
 }
 
-void ApplicationCompute::createDescriptorPools() {
+void ApplicationPresent::createDescriptorPools() {
   DescriptorPoolInfo info_pool{};
   info_pool.reserve(m_shaders.at("compute"), 0, 1);
 
@@ -111,12 +111,12 @@ void ApplicationCompute::createDescriptorPools() {
   m_descriptor_sets["storage"] = m_descriptor_pool.allocate(m_shaders.at("compute").setLayout(0));
 }
 
-void ApplicationCompute::createUniformBuffers() {
+void ApplicationPresent::createUniformBuffers() {
   m_buffers["time"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_allocators.at("buffers").allocate(m_buffers.at("time"));
 }
 
-void ApplicationCompute::updateUniformBuffers() {
+void ApplicationPresent::updateUniformBuffers() {
   float time = float(glfwGetTime()) * 2.0f;
   m_transferrer.uploadBufferData(&time, m_buffers.at("time"));
 }
@@ -124,5 +124,5 @@ void ApplicationCompute::updateUniformBuffers() {
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  LauncherWin::run<ApplicationCompute>(argc, argv);
+  LauncherWin::run<ApplicationPresent>(argc, argv);
 }

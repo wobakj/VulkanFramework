@@ -494,4 +494,7 @@ int main(int argc, char* argv[]) {
   if (MPI::COMM_WORLD.Get_rank() == 0) {
     LauncherWin::run<ApplicationLodMpi>(argc, argv);
   }
+  // else {
+  //   Launcher::run<ApplicationLodMpi>(argc, argv);
+  // }
 }
