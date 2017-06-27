@@ -1,9 +1,8 @@
 #ifndef LAUNCHER_WIN_HPP
 #define LAUNCHER_WIN_HPP
 
-#include "app/launcher.hpp"
-// #include "wrap/device.hpp"
-// #include "wrap/instance.hpp"
+#include "wrap/device.hpp"
+#include "wrap/instance.hpp"
 #include "wrap/swap_chain.hpp"
 #include "wrap/surface.hpp"
 
@@ -12,9 +11,10 @@
 #include <string>
 
 // forward declarations
+class Application;
 class GLFWwindow;
-
-class LauncherWin : public Launcher {
+// extern SwapChain m_swap_chain;
+class LauncherWin {
  public:
   template<typename T>
   static void run(int argc, char* argv[]) {
@@ -32,11 +32,18 @@ class LauncherWin : public Launcher {
   LauncherWin(std::vector<std::string> const& args, cmdline::parser const& cmd_parse);
   // run application
   template<typename T>
-  void runApp(cmdline::parser const& cmd_parse) {
+  void runApp(cmdline::parser const& cmd_parse){
     m_application = new T{m_resource_path, m_device, m_surface, cmd_parse};
+
     mainLoop();
   };
   
+  template<typename T>
+  static cmdline::parser getParser() {
+    auto cmd_parse = T::getParser();
+    cmd_parse.add("debug", 'd', "debug with validation layers");
+    return cmd_parse;
+  }
 
   // start main loop
   void createSurface();
@@ -53,10 +60,28 @@ class LauncherWin : public Launcher {
   // free resources
   void quit(int status);
 
+  // vertical field of view of camera
+  const float m_camera_fov;
+
+  // initial window dimensions
+  const unsigned m_window_width;
+  const unsigned m_window_height;
   // the rendering window
   GLFWwindow* m_window;
 
-  // Device m_device;
+  // variables for fps computation
+  double m_last_second_time;
+  unsigned m_frames_per_second;
+
+  // path to the resource folders
+  std::string m_resource_path;
+
+  Application* m_application;
+
+  Instance m_instance;
+  Device m_device;
   Surface m_surface;
+
+  const std::vector<const char*> m_validation_layers;
 };
 #endif
