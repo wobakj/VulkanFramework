@@ -54,7 +54,7 @@ class ApplicationScenegraph : public ApplicationSingle {
   void endTargetManipulation();
 
   // path to the resource folders
-  RenderPass2 m_render_pass;
+  RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   Geometry m_model;
   ApplicationInstance m_instance;

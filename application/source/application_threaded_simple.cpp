@@ -213,7 +213,7 @@ void ApplicationThreadedSimple::createRenderPasses() {
   info_pass.subPass(1).setInputAttachment(1, 1);
   info_pass.subPass(1).setInputAttachment(2, 2);
   info_pass.subPass(1).setDepthAttachment(3);
-  m_render_pass = RenderPass2{m_device, info_pass};
+  m_render_pass = RenderPass{m_device, info_pass};
 }
 
 void ApplicationThreadedSimple::createPipelines() {

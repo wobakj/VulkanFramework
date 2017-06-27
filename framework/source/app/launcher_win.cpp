@@ -1,4 +1,5 @@
 #include "app/launcher_win.hpp"
+#include "app/launcher.hpp"
 
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
@@ -12,6 +13,7 @@
 // SwapChain m_swap_chain;
 
 // helper functions
+std::string resourcePath(std::vector<std::string> const& args);
 void glfw_error(int error, const char* description);
 
 LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser const& cmd_parse) 
@@ -121,7 +123,12 @@ void LauncherWin::mainLoop() {
 ///////////////////////////// update functions ////////////////////////////////
 // update viewport and field of view
 void LauncherWin::resize(GLFWwindow* m_window, int width, int height) {
-  Launcher::resize(width, height);
+  if (width > 0 && height > 0) {
+    // draw remaining recorded frames
+    m_application->emptyDrawQueue();
+    // rebuild resources
+    m_application->resize(width, height);
+  }
 }
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input

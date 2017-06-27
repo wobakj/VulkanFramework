@@ -89,7 +89,7 @@ void ApplicationThreadedMin::createRenderPasses() {
   RenderPassInfo info_pass{};
   info_pass.setAttachment(0, m_images.at("color").format(), vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
   info_pass.subPass(0).setColorAttachment(0, 0);
-  m_render_pass = RenderPass2{m_device, info_pass};
+  m_render_pass = RenderPass{m_device, info_pass};
 }
 
 void ApplicationThreadedMin::createPipelines() {

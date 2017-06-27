@@ -257,7 +257,7 @@ void ApplicationClustered::createRenderPasses() {
   info_pass.subPass(2).setColorAttachment(0, 5);
   info_pass.subPass(2).setInputAttachment(0, 4);
 
-  m_render_pass = RenderPass2{m_device, info_pass};
+  m_render_pass = RenderPass{m_device, info_pass};
 }
 
 void ApplicationClustered::createPipelines() {

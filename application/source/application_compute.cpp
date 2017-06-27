@@ -113,15 +113,9 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
-  vk::ImageBlit blit{};
-  blit.srcSubresource = m_images.at("color").view().layer();
-  blit.dstSubresource = res.target_view->layer();
-  blit.srcOffsets[1] = offset_3d(res.target_view->extent());
-  blit.dstOffsets[1] = offset_3d(res.target_view->extent());
-
-  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color").get(), vk::ImageLayout::eTransferSrcOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
-  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").copyImage(m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
 }
@@ -131,9 +125,11 @@ void ApplicationCompute::createFramebuffers() {
 }
 
 void ApplicationCompute::createRenderPasses() {
-  sub_pass_t pass_blit{};
-  pass_blit.setColorAttachment(0, 0);
-  m_render_pass = RenderPass{m_device, {m_images.at("color").info()}, {pass_blit}};
+  // create renderpass with 1 subpasses
+  RenderPassInfo info_pass{};
+  info_pass.setAttachment(0, m_images.at("color").format(), vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal);
+  info_pass.subPass(0).setColorAttachment(0, 0);
+  m_render_pass = RenderPass{m_device, info_pass};
 }
 
 void ApplicationCompute::createPipelines() {
