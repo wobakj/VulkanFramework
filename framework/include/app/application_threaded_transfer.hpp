@@ -11,7 +11,9 @@ class ApplicationThreadedTransfer : public ApplicationThreaded {
   virtual ~ApplicationThreadedTransfer();
   
   static const uint32_t imageCount;
-
+  // default parser without arguments
+  static cmdline::parser getParser();
+  
  protected:
   virtual FrameResource createFrameResource() override;
   void startTransferThread();

@@ -20,9 +20,10 @@
 
 class ApplicationScenegraphClustered : public ApplicationSingle {
  public:
-  ApplicationScenegraphClustered(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationScenegraphClustered(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraphClustered();
   static const uint32_t imageCount;
+  static cmdline::parser getParser(); 
   
  private:
   void logic() override;

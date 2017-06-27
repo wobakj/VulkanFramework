@@ -21,7 +21,9 @@ class ApplicationThreaded : public Application {
 
   static const uint32_t imageCount;
   void emptyDrawQueue() override;
-
+  // default parser without arguments
+  static cmdline::parser getParser();
+  
  protected:
   void createFrameResources() override;
   virtual void shutDown();

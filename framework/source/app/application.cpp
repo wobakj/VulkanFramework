@@ -11,6 +11,13 @@
 // child classes must overwrite
 const uint32_t Application::imageCount = 0;
 
+cmdline::parser Application::getParser() {
+  cmdline::parser cmd_parse{};
+  // cmd_parse.add("debug", 'd', "debug with validation layers");
+  cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
+  return cmd_parse;
+}
+
 Application::Application(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse)
  :m_resource_path{resource_path}
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, window}
@@ -19,24 +26,24 @@ Application::Application(std::string const& resource_path, Device& device, vk::S
  ,m_pipeline_cache{m_device}
  // ,m_transferrer{m_device}
 {
-  createSwapChain(chain);
+  createSwapChain(chain, cmd_parse);
   createMemoryPools();
   createCommandPools();
 
   m_transferrer = Transferrer{m_command_pools.at("transfer")};
 }
-void Application::createSwapChain(vk::SurfaceKHR const& surf) {
+void Application::createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse) {
   vk::PresentModeKHR present_mode{};
-  // std::string mode = cmd_parse.get<std::string>("present");
-  // if (mode == "fifo") {
-  // }
-  // else if (mode == "mailbox") {
-  //   present_mode = vk::PresentModeKHR::eMailbox;
-  // }
-  // else if (mode == "immediate") {
-  //   present_mode = vk::PresentModeKHR::eImmediate;
-  // }
-    present_mode = vk::PresentModeKHR::eFifo;
+  std::string mode = cmd_parse.get<std::string>("present");
+  if (mode == "fifo") {
+  }
+  else if (mode == "mailbox") {
+    present_mode = vk::PresentModeKHR::eMailbox;
+  }
+  else if (mode == "immediate") {
+    present_mode = vk::PresentModeKHR::eImmediate;
+  }
+    // present_mode = vk::PresentModeKHR::eFifo;
   m_swap_chain.create(m_device, surf, vk::Extent2D{1280, 720}, present_mode, 2);
 }
 FrameResource Application::createFrameResource() {

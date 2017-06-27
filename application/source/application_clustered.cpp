@@ -42,18 +42,17 @@ struct LightGridBufferObject {
 
 
 cmdline::parser ApplicationClustered::getParser() {
-  cmdline::parser cmd_parse{};
-  return cmd_parse;
+  return ApplicationSingle::getParser();
 }
 // child classes must overwrite
 const uint32_t ApplicationClustered::imageCount = 2;
 
 ApplicationClustered::ApplicationClustered(std::string const& resource_path,
                                            Device& device,
-                                           vk::SurfaceKHR const& chain,
+                                           vk::SurfaceKHR const& surf,
                                            GLFWwindow* window,
                                            cmdline::parser const& cmd_parse)
-    : ApplicationSingle{resource_path, device, chain, window, cmd_parse},
+    : ApplicationSingle{resource_path, device, surf, window, cmd_parse},
       m_tileSize{32, 32},
       m_nearFrustumCornersClipSpace{
           glm::vec4(-1.0f, +1.0f, 0.0f, 1.0f),  // bottom left

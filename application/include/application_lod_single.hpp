@@ -25,7 +25,7 @@
 
 class ApplicationLodSingle : public ApplicationSingle {
  public:
-  ApplicationLodSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationLodSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationLodSingle();
   static cmdline::parser getParser(); 
   static const uint32_t imageCount;

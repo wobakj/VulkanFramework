@@ -54,7 +54,7 @@ class Launcher {
   static cmdline::parser getParser() {
     auto cmd_parse = T::getParser();
     cmd_parse.add("debug", 'd', "debug with validation layers");
-    cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
+    // cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
     return cmd_parse;
   }
 

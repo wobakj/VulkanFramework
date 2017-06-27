@@ -19,9 +19,10 @@
 
 class ApplicationCompute : public ApplicationSingle {
  public:
-  ApplicationCompute(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow*, cmdline::parser const& cmd_parse);
+  ApplicationCompute(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow*, cmdline::parser const& cmd_parse);
   ~ApplicationCompute();
   static const uint32_t imageCount;
+  static cmdline::parser getParser(); 
 
  private:
   void recordDrawBuffer(FrameResource& res) override;

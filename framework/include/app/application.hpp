@@ -41,9 +41,7 @@ class Application {
   // required for multithreaded rendering
   virtual void emptyDrawQueue() = 0;
   // default parser without arguments
-  static cmdline::parser getParser() {
-    return cmdline::parser{};
-  }; 
+  static cmdline::parser getParser();
 
   static const uint32_t imageCount;
 
@@ -81,7 +79,7 @@ class Application {
   virtual void recordDrawBuffer(FrameResource& res) = 0;
 
   std::string m_resource_path; 
-  void createSwapChain(vk::SurfaceKHR const& surf);
+  void createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse);
 
   SwapChain m_swap_chain;
   // container for the shader programs

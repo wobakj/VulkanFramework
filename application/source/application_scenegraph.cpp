@@ -35,8 +35,12 @@ struct UniformBufferObject {
 // child classes must overwrite
 const uint32_t ApplicationScenegraph::imageCount = 2;
 
-ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
+cmdline::parser ApplicationScenegraph::getParser() {
+  return ApplicationSingle::getParser();
+}
+
+ApplicationScenegraph::ApplicationScenegraph(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationSingle{resource_path, device, surf, window, cmd_parse}
  ,m_instance{m_device, m_command_pools.at("transfer")}
  ,m_model_loader{m_instance}
  ,m_renderer{m_instance}

@@ -17,8 +17,12 @@
 // child classes must overwrite
 const uint32_t ApplicationThreadedMin::imageCount = 3;
 
-ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationThreaded{resource_path, device, chain, window, cmd_parse}
+cmdline::parser ApplicationThreadedMin::getParser() {
+  return ApplicationThreaded::getParser();
+}
+
+ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationThreaded{resource_path, device, surf, window, cmd_parse}
 {  
   m_shaders.emplace("scene", Shader{m_device, {m_resource_path + "shaders/quad_vert.spv", m_resource_path + "shaders/solid_frag.spv"}});
 

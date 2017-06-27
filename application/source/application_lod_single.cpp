@@ -40,7 +40,7 @@ struct BufferLights {
 BufferLights buff_l;
 
 cmdline::parser ApplicationLodSingle::getParser() {
-  cmdline::parser cmd_parse{};
+  cmdline::parser cmd_parse{ApplicationSingle::getParser()};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
   // cmd_parse.add("debug", 'd', "debug with validation layers");
@@ -49,8 +49,8 @@ cmdline::parser ApplicationLodSingle::getParser() {
 // child classes must overwrite
 const uint32_t ApplicationLodSingle::imageCount = 2;
 
-ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationSingle{resource_path, device, chain, window, cmd_parse}
+ApplicationLodSingle::ApplicationLodSingle(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationSingle{resource_path, device, surf, window, cmd_parse}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}

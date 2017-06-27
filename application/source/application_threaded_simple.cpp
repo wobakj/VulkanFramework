@@ -41,8 +41,12 @@ BufferLights buff_l;
 // child classes must overwrite
 const uint32_t ApplicationThreadedSimple::imageCount = 3;
 
-ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
- :ApplicationThreaded{resource_path, device, chain, window, cmd_parse}
+cmdline::parser ApplicationThreadedSimple::getParser() {
+  return ApplicationThreaded::getParser();
+}
+
+ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource_path, Device& device, vk::SurfaceKHR const& surf, GLFWwindow* window, cmdline::parser const& cmd_parse) 
+ :ApplicationThreaded{resource_path, device, surf, window, cmd_parse}
  ,m_sphere{true}
  ,m_model_dirty{false}
 {  

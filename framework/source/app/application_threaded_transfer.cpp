@@ -6,6 +6,11 @@
 // child classes must overwrite
 const uint32_t ApplicationThreadedTransfer::imageCount = 4;
 
+cmdline::parser ApplicationThreadedTransfer::getParser() {
+  return ApplicationThreaded::getParser();
+}
+
+
 ApplicationThreadedTransfer::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, vk::SurfaceKHR const& chain, GLFWwindow* window, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded{resource_path, device, chain, window, cmd_parse, imageCount - 1}
  ,m_semaphore_transfer{0}
