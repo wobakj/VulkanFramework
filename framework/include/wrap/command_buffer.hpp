@@ -10,6 +10,7 @@ class Device;
 class CommandPool;
 class Geometry;
 class ImageView;
+class Buffer;
 
 struct session_t {
   session_t()
@@ -51,6 +52,7 @@ class CommandBuffer : public WrapperCommandBuffer {
   void copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;
   void copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;
   void copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, uint32_t level = 0) const;
+  void copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
   
   void transitionLayout(ImageView const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
   

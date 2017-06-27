@@ -97,7 +97,8 @@ target_link_libraries(vulkan_test framework)
 install(TARGETS vulkan_test DESTINATION .)
 
 add_executable(vulkan_present application/source/application_present.cpp)
-target_link_libraries(vulkan_present framework)
+target_link_libraries(vulkan_present framework ${MPI_CXX_LIBRARIES})
+target_include_directories(vulkan_present SYSTEM PRIVATE ${MPI_CXX_INCLUDE_PATH})
 install(TARGETS vulkan_present DESTINATION .)
 
 add_executable(vulkan_threaded application/source/application_threaded_simple.cpp)

@@ -134,6 +134,26 @@ void Transferrer::copyImage(ImageRes const& srcImage, ImageRes& dstImage, uint32
 }
 
 
+void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
+  vk::BufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = dstImage.extent().width;
+  region.bufferImageHeight = dstImage.extent().height;
+  region.imageSubresource = dstImage.layer(layer);
+  region.imageOffset = vk::Offset3D{0, 0, 0};
+  region.imageExtent.width = dstImage.extent().width;
+
+  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
+  commandBuffer.copyBufferToImage(
+    srcBuffer,
+    dstImage.image(),
+    imageLayout,
+    1, &region
+  );
+  endSingleTimeCommands();
+}
+
+
 void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
   vk::ImageSubresourceLayers subResource{};
   if (is_depth(dstImage.view().format())) {

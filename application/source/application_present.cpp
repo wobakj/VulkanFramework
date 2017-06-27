@@ -15,6 +15,8 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
+#include <mpi.h>
+
 #include <iostream>
 #include <chrono>
 
@@ -31,6 +33,7 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
   createUniformBuffers();
 
   createRenderResources();
+
 }
 
 ApplicationPresent::~ApplicationPresent() {
@@ -65,7 +68,7 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("transfer")});
+  // res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("transfer")});
 
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
@@ -92,6 +95,7 @@ void ApplicationPresent::updatePipelines() {
 void ApplicationPresent::createTextureImages() {
   auto extent = extent_3d(m_swap_chain.extent()); 
   m_images["texture"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
+                                                                                                   | vk::ImageUsageFlagBits::eTransferDst
                                                                                                    | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("texture"));
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eGeneral);
@@ -112,8 +116,22 @@ void ApplicationPresent::createDescriptorPools() {
 }
 
 void ApplicationPresent::createUniformBuffers() {
+  
   m_buffers["time"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_allocators.at("buffers").allocate(m_buffers.at("time"));
+  
+  auto extent = extent_3d(m_swap_chain.extent()); 
+  m_buffers["colors"] = Buffer{m_device, sizeof(glm::u8vec3) * extent.width * extent.height, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc};
+  m_allocators.at("buffers").allocate(m_buffers.at("colors"));
+
+  std::vector<glm::u8vec3> color_data{extent.width * extent.height, glm::u8vec3{255, 0, 0}};
+  m_transferrer.uploadBufferData(&color_data, m_buffers.at("colors"));
+  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  m_transferrer.copyBufferToImage(m_buffers.at("colors"), m_images.at("texture"), m_images.at("texture").info().extent.width, m_images.at("texture").info().extent.height, m_images.at("texture").info().extent.depth);
+
+  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferSrcOptimal);
+
+  // m_transferrer.uploadBufferToImage(&color_data, m_buffers.at("colors"));
 }
 
 void ApplicationPresent::updateUniformBuffers() {
