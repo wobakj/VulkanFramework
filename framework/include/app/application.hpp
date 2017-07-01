@@ -74,13 +74,15 @@ class Application {
   virtual void updateDescriptors() {};
   virtual void updateResourcesDescriptors() = 0;
   virtual void updateResourceDescriptors(FrameResource& resource) {};
-  virtual void updateResourceCommandBuffers(FrameResource& res) = 0;
+  // cannot be pure due to template argiment
+  virtual void updateResourceCommandBuffers(FrameResource& res) {};
   
   // void acquireImage(FrameResource& res);
   // virtual void presentFrame(FrameResource& res);
   // virtual void presentFrame(FrameResource& res, vk::Queue const&);
   virtual void submitDraw(FrameResource& res);
-  virtual void recordDrawBuffer(FrameResource& res) = 0;
+  // cannot be pure due to template argiment
+  virtual void recordDrawBuffer(FrameResource& res) {};
 
   std::string m_resource_path; 
   void createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse);

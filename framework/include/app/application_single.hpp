@@ -6,7 +6,8 @@
 
 class Surface;
 
-class ApplicationSingle : public ApplicationWin {
+template<typename T>
+class ApplicationSingle : public T {
  public:
   ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationSingle();
@@ -25,6 +26,8 @@ class ApplicationSingle : public ApplicationWin {
 
   // void recordTransferBuffer(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
+  virtual void updateResourceDescriptors(FrameResource& resource) override {};
+  virtual void updateResourceCommandBuffers(FrameResource& res) override {};
   virtual FrameResource createFrameResource();
   
   FrameResource m_frame_resource;
@@ -33,5 +36,7 @@ class ApplicationSingle : public ApplicationWin {
   void render() override;
 
 };
+
+#include "app/application_single.inc"
 
 #endif

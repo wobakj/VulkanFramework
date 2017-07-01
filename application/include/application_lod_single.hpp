@@ -23,7 +23,7 @@
 #include <queue>
 #include <thread>
 
-class ApplicationLodSingle : public ApplicationSingle {
+class ApplicationLodSingle : public ApplicationSingle<ApplicationWin> {
  public:
   ApplicationLodSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLodSingle();

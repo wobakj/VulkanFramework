@@ -22,7 +22,7 @@
 #include <random>
 #include <thread>
 
-class ApplicationClustered : public ApplicationSingle {
+class ApplicationClustered : public ApplicationSingle<ApplicationWin>  {
  public:
   ApplicationClustered(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationClustered();

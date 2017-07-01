@@ -17,7 +17,7 @@
 #include <vector>
 #include <atomic>
 
-class ApplicationCompute : public ApplicationSingle {
+class ApplicationCompute : public ApplicationSingle<ApplicationWin> {
  public:
   ApplicationCompute(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationCompute();

@@ -18,7 +18,7 @@
 #include <atomic>
 #include <thread>
 
-class ApplicationScenegraphClustered : public ApplicationSingle {
+class ApplicationScenegraphClustered : public ApplicationSingle<ApplicationWin> {
  public:
   ApplicationScenegraphClustered(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraphClustered();

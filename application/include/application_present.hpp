@@ -17,7 +17,7 @@
 #include <vector>
 #include <atomic>
 
-class ApplicationPresent : public ApplicationSingle {
+class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
  public:
   ApplicationPresent(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationPresent();

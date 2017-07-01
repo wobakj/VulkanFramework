@@ -12,7 +12,7 @@
 #include <atomic>
 #include <thread>
 
-class ApplicationVulkan : public ApplicationSingle {
+class ApplicationVulkan : public ApplicationSingle<ApplicationWin> {
  public:
   ApplicationVulkan(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationVulkan();

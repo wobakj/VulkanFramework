@@ -18,7 +18,7 @@
 #include <atomic>
 #include <thread>
 
-class ApplicationScenegraph : public ApplicationSingle {
+class ApplicationScenegraph : public ApplicationSingle<ApplicationWin> {
  public:
   ApplicationScenegraph(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraph();
