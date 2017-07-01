@@ -110,14 +110,14 @@ void CommandBuffer::copyImage(ImageView const& srcImage, vk::ImageLayout srcImag
   get().copyImage(srcImage.image(), srcImageLayout, dstImage.image(), dstImageLayout, {copy});
 }
 
-void CommandBuffer::copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
+void CommandBuffer::copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
   vk::BufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = dstImage.extent().width;
   region.bufferImageHeight = dstImage.extent().height;
   region.imageSubresource = dstImage.layer(layer);
   region.imageOffset = vk::Offset3D{0, 0, 0};
-  region.imageExtent.width = dstImage.extent().width;
+  region.imageExtent = dstImage.extent();
 
   get().copyBufferToImage(
     srcBuffer,

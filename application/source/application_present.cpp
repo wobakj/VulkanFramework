@@ -68,15 +68,15 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  // res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("transfer")});
+  res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("image"), m_images.at("texture").view(), vk::ImageLayout::eTransferDstOptimal);
 
-  // make sure rendering to image is done before blitting
-  // barrier is now performed through renderpass dependency
+  res.command_buffers.at("draw").transitionLayout(m_images.at("texture"), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal);
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw").copyImage(m_images.at("texture").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
-
+  // transform back for next copy
+  res.command_buffers.at("draw").transitionLayout(m_images.at("texture"), vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw")->end();
 }
 
@@ -98,7 +98,7 @@ void ApplicationPresent::createTextureImages() {
                                                                                                    | vk::ImageUsageFlagBits::eTransferDst
                                                                                                    | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("texture"));
-  // m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eGeneral);
+  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eTransferDstOptimal);
 }
 
 void ApplicationPresent::updateDescriptors() { 
@@ -130,10 +130,6 @@ void ApplicationPresent::createUniformBuffers() {
   // m_buffers["colors"] = Buffer{m_device, sizeof(glm::u8vec3) * extent.width * extent.height, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc};
   // m_allocators.at("buffers").allocate(m_buffers.at("image"));
 
-  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  m_transferrer.copyBufferToImage(m_buffers.at("image"), m_images.at("texture"), m_images.at("texture").info().extent.width, m_images.at("texture").info().extent.height, m_images.at("texture").info().extent.depth);
-
-  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferSrcOptimal);
 
   // m_transferrer.uploadBufferToImage(&color_data, m_buffers.at("image"));
 }
