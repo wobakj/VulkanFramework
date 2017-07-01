@@ -14,10 +14,10 @@ cmdline::parser Application::getParser() {
 }
 
 Application::Application(std::string const& resource_path, Device& device, cmdline::parser const& cmd_parse)
-
  :m_resource_path{resource_path}
  ,m_device(device)
  ,m_pipeline_cache{m_device}
+ ,m_resolution{0, 0}
 {
   createMemoryPools();
   createCommandPools();
@@ -68,6 +68,7 @@ void Application::updateShaderPrograms() {
 }
 
 void Application::resize(std::size_t width, std::size_t height) {
+  m_resolution = glm::uvec2{width, height};
   // draw queue is emptied in launcher::resize
   createFramebufferAttachments();
   createFramebuffers();

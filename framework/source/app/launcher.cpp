@@ -41,7 +41,7 @@ Launcher::Launcher(std::vector<std::string> const& args, cmdline::parser const& 
   #endif
   m_instance.create(validate);
 
-  // m_device = m_instance.createLogicalDevice(vk::SurfaceKHR{m_surface}, deviceExtensions);
+  m_device = m_instance.createLogicalDevice({});
 }
 
 std::string resourcePath(std::vector<std::string> const& args) {

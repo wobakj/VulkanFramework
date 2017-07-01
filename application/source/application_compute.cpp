@@ -90,8 +90,9 @@ void ApplicationCompute::updatePipelines() {
 }
 
 void ApplicationCompute::createTextureImages() {
-  auto extent = extent_3d(m_swap_chain.extent()); 
-  m_images["texture"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
+  // auto extent = extent_3d(m_swap_chain.extent()); 
+    auto extent = vk::Extent3D{1280, 720, 1}; 
+  m_images["texture"] = ImageRes{m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
                                                                                                    | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("texture"));
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eGeneral);

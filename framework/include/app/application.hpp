@@ -105,6 +105,8 @@ class Application {
   std::map<std::string, CommandPool> m_command_pools;
   // below command pools so that it is destroyed before
   Transferrer m_transferrer;
+
+  glm::uvec2 m_resolution;
 };
 
 #endif

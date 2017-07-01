@@ -67,7 +67,7 @@ LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser c
   std::vector<const char*> deviceExtensions = {
       VK_KHR_SWAPCHAIN_EXTENSION_NAME
   };
-  m_device = m_instance.createLogicalDevice(vk::SurfaceKHR{m_surface}, deviceExtensions);
+  m_device = m_instance.createLogicalDevice(deviceExtensions, vk::SurfaceKHR{m_surface});
 
   // // set user pointer to access this instance statically
   glfwSetWindowUserPointer(m_window, this);

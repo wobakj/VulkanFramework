@@ -70,10 +70,6 @@ void ApplicationThreadedTransfer<T>::render() {
   // wait for previous transfer
   recordTransferBuffer(resource_record);
   // submitTransfer(resource_record);
-  // wait for last acquisition until acquiring again
-  this->m_statistics.start("fence_acquire");
-  resource_record.fence("acquire").wait();
-  this->m_statistics.stop("fence_acquire");
   this->acquireImage(resource_record);
   // wait for drawing finish until rerecording
   this->recordDrawBuffer(resource_record);

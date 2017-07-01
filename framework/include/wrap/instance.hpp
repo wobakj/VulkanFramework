@@ -26,8 +26,8 @@ class Instance : public Wrapper<vk::Instance, vk::InstanceCreateInfo> {
 
   void create(bool validate);
 
-  vk::PhysicalDevice pickPhysicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions);
-  Device createLogicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions);
+  vk::PhysicalDevice pickPhysicalDevice(std::vector<const char*> const& deviceExtensions, vk::SurfaceKHR const& surface);
+  Device createLogicalDevice(std::vector<const char*> const& deviceExtensions, vk::SurfaceKHR const& surface = {});
 
  private:
   void destroy() override;

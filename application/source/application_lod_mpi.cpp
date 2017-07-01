@@ -47,8 +47,8 @@ cmdline::parser ApplicationLodMpi::getParser() {
   return cmd_parse;
 }
 
-ApplicationLodMpi::ApplicationLodMpi(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
- :ApplicationThreadedTransfer{resource_path, device, surf, cmd_parse}
+ApplicationLodMpi::ApplicationLodMpi(std::string const& resource_path, Device& device, cmdline::parser const& cmd_parse) 
+ :ApplicationThreadedTransfer<ApplicationWorker>{resource_path, device, {}, cmd_parse}
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
@@ -122,8 +122,9 @@ void ApplicationLodMpi::updateResourceCommandBuffers(FrameResource& res) {
   res.commandBuffer("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
 
   res.commandBuffer("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("gbuffer")->setViewport(0, {viewport(extent_2d(res.target_view->extent()))});
-  res.command_buffers.at("gbuffer")->setScissor(0, {rect(extent_2d(res.target_view->extent()))});
+
+  res.command_buffers.at("gbuffer")->setViewport(0, vk::Viewport{0, 0, m_resolution.x, m_resolution.y, 0, 1});
+  res.command_buffers.at("gbuffer")->setScissor(0, vk::Rect2D{{0, 0}, {m_resolution.x, m_resolution.y}});
 
   res.commandBuffer("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
@@ -142,7 +143,7 @@ void ApplicationLodMpi::recordTransferBuffer(FrameResource& res) {
 
   m_statistics.start("update");
   // upload node data
-  m_model_lod.update(m_camera);
+  // m_model_lod.update(m_camera);
   size_t curr_uploads = m_model_lod.numUploads();
   m_statistics.add("uploads", double(curr_uploads));
   if (curr_uploads > 0) {
@@ -401,7 +402,7 @@ void ApplicationLodMpi::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = vk::Extent3D{120, 720, 1}; 
+  auto extent = vk::Extent3D{1280, 720, 1}; 
   m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
@@ -454,9 +455,9 @@ void ApplicationLodMpi::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationLodMpi::updateView() {
   ubo_cam.model = glm::mat4();
-  ubo_cam.view = m_camera.viewMatrix();
+  // ubo_cam.view = m_camera.viewMatrix();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
-  ubo_cam.proj = m_camera.projectionMatrix();
+  // ubo_cam.proj = m_camera.projectionMatrix();
   ubo_cam.levels = m_setting_levels ? glm::fvec4{1.0f} : glm::fvec4{0.0};
   ubo_cam.shade = m_setting_shaded ? glm::fvec4{1.0f} : glm::fvec4{0.0};
 }
@@ -495,10 +496,10 @@ int main(int argc, char* argv[]) {
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
   if (MPI::COMM_WORLD.Get_rank() == 0) {
-    LauncherWin::run<ApplicationPresent>(argc, argv);
+    Launcher::run<ApplicationLodMpi>(argc, argv);
   }
   else {
-    LauncherWin::run<ApplicationLodMpi>(argc, argv);
+    LauncherWin::run<ApplicationPresent>(argc, argv);
   }
 
   MPI::Finalize();

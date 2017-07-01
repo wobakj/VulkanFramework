@@ -19,6 +19,10 @@ ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device,
  :Application{resource_path, device, cmd_parse}
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
 {
+  int width, height = -1;
+  glfwGetWindowSize(&surf.window(), &width, &height);
+  m_resolution = glm::uvec2{width, height};
+
   createSwapChain(surf, cmd_parse, image_count);
 
   m_statistics.addTimer("fence_acquire");
@@ -43,7 +47,7 @@ void ApplicationWin::createSwapChain(Surface const& surf, cmdline::parser const&
   else if (mode == "immediate") {
     present_mode = vk::PresentModeKHR::eImmediate;
   }
-  m_swap_chain.create(m_device, surf, vk::Extent2D{1280, 720}, present_mode, image_count);
+  m_swap_chain.create(m_device, surf, vk::Extent2D{m_resolution.x, m_resolution.y}, present_mode, image_count);
 }
 
 FrameResource ApplicationWin::createFrameResource() {

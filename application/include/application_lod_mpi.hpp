@@ -26,7 +26,7 @@
 
 class ApplicationLodMpi : public ApplicationThreadedTransfer<ApplicationWorker> {
  public:
-  ApplicationLodMpi(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
+  ApplicationLodMpi(std::string const& resource_path, Device& device, cmdline::parser const& cmd_parse);
   ~ApplicationLodMpi();
 
   static cmdline::parser getParser(); 

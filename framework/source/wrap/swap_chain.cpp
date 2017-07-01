@@ -19,16 +19,21 @@ QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR s
   for (const auto& queueFamily : queueFamilies) {
     if (queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics) {
         indices.graphicsFamily = i;
+        if (!surface) {
+          break;
+        }
     }
     
-    VkBool32 presentSupport = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-    if (queueFamily.queueCount > 0 && presentSupport) {
-      indices.presentFamily = i;
-    }
+    if (surface) {
+      VkBool32 presentSupport = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+      if (queueFamily.queueCount > 0 && presentSupport) {
+        indices.presentFamily = i;
+      }
 
-    if (indices.isComplete()) {
-      break;
+      if (indices.isComplete()) {
+        break;
+      }
     }
 
     i++;

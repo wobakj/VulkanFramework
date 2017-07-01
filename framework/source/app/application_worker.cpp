@@ -19,12 +19,14 @@ cmdline::parser ApplicationWorker::getParser() {
 
 ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse)
  :Application{resource_path, device, cmd_parse}
- ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
+ // ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
  ,m_ptr_buff_transfer{nullptr}
 {
-  m_images_draw.resize(image_count);
+  m_resolution = glm::uvec2{1280, 720};
+  // m_images_draw.resize(image_count);
   createImages(image_count);
   createTransferBuffer();
+
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("queue_present");
 }
@@ -41,23 +43,27 @@ FrameResource ApplicationWorker::createFrameResource() {
 }
 
 void ApplicationWorker::createImages(uint32_t image_count) {
+
   for(uint32_t i = 0; i< image_count; ++i) {
-    m_images_draw.emplace_back(m_device, vk::Extent3D{1280, 720, 1}, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
-                                                                                                   | vk::ImageUsageFlagBits::eColorAttachment);
+    m_images_draw.emplace_back(m_device, vk::Extent3D{m_resolution.x, m_resolution.y, 1}, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
+                                                                                                                          | vk::ImageUsageFlagBits::eTransferDst
+                                                                                                                          | vk::ImageUsageFlagBits::eColorAttachment);
     m_allocators.at("images").allocate(m_images_draw.at(i));
     m_transferrer.transitionToLayout(m_images_draw.at(i), vk::ImageLayout::eColorAttachmentOptimal);
+    m_queue_images.push(uint32_t(m_queue_images.size()));
   }
 }
 
 void ApplicationWorker::createTransferBuffer() {
-  auto extent = m_images_draw.front().extent();
   // create upload buffer;
   m_buffers["transfer"] = Buffer{m_device, m_images_draw.front().size(), vk::BufferUsageFlagBits::eTransferDst};
   m_memory_transfer = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
   m_buffers.at("transfer").bindTo(m_memory_transfer, 0);
 
+  auto extent = m_images_draw.front().extent();
   std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{0, 255, 0, 255}};
-  m_buffers.at("transfer").setData(color_data.data());
+  std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
+  m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
 
   m_ptr_buff_transfer = m_buffers.at("transfer").map();
 
@@ -66,6 +72,10 @@ void ApplicationWorker::createTransferBuffer() {
 void ApplicationWorker::acquireImage(FrameResource& res) {
   uint32_t index = pullImageToDraw();
   res.image = index;
+
+  std::cout << m_images_draw.at(index).view().extent().width << " - " << m_images_draw.at(index).view().extent().height << std::endl;
+  if (m_images_draw.at(index).view().extent().width == 0 || m_images_draw.at(index).view().extent().height == 0)
+  throw std::exception{};
   res.target_view = &m_images_draw.at(index).view();
 }
 
@@ -80,7 +90,7 @@ void ApplicationWorker::presentFrame(FrameResource& res) {
 
 void ApplicationWorker::resize(std::size_t width, std::size_t height) {
   // m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
-  m_camera.setAspect(float(width) / float(height));
+  // m_camera.setAspect(float(width) / float(height));
 
   Application::resize(width, height);
 }
@@ -91,7 +101,7 @@ void ApplicationWorker::logic() {
   double time_current = glfwGetTime();
   float time_delta = float(time_current - time_last);
   time_last = time_current;
-  m_camera.update(time_delta);
+  // m_camera.update(time_delta);
 }
 
 void ApplicationWorker::pushImageToDraw(uint32_t frame) {

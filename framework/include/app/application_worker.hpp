@@ -40,7 +40,7 @@ class ApplicationWorker : public Application {
   void pushImageToDraw(uint32_t frame);
   uint32_t pullImageToDraw();
   // container for the shader programs
-  Camera m_camera;
+  // Camera m_camera;
 
   std::queue<uint32_t> m_queue_images;
   Statistics m_statistics;

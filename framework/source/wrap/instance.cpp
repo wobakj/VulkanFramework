@@ -74,13 +74,17 @@ bool isDeviceSuitable(vk::PhysicalDevice const& device, vk::SurfaceKHR const& su
 
   bool extensionsSupported = checkDeviceExtensionSupport(device, deviceExtensions);
 
-  bool swapChainAdequate = false;
-  if (extensionsSupported) {
-      SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
-      swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+
+  bool swapChainAdequate = true;
+  if (surface) {
+    swapChainAdequate = false;
+    if (extensionsSupported) {
+        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
+        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    }
   }
 
-  return indices.isComplete() && extensionsSupported && swapChainAdequate;
+  return indices.graphicsFamily >= 0 && extensionsSupported && swapChainAdequate;
 }
 
 Instance::Instance()
@@ -130,7 +134,7 @@ void Instance::create(bool validate) {
   }
 }
 
-vk::PhysicalDevice Instance::pickPhysicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions) {
+vk::PhysicalDevice Instance::pickPhysicalDevice(std::vector<const char*> const& deviceExtensions, vk::SurfaceKHR const& surface) {
   vk::PhysicalDevice phys_device{};
   auto devices = get().enumeratePhysicalDevices();
   std::cout << "devices:" << std::endl;
@@ -151,9 +155,9 @@ vk::PhysicalDevice Instance::pickPhysicalDevice(vk::SurfaceKHR const& surface, s
   return phys_device;
 }
 
-Device Instance::createLogicalDevice(vk::SurfaceKHR const& surface, std::vector<const char*> const& deviceExtensions) {
+Device Instance::createLogicalDevice(std::vector<const char*> const& deviceExtensions, vk::SurfaceKHR const& surface) {
 
-  auto const& phys_device = pickPhysicalDevice(surface, deviceExtensions);
+  auto const& phys_device = pickPhysicalDevice(deviceExtensions, surface);
   QueueFamilyIndices indices = findQueueFamilies(phys_device, surface);
   return Device{phys_device, indices, deviceExtensions};
 }

@@ -41,7 +41,9 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
   m_phys_device = phys_dev;
   m_extensions = deviceExtensions;
   m_queue_indices.emplace("graphics", queues.graphicsFamily);
-  m_queue_indices.emplace("present", queues.presentFamily);
+  if (queues.presentFamily >= 0) {
+    m_queue_indices.emplace("present", queues.presentFamily);
+  }
   m_queue_indices.emplace("transfer", find_queue_family(physical(), vk::QueueFlagBits::eTransfer));
   // m_queue_indices.emplace("transfer", queues.graphicsFamily);
 
