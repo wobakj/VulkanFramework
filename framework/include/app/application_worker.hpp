@@ -35,7 +35,6 @@ class ApplicationWorker : public Application {
   void createTransferBuffer();
   void acquireImage(FrameResource& res);
   virtual void presentFrame(FrameResource& res);
-  virtual void presentFrame(FrameResource& res, vk::Queue const&);
   void logic() override;
 
   void pushImageToDraw(uint32_t frame);

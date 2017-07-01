@@ -4,8 +4,9 @@
 #include "wrap/surface.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
-#include "cmdline.h"
+#include "wrap/conversions.hpp"
 
+#include "cmdline.h"
 // c++ warpper
 #include <vulkan/vulkan.hpp>
 
@@ -121,8 +122,8 @@ void ApplicationLodMpi::updateResourceCommandBuffers(FrameResource& res) {
   res.commandBuffer("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
 
   res.commandBuffer("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
+  res.command_buffers.at("gbuffer")->setViewport(0, {viewport(extent_2d(res.target_view->extent()))});
+  res.command_buffers.at("gbuffer")->setScissor(0, {rect(extent_2d(res.target_view->extent()))});
 
   res.commandBuffer("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
@@ -281,7 +282,7 @@ void ApplicationLodMpi::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
 
-  info_pipe.setResolution(m_swap_chain.extent());
+  info_pipe.setResolution(vk::Extent2D{120, 720});
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -400,12 +401,12 @@ void ApplicationLodMpi::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = extent_3d(m_swap_chain.extent()); 
+  auto extent = vk::Extent3D{120, 720, 1}; 
   m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
 
-  m_images["color"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_images["color"] = ImageRes{m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 }

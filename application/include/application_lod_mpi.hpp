@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "app/application_win.hpp"
+#include "app/application_worker.hpp"
 #include "app/application_threaded_transfer.hpp"
 #include "geometry.hpp"
 #include "geometry_lod.hpp"
@@ -24,7 +24,7 @@
 #include <queue>
 #include <thread>
 
-class ApplicationLodMpi : public ApplicationThreadedTransfer<ApplicationWin> {
+class ApplicationLodMpi : public ApplicationThreadedTransfer<ApplicationWorker> {
  public:
   ApplicationLodMpi(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLodMpi();
