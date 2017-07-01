@@ -141,7 +141,7 @@ void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage
   region.bufferImageHeight = dstImage.extent().height;
   region.imageSubresource = dstImage.layer(layer);
   region.imageOffset = vk::Offset3D{0, 0, 0};
-  region.imageExtent.width = dstImage.extent().width;
+  region.imageExtent = dstImage.extent();
 
   vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
   commandBuffer.copyBufferToImage(

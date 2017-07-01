@@ -74,7 +74,7 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
   // barrier is now performed through renderpass dependency
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(m_images.at("texture").view(), vk::ImageLayout::eGeneral, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").copyImage(m_images.at("texture").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
@@ -98,7 +98,7 @@ void ApplicationPresent::createTextureImages() {
                                                                                                    | vk::ImageUsageFlagBits::eTransferDst
                                                                                                    | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("texture"));
-  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eGeneral);
+  // m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eGeneral);
 }
 
 void ApplicationPresent::updateDescriptors() { 
@@ -116,22 +116,26 @@ void ApplicationPresent::createDescriptorPools() {
 }
 
 void ApplicationPresent::createUniformBuffers() {
-  
+  auto extent = extent_3d(m_swap_chain.extent()); 
+  // create upload buffer
+  std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{255, 0, 0, 255}};
+  m_buffers["image"] = Buffer{m_device, m_images.at("texture").size(), vk::BufferUsageFlagBits::eTransferSrc};
+  m_memory_image = Memory{m_device, m_buffers.at("image").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("image").size()};
+  m_buffers.at("image").bindTo(m_memory_image, 0);
+  m_buffers.at("image").setData(color_data.data());
+
   m_buffers["time"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};
   m_allocators.at("buffers").allocate(m_buffers.at("time"));
   
-  auto extent = extent_3d(m_swap_chain.extent()); 
-  m_buffers["colors"] = Buffer{m_device, sizeof(glm::u8vec3) * extent.width * extent.height, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc};
-  m_allocators.at("buffers").allocate(m_buffers.at("colors"));
+  // m_buffers["colors"] = Buffer{m_device, sizeof(glm::u8vec3) * extent.width * extent.height, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc};
+  // m_allocators.at("buffers").allocate(m_buffers.at("image"));
 
-  std::vector<glm::u8vec3> color_data{extent.width * extent.height, glm::u8vec3{255, 0, 0}};
-  m_transferrer.uploadBufferData(&color_data, m_buffers.at("colors"));
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  m_transferrer.copyBufferToImage(m_buffers.at("colors"), m_images.at("texture"), m_images.at("texture").info().extent.width, m_images.at("texture").info().extent.height, m_images.at("texture").info().extent.depth);
+  m_transferrer.copyBufferToImage(m_buffers.at("image"), m_images.at("texture"), m_images.at("texture").info().extent.width, m_images.at("texture").info().extent.height, m_images.at("texture").info().extent.depth);
 
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferSrcOptimal);
 
-  // m_transferrer.uploadBufferToImage(&color_data, m_buffers.at("colors"));
+  // m_transferrer.uploadBufferToImage(&color_data, m_buffers.at("image"));
 }
 
 void ApplicationPresent::updateUniformBuffers() {

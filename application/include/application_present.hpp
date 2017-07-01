@@ -49,6 +49,7 @@ class ApplicationPresent : public ApplicationSingle {
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;
   Sampler m_sampler;
+  Memory m_memory_image;
 };
 
 #endif
