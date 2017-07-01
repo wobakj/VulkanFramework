@@ -33,7 +33,7 @@ class LauncherWin {
   // run application
   template<typename T>
   void runApp(cmdline::parser const& cmd_parse){
-    m_application = new T{m_resource_path, m_device, m_surface, cmd_parse};
+    m_application =  std::unique_ptr<Application>{new T{m_resource_path, m_device, m_surface, cmd_parse}};
 
     mainLoop();
   };
@@ -77,7 +77,7 @@ class LauncherWin {
   // path to the resource folders
   std::string m_resource_path;
 
-  Application* m_application;
+  std::unique_ptr<Application> m_application;
 
   Instance m_instance;
   Device m_device;

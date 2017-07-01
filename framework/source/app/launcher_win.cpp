@@ -171,12 +171,10 @@ void LauncherWin::quit(int status) {
   // wait until all resources are accessible
   m_device->waitIdle();
   // free opengl resources
-  delete m_application;
+  m_application.reset();
   // free glfw resources
   glfwDestroyWindow(m_window);
   glfwTerminate();
-
-  std::exit(status);
 }
 
 void glfw_error(int error, const char* description) {

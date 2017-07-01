@@ -32,6 +32,7 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
 }
 
 ApplicationWorker::~ApplicationWorker() {
+  m_buffers.at("transfer").unmap();
   std::cout << std::endl;
   std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
   std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
@@ -62,6 +63,11 @@ void ApplicationWorker::createTransferBuffer() {
 
   auto extent = m_images_draw.front().extent();
   std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{0, 255, 0, 255}};
+  for(unsigned x = 0; x < extent.width; ++x) {
+    for(unsigned y = 0; y < extent.height; ++y) {
+      color_data[y * extent.width + x] = glm::u8vec4{0, float(y) / extent.height * 255, float(x) / extent.width * 255, 255};
+    }
+  }
   std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
   m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
 

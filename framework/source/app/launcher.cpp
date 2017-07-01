@@ -80,7 +80,5 @@ void Launcher::quit(int status) {
   // wait until all resources are accessible
   m_device->waitIdle();
   // free opengl resources
-  delete m_application;
-
-  std::exit(status);
+  m_application.reset();
 }
