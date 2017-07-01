@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "app/application_win.hpp"
 #include "app/application_threaded.hpp"
 #include "deleter.hpp"
 #include "geometry.hpp"

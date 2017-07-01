@@ -4,6 +4,8 @@
 #include "app/application_win.hpp"
 #include "frame_resource.hpp"
 
+#include "cmdline.h"
+
 class Surface;
 
 template<typename T>
@@ -25,12 +27,7 @@ class ApplicationSingle : public T {
   void shutDown();
 
   // void recordTransferBuffer(FrameResource& res);
-  virtual void recordDrawBuffer(FrameResource& res) = 0;
-  virtual FrameResource createFrameResource();
-  
-  // required for correct inheritance
-  virtual void updateResourceDescriptors(FrameResource& resource) override {};
-  virtual void updateResourceCommandBuffers(FrameResource& res) override {};
+  // virtual void recordDrawBuffer(FrameResource& res) = 0;
   
   FrameResource m_frame_resource;
 

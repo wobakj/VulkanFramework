@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "app/application_win.hpp"
 #include "app/application_threaded_transfer.hpp"
 #include "geometry.hpp"
 #include "geometry_lod.hpp"

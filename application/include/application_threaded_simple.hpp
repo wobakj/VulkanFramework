@@ -1,6 +1,7 @@
 #ifndef APPLICATION_THREADED_SIMPLE_HPP
 #define APPLICATION_THREADED_SIMPLE_HPP
 
+#include "app/application_win.hpp"
 #include "app/application_threaded.hpp"
 
 #include "deleter.hpp"

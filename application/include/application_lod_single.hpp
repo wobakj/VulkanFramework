@@ -1,6 +1,7 @@
 #ifndef APPLICATION_LOD_HPP
 #define APPLICATION_LOD_HPP
 
+#include "app/application_win.hpp"
 #include "app/application_single.hpp"
 
 #include "geometry.hpp"

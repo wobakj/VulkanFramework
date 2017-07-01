@@ -1,12 +1,12 @@
 
 template<typename T>
 cmdline::parser ApplicationThreaded<T>::getParser() {
-  return ApplicationWin::getParser();
+  return T::getParser();
 }
 
 template<typename T>
 ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
- :ApplicationWin{resource_path, device, surf, num_frames + 1, cmd_parse}
+ :T{resource_path, device, surf, num_frames + 1, cmd_parse}
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_present{num_frames}

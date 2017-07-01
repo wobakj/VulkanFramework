@@ -1,6 +1,7 @@
 #ifndef APPLICATION_CLUSTERED_HPP
 #define APPLICATION_CLUSTERED_HPP
 
+#include "app/application_win.hpp"
 #include "app/application_single.hpp"
 
 #include "deleter.hpp"
