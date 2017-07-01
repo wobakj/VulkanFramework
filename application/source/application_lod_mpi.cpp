@@ -1,7 +1,7 @@
 #include "application_lod_mpi.hpp"
 
-#include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
+#include "wrap/surface.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
 #include "cmdline.h"
@@ -15,8 +15,6 @@
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-
-#include <mpi.h>
 
 #include <iostream>
 
@@ -94,8 +92,6 @@ ApplicationLodMpi::~ApplicationLodMpi() {
   std::cout << "Average LOD transfer time: " << m_statistics.get("transfer") << " milliseconds per node, " << m_statistics.get("transfer") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   std::cout << "Average GPU draw time: " << m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << "Average GPU copy time: " << m_statistics.get("gpu_copy") << " milliseconds per node, " << m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-
-  MPI::Finalize();
 }
 
 FrameResource ApplicationLodMpi::createFrameResource() {
@@ -485,6 +481,12 @@ void ApplicationLodMpi::keyCallback(int key, int scancode, int action, int mods)
   }
 }
 
+#include <mpi.h>
+
+#include "application_present.hpp"
+#include "app/launcher_win.hpp"
+#include "app/launcher.hpp"
+
 // exe entry point
 int main(int argc, char* argv[]) {
   MPI::Init (argc, argv);
@@ -492,9 +494,11 @@ int main(int argc, char* argv[]) {
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
   if (MPI::COMM_WORLD.Get_rank() == 0) {
+    LauncherWin::run<ApplicationPresent>(argc, argv);
+  }
+  else {
     LauncherWin::run<ApplicationLodMpi>(argc, argv);
   }
-  // else {
-  //   Launcher::run<ApplicationLodMpi>(argc, argv);
-  // }
+
+  MPI::Finalize();
 }

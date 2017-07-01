@@ -44,12 +44,16 @@ class ApplicationPresent : public ApplicationSingle {
   // void keyCallback(int key, int scancode, int action, int mods) override;
   FrameResource createFrameResource() override;
 
+  void receiveData();
+
   // path to the resource folders
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;
   Sampler m_sampler;
   Memory m_memory_image;
+  uint8_t* m_ptr_buff_transfer;
+
 };
 
 #endif

@@ -135,24 +135,16 @@ void Transferrer::copyImage(ImageRes const& srcImage, ImageRes& dstImage, uint32
 
 
 void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
-  vk::BufferImageCopy region{};
-  region.bufferOffset = 0;
-  region.bufferRowLength = dstImage.extent().width;
-  region.bufferImageHeight = dstImage.extent().height;
-  region.imageSubresource = dstImage.layer(layer);
-  region.imageOffset = vk::Offset3D{0, 0, 0};
-  region.imageExtent = dstImage.extent();
-
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-  commandBuffer.copyBufferToImage(
-    srcBuffer,
-    dstImage.image(),
-    imageLayout,
-    1, &region
-  );
+  auto const& commandBuffer = beginSingleTimeCommands();
+  commandBuffer.copyBufferToImage(srcBuffer, dstImage, imageLayout, layer);
   endSingleTimeCommands();
 }
 
+void Transferrer::copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
+  auto const& commandBuffer = beginSingleTimeCommands();
+  commandBuffer.copyImageToBuffer(srcBuffer, dstImage, imageLayout, layer);
+  endSingleTimeCommands();
+}
 
 void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
   vk::ImageSubresourceLayers subResource{};
@@ -192,6 +184,12 @@ void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage,
 
 void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& newLayout) const {
   transitionToLayout(img.get(), img.info(), vk::ImageLayout::eUndefined, newLayout);
+}
+
+void Transferrer::transitionToLayout(ImageView const& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
+  auto const& commandBuffer = beginSingleTimeCommands();
+  commandBuffer.transitionLayout(img, oldLayout, newLayout);
+  endSingleTimeCommands();
 }
 
 void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {

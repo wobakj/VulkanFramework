@@ -13,13 +13,13 @@
 // SwapChain m_swap_chain;
 
 // helper functions
-std::string resourcePath(std::vector<std::string> const& args);
+static std::string resourcePath(std::vector<std::string> const& args);
 void glfw_error(int error, const char* description);
 
 LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser const& cmd_parse) 
  :m_camera_fov{glm::radians(60.0f)}
- ,m_window_width{1900}
- ,m_window_height{1070}
+ ,m_window_width{1280}
+ ,m_window_height{720}
  ,m_window{nullptr}
  ,m_last_second_time{0.0}
  ,m_frames_per_second{0u}
@@ -95,7 +95,7 @@ LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser c
 
 }
 
-std::string resourcePath(std::vector<std::string> const& args) {
+static std::string resourcePath(std::vector<std::string> const& args) {
   std::string resource_path{};
   std::string exe_path{args[0]};
   resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
