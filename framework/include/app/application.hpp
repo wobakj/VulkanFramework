@@ -82,7 +82,7 @@ class Application {
   // virtual void presentFrame(FrameResource& res, vk::Queue const&);
   virtual void submitDraw(FrameResource& res);
   // cannot be pure due to template argiment
-  virtual void recordDrawBuffer(FrameResource& res) {};
+  virtual void recordDrawBuffer(FrameResource& res) = 0;
 
   std::string m_resource_path; 
   void createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse);

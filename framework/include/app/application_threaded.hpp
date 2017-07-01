@@ -14,7 +14,8 @@
 
 class Surface;
 
-class ApplicationThreaded : public ApplicationWin {
+template<typename T>
+class ApplicationThreaded : public T {
  public:
   // possibly override number of frames in abstract child classes
   ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames = 2);
@@ -58,5 +59,7 @@ class ApplicationThreaded : public ApplicationWin {
   virtual void drawLoop();
   std::thread m_thread_draw;
 };
+
+#include "app/application_threaded.inc"
 
 #endif

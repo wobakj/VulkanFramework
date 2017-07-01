@@ -23,7 +23,7 @@
 #include <queue>
 #include <thread>
 
-class ApplicationLodMpi : public ApplicationThreadedTransfer {
+class ApplicationLodMpi : public ApplicationThreadedTransfer<ApplicationWin> {
  public:
   ApplicationLodMpi(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLodMpi();

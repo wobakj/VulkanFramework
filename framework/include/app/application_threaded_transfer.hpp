@@ -7,7 +7,8 @@
 
 class Surface;
 
-class ApplicationThreadedTransfer : public ApplicationThreaded {
+template<typename T>
+class ApplicationThreadedTransfer : public ApplicationThreaded<T> {
  public:
   ApplicationThreadedTransfer(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   virtual ~ApplicationThreadedTransfer();
@@ -37,5 +38,7 @@ class ApplicationThreadedTransfer : public ApplicationThreaded {
   std::atomic<bool> m_should_transfer;
   std::thread m_thread_transfer;
 };
+
+#include "app/application_threaded_transfer.inc"
 
 #endif

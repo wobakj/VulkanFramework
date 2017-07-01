@@ -23,7 +23,7 @@
 #include <queue>
 #include <thread>
 
-class ApplicationLod : public ApplicationThreadedTransfer {
+class ApplicationLod : public ApplicationThreadedTransfer<ApplicationWin> {
  public:
   ApplicationLod(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLod();

@@ -15,7 +15,7 @@
 #include <vector>
 #include <atomic>
 
-class ApplicationThreadedMin : public ApplicationThreaded {
+class ApplicationThreadedMin : public ApplicationThreaded<ApplicationWin> {
  public:
   ApplicationThreadedMin(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationThreadedMin();

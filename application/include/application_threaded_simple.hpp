@@ -12,7 +12,7 @@
 #include <vector>
 #include <atomic>
 
-class ApplicationThreadedSimple : public ApplicationThreaded {
+class ApplicationThreadedSimple : public ApplicationThreaded<ApplicationWin> {
  public:
   ApplicationThreadedSimple(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationThreadedSimple();

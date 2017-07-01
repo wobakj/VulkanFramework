@@ -26,9 +26,11 @@ class ApplicationSingle : public T {
 
   // void recordTransferBuffer(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
+  virtual FrameResource createFrameResource();
+  
+  // required for correct inheritance
   virtual void updateResourceDescriptors(FrameResource& resource) override {};
   virtual void updateResourceCommandBuffers(FrameResource& res) override {};
-  virtual FrameResource createFrameResource();
   
   FrameResource m_frame_resource;
 
