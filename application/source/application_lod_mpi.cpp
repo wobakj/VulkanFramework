@@ -495,11 +495,11 @@ int main(int argc, char* argv[]) {
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
-  if (MPI::COMM_WORLD.Get_rank() == 0) {
-    Launcher::run<ApplicationLodMpi>(argc, argv);
+  if (MPI::COMM_WORLD.Get_rank() == 1) {
+    LauncherWin::run<ApplicationPresent>(argc, argv);
   }
   else {
-    LauncherWin::run<ApplicationPresent>(argc, argv);
+    Launcher::run<ApplicationLodMpi>(argc, argv);
   }
 
   MPI::Finalize();

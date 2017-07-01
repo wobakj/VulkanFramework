@@ -47,12 +47,11 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
 
   void receiveData();
 
-  // path to the resource folders
+  Memory m_memory_image;
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;
   Sampler m_sampler;
-  Memory m_memory_image;
   uint8_t* m_ptr_buff_transfer;
 
 };

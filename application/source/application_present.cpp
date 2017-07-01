@@ -43,6 +43,8 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
 }
 
 ApplicationPresent::~ApplicationPresent() {
+  m_buffers.at("transfer").unmap();
+  
   shutDown();
 }
 
@@ -69,7 +71,7 @@ void ApplicationPresent::updateResourceCommandBuffers(FrameResource& res) {
 
 void ApplicationPresent::receiveData() {
   size_t size_chunk = m_buffers.at("transfer").size() / MPI::COMM_WORLD.Get_size();
-  MPI::COMM_WORLD.Gather(MPI_IN_PLACE, size_chunk, MPI_UNSIGNED_CHAR, m_ptr_buff_transfer - size_chunk, size_chunk, MPI_UNSIGNED_CHAR, 0);
+  MPI::COMM_WORLD.Gather(MPI_IN_PLACE, size_chunk, MPI_UNSIGNED_CHAR, m_ptr_buff_transfer, size_chunk, MPI_UNSIGNED_CHAR, 1);
 }
 
 void ApplicationPresent::recordDrawBuffer(FrameResource& res) {

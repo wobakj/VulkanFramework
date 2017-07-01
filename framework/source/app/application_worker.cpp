@@ -74,17 +74,18 @@ void ApplicationWorker::acquireImage(FrameResource& res) {
   res.image = index;
 
   std::cout << m_images_draw.at(index).view().extent().width << " - " << m_images_draw.at(index).view().extent().height << std::endl;
-  if (m_images_draw.at(index).view().extent().width == 0 || m_images_draw.at(index).view().extent().height == 0)
-  throw std::exception{};
+  if (m_images_draw.at(index).view().extent().width == 0 || m_images_draw.at(index).view().extent().height == 0) {
+    throw std::exception{};
+  }
   res.target_view = &m_images_draw.at(index).view();
 }
 
 void ApplicationWorker::presentFrame(FrameResource& res) {
-
+  res.fence("draw").wait();
   // m_transferrer.transitionToLayout(*res.target_view, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferSrcOptimal);
   // m_transferrer.copyImageToBuffer(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferSrcOptimal);
   // write data to presenter
-  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, m_buffers.at("transfer").size(), MPI_UNSIGNED_CHAR, nullptr, m_buffers.at("transfer").size(), MPI_UNSIGNED_CHAR, 0);
+  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, m_buffers.at("transfer").size(), MPI_UNSIGNED_CHAR, nullptr, m_buffers.at("transfer").size(), MPI_UNSIGNED_CHAR, 1);
   pushImageToDraw(res.image);
 }
 
