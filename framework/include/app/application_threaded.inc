@@ -9,7 +9,7 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
  :T{resource_path, device, surf, num_frames + 1, cmd_parse}
  ,m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
- ,m_semaphore_present{num_frames}
+ ,m_semaphore_present{0}
  ,m_should_draw{true}
 {
   this->m_statistics.addTimer("sema_present");
@@ -99,11 +99,6 @@ void ApplicationThreaded<T>::present() {
 
 template<typename T>
 void ApplicationThreaded<T>::render() {
-  this->m_statistics.start("sema_present");
-  // only calculate new frame if previous one was rendered
-  m_semaphore_present.wait();
-  this->m_statistics.stop("sema_present");
-  present();
   this->m_statistics.start("record");
   static uint64_t frame = 0;
   ++frame;
@@ -117,6 +112,12 @@ void ApplicationThreaded<T>::render() {
   // add newly recorded frame for drawing
   pushForDraw(frame_record);
   this->m_statistics.stop("record");
+  
+  this->m_statistics.start("sema_present");
+  // only calculate new frame if previous one was rendered
+  m_semaphore_present.wait();
+  this->m_statistics.stop("sema_present");
+  present();
 }
 
 template<typename T>
@@ -235,6 +236,4 @@ void ApplicationThreaded<T>::emptyDrawQueue() {
   for (auto const& res : m_frame_resources) {
     res.waitFences();
   }
-  // give record queue enough signals to process all frames
-  m_semaphore_present.set(uint32_t(m_frame_resources.size()));
 }
