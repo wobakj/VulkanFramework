@@ -26,6 +26,7 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   static cmdline::parser getParser(); 
 
  private:
+  void logic() override final;
   void recordDrawBuffer(FrameResource& res) override;
   void updateResourceCommandBuffers(FrameResource& res) override;
   void updatePipelines() override;
@@ -45,10 +46,11 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   // void keyCallback(int key, int scancode, int action, int mods) override;
   FrameResource createFrameResource() override;
 
+  void createFrustra();
   void receiveData();
   // send out whether workers should stop
-  void onFrameEnd() override;
-
+  void onFrameEnd() override final;
+  void onResize(std::size_t width, std::size_t height) override;
 
   Memory m_memory_image;
   RenderPass m_render_pass;
@@ -56,7 +58,7 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   ComputePipeline m_pipeline_compute;
   Sampler m_sampler;
   uint8_t* m_ptr_buff_transfer;
-
+  std::vector<glm::fmat4> m_frustra;
 };
 
 #endif

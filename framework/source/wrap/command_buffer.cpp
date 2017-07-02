@@ -135,10 +135,10 @@ void CommandBuffer::copyImageToBuffer(Buffer const& srcBuffer, ImageView const& 
   region.imageOffset = vk::Offset3D{0, 0, 0};
   region.imageExtent = dstImage.extent();
 
-  get().copyBufferToImage(
-    srcBuffer,
+  get().copyImageToBuffer(
     dstImage.image(),
     imageLayout,
+    srcBuffer,
     1, &region
   );
 }

@@ -35,6 +35,7 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
 
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
 
+  createFrustra();
   createTextureImages();
   createUniformBuffers();
 
@@ -52,6 +53,13 @@ FrameResource ApplicationPresent::createFrameResource() {
   auto res = ApplicationSingle::createFrameResource();
   res.command_buffers.emplace("transfer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   return res;
+}
+
+void ApplicationPresent::createFrustra() {
+  m_frustra.clear();
+  for (size_t i = 0; i < MPI::COMM_WORLD.Get_size() -1; ++i) {
+    m_frustra.emplace_back(m_camera.projectionMatrix());
+  }
 }
 
 void ApplicationPresent::updateResourceCommandBuffers(FrameResource& res) {
@@ -149,7 +157,21 @@ void ApplicationPresent::updateUniformBuffers() {
   m_transferrer.uploadBufferData(&time, m_buffers.at("time"));
 }
 
-// check if shutdown
+void ApplicationPresent::logic() {
+  // update camera
+  ApplicationSingle::logic();
+  // broadcast matrices
+  // identical view
+  MPI::COMM_WORLD.Bcast((void*)&m_camera.viewMatrix(), 16, MPI_FLOAT, 1);
+  //different projection for each 
+  MPI::COMM_WORLD.Scatter(m_frustra.data(), 16, MPI_FLOAT, MPI_IN_PLACE, 16, MPI_FLOAT, 1);
+}
+
+void ApplicationPresent::onResize(std::size_t width, std::size_t height) {
+  createFrustra();
+}
+
+// broadcast if shutdown
 void ApplicationPresent::onFrameEnd() {
   uint8_t flag = shouldClose() ? 1 : 0;
   MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 1);

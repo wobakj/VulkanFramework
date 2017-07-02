@@ -84,8 +84,8 @@ void ApplicationWorker::acquireImage(FrameResource& res) {
 
 void ApplicationWorker::presentFrame(FrameResource& res) {
   res.fence("draw").wait();
-  // m_transferrer.transitionToLayout(*res.target_view, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferSrcOptimal);
-  // m_transferrer.copyImageToBuffer(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferSrcOptimal);
+  m_transferrer.transitionToLayout(*res.target_view, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferSrcOptimal);
+  m_transferrer.copyImageToBuffer(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferSrcOptimal);
   // write data to presenter
   MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, int(m_buffers.at("transfer").size()), MPI_UNSIGNED_CHAR, nullptr, int(m_buffers.at("transfer").size()), MPI_UNSIGNED_CHAR, 1);
   pushImageToDraw(res.image);
@@ -98,15 +98,6 @@ void ApplicationWorker::resize(std::size_t width, std::size_t height) {
   Application::resize(width, height);
 }
 
-void ApplicationWorker::logic() {
-  static double time_last = glfwGetTime();
-  // calculate delta time
-  double time_current = glfwGetTime();
-  float time_delta = float(time_current - time_last);
-  time_last = time_current;
-  // m_camera.update(time_delta);
-}
-
 void ApplicationWorker::pushImageToDraw(uint32_t frame) {
   m_queue_images.push(frame);
 }
@@ -117,6 +108,22 @@ uint32_t ApplicationWorker::pullImageToDraw() {
   uint32_t frame_draw = m_queue_images.front();
   m_queue_images.pop();
   return frame_draw;
+}
+
+glm::fmat4 const& ApplicationWorker::matrixView() const {
+  return m_mat_view;
+}
+
+glm::fmat4 const& ApplicationWorker::matrixFrustum() const {
+  return m_mat_frustum;
+}
+
+void ApplicationWorker::onFrameBegin() {
+  // get camera matrices
+  // identical view
+  MPI::COMM_WORLD.Bcast(&m_mat_view, 16, MPI_FLOAT, 1);
+  //different projection for each 
+  MPI::COMM_WORLD.Scatter(nullptr, 16, MPI_FLOAT, &m_mat_frustum, 16, MPI_FLOAT, 1);
 }
 
 // check if shutdown

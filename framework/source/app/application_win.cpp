@@ -108,13 +108,21 @@ void ApplicationWin::resize(std::size_t width, std::size_t height) {
   Application::resize(width, height);
 }
 
-void ApplicationWin::logic() {
+void ApplicationWin::onFrameBegin() {
   static double time_last = glfwGetTime();
   // calculate delta time
   double time_current = glfwGetTime();
   float time_delta = float(time_current - time_last);
   time_last = time_current;
   m_camera.update(time_delta);
+}
+
+glm::fmat4 const& ApplicationWin::matrixView() const {
+  return m_camera.viewMatrix();
+}
+
+glm::fmat4 const& ApplicationWin::matrixFrustum() const {
+  return m_camera.projectionMatrix();
 }
 
 bool ApplicationWin::shouldClose() const{

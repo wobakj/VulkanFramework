@@ -143,7 +143,7 @@ void ApplicationLodMpi::recordTransferBuffer(FrameResource& res) {
 
   m_statistics.start("update");
   // upload node data
-  // m_model_lod.update(m_camera);
+  m_model_lod.update(matrixView(), matrixFrustum());
   size_t curr_uploads = m_model_lod.numUploads();
   m_statistics.add("uploads", double(curr_uploads));
   if (curr_uploads > 0) {
@@ -455,9 +455,9 @@ void ApplicationLodMpi::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationLodMpi::updateView() {
   ubo_cam.model = glm::mat4();
-  // ubo_cam.view = m_camera.viewMatrix();
+  ubo_cam.view = matrixView();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
-  // ubo_cam.proj = m_camera.projectionMatrix();
+  ubo_cam.proj = matrixFrustum();
   ubo_cam.levels = m_setting_levels ? glm::fvec4{1.0f} : glm::fvec4{0.0};
   ubo_cam.shade = m_setting_shaded ? glm::fvec4{1.0f} : glm::fvec4{0.0};
 }
@@ -496,7 +496,7 @@ int main(int argc, char* argv[]) {
   MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
   bool threads_ok = provided >= MPI_THREAD_FUNNELED;
   assert(threads_ok);
-  
+
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;

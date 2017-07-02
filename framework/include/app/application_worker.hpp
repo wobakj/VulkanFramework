@@ -35,9 +35,13 @@ class ApplicationWorker : public Application {
   virtual FrameResource createFrameResource() override;
   virtual void acquireImage(FrameResource& res) final;
   virtual void presentFrame(FrameResource& res) final;
-  void logic() override;
+  // void logic() override;
 
-  void onFrameEnd() override;
+  void onFrameEnd() override final;
+  void onFrameBegin() override final;
+
+  glm::fmat4 const& matrixView() const;
+  glm::fmat4 const& matrixFrustum() const;
   
  private:
   void createImages(uint32_t image_count);
@@ -49,12 +53,15 @@ class ApplicationWorker : public Application {
   // Camera m_camera;
  protected:
   Statistics m_statistics;
+
  private:
   std::queue<uint32_t> m_queue_images;
   Memory m_memory_transfer;
   void* m_ptr_buff_transfer;
   std::vector<ImageRes> m_images_draw;
   bool m_should_close;
+  glm::fmat4 m_mat_view;
+  glm::fmat4 m_mat_frustum;
 };
 
 #endif
