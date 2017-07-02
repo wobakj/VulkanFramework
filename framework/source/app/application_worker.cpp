@@ -25,11 +25,13 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
 {
   // receive resolution
   MPI::COMM_WORLD.Bcast(&m_resolution, 2, MPI::UNSIGNED, 0);
+  std::cout << "resolution " << m_resolution.x << ", " << m_resolution.y << std::endl;
+  
   // m_resolution = glm::uvec2{1280, 720};
   // m_images_draw.resize(image_count);
   createImages(image_count);
   createTransferBuffer();
-
+  // std::cout << "will send " << m_buffers.at("transfer").size() << " bytes" << std::endl; 
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("queue_present");
 }
@@ -59,18 +61,18 @@ void ApplicationWorker::createImages(uint32_t image_count) {
 }
 
 void ApplicationWorker::createTransferBuffer() {
-  // create upload buffer;
-  m_buffers["transfer"] = Buffer{m_device, m_images_draw.front().size(), vk::BufferUsageFlagBits::eTransferDst};
-  m_memory_transfer = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
-  m_buffers.at("transfer").bindTo(m_memory_transfer, 0);
 
   auto extent = m_images_draw.front().extent();
   std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{0, 255, 0, 255}};
   for(unsigned x = 0; x < extent.width; ++x) {
     for(unsigned y = 0; y < extent.height; ++y) {
-      color_data[y * extent.width + x] = glm::u8vec4{0, uint8_t(float(y) / float(extent.height) * 255), uint8_t(float(x) / float(extent.width) * 255), 255};
+      color_data[y * extent.width + x] = glm::u8vec4{uint8_t(float(MPI::COMM_WORLD.Get_rank()) / float(MPI::COMM_WORLD.Get_size()) * 255), uint8_t(float(y) / float(extent.height) * 255), uint8_t(float(x) / float(extent.width) * 255), 255};
     }
   }
+  // create upload buffer;
+  m_buffers["transfer"] = Buffer{m_device, color_data.size() * sizeof(color_data.front()), vk::BufferUsageFlagBits::eTransferDst};
+  m_memory_transfer = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
+  m_buffers.at("transfer").bindTo(m_memory_transfer, 0);
   std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
   m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
 
@@ -94,9 +96,6 @@ void ApplicationWorker::presentFrame(FrameResource& res) {
 }
 
 void ApplicationWorker::resize(std::size_t width, std::size_t height) {
-  // m_swap_chain.recreate(vk::Extent2D{uint32_t(width), uint32_t(height)});
-  // m_camera.setAspect(float(width) / float(height));
-
   Application::resize(width, height);
 }
 

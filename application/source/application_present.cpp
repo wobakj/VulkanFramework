@@ -27,6 +27,7 @@ cmdline::parser ApplicationPresent::getParser() {
 ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
  :ApplicationSingle{resource_path, device, surf, cmd_parse}
  ,m_ptr_buff_transfer{nullptr}
+ ,m_frustum_cells{0}
 {  
 
   if (MPI::COMM_WORLD.Get_size() < 1) {
@@ -35,9 +36,9 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
 
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
 
+  createTextureImages();
   createFrustra();
 
-  createTextureImages();
   createUniformBuffers();
 
   createRenderResources();
@@ -72,42 +73,58 @@ void ApplicationPresent::createFrustra() {
   auto test = glm::frustum(base.x, base.x + right.x, base.y, base.y + up.y, -base.z, -back.z);
   std::cout << base.z << " far " << back.z << std::endl;
   // assert(test == projection);
-  if (MPI::COMM_WORLD.Get_size() == 2) {
-    m_frustra.emplace_back(test);
-    return;
-  }
-
-  glm::uvec2 cells{1, 1};
   unsigned num_workers = MPI::COMM_WORLD.Get_size() - 1;
-  float l2 = float(log2(num_workers));
-  assert(float(int(l2)) == l2);
+  m_frustum_cells = glm::uvec2{1, 1};
+  if (num_workers == 1) {
+    m_frustra.emplace_back(test);
+  }
+  else {
+    float l2 = float(log2(num_workers));
+    assert(float(int(l2)) == l2);
 
-  glm::fvec2 frustum_dims{right.x, up.y};
-  glm::fvec2 cell_dims{right.x, up.y};
-  while(l2 > 0) {
-    // split larger dimension
-    if (cell_dims.x > cell_dims.y) {
-      cells.x *= 2;
+    glm::fvec2 frustum_dims{right.x, up.y};
+    glm::fvec2 cell_dims{right.x, up.y};
+    while(l2 > 0) {
+      // split larger dimension
+      if (cell_dims.x > cell_dims.y) {
+        m_frustum_cells.x *= 2;
+      }
+      else {
+        m_frustum_cells.y *= 2;
+      }
+      cell_dims = frustum_dims / glm::fvec2{m_frustum_cells};
+      l2 -= 1.0f;
     }
-    else {
-      cells.y *= 2;
+    std::cout << "Cell resolution: " << m_frustum_cells.x << " x " << m_frustum_cells.y << std::endl;
+    for (unsigned i = 0; i < num_workers; ++i) {
+      glm::uvec2 cell_coord{i % m_frustum_cells.x, i / m_frustum_cells.x};
+      // m_frustra.emplace_back(projection);
+      glm::fvec2 base_coord = glm::fvec2{base} + glm::fvec2{cell_coord} * cell_dims; 
+      m_frustra.emplace_back(glm::frustum(base_coord.x, base_coord.x + cell_dims.x, base_coord.y, base_coord.y + cell_dims.y, -base.z, -back.z));
     }
-    cell_dims = frustum_dims / glm::fvec2{cells};
-    l2 -= 1.0f;
   }
-  std::cout << "Cell resolution: " << cells.x << " x " << cells.y << std::endl;
-  for (int i = 0; i < MPI::COMM_WORLD.Get_size() -1; ++i) {
-    glm::uvec2 cell_coord{i % cells.x, i / cells.x};
-    glm::fvec2 base_coord = glm::fvec2{base} + glm::fvec2{cell_coord} * cell_dims; 
-    m_frustra.emplace_back(projection);
-    // m_frustra.emplace_back(glm::frustum(base_coord.x, base_coord.x + cell_dims.x, base_coord.y, base_coord.y + cell_dims.y, -base.z, -back.z));
-  }
-  glm::uvec2 cell_resolution{m_resolution / cells};
+  // send resolution to workers
+  glm::uvec2 cell_resolution{m_resolution / m_frustum_cells};
   MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
+
+  m_copy_regions.clear();
+  int size_chunk = int(cell_resolution.x * cell_resolution.y * 4);
+  for (unsigned i = 0; i < num_workers; ++i) {
+    vk::BufferImageCopy region{};
+    region.bufferOffset = size_chunk * i;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+
+    region.imageSubresource = m_images.at("texture").view().layer(0);
+    region.imageOffset = vk::Offset3D{i % m_frustum_cells.x * cell_resolution.x, i / m_frustum_cells.x * cell_resolution.x, 0};
+    region.imageExtent = vk::Extent3D{cell_resolution.x, cell_resolution.y, 1};
+    m_copy_regions.emplace_back(region);
+  }
 }
 
 void ApplicationPresent::receiveData() {
-  int size_chunk = int(m_buffers.at("transfer").size() / (MPI::COMM_WORLD.Get_size() - 1));
+  glm::uvec2 res_worker = m_resolution / m_frustum_cells;
+  int size_chunk = int(res_worker.x * res_worker.y * 4);
   // copy chunk from process [1] to behinning
   MPI::COMM_WORLD.Gather(MPI::IN_PLACE, size_chunk, MPI::BYTE, m_ptr_buff_transfer - size_chunk, size_chunk, MPI::BYTE, 0);
 }
@@ -119,7 +136,10 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("transfer"), m_images.at("texture").view(), vk::ImageLayout::eTransferDstOptimal);
+  // for(auto const& region : m_copy_regions) {
+  //   res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("transfer"), m_images.at("texture").view(), vk::ImageLayout::eTransferDstOptimal, region);
+  // }
+  res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("transfer"), m_images.at("texture").view(), vk::ImageLayout::eTransferDstOptimal, m_copy_regions);
 
   res.command_buffers.at("draw").transitionLayout(m_images.at("texture"), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal);
 
@@ -144,7 +164,13 @@ void ApplicationPresent::createUniformBuffers() {
   auto extent = extent_3d(m_swap_chain.extent()); 
   // create upload buffer
   std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{255, 0, 0, 255}};
-  m_buffers["transfer"] = Buffer{m_device, m_images.at("texture").size(), vk::BufferUsageFlagBits::eTransferSrc};
+  for(unsigned x = 0; x < extent.width; ++x) {
+    for(unsigned y = 0; y < extent.height; ++y) {
+      color_data[y * extent.width + x] = glm::u8vec4{uint8_t(float(MPI::COMM_WORLD.Get_rank()) / float(MPI::COMM_WORLD.Get_size()) * 255), uint8_t(float(y) / float(extent.height) * 255), uint8_t(float(x) / float(extent.width) * 255), 255};
+    }
+  }
+  m_buffers["transfer"] = Buffer{m_device, color_data.size() * sizeof(color_data.front()), vk::BufferUsageFlagBits::eTransferSrc};
+  // m_buffers["transfer"] = Buffer{m_device, m_images.at("texture").size(), vk::BufferUsageFlagBits::eTransferSrc};
   m_memory_image = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
   m_buffers.at("transfer").bindTo(m_memory_image, 0);
   m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);

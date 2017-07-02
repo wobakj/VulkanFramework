@@ -118,14 +118,18 @@ void CommandBuffer::copyBufferToImage(Buffer const& srcBuffer, ImageView const& 
   region.imageSubresource = dstImage.layer(layer);
   region.imageOffset = vk::Offset3D{0, 0, 0};
   region.imageExtent = dstImage.extent();
+  copyBufferToImage(srcBuffer, dstImage, imageLayout, region);  
+}
 
+void CommandBuffer::copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, vk::ArrayProxy<vk::BufferImageCopy> const& regions) const {
   get().copyBufferToImage(
     srcBuffer,
     dstImage.image(),
     imageLayout,
-    1, &region
+    regions.size(), regions.data()
   );
 }
+
 void CommandBuffer::copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
   vk::BufferImageCopy region{};
   region.bufferOffset = 0;

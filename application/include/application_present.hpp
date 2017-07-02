@@ -47,6 +47,8 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   Sampler m_sampler;
   uint8_t* m_ptr_buff_transfer;
   std::vector<glm::fmat4> m_frustra;
+  std::vector<vk::BufferImageCopy> m_copy_regions;
+  glm::uvec2 m_frustum_cells;
 };
 
 #endif

@@ -52,7 +52,7 @@ ApplicationLodMpi::ApplicationLodMpi(std::string const& resource_path, Device& d
  ,m_setting_wire{false}
  ,m_setting_transparent{false}
  ,m_setting_shaded{true}
- ,m_setting_levels{false}
+ ,m_setting_levels{true}
 {
   if (cmd_parse.rest().size() != 1) {
     if (cmd_parse.rest().size() < 1) {
