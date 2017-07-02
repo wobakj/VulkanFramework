@@ -94,7 +94,7 @@ static vk::ImageCreateInfo chain_to_img(vk::SwapchainCreateInfoKHR const& info) 
   img_info.mipLevels = 1;
   img_info.format = info.imageFormat;
   img_info.arrayLayers = info.imageArrayLayers;
-  img_info.extent = vk::Extent3D{info.imageExtent.width, info.imageExtent.height, 0};
+  img_info.extent = vk::Extent3D{info.imageExtent.width, info.imageExtent.height, 1};
   img_info.usage = info.imageUsage;
   img_info.sharingMode = info.imageSharingMode;
   img_info.queueFamilyIndexCount = info.queueFamilyIndexCount;

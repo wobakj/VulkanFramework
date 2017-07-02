@@ -123,7 +123,7 @@ void ApplicationLodMpi::updateResourceCommandBuffers(FrameResource& res) {
 
   res.commandBuffer("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  res.command_buffers.at("gbuffer")->setViewport(0, vk::Viewport{0, 0, m_resolution.x, m_resolution.y, 0, 1});
+  res.command_buffers.at("gbuffer")->setViewport(0, vk::Viewport{0, 0, float(m_resolution.x), float(m_resolution.y), 0, 1});
   res.command_buffers.at("gbuffer")->setScissor(0, vk::Rect2D{{0, 0}, {m_resolution.x, m_resolution.y}});
 
   res.commandBuffer("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
@@ -500,7 +500,7 @@ int main(int argc, char* argv[]) {
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
-  if (MPI::COMM_WORLD.Get_rank() == 1) {
+  if (MPI::COMM_WORLD.Get_rank() == 0) {
     LauncherWin::run<ApplicationPresent>(argc, argv);
   }
   else {

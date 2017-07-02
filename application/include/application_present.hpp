@@ -28,22 +28,10 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
  private:
   void logic() override final;
   void recordDrawBuffer(FrameResource& res) override;
-  void updateResourceCommandBuffers(FrameResource& res) override;
-  void updatePipelines() override;
-  void updateDescriptors() override;
   
   void createTextureImages();
   void createUniformBuffers();
-  void updateUniformBuffers();
 
-  void createFramebuffers() override {};
-  void createFramebufferAttachments() override {};
-  void createRenderPasses() override {};
-
-  void createDescriptorPools() override;
-  void createPipelines() override;
-  // handle key input
-  // void keyCallback(int key, int scancode, int action, int mods) override;
   FrameResource createFrameResource() override;
 
   void createFrustra();

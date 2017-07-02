@@ -87,7 +87,7 @@ void ApplicationWorker::presentFrame(FrameResource& res) {
   m_transferrer.transitionToLayout(*res.target_view, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferSrcOptimal);
   m_transferrer.copyImageToBuffer(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferSrcOptimal);
   // write data to presenter
-  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, int(m_buffers.at("transfer").size()), MPI_UNSIGNED_CHAR, nullptr, int(m_buffers.at("transfer").size()), MPI_UNSIGNED_CHAR, 1);
+  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, int(m_buffers.at("transfer").size()), MPI::BYTE, nullptr, int(m_buffers.at("transfer").size()), MPI::BYTE, 0);
   pushImageToDraw(res.image);
 }
 
@@ -121,15 +121,17 @@ glm::fmat4 const& ApplicationWorker::matrixFrustum() const {
 void ApplicationWorker::onFrameBegin() {
   // get camera matrices
   // identical view
-  MPI::COMM_WORLD.Bcast(&m_mat_view, 16, MPI_FLOAT, 1);
+  MPI::COMM_WORLD.Bcast(&m_mat_view, 16, MPI::FLOAT, 0);
+  // MPI::COMM_WORLD.Bcast(&m_mat_frustum, 16, MPI::FLOAT, 0);
+
   //different projection for each 
-  MPI::COMM_WORLD.Scatter(nullptr, 16, MPI_FLOAT, &m_mat_frustum, 16, MPI_FLOAT, 1);
+  MPI::COMM_WORLD.Scatter(nullptr, 16, MPI::FLOAT, &m_mat_frustum, 16, MPI::FLOAT, 0);
 }
 
 // check if shutdown
 void ApplicationWorker::onFrameEnd() {
   uint8_t flag = 0;
-  MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 1);
+  MPI::COMM_WORLD.Bcast(&flag, 1, MPI::BYTE, 0);
   m_should_close = flag > 0;
 }
 

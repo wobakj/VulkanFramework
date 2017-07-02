@@ -40,7 +40,6 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
   createUniformBuffers();
 
   createRenderResources();
-
 }
 
 ApplicationPresent::~ApplicationPresent() {
@@ -57,35 +56,19 @@ FrameResource ApplicationPresent::createFrameResource() {
 
 void ApplicationPresent::createFrustra() {
   m_frustra.clear();
-  for (size_t i = 0; i < MPI::COMM_WORLD.Get_size() -1; ++i) {
+  for (int i = 0; i < MPI::COMM_WORLD.Get_size() -1; ++i) {
     m_frustra.emplace_back(m_camera.projectionMatrix());
   }
 }
 
-void ApplicationPresent::updateResourceCommandBuffers(FrameResource& res) {
-  vk::CommandBufferInheritanceInfo inheritanceInfo{};
-  res.command_buffers.at("transfer")->reset({});
-  res.command_buffers.at("transfer")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
-  // res.command_buffers.at("transfer")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
-  // res.command_buffers.at("transfer")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("storage")}, {});
-
-  // glm::uvec3 dims{m_images.at("texture").extent().width, m_images.at("texture").extent().height, m_images.at("texture").extent().depth};
-  // glm::uvec3 workers{16, 16, 1};
-  // // 512^2 threads in blocks of 16^2
-  // res.command_buffers.at("transfer")->dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
-
-  res.command_buffers.at("transfer")->end();
-}
-
 void ApplicationPresent::receiveData() {
-  size_t size_chunk = m_buffers.at("transfer").size() / glm::max((MPI::COMM_WORLD.Get_size() - 1), 1);
-  MPI::COMM_WORLD.Gather(MPI_IN_PLACE, size_chunk, MPI_UNSIGNED_CHAR, m_ptr_buff_transfer, size_chunk, MPI_UNSIGNED_CHAR, 1);
+  int size_chunk = int(m_buffers.at("transfer").size() / (MPI::COMM_WORLD.Get_size() - 1));
+  // copy chunk from process [1] to behinning
+  MPI::COMM_WORLD.Gather(MPI::IN_PLACE, size_chunk, MPI::BYTE, m_ptr_buff_transfer - size_chunk, size_chunk, MPI::BYTE, 0);
 }
 
 void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
   receiveData();
-
-  updateUniformBuffers();
 
   res.command_buffers.at("draw")->reset({});
 
@@ -103,18 +86,6 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->end();
 }
 
-void ApplicationPresent::createPipelines() {
-  ComputePipelineInfo info_pipe_comp;
-  info_pipe_comp.setShader(m_shaders.at("compute"));
-  m_pipeline_compute = ComputePipeline{m_device, info_pipe_comp, m_pipeline_cache};
-}
-
-void ApplicationPresent::updatePipelines() {
-  auto info_pipe_comp = m_pipeline_compute.info();
-  info_pipe_comp.setShader(m_shaders.at("compute"));
-  m_pipeline_compute.recreate(info_pipe_comp);
-}
-
 void ApplicationPresent::createTextureImages() {
   auto extent = extent_3d(m_swap_chain.extent()); 
   m_images["texture"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
@@ -122,20 +93,6 @@ void ApplicationPresent::createTextureImages() {
                                                                                                    | vk::ImageUsageFlagBits::eStorage};
   m_allocators.at("images").allocate(m_images.at("texture"));
   m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eTransferDstOptimal);
-}
-
-void ApplicationPresent::updateDescriptors() { 
-  m_images.at("texture").view().writeToSet(m_descriptor_sets.at("storage"), 0, vk::DescriptorType::eStorageImage);
-  
-  m_buffers.at("time").writeToSet(m_descriptor_sets.at("storage"), 1, vk::DescriptorType::eUniformBuffer);
-}
-
-void ApplicationPresent::createDescriptorPools() {
-  DescriptorPoolInfo info_pool{};
-  info_pool.reserve(m_shaders.at("compute"), 0, 1);
-
-  m_descriptor_pool = DescriptorPool{m_device, info_pool};
-  m_descriptor_sets["storage"] = m_descriptor_pool.allocate(m_shaders.at("compute").setLayout(0));
 }
 
 void ApplicationPresent::createUniformBuffers() {
@@ -152,19 +109,14 @@ void ApplicationPresent::createUniformBuffers() {
   m_allocators.at("buffers").allocate(m_buffers.at("time"));
 }
 
-void ApplicationPresent::updateUniformBuffers() {
-  float time = float(glfwGetTime()) * 2.0f;
-  m_transferrer.uploadBufferData(&time, m_buffers.at("time"));
-}
-
 void ApplicationPresent::logic() {
   // update camera
   ApplicationSingle::logic();
   // broadcast matrices
   // identical view
-  MPI::COMM_WORLD.Bcast((void*)&m_camera.viewMatrix(), 16, MPI_FLOAT, 1);
-  //different projection for each 
-  MPI::COMM_WORLD.Scatter(m_frustra.data(), 16, MPI_FLOAT, MPI_IN_PLACE, 16, MPI_FLOAT, 1);
+  MPI::COMM_WORLD.Bcast((void*)&m_camera.viewMatrix(), 16, MPI::FLOAT, 0);
+  //different projection for each, copy frustra[0] to process 1 
+  MPI::COMM_WORLD.Scatter(m_frustra.data() - 1, 16, MPI::FLOAT, MPI::IN_PLACE, 16, MPI::FLOAT, 0);
 }
 
 void ApplicationPresent::onResize(std::size_t width, std::size_t height) {
@@ -174,7 +126,7 @@ void ApplicationPresent::onResize(std::size_t width, std::size_t height) {
 // broadcast if shutdown
 void ApplicationPresent::onFrameEnd() {
   uint8_t flag = shouldClose() ? 1 : 0;
-  MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 1);
+  MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 0);
 }
 ///////////////////////////// misc functions ////////////////////////////////
 

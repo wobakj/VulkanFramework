@@ -57,12 +57,12 @@ class Application {
   virtual void createMemoryPools();
   virtual void createCommandPools();
   virtual void createDescriptorPools() {};
-  virtual void createPipelines() = 0;
-  virtual void createFramebuffers() = 0;
-  virtual void createFramebufferAttachments() = 0;
-  virtual void createRenderPasses() = 0;
-  virtual void createFrameResources() = 0;
-  virtual void updatePipelines() = 0;
+  virtual void createPipelines() {};
+  virtual void createFramebuffers() {};
+  virtual void createFramebufferAttachments() {};
+  virtual void createRenderPasses() {};
+  virtual void createFrameResources() {};
+  virtual void updatePipelines() {};
   virtual void updateCommandBuffers() = 0;
   // callbacks
   virtual void onResize(std::size_t width, std::size_t height);
