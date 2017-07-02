@@ -79,10 +79,6 @@ void ApplicationWorker::acquireImage(FrameResource& res) {
   uint32_t index = pullImageToDraw();
   res.image = index;
 
-  std::cout << m_images_draw.at(index).view().extent().width << " - " << m_images_draw.at(index).view().extent().height << std::endl;
-  if (m_images_draw.at(index).view().extent().width == 0 || m_images_draw.at(index).view().extent().height == 0) {
-    throw std::exception{};
-  }
   res.target_view = &m_images_draw.at(index).view();
 }
 

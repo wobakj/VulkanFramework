@@ -54,6 +54,7 @@ class GeometryLod {
   VertexInfo vertexInfo() const;
 
   void update(Camera const& cam);
+  void update(glm::fmat4 const& view, glm::fmat4 const& projection);
   void performCopiesCommand(vk::CommandBuffer const& command_buffer);
   void updateDrawCommands(vk::CommandBuffer const& command_buffer);
   std::vector<vk::DrawIndirectCommand> const& drawCommands() const;

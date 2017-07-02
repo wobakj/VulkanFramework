@@ -44,7 +44,7 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
 
 ApplicationPresent::~ApplicationPresent() {
   m_buffers.at("transfer").unmap();
-  
+
   shutDown();
 }
 
@@ -70,7 +70,7 @@ void ApplicationPresent::updateResourceCommandBuffers(FrameResource& res) {
 }
 
 void ApplicationPresent::receiveData() {
-  size_t size_chunk = m_buffers.at("transfer").size() / MPI::COMM_WORLD.Get_size();
+  size_t size_chunk = m_buffers.at("transfer").size() / (MPI::COMM_WORLD.Get_size() - 1);
   MPI::COMM_WORLD.Gather(MPI_IN_PLACE, size_chunk, MPI_UNSIGNED_CHAR, m_ptr_buff_transfer, size_chunk, MPI_UNSIGNED_CHAR, 1);
 }
 
@@ -137,7 +137,7 @@ void ApplicationPresent::createUniformBuffers() {
   m_buffers["transfer"] = Buffer{m_device, m_images.at("texture").size(), vk::BufferUsageFlagBits::eTransferSrc};
   m_memory_image = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
   m_buffers.at("transfer").bindTo(m_memory_image, 0);
-  // m_buffers.at("transfer").setData(color_data.data());
+  m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
   m_ptr_buff_transfer = (uint8_t*)m_buffers.at("transfer").map();
 
   m_buffers["time"] = Buffer{m_device, sizeof(float), vk::BufferUsageFlagBits::eUniformBuffer | vk::BufferUsageFlagBits::eTransferDst};

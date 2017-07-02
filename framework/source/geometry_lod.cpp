@@ -390,6 +390,13 @@ struct pri_node {
 };
 
 void GeometryLod::update(Camera const& cam) {
+  update(cam.viewMatrix(), cam.projectionMatrix());
+}
+
+void GeometryLod::update(glm::fmat4 const& view, glm::fmat4 const& projection) {
+  Frustum2 frustum{};
+  frustum.update(projection * view);
+  glm::fvec3 position_cam = view[3];
   // collapse to node with lowest error first
   std::priority_queue<pri_node, std::vector<pri_node>, std::less<pri_node>> queue_collapse{};
   // split node with highest error first
@@ -421,7 +428,7 @@ void GeometryLod::update(Camera const& cam) {
 
   for (auto const& idx_node : m_cut) {
     if (ignore.find(idx_node) != ignore.end()) continue;
-    float error_node = nodeError(cam.position(), idx_node);
+    float error_node = nodeError(position_cam, idx_node);
     float min_error = error_node;
     // if node is root, is has no siblings
     bool all_siblings = false;
@@ -443,23 +450,23 @@ void GeometryLod::update(Camera const& cam) {
         // calculate minimal error of all siblings to collapse order independent
         for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
           auto idx_sibling = m_bvh.get_child_id(idx_parent, i);
-          min_error = std::min(min_error, nodeError(cam.position(), idx_sibling)); 
+          min_error = std::min(min_error, nodeError(position_cam, idx_sibling)); 
         }
       }
     }
   // actual cut update
     // error too small or parent ourside frustum
-    if (nodeCollapsible(idx_node) && all_siblings && (min_error < min_threshold || !cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
+    if (nodeCollapsible(idx_node) && all_siblings && (min_error < min_threshold || !frustum.intersects(m_bvh.get_bounding_box(idx_parent)))) {
       check_duplicate(idx_parent);
-      queue_collapse.emplace(nodeError(cam.position(), idx_parent), idx_parent);
-      // queue_collapse.emplace(nodeError(cam.position(), idx_parent) * collapseError(idx_parent), idx_parent);
+      queue_collapse.emplace(nodeError(position_cam, idx_parent), idx_parent);
+      // queue_collapse.emplace(nodeError(position_cam, idx_parent) * collapseError(idx_parent), idx_parent);
       for(std::size_t i = 0; i < m_bvh.get_fan_factor(); ++i) {
         ignore.emplace(m_bvh.get_child_id(idx_parent, i));
       }
     }
     // error too large and within frustum
     // 
-    else if (error_node > max_threshold && nodeSplitable(idx_node) && (!nodeCollapsible(idx_node) || cam.frustum().intersects(m_bvh.get_bounding_box(idx_parent)))) {
+    else if (error_node > max_threshold && nodeSplitable(idx_node) && (!nodeCollapsible(idx_node) || frustum.intersects(m_bvh.get_bounding_box(idx_parent)))) {
       check_duplicate(idx_node);
       queue_split.emplace(error_node, idx_node);
     }
