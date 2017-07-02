@@ -55,27 +55,34 @@ class Frustum2
 		}
 		// calculate corner points
 		auto inverted = glm::inverse(matrix);
-		auto point = inverted * glm::fvec4{1.0f, 1.0f, 0.0f, 1.0f};
-		points[0] = glm::fvec3{point} / point.w;
-		
-		point = inverted * glm::fvec4{1.0f, 1.0f, 1.0f, 1.0f};
-		points[1] = glm::fvec3{point} / point.w;
-		
-		point = inverted * glm::fvec4{-1.0f, 1.0f, 0.0f, 1.0f};
-		points[2] = glm::fvec3{point} / point.w;
-		
-		point = inverted * glm::fvec4{-1.0f, 1.0f, 1.0f, 1.0f};
-		points[3] = glm::fvec3{point} / point.w;
-		
-		point = inverted * glm::fvec4{1.0f, -1.0f, 0.0f, 1.0f};
-		points[4] = glm::fvec3{point} / point.w;
-		
-		point = inverted * glm::fvec4{1.0f, -1.0f, 1.0f, 1.0f};
-		points[5] = glm::fvec3{point} / point.w;
-		
-		point = inverted * glm::fvec4{-1.0f, -1.0f, 0.0f, 1.0f};
-		points[6] = glm::fvec3{point} / point.w;
-		
+    // fur
+    auto point = inverted * glm::fvec4{1.0f, 1.0f, 0.0f, 1.0f};
+    points[0] = glm::fvec3{point} / point.w;
+    // bur
+    point = inverted * glm::fvec4{1.0f, 1.0f, 1.0f, 1.0f};
+    points[1] = glm::fvec3{point} / point.w;
+    
+    // ful
+    point = inverted * glm::fvec4{-1.0f, 1.0f, 0.0f, 1.0f};
+    points[2] = glm::fvec3{point} / point.w;
+    
+    // bul
+    point = inverted * glm::fvec4{-1.0f, 1.0f, 1.0f, 1.0f};
+    points[3] = glm::fvec3{point} / point.w;
+    
+    // flr
+    point = inverted * glm::fvec4{1.0f, -1.0f, 0.0f, 1.0f};
+    points[4] = glm::fvec3{point} / point.w;
+    
+    // blr
+    point = inverted * glm::fvec4{1.0f, -1.0f, 1.0f, 1.0f};
+    points[5] = glm::fvec3{point} / point.w;
+    
+    // fll
+    point = inverted * glm::fvec4{-1.0f, -1.0f, 0.0f, 1.0f};
+    points[6] = glm::fvec3{point} / point.w;
+    
+    // bll
 		point = inverted * glm::fvec4{-1.0f, -1.0f, 1.0f, 1.0f};
 		points[7] = glm::fvec3{point} / point.w;
 		
@@ -123,10 +130,10 @@ class Frustum2
     return true;
 	}
 
+  enum side { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3, BACK = 4, FRONT = 5 };
+  std::array<glm::fvec4, 6> planes;
+  std::array<glm::fvec3, 8> points;
  private:
-	enum side { LEFT = 0, RIGHT = 1, TOP = 2, BOTTOM = 3, BACK = 4, FRONT = 5 };
-	std::array<glm::fvec4, 6> planes;
-	std::array<glm::fvec3, 8> points;
 };
 
 #endif

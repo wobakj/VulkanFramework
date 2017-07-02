@@ -36,6 +36,7 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
 
   createFrustra();
+
   createTextureImages();
   createUniformBuffers();
 
@@ -56,9 +57,53 @@ FrameResource ApplicationPresent::createFrameResource() {
 
 void ApplicationPresent::createFrustra() {
   m_frustra.clear();
-  for (int i = 0; i < MPI::COMM_WORLD.Get_size() -1; ++i) {
-    m_frustra.emplace_back(m_camera.projectionMatrix());
+  glm::fmat4 const& projection = m_camera.projectionMatrix();
+  // special case
+
+  // general case
+  Frustum2 frustum{};
+  frustum.update(projection);
+  // base point
+  glm::fvec3 const& base = frustum.points[6];
+  glm::fvec3 const& back = frustum.points[7];
+  // edges
+  glm::fvec3 right = frustum.points[4] - base;
+  glm::fvec3 up = frustum.points[2] - base;
+  auto test = glm::frustum(base.x, base.x + right.x, base.y, base.y + up.y, -base.z, -back.z);
+  std::cout << base.z << " far " << back.z << std::endl;
+  // assert(test == projection);
+  if (MPI::COMM_WORLD.Get_size() == 2) {
+    m_frustra.emplace_back(test);
+    return;
   }
+
+  glm::uvec2 cells{1, 1};
+  unsigned num_workers = MPI::COMM_WORLD.Get_size() - 1;
+  float l2 = float(log2(num_workers));
+  assert(float(int(l2)) == l2);
+
+  glm::fvec2 frustum_dims{right.x, up.y};
+  glm::fvec2 cell_dims{right.x, up.y};
+  while(l2 > 0) {
+    // split larger dimension
+    if (cell_dims.x > cell_dims.y) {
+      cells.x *= 2;
+    }
+    else {
+      cells.y *= 2;
+    }
+    cell_dims = frustum_dims / glm::fvec2{cells};
+    l2 -= 1.0f;
+  }
+  std::cout << "Cell resolution: " << cells.x << " x " << cells.y << std::endl;
+  for (int i = 0; i < MPI::COMM_WORLD.Get_size() -1; ++i) {
+    glm::uvec2 cell_coord{i % cells.x, i / cells.x};
+    glm::fvec2 base_coord = glm::fvec2{base} + glm::fvec2{cell_coord} * cell_dims; 
+    m_frustra.emplace_back(projection);
+    // m_frustra.emplace_back(glm::frustum(base_coord.x, base_coord.x + cell_dims.x, base_coord.y, base_coord.y + cell_dims.y, -base.z, -back.z));
+  }
+  glm::uvec2 cell_resolution{m_resolution / cells};
+  MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
 }
 
 void ApplicationPresent::receiveData() {

@@ -23,7 +23,9 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
  ,m_ptr_buff_transfer{nullptr}
  ,m_should_close{false}
 {
-  m_resolution = glm::uvec2{1280, 720};
+  // receive resolution
+  MPI::COMM_WORLD.Bcast(&m_resolution, 2, MPI::UNSIGNED, 0);
+  // m_resolution = glm::uvec2{1280, 720};
   // m_images_draw.resize(image_count);
   createImages(image_count);
   createTransferBuffer();

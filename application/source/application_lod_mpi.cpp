@@ -498,6 +498,13 @@ int main(int argc, char* argv[]) {
   assert(threads_ok);
 
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
+
+  uint32_t num_processes = MPI::COMM_WORLD.Get_size();
+  if (!(num_processes == 2 || (num_processes > 2 && num_processes % 2 == 1))) {
+    std::cerr << "number of processes must be 2 or a larger poer of two +1" << std::endl;
+    throw std::runtime_error{"invalid process number"};
+  }
+
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
   if (MPI::COMM_WORLD.Get_rank() == 0) {
