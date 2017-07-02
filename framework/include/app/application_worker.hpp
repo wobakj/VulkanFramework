@@ -29,6 +29,8 @@ class ApplicationWorker : public Application {
   void resize(std::size_t width, std::size_t height) override;
   static cmdline::parser getParser(); 
 
+  bool shouldClose() const override;
+
  protected:
   virtual FrameResource createFrameResource() override;
   void createImages(uint32_t image_count);
@@ -47,9 +49,7 @@ class ApplicationWorker : public Application {
   Memory m_memory_transfer;
   void* m_ptr_buff_transfer;
   std::vector<ImageRes> m_images_draw;
- private:
-  // create chain
-  void createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t img_count);
+  bool m_should_close;
 };
 
 #endif

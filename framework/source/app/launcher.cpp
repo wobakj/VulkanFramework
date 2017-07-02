@@ -57,7 +57,7 @@ void Launcher::mainLoop() {
   m_device->waitIdle();
 
   // rendering loop
-  while (true) {
+  while (!m_application->shouldClose()) {
     // draw geometry
     m_application->frame();
   }

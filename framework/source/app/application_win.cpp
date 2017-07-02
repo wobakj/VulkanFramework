@@ -18,6 +18,7 @@ cmdline::parser ApplicationWin::getParser() {
 ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse)
  :Application{resource_path, device, cmd_parse}
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
+ ,m_surface{&surf}
 {
   int width, height = -1;
   glfwGetWindowSize(&surf.window(), &width, &height);
@@ -114,4 +115,17 @@ void ApplicationWin::logic() {
   float time_delta = float(time_current - time_last);
   time_last = time_current;
   m_camera.update(time_delta);
+}
+
+bool ApplicationWin::shouldClose() const{
+  return glfwWindowShouldClose(&m_surface->window());
+  // glfwSetWindowShouldClose(m_window, 1);
+}
+
+void ApplicationWin::keyCallbackSelf(int key, int scancode, int action, int mods) {
+  if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
+    glfwSetWindowShouldClose(&m_surface->window(), 1);
+  }
+  // call child function
+  keyCallback(key, scancode, action, mods);
 }

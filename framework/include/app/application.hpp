@@ -47,7 +47,7 @@ class Application {
   // default parser without arguments
   static cmdline::parser getParser();
 
-  
+  virtual bool shouldClose() const = 0;
 
  protected:
   // call at construction

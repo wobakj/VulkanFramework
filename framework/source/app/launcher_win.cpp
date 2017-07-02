@@ -5,7 +5,7 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-#include "app/application.hpp"
+#include "app/application_win.hpp"
 
 #include <cstdlib>
 #include <functional>
@@ -108,7 +108,7 @@ void LauncherWin::mainLoop() {
   m_device->waitIdle();
 
   // rendering loop
-  while (!glfwWindowShouldClose(m_window)) {
+  while (!m_application->shouldClose()) {
     // query input
     glfwPollEvents();
     // draw geometry
@@ -133,13 +133,13 @@ void LauncherWin::resize(GLFWwindow* m_window, int width, int height) {
 ///////////////////////////// misc functions ////////////////////////////////
 // handle key input
 void LauncherWin::key_callback(GLFWwindow* m_window, int key, int scancode, int action, int mods) {
-  if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
-    glfwSetWindowShouldClose(m_window, 1);
-  }
-  else if (key == GLFW_KEY_R && action == GLFW_PRESS) {
+  // if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
+  //   glfwSetWindowShouldClose(m_window, 1);
+  // }
+  if (key == GLFW_KEY_R && action == GLFW_PRESS) {
     m_application->updateShaderPrograms();
   }
-  m_application->keyCallback(key, scancode, action, mods);
+  m_application->keyCallbackSelf(key, scancode, action, mods);
 }
 
 void LauncherWin::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {

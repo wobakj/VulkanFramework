@@ -21,9 +21,12 @@ class ApplicationWin : public Application {
   virtual ~ApplicationWin();
 
   // react to key input
-  inline virtual void keyCallback(int key, int scancode, int action, int mods) {};
+  void keyCallbackSelf(int key, int scancode, int action, int mods);
+  virtual void keyCallback(int key, int scancode, int action, int mods) {};
   void resize(std::size_t width, std::size_t height) override;
   static cmdline::parser getParser(); 
+
+  bool shouldClose() const override;
 
  protected:
   virtual FrameResource createFrameResource() override;
@@ -35,6 +38,7 @@ class ApplicationWin : public Application {
   Camera m_camera;
   SwapChain m_swap_chain;
   Statistics m_statistics;
+  Surface const* m_surface;
 
  private:
   // create chain

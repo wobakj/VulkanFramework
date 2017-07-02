@@ -21,6 +21,7 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
  :Application{resource_path, device, cmd_parse}
  // ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
  ,m_ptr_buff_transfer{nullptr}
+ ,m_should_close{false}
 {
   m_resolution = glm::uvec2{1280, 720};
   // m_images_draw.resize(image_count);
@@ -117,4 +118,9 @@ uint32_t ApplicationWorker::pullImageToDraw() {
   uint32_t frame_draw = m_queue_images.front();
   m_queue_images.pop();
   return frame_draw;
+}
+
+
+bool ApplicationWorker::shouldClose() const{
+  return m_should_close;
 }
