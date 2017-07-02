@@ -64,7 +64,10 @@ class Application {
   virtual void createFrameResources() = 0;
   virtual void updatePipelines() = 0;
   virtual void updateCommandBuffers() = 0;
+  // callbacks
   virtual void onResize(std::size_t width, std::size_t height);
+  virtual void onFrameBegin() {};
+  virtual void onFrameEnd() {};
 
   virtual void logic() {};
   virtual void render() = 0;

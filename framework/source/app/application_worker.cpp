@@ -66,7 +66,7 @@ void ApplicationWorker::createTransferBuffer() {
   std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{0, 255, 0, 255}};
   for(unsigned x = 0; x < extent.width; ++x) {
     for(unsigned y = 0; y < extent.height; ++y) {
-      color_data[y * extent.width + x] = glm::u8vec4{0, float(y) / extent.height * 255, float(x) / extent.width * 255, 255};
+      color_data[y * extent.width + x] = glm::u8vec4{0, uint8_t(float(y) / float(extent.height) * 255), uint8_t(float(x) / float(extent.width) * 255), 255};
     }
   }
   std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
@@ -79,7 +79,6 @@ void ApplicationWorker::createTransferBuffer() {
 void ApplicationWorker::acquireImage(FrameResource& res) {
   uint32_t index = pullImageToDraw();
   res.image = index;
-
   res.target_view = &m_images_draw.at(index).view();
 }
 
@@ -88,7 +87,7 @@ void ApplicationWorker::presentFrame(FrameResource& res) {
   // m_transferrer.transitionToLayout(*res.target_view, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferSrcOptimal);
   // m_transferrer.copyImageToBuffer(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferSrcOptimal);
   // write data to presenter
-  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, m_buffers.at("transfer").size(), MPI_UNSIGNED_CHAR, nullptr, m_buffers.at("transfer").size(), MPI_UNSIGNED_CHAR, 1);
+  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, int(m_buffers.at("transfer").size()), MPI_UNSIGNED_CHAR, nullptr, int(m_buffers.at("transfer").size()), MPI_UNSIGNED_CHAR, 1);
   pushImageToDraw(res.image);
 }
 
@@ -120,6 +119,12 @@ uint32_t ApplicationWorker::pullImageToDraw() {
   return frame_draw;
 }
 
+// check if shutdown
+void ApplicationWorker::onFrameEnd() {
+  uint8_t flag = 0;
+  MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 1);
+  m_should_close = flag > 0;
+}
 
 bool ApplicationWorker::shouldClose() const{
   return m_should_close;

@@ -34,10 +34,14 @@ FrameResource Application::createFrameResource() {
 }
 
 void Application::frame() {
+  // callback
+  onFrameBegin();
   // do logic
   logic();
   // do actual rendering
   render();
+  // callback
+  onFrameEnd();
 }
 
 void Application::submitDraw(FrameResource& res) {

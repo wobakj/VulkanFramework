@@ -33,19 +33,24 @@ class ApplicationWorker : public Application {
 
  protected:
   virtual FrameResource createFrameResource() override;
-  void createImages(uint32_t image_count);
-  void createTransferBuffer();
-  void acquireImage(FrameResource& res);
-  virtual void presentFrame(FrameResource& res);
+  virtual void acquireImage(FrameResource& res) final;
+  virtual void presentFrame(FrameResource& res) final;
   void logic() override;
 
+  void onFrameEnd() override;
+  
+ private:
+  void createImages(uint32_t image_count);
+  void createTransferBuffer();
   void pushImageToDraw(uint32_t frame);
   uint32_t pullImageToDraw();
+
   // container for the shader programs
   // Camera m_camera;
-
-  std::queue<uint32_t> m_queue_images;
+ protected:
   Statistics m_statistics;
+ private:
+  std::queue<uint32_t> m_queue_images;
   Memory m_memory_transfer;
   void* m_ptr_buff_transfer;
   std::vector<ImageRes> m_images_draw;

@@ -91,6 +91,10 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
     m_queues.emplace(index.first, get().getQueue(index.second, num_used.at(index.second)));
     ++num_used.at(index.second);
   }
+  // hack to keep compatibility with worker apps that wait on present queue
+  if (queues.presentFamily < 0) {
+    m_queues.emplace("present", m_queues.at("graphics"));
+  }
 }
 
 std::vector<uint32_t> Device::ownerIndices() const {

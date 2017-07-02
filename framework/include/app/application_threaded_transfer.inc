@@ -137,21 +137,21 @@ template<typename T>
 void ApplicationThreadedTransfer<T>::submitDraw(FrameResource& res) {
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
   // wait on image acquisition and data transfer
-  // vk::Semaphore waitSemaphores[]{res.semaphores.at("transfer")};
-  // vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eTransfer};
-  // submitInfos[0].setWaitSemaphoreCount(1);
-  vk::Semaphore waitSemaphores[]{res.semaphore("acquire"), res.semaphores.at("transfer")};
-  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eDrawIndirect};
-  submitInfos[0].setWaitSemaphoreCount(2);
+  vk::Semaphore waitSemaphores[]{res.semaphores.at("transfer")};
+  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eTransfer};
+  submitInfos[0].setWaitSemaphoreCount(1);
+  // vk::Semaphore waitSemaphores[]{res.semaphore("acquire"), res.semaphores.at("transfer")};
+  // vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eDrawIndirect};
+  // submitInfos[0].setWaitSemaphoreCount(2);
   submitInfos[0].setPWaitSemaphores(waitSemaphores);
   submitInfos[0].setPWaitDstStageMask(waitStages);
 
   submitInfos[0].setCommandBufferCount(1);
   submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw").get());
 
-  vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
-  submitInfos[0].signalSemaphoreCount = 1;
-  submitInfos[0].pSignalSemaphores = signalSemaphores;
+  // vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
+  // submitInfos[0].signalSemaphoreCount = 1;
+  // submitInfos[0].pSignalSemaphores = signalSemaphores;
 
   res.fence("draw").reset();
   this->m_device.getQueue("graphics").submit(submitInfos, res.fence("draw"));

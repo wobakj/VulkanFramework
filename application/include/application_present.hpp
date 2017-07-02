@@ -46,6 +46,9 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   FrameResource createFrameResource() override;
 
   void receiveData();
+  // send out whether workers should stop
+  void onFrameEnd() override;
+
 
   Memory m_memory_image;
   RenderPass m_render_pass;

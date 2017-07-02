@@ -70,7 +70,7 @@ void ApplicationPresent::updateResourceCommandBuffers(FrameResource& res) {
 }
 
 void ApplicationPresent::receiveData() {
-  size_t size_chunk = m_buffers.at("transfer").size() / (MPI::COMM_WORLD.Get_size() - 1);
+  size_t size_chunk = m_buffers.at("transfer").size() / glm::max((MPI::COMM_WORLD.Get_size() - 1), 1);
   MPI::COMM_WORLD.Gather(MPI_IN_PLACE, size_chunk, MPI_UNSIGNED_CHAR, m_ptr_buff_transfer, size_chunk, MPI_UNSIGNED_CHAR, 1);
 }
 
@@ -147,6 +147,12 @@ void ApplicationPresent::createUniformBuffers() {
 void ApplicationPresent::updateUniformBuffers() {
   float time = float(glfwGetTime()) * 2.0f;
   m_transferrer.uploadBufferData(&time, m_buffers.at("time"));
+}
+
+// check if shutdown
+void ApplicationPresent::onFrameEnd() {
+  uint8_t flag = shouldClose() ? 1 : 0;
+  MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 1);
 }
 ///////////////////////////// misc functions ////////////////////////////////
 

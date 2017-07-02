@@ -30,9 +30,9 @@ class ApplicationWin : public Application {
 
  protected:
   virtual FrameResource createFrameResource() override;
-  void acquireImage(FrameResource& res);
-  virtual void presentFrame(FrameResource& res);
-  virtual void presentFrame(FrameResource& res, vk::Queue const&);
+  virtual void acquireImage(FrameResource& res) final;
+  virtual void presentFrame(FrameResource& res) final;
+  virtual void presentFrame(FrameResource& res, vk::Queue const&) final;
   void logic() override;
   // container for the shader programs
   Camera m_camera;

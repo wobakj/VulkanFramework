@@ -491,7 +491,12 @@ void ApplicationLodMpi::keyCallback(int key, int scancode, int action, int mods)
 
 // exe entry point
 int main(int argc, char* argv[]) {
-  MPI::Init (argc, argv);
+  // MPI::Init (argc, argv);
+  int provided;
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+  bool threads_ok = provided >= MPI_THREAD_FUNNELED;
+  assert(threads_ok);
+  
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
