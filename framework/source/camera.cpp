@@ -12,6 +12,8 @@ const float Camera::translation_speed = 1.0f;
 
 Camera::Camera(float fov, float aspect, float near_z, float far_z, GLFWwindow* w)
    :window{w}
+   ,last_x_{0.0}
+   ,last_y_{0.0}
    ,movement_{0.0f}
    ,position_{0.0f, 0.5f, 1.0f}
    ,rotation_{0.0f, 0.0f}
