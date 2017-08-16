@@ -36,6 +36,6 @@ class ApplicationSingle : public T {
 
 };
 
-#include "app/application_single.inc"
+#include "app/application_single.inl"
 
 #endif

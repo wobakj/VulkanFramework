@@ -39,6 +39,6 @@ class ApplicationThreadedTransfer : public ApplicationThreaded<T> {
   std::thread m_thread_transfer;
 };
 
-#include "app/application_threaded_transfer.inc"
+#include "app/application_threaded_transfer.inl"
 
 #endif

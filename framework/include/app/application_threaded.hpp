@@ -61,6 +61,6 @@ class ApplicationThreaded : public T {
   std::thread m_thread_draw;
 };
 
-#include "app/application_threaded.inc"
+#include "app/application_threaded.inl"
 
 #endif
