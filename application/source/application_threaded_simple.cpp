@@ -57,7 +57,6 @@ ApplicationThreadedSimple::ApplicationThreadedSimple(std::string const& resource
   createTextureSampler();
 
   createRenderResources();
-  startRenderThread();
 }
 
 ApplicationThreadedSimple::~ApplicationThreadedSimple() {

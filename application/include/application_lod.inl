@@ -86,8 +86,6 @@ ApplicationLod<T>::ApplicationLod(std::string const& resource_path, Device& devi
   this->m_statistics.addAverager("uploads");
 
   this->m_statistics.addTimer("update");
-
-  this->startRenderThread();
 }
 
 template<typename T>

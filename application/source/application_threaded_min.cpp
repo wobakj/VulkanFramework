@@ -26,8 +26,6 @@ ApplicationThreadedMin::ApplicationThreadedMin(std::string const& resource_path,
   createDescriptorPools();
 
   createRenderResources();
-
-  startRenderThread();
 }
 
 ApplicationThreadedMin::~ApplicationThreadedMin() {

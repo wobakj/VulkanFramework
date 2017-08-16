@@ -22,6 +22,8 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
   this->m_statistics.addTimer("queue_present");
   this->m_statistics.addTimer("record");
   this->m_statistics.addTimer("draw");
+
+  startRenderThread();
 }
 
 template<typename T>

@@ -33,7 +33,6 @@ class ApplicationThreaded : public T {
   void updateCommandBuffers() override;
   void updateResourcesDescriptors() override;
 
-  void startRenderThread();
 
   void pushForDraw(uint32_t frame);
   void pushForPresent(uint32_t frame);
@@ -56,6 +55,7 @@ class ApplicationThreaded : public T {
   std::atomic<bool> m_should_draw;
 
  private:
+  void startRenderThread();
   virtual void render() override;
   virtual void drawLoop();
   std::thread m_thread_draw;
