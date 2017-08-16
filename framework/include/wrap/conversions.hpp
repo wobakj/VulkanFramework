@@ -24,5 +24,20 @@ inline vk::Extent2D extent_2d(vk::Extent3D const& ex) {
   return vk::Extent2D{ex.width, ex.height};
 }
 
+template<typename T, glm::precision P>
+inline vk::Extent2D extent_2d(glm::tvec2<T,P> const& vec) {
+  return vk::Extent2D{vec[0], vec[1]};
+}
+
+template<typename T, glm::precision P>
+inline vk::Extent3D extent_3d(glm::tvec3<T,P> const& vec) {
+  return vk::Extent3D{vec[0], vec[1], vec[2]};
+}
+
+template<typename T, glm::precision P>
+inline vk::Extent3D extent_3d(glm::tvec2<T,P> const& vec) {
+  return vk::Extent3D{vec[0], vec[1], 1};
+}
+
 
 #endif

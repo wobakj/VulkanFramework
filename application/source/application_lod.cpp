@@ -361,7 +361,7 @@ void ApplicationLod::createFramebufferAttachments() {
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));
 
-  m_images["color"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_images["color"] = ImageRes{m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
   m_allocators.at("images").allocate(m_images.at("color"));
 }
@@ -409,9 +409,9 @@ void ApplicationLod::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationLod::updateView() {
   ubo_cam.model = glm::mat4();
-  ubo_cam.view = m_camera.viewMatrix();
+  ubo_cam.view = matrixView();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
-  ubo_cam.proj = m_camera.projectionMatrix();
+  ubo_cam.proj = matrixFrustum();
   ubo_cam.levels = m_setting_levels ? glm::fvec4{1.0f} : glm::fvec4{0.0};
   ubo_cam.shade = m_setting_shaded ? glm::fvec4{1.0f} : glm::fvec4{0.0};
 }

@@ -123,8 +123,8 @@ void ApplicationLodMpi::updateResourceCommandBuffers(FrameResource& res) {
 
   res.commandBuffer("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  res.command_buffers.at("gbuffer")->setViewport(0, vk::Viewport{0, 0, float(m_resolution.x), float(m_resolution.y), 0, 1});
-  res.command_buffers.at("gbuffer")->setScissor(0, vk::Rect2D{{0, 0}, {m_resolution.x, m_resolution.y}});
+  res.commandBuffer("gbuffer")->setViewport(0, vk::Viewport{0, 0, float(m_resolution.x), float(m_resolution.y), 0, 1});
+  res.commandBuffer("gbuffer")->setScissor(0, vk::Rect2D{{0, 0}, {m_resolution.x, m_resolution.y}});
 
   res.commandBuffer("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
@@ -238,8 +238,8 @@ void ApplicationLodMpi::createRenderPasses() {
 void ApplicationLodMpi::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
-
-  info_pipe.setResolution(vk::Extent2D{120, 720});
+  // overwritten during recording
+  info_pipe.setResolution(extent_2d(m_resolution));
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -358,7 +358,7 @@ void ApplicationLodMpi::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = vk::Extent3D{1280, 720, 1}; 
+  auto extent = extent_3d(m_resolution); 
   m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   m_allocators.at("images").allocate(m_images.at("depth"));

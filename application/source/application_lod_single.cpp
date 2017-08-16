@@ -98,7 +98,7 @@ ApplicationLodSingle::~ApplicationLodSingle() {
 
 FrameResource ApplicationLodSingle::createFrameResource() {
   FrameResource res = ApplicationSingle::createFrameResource();
-  res.command_buffers.emplace("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
+  res.addCommandBuffer("gbuffer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   
   res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
   res.buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
@@ -111,27 +111,28 @@ void ApplicationLodSingle::updateResourceDescriptors(FrameResource& res) {
 }
 
 void ApplicationLodSingle::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer")->reset({});
+  res.commandBuffer("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
   inheritanceInfo.framebuffer = m_framebuffer;
   inheritanceInfo.subpass = 0;
 
-  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
-  // res.query_pools.at("timers").timestamp(res.command_buffers.at("gbuffer"), 1, vk::PipelineStageFlagBits::eTopOfPipe);
+  res.commandBuffer("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  // res.query_pools.at("timers").timestamp(res.commandBuffer("gbuffer"), 1, vk::PipelineStageFlagBits::eTopOfPipe);
 
-  res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
+  res.commandBuffer("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene"));
 
-  res.command_buffers.at("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
+  res.commandBuffer("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
 
-  res.command_buffers.at("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
+  res.commandBuffer("gbuffer")->setViewport(0, vk::Viewport{0, 0, float(m_resolution.x), float(m_resolution.y), 0, 1});
+  res.commandBuffer("gbuffer")->setScissor(0, vk::Rect2D{{0, 0}, {m_resolution.x, m_resolution.y}});
 
-  res.command_buffers.at("gbuffer")->drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
+  res.commandBuffer("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
-  res.command_buffers.at("gbuffer")->end();
+  res.commandBuffer("gbuffer")->drawIndirect(m_model_lod.viewDrawCommands().buffer(), m_model_lod.viewDrawCommands().offset(), uint32_t(m_model_lod.numNodes()), sizeof(vk::DrawIndirectCommand));      
+
+  res.commandBuffer("gbuffer")->end();
 }
 
 void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
@@ -144,8 +145,8 @@ void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
 
   m_statistics.start("update");
   // upload node data
-  m_model_lod.update(m_camera);
-  std::size_t curr_uploads = m_model_lod.numUploads();
+  m_model_lod.update(matrixView(), matrixFrustum());
+  size_t curr_uploads = m_model_lod.numUploads();
   m_statistics.add("uploads", double(curr_uploads));
   if (curr_uploads > 0) {
     m_statistics.add("update", m_statistics.stopValue("update") / double(curr_uploads));
@@ -154,28 +155,28 @@ void ApplicationLodSingle::recordTransferBuffer(FrameResource& res) {
   res.num_uploads = double(curr_uploads);
 
   // write transfer command buffer
-  res.command_buffers.at("draw")->reset({});
+  res.commandBuffer("draw")->reset({});
 
-  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-  res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
+  res.commandBuffer("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.query_pools.at("timers").reset(res.commandBuffer("draw"));
+  res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 0, vk::PipelineStageFlagBits::eTopOfPipe);
 
 
-  m_model_lod.performCopiesCommand(res.command_buffers.at("draw"));
-  m_model_lod.updateDrawCommands(res.command_buffers.at("draw"));
+  m_model_lod.performCopiesCommand(res.commandBuffer("draw"));
+  m_model_lod.updateDrawCommands(res.commandBuffer("draw"));
   
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
-  // res.command_buffers.at("draw")->end();
+  res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 1, vk::PipelineStageFlagBits::eBottomOfPipe);
+  // res.commandBuffer("draw")->end();
 }
 
 void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
   recordTransferBuffer(res);
-  // res.command_buffers.at("draw")->reset({});
+  // res.commandBuffer("draw")->reset({});
 
-  // res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  // res.commandBuffer("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // always update, because last update could have been to other frame
   updateView();
-  res.command_buffers.at("draw")->updateBuffer(
+  res.commandBuffer("draw")->updateBuffer(
     res.buffer_views.at("uniform").buffer(),
     res.buffer_views.at("uniform").offset(),
     sizeof(ubo_cam),
@@ -183,46 +184,46 @@ void ApplicationLodSingle::recordDrawBuffer(FrameResource& res) {
   );
 
   // make matrices visible to vertex shader
-  res.command_buffers.at("draw").bufferBarrier(res.buffer_views.at("uniform").buffer(), 
+  res.commandBuffer("draw").bufferBarrier(res.buffer_views.at("uniform").buffer(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eVertexShader, vk::AccessFlagBits::eUniformRead
   );
 
-  // res.query_pools.at("timers").reset(res.command_buffers.at("draw"));
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
+  // res.query_pools.at("timers").reset(res.commandBuffer("draw"));
+  res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
 
   // make draw commands visible to drawindirect
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewDrawCommands().buffer(), 
+  res.commandBuffer("draw").bufferBarrier(m_model_lod.viewDrawCommands().buffer(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eDrawIndirect, vk::AccessFlagBits::eIndirectCommandRead
   );
 
   // make node data visible to vertex shader
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.buffer(), 
+  res.commandBuffer("draw").bufferBarrier(m_model_lod.buffer(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eVertexInput, vk::AccessFlagBits::eVertexAttributeRead
   );
 
   // make node level data visible to fragment shader
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewNodeLevels().buffer(), 
+  res.commandBuffer("draw").bufferBarrier(m_model_lod.viewNodeLevels().buffer(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
   );
 
-  res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
+  res.commandBuffer("draw")->executeCommands({res.commandBuffer("gbuffer")});
 
-  res.command_buffers.at("draw")->endRenderPass();
+  res.commandBuffer("draw")->endRenderPass();
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.commandBuffer("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.commandBuffer("draw").copyImage(m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.commandBuffer("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-  res.query_pools.at("timers").timestamp(res.command_buffers.at("draw"), 3, vk::PipelineStageFlagBits::eColorAttachmentOutput);
-  res.command_buffers.at("draw")->end();
+  res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 3, vk::PipelineStageFlagBits::eColorAttachmentOutput);
+  res.commandBuffer("draw")->end();
 }
 
 void ApplicationLodSingle::createFramebuffers() {
@@ -242,8 +243,8 @@ void ApplicationLodSingle::createRenderPasses() {
 void ApplicationLodSingle::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
-
-  info_pipe.setResolution(m_swap_chain.extent());
+  // overwritten during recording
+  info_pipe.setResolution(extent_2d(m_resolution));
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -363,14 +364,14 @@ void ApplicationLodSingle::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = extent_3d(m_swap_chain.extent()); 
+  auto extent = extent_3d(m_resolution); 
   m_images["depth"] = ImageRes{m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   m_transferrer.transitionToLayout(m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  m_allocators.at("images").allocate(m_images.at("depth"));
 
-  m_images["color"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  m_images["color"] = ImageRes{m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   m_transferrer.transitionToLayout(m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
   
-  m_allocators.at("images").allocate(m_images.at("depth"));
   m_allocators.at("images").allocate(m_images.at("color"));
 }
 
@@ -414,9 +415,9 @@ void ApplicationLodSingle::createUniformBuffers() {
 ///////////////////////////// update functions ////////////////////////////////
 void ApplicationLodSingle::updateView() {
   ubo_cam.model = glm::mat4();
-  ubo_cam.view = m_camera.viewMatrix();
+  ubo_cam.view = matrixView();
   ubo_cam.normal = glm::inverseTranspose(ubo_cam.view * ubo_cam.model);
-  ubo_cam.proj = m_camera.projectionMatrix();
+  ubo_cam.proj = matrixFrustum();
   ubo_cam.levels = m_setting_levels ? glm::fvec4{1.0f} : glm::fvec4{0.0};
   ubo_cam.shade = m_setting_shaded ? glm::fvec4{1.0f} : glm::fvec4{0.0};
 }
