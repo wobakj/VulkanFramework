@@ -31,8 +31,6 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   
   void createUniformBuffers();
 
-  FrameResource createFrameResource() override;
-
   void createFrustra();
   void receiveData();
   // send out whether workers should stop
