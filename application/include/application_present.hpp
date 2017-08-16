@@ -29,7 +29,6 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   void logic() override final;
   void recordDrawBuffer(FrameResource& res) override;
   
-  void createTextureImages();
   void createUniformBuffers();
 
   FrameResource createFrameResource() override;

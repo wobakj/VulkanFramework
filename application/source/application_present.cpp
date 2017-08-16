@@ -21,7 +21,10 @@
 #include <chrono>
 
 cmdline::parser ApplicationPresent::getParser() {
-  return ApplicationSingle::getParser();
+  cmdline::parser cmd_parse{ApplicationSingle::getParser()};
+  cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
+  cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
+  return cmd_parse;
 }
 
 ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
@@ -36,7 +39,6 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
 
   m_shaders.emplace("compute", Shader{m_device, {m_resource_path + "shaders/pattern_comp.spv"}});
 
-  createTextureImages();
   createFrustra();
 
   createUniformBuffers();
@@ -107,6 +109,12 @@ void ApplicationPresent::createFrustra() {
   glm::uvec2 cell_resolution{m_resolution / m_frustum_cells};
   MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
 
+  vk::ImageSubresourceLayers subresource;
+  subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  subresource.mipLevel = 0; 
+  subresource.baseArrayLayer = 0; 
+  subresource.layerCount = 1; 
+
   m_copy_regions.clear();
   int size_chunk = int(cell_resolution.x * cell_resolution.y * 4);
   for (unsigned i = 0; i < num_workers; ++i) {
@@ -114,9 +122,8 @@ void ApplicationPresent::createFrustra() {
     region.bufferOffset = size_chunk * i;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
-
-    region.imageSubresource = m_images.at("texture").view().layer(0);
-    region.imageOffset = vk::Offset3D{i % m_frustum_cells.x * cell_resolution.x, i / m_frustum_cells.x * cell_resolution.x, 0};
+    region.imageSubresource = subresource;
+    region.imageOffset = vk::Offset3D{int32_t(i % m_frustum_cells.x * cell_resolution.x), int32_t(i / m_frustum_cells.x * cell_resolution.x), 0};
     region.imageExtent = vk::Extent3D{cell_resolution.x, cell_resolution.y, 1};
     m_copy_regions.emplace_back(region);
   }
@@ -136,28 +143,13 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  // for(auto const& region : m_copy_regions) {
-  //   res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("transfer"), m_images.at("texture").view(), vk::ImageLayout::eTransferDstOptimal, region);
-  // }
-  res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("transfer"), m_images.at("texture").view(), vk::ImageLayout::eTransferDstOptimal, m_copy_regions);
-
-  res.command_buffers.at("draw").transitionLayout(m_images.at("texture"), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eTransferSrcOptimal);
-
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(m_images.at("texture").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
-  // transform back for next copy
-  res.command_buffers.at("draw").transitionLayout(m_images.at("texture"), vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->end();
-}
 
-void ApplicationPresent::createTextureImages() {
-  auto extent = extent_3d(m_swap_chain.extent()); 
-  m_images["texture"] = ImageRes{m_device, extent, m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
-                                                                                                   | vk::ImageUsageFlagBits::eTransferDst
-                                                                                                   | vk::ImageUsageFlagBits::eStorage};
-  m_allocators.at("images").allocate(m_images.at("texture"));
-  m_transferrer.transitionToLayout(m_images.at("texture"), vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferDstOptimal, m_copy_regions);
+
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+
+  res.command_buffers.at("draw")->end();
 }
 
 void ApplicationPresent::createUniformBuffers() {
