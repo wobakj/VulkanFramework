@@ -1,30 +1,26 @@
 #ifndef APPLICATION_LOD_HPP
 #define APPLICATION_LOD_HPP
 
-#include <vulkan/vulkan.hpp>
+#include <string>
 
-#include "app/application_win.hpp"
-#include "app/application_threaded_transfer.hpp"
+#include "wrap/render_pass.hpp"
+#include "wrap/sampler.hpp"
+#include "wrap/frame_buffer.hpp"
+
 #include "geometry.hpp"
 #include "geometry_lod.hpp"
-#include "wrap/buffer.hpp"
-#include "wrap/render_pass.hpp"
-#include "wrap/memory.hpp"
-#include "wrap/frame_buffer.hpp"
-#include "wrap/fence.hpp"
-#include "wrap/sampler.hpp"
-#include "deleter.hpp"
 #include "frame_resource.hpp"
-#include "semaphore.hpp"
 
-#include "averager.hpp"
+class Device;
+class Surface;
+class FrameResource;
 
-#include <vector>
-#include <atomic>
-#include <queue>
-#include <thread>
+namespace cmdline {
+  class parser;
+}
 
-class ApplicationLod : public ApplicationThreadedTransfer<ApplicationWin> {
+template<typename T>
+class ApplicationLod : public T {
  public:
   ApplicationLod(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationLod();
@@ -72,4 +68,5 @@ class ApplicationLod : public ApplicationThreadedTransfer<ApplicationWin> {
   bool m_setting_levels;
 };
 
+#include "application_lod.inl"
 #endif

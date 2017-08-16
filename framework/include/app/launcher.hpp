@@ -31,7 +31,7 @@ class Launcher {
   // run application
   template<typename T>
   void runApp(cmdline::parser const& cmd_parse){
-    m_application = std::unique_ptr<Application>{new T{m_resource_path, m_device, cmd_parse}};
+    m_application = std::unique_ptr<Application>{new T{m_resource_path, m_device, {}, cmd_parse}};
     mainLoop();
   };
   

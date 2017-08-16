@@ -1,6 +1,7 @@
 // c++ wrapper
 #include <vulkan/vulkan.hpp>
 #include <wrap/submit_info.hpp>
+
 template<typename T> 
 cmdline::parser ApplicationThreadedTransfer<T>::getParser() {
   return ApplicationThreaded<T>::getParser();

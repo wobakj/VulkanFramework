@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.hpp>
 
 class Surface;
+class SubmitInfo;
 
 template<typename T>
 class ApplicationThreadedTransfer : public ApplicationThreaded<T> {

@@ -30,6 +30,16 @@ inline vk::Extent2D extent_2d(glm::tvec2<T,P> const& vec) {
 }
 
 template<typename T, glm::precision P>
+inline vk::Rect2D rect(glm::tvec2<T,P> const& vec) {
+  return vk::Rect2D{vk::Offset2D{}, extent_2d(vec)};
+}
+
+template<typename T, glm::precision P>
+inline vk::Viewport viewport(glm::tvec2<T,P> const& vec) {
+  return vk::Viewport{0.0f, 0.0f, float(vec[0]), float(vec[1]), 0.0f, 1.0f};
+}
+
+template<typename T, glm::precision P>
 inline vk::Extent3D extent_3d(glm::tvec3<T,P> const& vec) {
   return vk::Extent3D{vec[0], vec[1], vec[2]};
 }
