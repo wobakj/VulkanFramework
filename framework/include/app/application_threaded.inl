@@ -7,11 +7,13 @@ cmdline::parser ApplicationThreaded<T>::getParser() {
 template<typename T>
 ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
  :T{resource_path, device, surf, num_frames + 1, cmd_parse}
- ,m_frame_resources(num_frames)
+ // ,this->m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_present{0}
  ,m_should_draw{true}
 {
+  this->m_frame_resources.resize(num_frames);
+
   this->m_statistics.addTimer("sema_present");
   this->m_statistics.addTimer("sema_draw");
   this->m_statistics.addTimer("fence_draw");
@@ -54,7 +56,7 @@ void ApplicationThreaded<T>::shutDown() {
   else {
     throw std::runtime_error{"could not join thread"};
   }
-  for (auto const& res : m_frame_resources) {
+  for (auto const& res : this->m_frame_resources) {
     // reset command buffers because the draw indirect buffer counts as reference to memory
     // must be destroyed before memory is free
     for(auto const& command_buffer : res.command_buffers) {
@@ -64,10 +66,17 @@ void ApplicationThreaded<T>::shutDown() {
 }
 
 template<typename T>
+FrameResource ApplicationThreaded<T>::createFrameResource() {
+  auto res = T::createFrameResource();
+  res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+  return res;
+}
+
+template<typename T>
 void ApplicationThreaded<T>::createFrameResources() {
   // create resources for one less image than swap chain
   // only numImages - 1 images can be acquired at a time
-  for (auto& res : m_frame_resources) {
+  for (auto& res : this->m_frame_resources) {
     res = std::move(this->createFrameResource());
     m_queue_record_frames.push(uint32_t(m_queue_record_frames.size()));
   }
@@ -75,13 +84,13 @@ void ApplicationThreaded<T>::createFrameResources() {
 
 template<typename T>
 void ApplicationThreaded<T>::updateCommandBuffers() {
-  for (auto& res : m_frame_resources) {
+  for (auto& res : this->m_frame_resources) {
     this->updateResourceCommandBuffers(res);
   }
 }
 template<typename T>
 void ApplicationThreaded<T>::updateResourcesDescriptors() {
-  for (auto& res : m_frame_resources) {
+  for (auto& res : this->m_frame_resources) {
     this->updateResourceDescriptors(res);
   }
 }
@@ -92,7 +101,7 @@ void ApplicationThreaded<T>::present() {
   auto frame_present = pullForPresent();
   // present frame if one is avaible
   if (frame_present >= 0) {
-    this->presentFrame(m_frame_resources.at(frame_present));
+    this->presentFrame(this->m_frame_resources.at(frame_present));
     m_queue_record_frames.push(uint32_t(frame_present));
   }  
 }
@@ -105,8 +114,9 @@ void ApplicationThreaded<T>::render() {
   // get next frame to record
   auto frame_record = pullForRecord();
   // get resource to record
-  auto& resource_record = m_frame_resources.at(frame_record);
+  auto& resource_record = this->m_frame_resources.at(frame_record);
 
+  this->recordTransferBuffer(resource_record);
   this->acquireImage(resource_record);
   this->recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
@@ -133,7 +143,7 @@ void ApplicationThreaded<T>::draw() {
   // get frame to draw
   auto frame_draw = pullForDraw();
   // get resource to draw
-  auto& resource_draw = m_frame_resources.at(frame_draw);
+  auto& resource_draw = this->m_frame_resources.at(frame_draw);
   this->submitDraw(resource_draw);
   // wait for drawing finish until rerecording
   this->m_statistics.start("fence_draw");
@@ -211,10 +221,10 @@ template<typename T>
 void ApplicationThreaded<T>::emptyDrawQueue() {
   // render remaining recorded frames
   size_t num_record_frames = 0;
-  while(num_record_frames < m_frame_resources.size()) {
+  while(num_record_frames < this->m_frame_resources.size()) {
     // check if all frames are ready for recording
     num_record_frames = m_queue_record_frames.size();
-    if (num_record_frames == m_frame_resources.size()) {
+    if (num_record_frames == this->m_frame_resources.size()) {
       break;
     }
     // check if frames can be presented
@@ -233,7 +243,7 @@ void ApplicationThreaded<T>::emptyDrawQueue() {
   // MUST wait after every present or everything freezes
   this->m_device.getQueue("present").waitIdle();
   // wait until draw resources are avaible before recallocation
-  for (auto const& res : m_frame_resources) {
+  for (auto const& res : this->m_frame_resources) {
     res.waitFences();
   }
 }

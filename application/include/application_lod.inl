@@ -1,16 +1,12 @@
 #include "wrap/buffer.hpp"
 
 #include "wrap/fence.hpp"
-#include "wrap/sampler.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "wrap/conversions.hpp"
 #include "wrap/descriptor_pool.hpp"
 #include "wrap/image.hpp"
 
 #include "texture_loader.hpp"
-
-// #include "semaphore.hpp"
-// #include "averager.hpp"
 #include "geometry_loader.hpp"
 
 #include "cmdline.h"
@@ -101,7 +97,6 @@ ApplicationLod<T>::~ApplicationLod() {
   double mb_per_node = double(m_model_lod.sizeNode()) / 1024.0 / 1024.0;
   std::cout << "Average upload: " << this->m_statistics.get("uploads") * mb_per_node << " MB"<< std::endl;
   std::cout << "Average LOD update time: " << this->m_statistics.get("update") << " milliseconds per node, " << this->m_statistics.get("update") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
-  std::cout << "Average LOD transfer time: " << this->m_statistics.get("transfer") << " milliseconds per node, " << this->m_statistics.get("transfer") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
   std::cout << "Average GPU draw time: " << this->m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << "Average GPU copy time: " << this->m_statistics.get("gpu_copy") << " milliseconds per node, " << this->m_statistics.get("gpu_copy") / mb_per_node * 10.0 << " per 10 MB"<< std::endl;
 }
@@ -109,7 +104,7 @@ ApplicationLod<T>::~ApplicationLod() {
 template<typename T>
 FrameResource ApplicationLod<T>::createFrameResource() {
   auto res = T::createFrameResource();
-  res.addCommandBuffer("gbuffer", this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
+  res.setCommandBuffer("gbuffer", this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   res.buffer_views["uniform"] = BufferView{sizeof(UniformBufferObject), vk::BufferUsageFlagBits::eUniformBuffer};
   res.buffer_views.at("uniform").bindTo(this->m_buffers.at("uniforms"));
   res.query_pools["timers"] = QueryPool{this->m_device, vk::QueryType::eTimestamp, 4};

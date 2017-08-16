@@ -12,9 +12,11 @@
 #include "wrap/swap_chain.hpp"
 #include "wrap/descriptor_pool.hpp"
 #include "wrap/command_pool.hpp"
+
 #include "allocator_block.hpp"
 #include "camera.hpp"
 #include "transferrer.hpp"
+#include "frame_resource.hpp"
 
 #include "cmdline.h"
 
@@ -103,6 +105,10 @@ class Application {
   Transferrer m_transferrer;
 
   glm::uvec2 m_resolution;
+  // workaround so multithreaded apps can be run with single thread
+  virtual void startRenderThread() {};
+  virtual void recordTransferBuffer(FrameResource& res) {};
+  std::vector<FrameResource> m_frame_resources;
 };
 
 #endif

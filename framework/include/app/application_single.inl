@@ -21,7 +21,7 @@ ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device
 
 template<typename T>
 void ApplicationSingle<T>::shutDown() {
-  m_frame_resource.waitFences();
+  this->m_frame_resources.front().waitFences();
 }
 
 template<typename T>
@@ -34,41 +34,58 @@ ApplicationSingle<T>::~ApplicationSingle() {
 }
 
 template<typename T>
+FrameResource ApplicationSingle<T>::createFrameResource() {
+  auto res = T::createFrameResource();
+  res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+  return res;
+}
+
+template<typename T>
 void ApplicationSingle<T>::createFrameResources() {
-  m_frame_resource = this->createFrameResource();
+  this->m_frame_resources.emplace_back(this->createFrameResource());
 }
 
 template<typename T>
 void ApplicationSingle<T>::updateCommandBuffers() {
-  this->updateResourceCommandBuffers(m_frame_resource);
+  this->updateResourceCommandBuffers(this->m_frame_resources.front());
 }
 
 template<typename T>
 void ApplicationSingle<T>::updateResourcesDescriptors() {
-  this->updateResourceDescriptors(m_frame_resource);
+  this->updateResourceDescriptors(this->m_frame_resources.front());
 }
 
 template<typename T>
 void ApplicationSingle<T>::render() { 
-  this->acquireImage(m_frame_resource);
+
+  this->acquireImage(this->m_frame_resources.front());
   this->m_statistics.start("render");
   // make sure no command buffer is in use
   this->m_statistics.start("fence_draw");
-  m_frame_resource.fence("draw").wait();
+  this->m_frame_resources.front().fence("draw").wait();
   this->m_statistics.stop("fence_draw");
   static uint64_t frame = 0;
   ++frame;
-  // recordTransferBuffer(m_frame_resource);
-  this->recordDrawBuffer(m_frame_resource);
+  this->recordTransferBuffer(this->m_frame_resources.front());
+  this->recordDrawBuffer(this->m_frame_resources.front());
   
-  this->submitDraw(m_frame_resource);
+  this->submitDraw(this->m_frame_resources.front());
 
-  this->presentFrame(m_frame_resource);
+  this->presentFrame(this->m_frame_resources.front());
   this->m_statistics.stop("render");
+}
+
+template<typename T>
+SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) const {
+  // add transfer buffer to submission to make applications using transfer independent from underlying app
+  // dependencies are resolved via barriers
+  SubmitInfo info = T::createDrawSubmitInfo(res);
+  info.addCommandBuffer(res.command_buffers.at("transfer").get());
+  return info;
 }
 
 template<typename T>
 void ApplicationSingle<T>::emptyDrawQueue() {
   // no draw queue exists, just wait forcurrent draw
-  m_frame_resource.waitFences();
+  this->m_frame_resources.front().waitFences();
 }

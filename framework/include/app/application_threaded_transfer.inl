@@ -54,7 +54,7 @@ template<typename T>
 FrameResource ApplicationThreadedTransfer<T>::createFrameResource() {
   auto res = ApplicationThreaded<T>::createFrameResource();
   // separate transfer
-  res.addCommandBuffer("transfer", this->m_command_pools.at("transfer").createBuffer(vk::CommandBufferLevel::ePrimary));
+  res.setCommandBuffer("transfer", this->m_command_pools.at("transfer").createBuffer(vk::CommandBufferLevel::ePrimary));
   res.addSemaphore("transfer");
   res.addFence("transfer");
   return res;
@@ -70,7 +70,7 @@ void ApplicationThreadedTransfer<T>::render() {
   // get resource to record
   auto& resource_record = this->m_frame_resources.at(frame_record);
   // wait for previous transfer
-  recordTransferBuffer(resource_record);
+  this->recordTransferBuffer(resource_record);
   // submitTransfer(resource_record);
   this->acquireImage(resource_record);
   // wait for drawing finish until rerecording

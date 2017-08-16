@@ -29,7 +29,7 @@ Application::Application(std::string const& resource_path, Device& device, cmdli
 FrameResource Application::createFrameResource() {
   auto res = FrameResource{m_device};
   res.addFence("draw");
-  res.addCommandBuffer("draw", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+  res.setCommandBuffer("draw", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
   return res;
 }
 

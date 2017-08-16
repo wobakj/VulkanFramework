@@ -35,6 +35,12 @@ void SubmitInfo::updatePtrs() {
   m_info.signalSemaphoreCount = uint32_t(m_signal_semas.size());
 }
 
+void SubmitInfo::setCommandBuffers(std::vector<vk::CommandBuffer> buffers) {
+  m_command_buffers = buffers;
+  updatePtrs();
+}
+
+
 void SubmitInfo::addCommandBuffer(vk::CommandBuffer buffer) {
   m_command_buffers.emplace_back(buffer);
   updatePtrs();

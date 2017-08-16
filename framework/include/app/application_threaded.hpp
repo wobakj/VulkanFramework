@@ -4,7 +4,6 @@
 #include <vulkan/vulkan.hpp>
 
 #include "semaphore.hpp"
-#include "frame_resource.hpp"
 
 #include "cmdline.h"
 
@@ -28,6 +27,7 @@ class ApplicationThreaded : public T {
   static cmdline::parser getParser();
   
  protected:
+  virtual FrameResource createFrameResource() override;
   void createFrameResources() override;
   virtual void shutDown();
   void updateCommandBuffers() override;
@@ -44,7 +44,7 @@ class ApplicationThreaded : public T {
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_present_queue;
 
-  std::vector<FrameResource> m_frame_resources;
+  // std::vector<FrameResource> m_frame_resources;
   std::queue<uint32_t> m_queue_draw_frames;
   std::queue<uint32_t> m_queue_record_frames;
   std::queue<uint32_t> m_queue_present_frames;

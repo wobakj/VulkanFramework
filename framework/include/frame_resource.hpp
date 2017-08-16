@@ -52,8 +52,8 @@ class FrameResource {
    fences.emplace(name, Fence{(*m_device), vk::FenceCreateFlagBits::eSignaled});
   }
 
-  void addCommandBuffer(std::string const& name, CommandBuffer&& buffer) {
-    command_buffers.emplace(name, std::move(buffer));
+  void setCommandBuffer(std::string const& name, CommandBuffer&& buffer) {
+    command_buffers[name] = std::move(buffer);
   }
 
   vk::Semaphore const& semaphore(std::string const& name) const {

@@ -25,7 +25,7 @@ class ApplicationThreadedTransfer : public ApplicationThreaded<T> {
 
  private:
   void render() override;
-  virtual void recordTransferBuffer(FrameResource& res) = 0;
+  // virtual void recordTransferBuffer(FrameResource& res) = 0;
   void submitTransfer(FrameResource& res);
 
   void pushForTransfer(uint32_t frame);

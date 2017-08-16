@@ -2,7 +2,6 @@
 #define APPLICATION_SINGLE_HPP
 
 #include "app/application_win.hpp"
-#include "frame_resource.hpp"
 
 #include "cmdline.h"
 
@@ -20,16 +19,14 @@ class ApplicationSingle : public T {
   static cmdline::parser getParser();
   
  protected:
+  virtual FrameResource createFrameResource() override;
   void createFrameResources() override;
   void updateCommandBuffers() override;
   void updateResourcesDescriptors() override;
 
   void shutDown();
 
-  // void recordTransferBuffer(FrameResource& res);
-  // virtual void recordDrawBuffer(FrameResource& res) = 0;
-  
-  FrameResource m_frame_resource;
+  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
 
  private:
   void render() override;

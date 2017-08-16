@@ -16,6 +16,7 @@ class SubmitInfo {
   void swap(SubmitInfo& dev);
 
   void addCommandBuffer(vk::CommandBuffer buffer);
+  void setCommandBuffers(std::vector<vk::CommandBuffer> buffers);
   void addWaitSemaphore(vk::Semaphore sema, vk::PipelineStageFlags stage);
   void addSignalSemaphore(vk::Semaphore sema);
 
