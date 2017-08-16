@@ -42,7 +42,7 @@ class ApplicationWorker : public Application {
 
   glm::fmat4 const& matrixView() const;
   glm::fmat4 const& matrixFrustum() const;
-  
+
  private:
   void createImages(uint32_t image_count);
   void createTransferBuffer();

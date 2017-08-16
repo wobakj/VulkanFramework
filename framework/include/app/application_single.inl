@@ -1,6 +1,7 @@
 // #include "app/application_single.hpp"
 
 #include "wrap/surface.hpp"
+#include "wrap/submit_info.hpp"
 
 #include <vulkan/vulkan.hpp>
 template<typename T>

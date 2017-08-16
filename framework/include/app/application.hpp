@@ -22,6 +22,7 @@
 #include <mutex>
 
 class FrameResource;
+class SubmitInfo;
 
 class Application {
  public:
@@ -80,19 +81,11 @@ class Application {
   // cannot be pure due to template argiment
   virtual void updateResourceCommandBuffers(FrameResource& res) {};
   
-  // void acquireImage(FrameResource& res);
-  // virtual void presentFrame(FrameResource& res);
-  // virtual void presentFrame(FrameResource& res, vk::Queue const&);
-  virtual void submitDraw(FrameResource& res);
-  // cannot be pure due to template argiment
+  void submitDraw(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
+  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const;
 
   std::string m_resource_path; 
-  void createSwapChain(vk::SurfaceKHR const& surf, cmdline::parser const& cmd_parse);
-
-  // SwapChain m_swap_chain;
-  // container for the shader programs
-  // Camera m_camera;
   Device& m_device;
 
   PipelineCache m_pipeline_cache;

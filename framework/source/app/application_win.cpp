@@ -1,6 +1,7 @@
 #include "app/application_win.hpp"
 
 #include "wrap/surface.hpp"
+#include "wrap/submit_info.hpp"
 
 #include "frame_resource.hpp"
 //dont load gl bindings from glfw
@@ -55,6 +56,8 @@ FrameResource ApplicationWin::createFrameResource() {
   auto res = Application::createFrameResource();
   res.addSemaphore("acquire");
   res.addFence("acquire");
+  // present must wait for draw
+  res.addSemaphore("draw");
   return res;
 }
 
@@ -127,7 +130,13 @@ glm::fmat4 const& ApplicationWin::matrixFrustum() const {
 
 bool ApplicationWin::shouldClose() const{
   return glfwWindowShouldClose(&m_surface->window());
-  // glfwSetWindowShouldClose(m_window, 1);
+}
+
+SubmitInfo ApplicationWin::createDrawSubmitInfo(FrameResource const& res) const {
+  SubmitInfo info = Application::createDrawSubmitInfo(res);
+  info.addWaitSemaphore(res.semaphore("acquire"), vk::PipelineStageFlagBits::eColorAttachmentOutput);
+  info.addSignalSemaphore(res.semaphore("draw"));
+  return info;
 }
 
 void ApplicationWin::keyCallbackSelf(int key, int scancode, int action, int mods) {

@@ -20,11 +20,12 @@ class ApplicationThreadedTransfer : public ApplicationThreaded<T> {
   void startTransferThread();
   void shutDown() override;
  
+  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
+
  private:
   void render() override;
   virtual void recordTransferBuffer(FrameResource& res) = 0;
   void submitTransfer(FrameResource& res);
-  void submitDraw(FrameResource& res) override;
 
   void pushForTransfer(uint32_t frame);
   uint32_t pullForTransfer();

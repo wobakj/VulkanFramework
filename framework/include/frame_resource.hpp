@@ -56,7 +56,7 @@ class FrameResource {
     command_buffers.emplace(name, std::move(buffer));
   }
 
-  vk::Semaphore const& semaphore(std::string const& name) {
+  vk::Semaphore const& semaphore(std::string const& name) const {
     return semaphores.at(name);
   }
 

@@ -1,5 +1,6 @@
 // c++ wrapper
 #include <vulkan/vulkan.hpp>
+#include <wrap/submit_info.hpp>
 template<typename T> 
 cmdline::parser ApplicationThreadedTransfer<T>::getParser() {
   return ApplicationThreaded<T>::getParser();
@@ -133,29 +134,14 @@ void ApplicationThreadedTransfer<T>::submitTransfer(FrameResource& res) {
   res.fences.at("transfer").reset();
   this->m_device.getQueue("transfer").submit(submitInfos, res.fences.at("transfer"));
 }
+
 template<typename T> 
-void ApplicationThreadedTransfer<T>::submitDraw(FrameResource& res) {
-  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
-  // wait on image acquisition and data transfer
-  vk::Semaphore waitSemaphores[]{res.semaphores.at("transfer")};
-  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eTransfer};
-  submitInfos[0].setWaitSemaphoreCount(1);
-  // vk::Semaphore waitSemaphores[]{res.semaphore("acquire"), res.semaphores.at("transfer")};
-  // vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eDrawIndirect};
-  // submitInfos[0].setWaitSemaphoreCount(2);
-  submitInfos[0].setPWaitSemaphores(waitSemaphores);
-  submitInfos[0].setPWaitDstStageMask(waitStages);
-
-  submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw").get());
-
-  // vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
-  // submitInfos[0].signalSemaphoreCount = 1;
-  // submitInfos[0].pSignalSemaphores = signalSemaphores;
-
-  res.fence("draw").reset();
-  this->m_device.getQueue("graphics").submit(submitInfos, res.fence("draw"));
+SubmitInfo ApplicationThreadedTransfer<T>::createDrawSubmitInfo(FrameResource const& res) const {
+  SubmitInfo info = T::createDrawSubmitInfo(res);
+  info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
+  return info;
 }
+
 template<typename T> 
 void ApplicationThreadedTransfer<T>::transferLoop() {
   while (m_should_transfer) {

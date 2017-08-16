@@ -35,6 +35,8 @@ class ApplicationWin : public Application {
   virtual void presentFrame(FrameResource& res, vk::Queue const&) final;
   void onFrameBegin() override;
 
+  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
+
   glm::fmat4 const& matrixView() const;
   glm::fmat4 const& matrixFrustum() const;
   // container for the shader programs

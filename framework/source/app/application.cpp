@@ -1,6 +1,7 @@
 #include "app/application.hpp"
 #include "app/launcher.hpp"
 
+#include "wrap/submit_info.hpp"
 #include "frame_resource.hpp"
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
@@ -27,7 +28,6 @@ Application::Application(std::string const& resource_path, Device& device, cmdli
 
 FrameResource Application::createFrameResource() {
   auto res = FrameResource{m_device};
-  res.addSemaphore("draw");
   res.addFence("draw");
   res.addCommandBuffer("draw", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
   return res;
@@ -44,24 +44,15 @@ void Application::frame() {
   onFrameEnd();
 }
 
+SubmitInfo Application::createDrawSubmitInfo(FrameResource const& res) const {
+  SubmitInfo info{};
+  info.addCommandBuffer(res.command_buffers.at("draw").get());
+  return info;
+}
+
 void Application::submitDraw(FrameResource& res) {
-  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
-
-  vk::Semaphore waitSemaphores[]{res.semaphore("acquire")};
-  vk::PipelineStageFlags waitStages[]{vk::PipelineStageFlagBits::eColorAttachmentOutput};
-  submitInfos[0].setWaitSemaphoreCount(1);
-  submitInfos[0].setPWaitSemaphores(waitSemaphores);
-  submitInfos[0].setPWaitDstStageMask(waitStages);
-
-  submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("draw").get());
-
-  vk::Semaphore signalSemaphores[]{res.semaphore("draw")};
-  submitInfos[0].signalSemaphoreCount = 1;
-  submitInfos[0].pSignalSemaphores = signalSemaphores;
-
   res.fence("draw").reset();
-  m_device.getQueue("graphics").submit(submitInfos, res.fence("draw"));
+  m_device.getQueue("graphics").submit({createDrawSubmitInfo(res).get()}, res.fence("draw"));
 }
 
 void Application::updateShaderPrograms() {

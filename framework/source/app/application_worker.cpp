@@ -1,6 +1,7 @@
 #include "app/application_worker.hpp"
 
 #include "wrap/surface.hpp"
+#include "wrap/submit_info.hpp"
 
 #include "frame_resource.hpp"
 //dont load gl bindings from glfw
@@ -19,7 +20,6 @@ cmdline::parser ApplicationWorker::getParser() {
 
 ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse)
  :Application{resource_path, device, cmd_parse}
- // ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
  ,m_ptr_buff_transfer{nullptr}
  ,m_should_close{false}
 {
@@ -27,11 +27,9 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
   MPI::COMM_WORLD.Bcast(&m_resolution, 2, MPI::UNSIGNED, 0);
   std::cout << "resolution " << m_resolution.x << ", " << m_resolution.y << std::endl;
   
-  // m_resolution = glm::uvec2{1280, 720};
-  // m_images_draw.resize(image_count);
   createImages(image_count);
   createTransferBuffer();
-  // std::cout << "will send " << m_buffers.at("transfer").size() << " bytes" << std::endl; 
+
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("queue_present");
 }
@@ -73,7 +71,7 @@ void ApplicationWorker::createTransferBuffer() {
   m_buffers["transfer"] = Buffer{m_device, color_data.size() * sizeof(color_data.front()), vk::BufferUsageFlagBits::eTransferDst};
   m_memory_transfer = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
   m_buffers.at("transfer").bindTo(m_memory_transfer, 0);
-  std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
+  // std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
   m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
 
   m_ptr_buff_transfer = m_buffers.at("transfer").map();
@@ -123,7 +121,6 @@ void ApplicationWorker::onFrameBegin() {
   // get camera matrices
   // identical view
   MPI::COMM_WORLD.Bcast(&m_mat_view, 16, MPI::FLOAT, 0);
-  // MPI::COMM_WORLD.Bcast(&m_mat_frustum, 16, MPI::FLOAT, 0);
 
   //different projection for each 
   MPI::COMM_WORLD.Scatter(nullptr, 16, MPI::FLOAT, &m_mat_frustum, 16, MPI::FLOAT, 0);
