@@ -240,20 +240,9 @@ void ApplicationScenegraph::recordDrawBuffer(FrameResource& res) {
   m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
   // barrier to make light data visible to vertex shader
-  vk::BufferMemoryBarrier barrier{};
-  barrier.buffer = m_instance.dbLight().buffer();
-  barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  res.command_buffers.at("draw")->pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eFragmentShader,
-    vk::DependencyFlags{},
-    {},
-    {barrier},
-    {}
+  res.command_buffers.at("draw").bufferBarrier(m_instance.dbLight().buffer(), 
+    vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
+    vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
   );
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);

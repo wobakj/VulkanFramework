@@ -156,20 +156,9 @@ void ApplicationThreadedSimple::recordDrawBuffer(FrameResource& res) {
   updateView();
   res.command_buffers.at("draw")->updateBuffer(res.buffer_views.at("uniform").buffer(), res.buffer_views.at("uniform").offset(), sizeof(ubo_cam), &ubo_cam);
   // barrier to make new data visible to vertex shader
-  vk::BufferMemoryBarrier barrier_buffer{};
-  barrier_buffer.buffer = res.buffer_views.at("uniform").buffer();
-  barrier_buffer.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier_buffer.dstAccessMask = vk::AccessFlagBits::eUniformRead;
-  barrier_buffer.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_buffer.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  res.command_buffers.at("draw")->pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eVertexShader,
-    vk::DependencyFlags{},
-    {},
-    {barrier_buffer},
-    {}
+  res.command_buffers.at("draw").bufferBarrier(res.buffer_views.at("uniform").buffer(), 
+    vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
+    vk::PipelineStageFlagBits::eVertexShader, vk::AccessFlagBits::eUniformRead
   );
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);

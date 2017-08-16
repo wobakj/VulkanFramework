@@ -5,6 +5,7 @@ template<typename T>
 cmdline::parser ApplicationThreadedTransfer<T>::getParser() {
   return ApplicationThreaded<T>::getParser();
 }
+
 template<typename T> 
 ApplicationThreadedTransfer<T>::ApplicationThreadedTransfer(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
  :ApplicationThreaded<T>{resource_path, device, surf, cmd_parse, 3}
@@ -17,6 +18,7 @@ ApplicationThreadedTransfer<T>::ApplicationThreadedTransfer(std::string const& r
 
   startTransferThread();
 }
+
 template<typename T> 
 ApplicationThreadedTransfer<T>::~ApplicationThreadedTransfer() {
   std::cout << std::endl;
@@ -24,12 +26,14 @@ ApplicationThreadedTransfer<T>::~ApplicationThreadedTransfer() {
   std::cout << "Average transfer fence time: " << this->m_statistics.get("fence_transfer") << " milliseconds " << std::endl;
   std::cout << "Average transfer time: " << this->m_statistics.get("transfer") << " milliseconds " << std::endl;
 }
+
 template<typename T> 
 void ApplicationThreadedTransfer<T>::startTransferThread() {
   if (!m_thread_transfer.joinable()) { 
     m_thread_transfer = std::thread(&ApplicationThreadedTransfer<T>::transferLoop, this);
   }
 }
+
 template<typename T> 
 void ApplicationThreadedTransfer<T>::shutDown() {
   // shut down transfer thread
@@ -44,6 +48,7 @@ void ApplicationThreadedTransfer<T>::shutDown() {
   this->m_device.getQueue("transfer").waitIdle();
  ApplicationThreaded<T>::shutDown();
 }
+
 template<typename T> 
 FrameResource ApplicationThreadedTransfer<T>::createFrameResource() {
   auto res = ApplicationThreaded<T>::createFrameResource();
@@ -53,6 +58,7 @@ FrameResource ApplicationThreadedTransfer<T>::createFrameResource() {
   res.addFence("transfer");
   return res;
 }
+
 template<typename T> 
 void ApplicationThreadedTransfer<T>::render() {
   this->m_statistics.start("record");
@@ -77,6 +83,7 @@ void ApplicationThreadedTransfer<T>::render() {
   this->m_statistics.stop("sema_present");
   this->present();
 }
+
 template<typename T> 
 void ApplicationThreadedTransfer<T>::transfer() {
   this->m_statistics.start("sema_transfer");
@@ -100,6 +107,7 @@ void ApplicationThreadedTransfer<T>::transfer() {
   this->pushForDraw(frame_transfer);
   this->m_statistics.stop("transfer");
 }
+
 template<typename T> 
 void ApplicationThreadedTransfer<T>::pushForTransfer(uint32_t frame) {
   {
@@ -108,6 +116,7 @@ void ApplicationThreadedTransfer<T>::pushForTransfer(uint32_t frame) {
   }
   m_semaphore_transfer.signal();
 }
+
 template<typename T> 
 uint32_t ApplicationThreadedTransfer<T>::pullForTransfer() {
   uint32_t frame_transfer = 0;
@@ -120,6 +129,7 @@ uint32_t ApplicationThreadedTransfer<T>::pullForTransfer() {
   }
   return frame_transfer;
 }
+
 template<typename T> 
 void ApplicationThreadedTransfer<T>::submitTransfer(FrameResource& res) {
   std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});

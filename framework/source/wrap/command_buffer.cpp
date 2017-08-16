@@ -152,6 +152,24 @@ void CommandBuffer::transitionLayout(ImageView const& view, vk::ImageLayout cons
   view.layoutTransitionCommand(get(), layout_old, layout_new);
 }
 
+void CommandBuffer::bufferBarrier(vk::Buffer const& buffer, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const {
+  vk::BufferMemoryBarrier barrier{};
+  barrier.buffer = buffer;
+  barrier.srcAccessMask = acc_src;
+  barrier.dstAccessMask = acc_dst;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  get().pipelineBarrier(
+    stage_src,
+    stage_dst,
+    vk::DependencyFlags{},
+    {},
+    {barrier},
+    {}
+  );
+}
+
 void CommandBuffer::pushConstants(vk::ShaderStageFlags stage, uint32_t offset, uint32_t size, const void* pValues) {
   get().pushConstants(m_session.pipe_layout, stage, offset, size, pValues);
 }
