@@ -19,7 +19,6 @@ class ApplicationWorker : public Application {
 
   // react to key input
   inline virtual void keyCallback(int key, int scancode, int action, int mods) {};
-  virtual void resize(std::size_t width, std::size_t height) override final;
   static cmdline::parser getParser(); 
 
   bool shouldClose() const override;
@@ -27,6 +26,7 @@ class ApplicationWorker : public Application {
  protected:
   void acquireImage(FrameResource& res);
   void presentFrame(FrameResource& res);
+  virtual void onResize(std::size_t width, std::size_t height) override;
 
   glm::fmat4 const& matrixView() const;
   glm::fmat4 const& matrixFrustum() const;
@@ -36,7 +36,7 @@ class ApplicationWorker : public Application {
 
  private:
   void createImages(uint32_t image_count);
-  void createTransferBuffer();
+  void createSendBuffer();
   void pushImageToDraw(uint32_t frame);
   uint32_t pullImageToDraw();
 

@@ -19,7 +19,9 @@ int main(int argc, char* argv[]) {
   assert(threads_ok);
 
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
-
+  if (MPI::COMM_WORLD.Get_errhandler() != MPI::ERRORS_THROW_EXCEPTIONS) {
+    throw std::runtime_error{"handler wrong"};
+  }
   uint32_t num_processes = MPI::COMM_WORLD.Get_size();
   if (!(num_processes == 2 || (num_processes > 2 && num_processes % 2 == 1))) {
     std::cerr << "number of processes must be 2 or a larger poer of two +1" << std::endl;

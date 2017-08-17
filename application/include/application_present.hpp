@@ -29,7 +29,7 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   virtual void logic() override final;
   virtual void recordDrawBuffer(FrameResource& res) override;
   
-  void createUniformBuffers();
+  void createReceiveBuffer();
 
   void createFrustra();
   void receiveData();

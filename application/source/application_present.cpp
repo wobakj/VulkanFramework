@@ -38,8 +38,10 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
   }
 
   createFrustra();
+  glm::uvec2 cell_resolution{m_resolution / m_frustum_cells};
+  MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
 
-  createUniformBuffers();
+  createReceiveBuffer();
 
   createRenderResources();
 }
@@ -97,7 +99,7 @@ void ApplicationPresent::createFrustra() {
   }
   // send resolution to workers
   glm::uvec2 cell_resolution{m_resolution / m_frustum_cells};
-  MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
+  // MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
   // generate copy regions for runtime
   vk::ImageSubresourceLayers subresource;
   subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -142,7 +144,7 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->end();
 }
 
-void ApplicationPresent::createUniformBuffers() {
+void ApplicationPresent::createReceiveBuffer() {
   auto extent = extent_3d(m_swap_chain.extent()); 
 
   m_buffers["transfer"] = Buffer{m_device, extent.width * extent.height * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferSrc};
@@ -153,6 +155,8 @@ void ApplicationPresent::createUniformBuffers() {
 }
 
 void ApplicationPresent::logic() {
+  glm::uvec2 res_worker = m_resolution / m_frustum_cells;
+  MPI::COMM_WORLD.Bcast((void*)&res_worker, 2, MPI::UNSIGNED, 0);
   // update camera
   ApplicationSingle::logic();
   // broadcast matrices
@@ -164,6 +168,7 @@ void ApplicationPresent::logic() {
 
 void ApplicationPresent::onResize(std::size_t width, std::size_t height) {
   createFrustra();
+  createReceiveBuffer();
 }
 
 // broadcast if shutdown

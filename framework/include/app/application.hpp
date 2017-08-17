@@ -103,7 +103,7 @@ class Application {
   // below command pools so that it is destroyed before
   Transferrer m_transferrer;
 
-  glm::uvec2 m_resolution;
+  glm::u32vec2 m_resolution;
   Statistics m_statistics;
 
   // workaround so multithreaded apps can be run with single thread

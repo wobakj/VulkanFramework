@@ -30,7 +30,7 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
   std::cout << "resolution " << m_resolution.x << ", " << m_resolution.y << std::endl;
   
   createImages(image_count);
-  createTransferBuffer();
+  createSendBuffer();
 
   m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("queue_present");
@@ -44,7 +44,7 @@ ApplicationWorker::~ApplicationWorker() {
 }
 
 void ApplicationWorker::createImages(uint32_t image_count) {
-
+  m_images_draw.clear();
   for(uint32_t i = 0; i< image_count; ++i) {
     m_images_draw.emplace_back(m_device, vk::Extent3D{m_resolution.x, m_resolution.y, 1}, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
                                                                                                                           | vk::ImageUsageFlagBits::eTransferDst
@@ -55,7 +55,7 @@ void ApplicationWorker::createImages(uint32_t image_count) {
   }
 }
 
-void ApplicationWorker::createTransferBuffer() {
+void ApplicationWorker::createSendBuffer() {
 
   auto extent = m_images_draw.front().extent();
   std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{0, 255, 0, 255}};
@@ -90,8 +90,12 @@ void ApplicationWorker::presentFrame(FrameResource& res) {
   pushImageToDraw(res.image);
 }
 
-void ApplicationWorker::resize(std::size_t width, std::size_t height) {
-  Application::resize(width, height);
+void ApplicationWorker::onResize(std::size_t width, std::size_t height) {
+  while(!m_queue_images.empty()){
+    m_queue_images.pop();
+  }
+  createImages(uint32_t(m_images_draw.size()));
+  createSendBuffer();
 }
 
 void ApplicationWorker::pushImageToDraw(uint32_t frame) {
@@ -115,6 +119,12 @@ glm::fmat4 const& ApplicationWorker::matrixFrustum() const {
 }
 
 void ApplicationWorker::onFrameBegin() {
+  // get resolution
+  glm::u32vec2 res_new;
+  MPI::COMM_WORLD.Bcast((void*)&res_new, 2, MPI::UNSIGNED, 0);
+  if (res_new != m_resolution) {
+    resize(res_new.x, res_new.y);
+  }
   // get camera matrices
   // identical view
   MPI::COMM_WORLD.Bcast(&m_mat_view, 16, MPI::FLOAT, 0);
