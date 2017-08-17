@@ -36,7 +36,7 @@ class ApplicationThreadedSimple : public ApplicationThreaded<ApplicationWin> {
   void createTextureImage();
   void createTextureSampler();
 
-  void updateView() override;
+  void updateView();
 
   void createFramebuffers() override;
   void createFramebufferAttachments() override;

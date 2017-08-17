@@ -34,7 +34,7 @@ class ApplicationVulkan : public ApplicationSingle<ApplicationWin> {
   void createTextureImage();
   void createTextureSampler();
 
-  void updateView() override;
+  void updateView();
   void createFramebuffers();
   void createRenderPasses();
   void createPipelines();

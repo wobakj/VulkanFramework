@@ -26,16 +26,16 @@ class ApplicationPresent : public ApplicationSingle<ApplicationWin> {
   static cmdline::parser getParser(); 
 
  private:
-  void logic() override final;
-  void recordDrawBuffer(FrameResource& res) override;
+  virtual void logic() override final;
+  virtual void recordDrawBuffer(FrameResource& res) override;
   
   void createUniformBuffers();
 
   void createFrustra();
   void receiveData();
   // send out whether workers should stop
-  void onFrameEnd() override final;
-  void onResize(std::size_t width, std::size_t height) override;
+  virtual void onFrameEnd() override final;
+  virtual void onResize(std::size_t width, std::size_t height) override;
 
   Memory m_memory_image;
   RenderPass m_render_pass;

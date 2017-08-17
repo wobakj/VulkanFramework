@@ -44,7 +44,7 @@ class ApplicationLod : public T {
   void createTextureImage();
   void createTextureSampler();
 
-  void updateView() override;
+  void updateView();
 
   void createFramebuffers() override;
   void createRenderPasses() override;

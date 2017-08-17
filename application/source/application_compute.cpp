@@ -39,23 +39,23 @@ ApplicationCompute::~ApplicationCompute() {
 
 FrameResource ApplicationCompute::createFrameResource() {
   auto res = ApplicationSingle::createFrameResource();
-  res.command_buffers.emplace("transfer", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("compute", m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   return res;
 }
 
 void ApplicationCompute::updateResourceCommandBuffers(FrameResource& res) {
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
-  res.command_buffers.at("transfer")->reset({});
-  res.command_buffers.at("transfer")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
-  res.command_buffers.at("transfer")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
-  res.command_buffers.at("transfer")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("storage")}, {});
+  res.command_buffers.at("compute")->reset({});
+  res.command_buffers.at("compute")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.command_buffers.at("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
+  res.command_buffers.at("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {m_descriptor_sets.at("storage")}, {});
 
   glm::uvec3 dims{m_images.at("texture").extent().width, m_images.at("texture").extent().height, m_images.at("texture").extent().depth};
   glm::uvec3 workers{16, 16, 1};
   // 512^2 threads in blocks of 16^2
-  res.command_buffers.at("transfer")->dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
+  res.command_buffers.at("compute")->dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
 
-  res.command_buffers.at("transfer")->end();
+  res.command_buffers.at("compute")->end();
 }
 
 void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
@@ -65,7 +65,7 @@ void ApplicationCompute::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("transfer")});
+  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("compute")});
 
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency

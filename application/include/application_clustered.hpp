@@ -47,7 +47,7 @@ class ApplicationClustered : public ApplicationSingle<ApplicationWin>  {
 
   void updateLightGrid();
 
-  void updateView() override;
+  void updateView();
 
   void createFramebuffers() override;
   void createRenderPasses() override;
