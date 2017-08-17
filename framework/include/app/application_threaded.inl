@@ -7,12 +7,10 @@ cmdline::parser ApplicationThreaded<T>::getParser() {
 template<typename T>
 ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
  :T{resource_path, device, surf, num_frames + 1, cmd_parse}
- // ,this->m_frame_resources(num_frames)
  ,m_semaphore_draw{0}
  ,m_semaphore_present{0}
  ,m_should_draw{true}
 {
-  this->m_frame_resources.resize(num_frames);
 
   this->m_statistics.addTimer("sema_present");
   this->m_statistics.addTimer("sema_draw");
@@ -23,6 +21,11 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
   this->m_statistics.addTimer("record");
   this->m_statistics.addTimer("draw");
 
+  // fill record queue with references to all frame resources
+  for (uint32_t i = 0; i < this->m_frame_resources.size(); ++i) {
+    m_queue_record_frames.push(i);
+  }
+  
   startRenderThread();
 }
 
@@ -72,29 +75,6 @@ FrameResource ApplicationThreaded<T>::createFrameResource() {
   auto res = T::createFrameResource();
   res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
   return res;
-}
-
-template<typename T>
-void ApplicationThreaded<T>::createFrameResources() {
-  // create resources for one less image than swap chain
-  // only numImages - 1 images can be acquired at a time
-  for (auto& res : this->m_frame_resources) {
-    res = std::move(this->createFrameResource());
-    m_queue_record_frames.push(uint32_t(m_queue_record_frames.size()));
-  }
-}
-
-template<typename T>
-void ApplicationThreaded<T>::updateCommandBuffers() {
-  for (auto& res : this->m_frame_resources) {
-    this->updateResourceCommandBuffers(res);
-  }
-}
-template<typename T>
-void ApplicationThreaded<T>::updateResourcesDescriptors() {
-  for (auto& res : this->m_frame_resources) {
-    this->updateResourceDescriptors(res);
-  }
 }
 
 template<typename T>

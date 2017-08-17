@@ -41,21 +41,6 @@ FrameResource ApplicationSingle<T>::createFrameResource() {
 }
 
 template<typename T>
-void ApplicationSingle<T>::createFrameResources() {
-  this->m_frame_resources.emplace_back(this->createFrameResource());
-}
-
-template<typename T>
-void ApplicationSingle<T>::updateCommandBuffers() {
-  this->updateResourceCommandBuffers(this->m_frame_resources.front());
-}
-
-template<typename T>
-void ApplicationSingle<T>::updateResourcesDescriptors() {
-  this->updateResourceDescriptors(this->m_frame_resources.front());
-}
-
-template<typename T>
 void ApplicationSingle<T>::render() { 
 
   this->acquireImage(this->m_frame_resources.front());
@@ -86,6 +71,6 @@ SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) 
 
 template<typename T>
 void ApplicationSingle<T>::emptyDrawQueue() {
-  // no draw queue exists, just wait forcurrent draw
+  // no draw queue exists, just wait for current draw
   this->m_frame_resources.front().waitFences();
 }

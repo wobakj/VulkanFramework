@@ -28,11 +28,7 @@ class ApplicationThreaded : public T {
   
  protected:
   virtual FrameResource createFrameResource() override;
-  void createFrameResources() override;
   virtual void shutDown();
-  void updateCommandBuffers() override;
-  void updateResourcesDescriptors() override;
-
 
   void pushForDraw(uint32_t frame);
   void pushForPresent(uint32_t frame);

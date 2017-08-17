@@ -29,7 +29,7 @@ class SubmitInfo;
 class Application {
  public:
   // allocate and initialize objects
-  Application(std::string const& resource_path, Device& device, cmdline::parser const& cmd_parse);
+  Application(std::string const& resource_path, Device& device, uint32_t num_frames, cmdline::parser const& cmd_parse);
 
   // free resources
   virtual ~Application(){};
@@ -64,9 +64,9 @@ class Application {
   virtual void createFramebuffers() {};
   virtual void createFramebufferAttachments() {};
   virtual void createRenderPasses() {};
-  virtual void createFrameResources() {};
   virtual void updatePipelines() {};
-  virtual void updateCommandBuffers() = 0;
+  void updateCommandBuffers();
+  void updateResourcesDescriptors();
   // callbacks
   virtual void onResize(std::size_t width, std::size_t height);
   virtual void onFrameBegin() {};
@@ -78,11 +78,10 @@ class Application {
 
   virtual FrameResource createFrameResource();
   virtual void updateDescriptors() {};
-  virtual void updateResourcesDescriptors() = 0;
   virtual void updateResourceDescriptors(FrameResource& resource) {};
   // cannot be pure due to template argiment
   virtual void updateResourceCommandBuffers(FrameResource& res) {};
-  
+
   void submitDraw(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const;
@@ -106,9 +105,11 @@ class Application {
 
   glm::uvec2 m_resolution;
   // workaround so multithreaded apps can be run with single thread
-  virtual void startRenderThread() {};
   virtual void recordTransferBuffer(FrameResource& res) {};
   std::vector<FrameResource> m_frame_resources;
+
+ private:
+  void createFrameResources();
 };
 
 #endif

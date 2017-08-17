@@ -11,8 +11,7 @@ template<typename T>
 class ApplicationSingle : public T {
  public:
   ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
-  ~ApplicationSingle();
-  
+  virtual ~ApplicationSingle();
   
   void emptyDrawQueue() override;
   // default parser without arguments
@@ -20,9 +19,6 @@ class ApplicationSingle : public T {
   
  protected:
   virtual FrameResource createFrameResource() override;
-  void createFrameResources() override;
-  void updateCommandBuffers() override;
-  void updateResourcesDescriptors() override;
 
   void shutDown();
 

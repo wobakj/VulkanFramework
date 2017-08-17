@@ -14,12 +14,14 @@ cmdline::parser Application::getParser() {
   return cmd_parse;
 }
 
-Application::Application(std::string const& resource_path, Device& device, cmdline::parser const& cmd_parse)
+Application::Application(std::string const& resource_path, Device& device, uint32_t num_frames, cmdline::parser const& cmd_parse)
  :m_resource_path{resource_path}
  ,m_device(device)
  ,m_pipeline_cache{m_device}
  ,m_resolution{0, 0}
 {
+  // cannot initialize in lst, otherwise deleted copy constructor is invoked
+  m_frame_resources.resize(num_frames);
   createMemoryPools();
   createCommandPools();
 
@@ -55,6 +57,15 @@ void Application::submitDraw(FrameResource& res) {
   m_device.getQueue("graphics").submit({createDrawSubmitInfo(res).get()}, res.fence("draw"));
 }
 
+// workaround to prevent having to store number of frames as extra member
+void Application::createFrameResources() {
+  // create resources for one less image than swap chain
+  // only numImages - 1 images can be acquired at a time
+  for (auto& res : this->m_frame_resources) {
+    res = std::move(createFrameResource());
+  }
+}
+
 void Application::updateShaderPrograms() {
 	for (auto& pair : m_shaders) {
     pair.second = Shader{m_device, pair.second.paths()};
@@ -62,6 +73,16 @@ void Application::updateShaderPrograms() {
   recreatePipeline();
 }
 
+void Application::updateCommandBuffers() {
+  for (auto& res : m_frame_resources) {
+    updateResourceCommandBuffers(res);
+  }
+}
+void Application::updateResourcesDescriptors() {
+  for (auto& res : m_frame_resources) {
+    updateResourceDescriptors(res);
+  }
+}
 void Application::resize(std::size_t width, std::size_t height) {
   m_resolution = glm::uvec2{width, height};
   // draw queue is emptied in launcher::resize

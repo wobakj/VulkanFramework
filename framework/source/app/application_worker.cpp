@@ -19,7 +19,7 @@ cmdline::parser ApplicationWorker::getParser() {
 }
 
 ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse)
- :Application{resource_path, device, cmd_parse}
+ :Application{resource_path, device, image_count - 1, cmd_parse}
  ,m_ptr_buff_transfer{nullptr}
  ,m_should_close{false}
 {

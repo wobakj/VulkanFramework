@@ -17,7 +17,7 @@ cmdline::parser ApplicationWin::getParser() {
 }
 
 ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device, Surface const& surf, uint32_t image_count, cmdline::parser const& cmd_parse)
- :Application{resource_path, device, cmd_parse}
+ :Application{resource_path, device, image_count - 1, cmd_parse}
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
  ,m_surface{&surf}
 {
