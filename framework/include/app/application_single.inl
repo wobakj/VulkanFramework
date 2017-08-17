@@ -1,9 +1,11 @@
-// #include "app/application_single.hpp"
-
-#include "wrap/surface.hpp"
 #include "wrap/submit_info.hpp"
 
+#include "frame_resource.hpp"
+
+#include "cmdline.h"
+
 #include <vulkan/vulkan.hpp>
+
 template<typename T>
 cmdline::parser ApplicationSingle<T>::getParser() {
   return T::getParser();

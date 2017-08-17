@@ -2,15 +2,8 @@
 #define APPLICATION_WORKER_HPP
 
 #include "app/application.hpp"
-#include "wrap/swap_chain.hpp"
 #include "wrap/image_res.hpp"
 #include "wrap/memory.hpp"
-#include "statistics.hpp"
-#include "wrap/conversions.hpp"
-
-#include "camera.hpp"
-
-#include "cmdline.h"
 
 #include <queue>
 
@@ -32,27 +25,20 @@ class ApplicationWorker : public Application {
   bool shouldClose() const override;
 
  protected:
-  virtual FrameResource createFrameResource() override;
-  virtual void acquireImage(FrameResource& res) final;
-  virtual void presentFrame(FrameResource& res) final;
-  // void logic() override;
-
-  void onFrameEnd() override final;
-  void onFrameBegin() override final;
+  void acquireImage(FrameResource& res);
+  void presentFrame(FrameResource& res);
 
   glm::fmat4 const& matrixView() const;
   glm::fmat4 const& matrixFrustum() const;
+
+  virtual void onFrameEnd() override final;
+  virtual void onFrameBegin() override final;
 
  private:
   void createImages(uint32_t image_count);
   void createTransferBuffer();
   void pushImageToDraw(uint32_t frame);
   uint32_t pullImageToDraw();
-
-  // container for the shader programs
-  // Camera m_camera;
- protected:
-  Statistics m_statistics;
 
  private:
   std::queue<uint32_t> m_queue_images;

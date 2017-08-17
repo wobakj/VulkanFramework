@@ -1,18 +1,19 @@
 #ifndef APPLICATION_THREADED_HPP
 #define APPLICATION_THREADED_HPP
 
-#include <vulkan/vulkan.hpp>
-
 #include "semaphore.hpp"
-
-#include "cmdline.h"
 
 #include <vector>
 #include <atomic>
 #include <queue>
 #include <thread>
 
+namespace cmdline {
+  class parser;
+}
+
 class Surface;
+class Device;
 
 template<typename T>
 class ApplicationThreaded : public T {
@@ -21,7 +22,6 @@ class ApplicationThreaded : public T {
   ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames = 2);
   virtual ~ApplicationThreaded();
 
-  
   void emptyDrawQueue() override;
   // default parser without arguments
   static cmdline::parser getParser();
@@ -29,12 +29,6 @@ class ApplicationThreaded : public T {
  protected:
   virtual FrameResource createFrameResource() override;
   virtual void shutDown();
-
-  void pushForDraw(uint32_t frame);
-  void pushForPresent(uint32_t frame);
-  uint32_t pullForRecord();
-  uint32_t pullForDraw();
-  int64_t pullForPresent();
 
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_present_queue;
@@ -50,7 +44,12 @@ class ApplicationThreaded : public T {
   virtual void draw();
   std::atomic<bool> m_should_draw;
 
+  void pushForDraw(uint32_t frame);
+  uint32_t pullForRecord();
  private:
+  void pushForPresent(uint32_t frame);
+  uint32_t pullForDraw();
+  int64_t pullForPresent();
   void startRenderThread();
   virtual void render() override;
   virtual void drawLoop();

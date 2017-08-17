@@ -1,3 +1,4 @@
+#include "cmdline.h"
 
 template<typename T>
 cmdline::parser ApplicationThreaded<T>::getParser() {
@@ -59,11 +60,11 @@ void ApplicationThreaded<T>::shutDown() {
     m_thread_draw.join();
   }
   else {
-    throw std::runtime_error{"could not join thread"};
+    throw std::runtime_error{"could not join drawing thread"};
   }
   for (auto const& res : this->m_frame_resources) {
     // reset command buffers because the draw indirect buffer counts as reference to memory
-    // must be destroyed before memory is free
+    // must be destroyed before memory is freed
     for(auto const& command_buffer : res.command_buffers) {
       command_buffer.second->reset({});    
     }
@@ -97,8 +98,9 @@ void ApplicationThreaded<T>::render() {
   auto frame_record = pullForRecord();
   // get resource to record
   auto& resource_record = this->m_frame_resources.at(frame_record);
-
+  // transfer doesnt need to know about image
   this->recordTransferBuffer(resource_record);
+  // draw needs image
   this->acquireImage(resource_record);
   this->recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing

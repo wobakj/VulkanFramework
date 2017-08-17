@@ -3,8 +3,6 @@
 
 #include "app/application_threaded.hpp"
 
-#include <vulkan/vulkan.hpp>
-
 class Surface;
 class SubmitInfo;
 

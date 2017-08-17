@@ -17,11 +17,14 @@
 #include "camera.hpp"
 #include "transferrer.hpp"
 #include "frame_resource.hpp"
-
-#include "cmdline.h"
+#include "statistics.hpp"
 
 #include <map>
 #include <mutex>
+
+namespace cmdline {
+  class parser;
+}
 
 class FrameResource;
 class SubmitInfo;
@@ -56,6 +59,7 @@ class Application {
   // call at construction
   void createRenderResources();
   void recreatePipeline();
+  void submitDraw(FrameResource& res);
   // call at shader reload/pipeline config change
   virtual void createMemoryPools();
   virtual void createCommandPools();
@@ -65,8 +69,6 @@ class Application {
   virtual void createFramebufferAttachments() {};
   virtual void createRenderPasses() {};
   virtual void updatePipelines() {};
-  void updateCommandBuffers();
-  void updateResourcesDescriptors();
   // callbacks
   virtual void onResize(std::size_t width, std::size_t height);
   virtual void onFrameBegin() {};
@@ -82,7 +84,6 @@ class Application {
   // cannot be pure due to template argiment
   virtual void updateResourceCommandBuffers(FrameResource& res) {};
 
-  void submitDraw(FrameResource& res);
   virtual void recordDrawBuffer(FrameResource& res) = 0;
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const;
 
@@ -104,11 +105,15 @@ class Application {
   Transferrer m_transferrer;
 
   glm::uvec2 m_resolution;
+  Statistics m_statistics;
+
   // workaround so multithreaded apps can be run with single thread
   virtual void recordTransferBuffer(FrameResource& res) {};
   std::vector<FrameResource> m_frame_resources;
 
  private:
+  void updateCommandBuffers();
+  void updateResourcesDescriptors();
   void createFrameResources();
 };
 

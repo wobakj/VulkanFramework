@@ -3,6 +3,8 @@
 #include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "wrap/render_pass.hpp"
+#include "wrap/conversions.hpp"
+
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
 #include "node/node_model.hpp"

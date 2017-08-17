@@ -4,6 +4,8 @@
 #include "wrap/submit_info.hpp"
 
 #include "frame_resource.hpp"
+
+#include "cmdline.h"
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>

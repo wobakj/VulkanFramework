@@ -4,6 +4,7 @@
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
+#include "wrap/conversions.hpp"
 
 #include <vulkan/vulkan.hpp>
 

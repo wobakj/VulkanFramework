@@ -1,11 +1,13 @@
 #ifndef APPLICATION_SINGLE_HPP
 #define APPLICATION_SINGLE_HPP
 
-#include "app/application_win.hpp"
-
-#include "cmdline.h"
+namespace cmdline {
+  class parser;
+}
 
 class Surface;
+class SubmitInfo;
+class FrameResource;
 
 template<typename T>
 class ApplicationSingle : public T {

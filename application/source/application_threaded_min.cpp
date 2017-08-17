@@ -3,6 +3,7 @@
 #include "app/launcher_win.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
+#include "wrap/conversions.hpp"
 
 // c++ warpper
 #include <vulkan/vulkan.hpp>

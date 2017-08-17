@@ -3,12 +3,8 @@
 
 #include "app/application.hpp"
 #include "wrap/swap_chain.hpp"
-#include "statistics.hpp"
-#include "wrap/conversions.hpp"
 
 #include "camera.hpp"
-
-#include "cmdline.h"
 
 class FrameResource;
 class Surface;
@@ -29,20 +25,20 @@ class ApplicationWin : public Application {
   bool shouldClose() const override;
 
  protected:
-  virtual FrameResource createFrameResource() override;
-  virtual void acquireImage(FrameResource& res) final;
-  virtual void presentFrame(FrameResource& res) final;
-  virtual void presentFrame(FrameResource& res, vk::Queue const&) final;
-  void onFrameBegin() override;
-
-  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
+  void acquireImage(FrameResource& res);
+  void presentFrame(FrameResource& res);
+  void presentFrame(FrameResource& res, vk::Queue const&);
 
   glm::fmat4 const& matrixView() const;
   glm::fmat4 const& matrixFrustum() const;
-  // container for the shader programs
+  
+  virtual void onFrameBegin() override final;
+
+  virtual FrameResource createFrameResource() override;
+  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
+
   Camera m_camera;
   SwapChain m_swap_chain;
-  Statistics m_statistics;
   Surface const* m_surface;
 
  private:

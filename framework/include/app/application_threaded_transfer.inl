@@ -1,5 +1,3 @@
-// c++ wrapper
-#include <vulkan/vulkan.hpp>
 #include <wrap/submit_info.hpp>
 
 template<typename T> 
@@ -44,9 +42,10 @@ void ApplicationThreadedTransfer<T>::shutDown() {
     m_thread_transfer.join();
   }
   else {
-    throw std::runtime_error{"could not join thread"};
+    throw std::runtime_error{"could not join transfer thread"};
   }
   this->m_device.getQueue("transfer").waitIdle();
+  // shut down drawing thread
  ApplicationThreaded<T>::shutDown();
 }
 
@@ -69,11 +68,10 @@ void ApplicationThreadedTransfer<T>::render() {
   auto frame_record = this->pullForRecord();
   // get resource to record
   auto& resource_record = this->m_frame_resources.at(frame_record);
-  // wait for previous transfer
+  // transfer doesnt need to know about image
   this->recordTransferBuffer(resource_record);
-  // submitTransfer(resource_record);
   this->acquireImage(resource_record);
-  // wait for drawing finish until rerecording
+  // draw needs image
   this->recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
   pushForTransfer(frame_record);
