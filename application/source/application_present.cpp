@@ -99,7 +99,6 @@ void ApplicationPresent::createFrustra() {
   }
   // send resolution to workers
   glm::uvec2 cell_resolution{m_resolution / m_frustum_cells};
-  // MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
   // generate copy regions for runtime
   vk::ImageSubresourceLayers subresource;
   subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -176,9 +175,3 @@ void ApplicationPresent::onFrameEnd() {
   uint8_t flag = shouldClose() ? 1 : 0;
   MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 0);
 }
-///////////////////////////// misc functions ////////////////////////////////
-
-// // exe entry point
-// int main(int argc, char* argv[]) {
-//   LauncherWin::run<ApplicationPresent>(argc, argv);
-// }

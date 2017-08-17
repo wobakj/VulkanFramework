@@ -101,10 +101,6 @@ install(TARGETS vulkan_simple DESTINATION .)
 # target_link_libraries(vulkan_present framework ${MPI_CXX_LIBRARIES})
 # install(TARGETS vulkan_present DESTINATION .)
 
-add_executable(vulkan_threaded application/source/application_threaded_simple.cpp)
-target_link_libraries(vulkan_threaded framework)
-install(TARGETS vulkan_threaded DESTINATION .)
-
 add_executable(vulkan_minimal application/source/application_minimal.cpp)
 target_link_libraries(vulkan_minimal framework)
 install(TARGETS vulkan_minimal DESTINATION .)
