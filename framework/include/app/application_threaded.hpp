@@ -28,6 +28,8 @@ class ApplicationThreaded : public T {
   
  protected:
   virtual FrameResource createFrameResource() override;
+  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
+  
   virtual void shutDown();
 
   std::mutex m_mutex_draw_queue;

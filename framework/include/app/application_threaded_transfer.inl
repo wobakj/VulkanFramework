@@ -131,21 +131,17 @@ uint32_t ApplicationThreadedTransfer<T>::pullForTransfer() {
 
 template<typename T> 
 void ApplicationThreadedTransfer<T>::submitTransfer(FrameResource& res) {
-  std::vector<vk::SubmitInfo> submitInfos(1,vk::SubmitInfo{});
-
-  submitInfos[0].setCommandBufferCount(1);
-  submitInfos[0].setPCommandBuffers(&res.command_buffers.at("transfer").get());
-
-  vk::Semaphore signalSemaphores[]{res.semaphores.at("transfer")};
-  submitInfos[0].signalSemaphoreCount = 1;
-  submitInfos[0].pSignalSemaphores = signalSemaphores;
+  SubmitInfo info{};
+  info.addCommandBuffer(res.command_buffers.at("transfer").get());
+  info.addSignalSemaphore(res.semaphore("transfer"));
 
   res.fences.at("transfer").reset();
-  this->m_device.getQueue("transfer").submit(submitInfos, res.fences.at("transfer"));
+  this->m_device.getQueue("transfer").submit({info}, res.fences.at("transfer"));
 }
 
 template<typename T> 
 SubmitInfo ApplicationThreadedTransfer<T>::createDrawSubmitInfo(FrameResource const& res) const {
+  // ignore submit info of ApplicationThreaded
   SubmitInfo info = T::createDrawSubmitInfo(res);
   info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
   return info;

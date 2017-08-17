@@ -16,10 +16,11 @@
 #include <vector>
 #include <atomic>
 
-class ApplicationThreadedMin : public ApplicationThreaded<ApplicationWin> {
+template<typename T>
+class ApplicationMinimal : public T {
  public:
-  ApplicationThreadedMin(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
-  ~ApplicationThreadedMin();
+  ApplicationMinimal(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
+  ~ApplicationMinimal();
 
   static cmdline::parser getParser(); 
 
@@ -40,5 +41,7 @@ class ApplicationThreadedMin : public ApplicationThreaded<ApplicationWin> {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
 };
+
+#include "application_minimal.inl"
 
 #endif

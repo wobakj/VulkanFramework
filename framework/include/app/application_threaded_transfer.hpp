@@ -16,21 +16,21 @@ class ApplicationThreadedTransfer : public ApplicationThreaded<T> {
 
  protected:
   virtual FrameResource createFrameResource() override;
-  void startTransferThread();
   void shutDown() override;
  
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
 
  private:
   void render() override;
-  // virtual void recordTransferBuffer(FrameResource& res) = 0;
+  void startTransferThread();
   void submitTransfer(FrameResource& res);
 
   void pushForTransfer(uint32_t frame);
   uint32_t pullForTransfer();
 
   void transfer();
-  virtual void transferLoop();
+  void transferLoop();
+  
   std::mutex m_mutex_transfer_queue;
   std::queue<uint32_t> m_queue_transfer_frames;
   Semaphore m_semaphore_transfer;

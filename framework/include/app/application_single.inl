@@ -23,6 +23,8 @@ ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device
 
 template<typename T>
 void ApplicationSingle<T>::shutDown() {
+  // must wait on queue before waiting on fences, otherwise device is lost
+  this->m_device.getQueue("graphics").waitIdle();
   this->m_frame_resources.front().waitFences();
 }
 
@@ -39,6 +41,7 @@ template<typename T>
 FrameResource ApplicationSingle<T>::createFrameResource() {
   auto res = T::createFrameResource();
   res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+  res.addSemaphore("transfer");
   return res;
 }
 
@@ -64,8 +67,6 @@ void ApplicationSingle<T>::render() {
 
 template<typename T>
 SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) const {
-  // add transfer buffer to submission to make applications using transfer independent from underlying app
-  // dependencies are resolved via barriers
   SubmitInfo info = T::createDrawSubmitInfo(res);
   info.addCommandBuffer(res.command_buffers.at("transfer").get());
   return info;

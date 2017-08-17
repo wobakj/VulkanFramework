@@ -19,7 +19,7 @@ class ApplicationWorker : public Application {
 
   // react to key input
   inline virtual void keyCallback(int key, int scancode, int action, int mods) {};
-  void resize(std::size_t width, std::size_t height) override;
+  virtual void resize(std::size_t width, std::size_t height) override final;
   static cmdline::parser getParser(); 
 
   bool shouldClose() const override;

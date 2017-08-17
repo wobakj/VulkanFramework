@@ -1,3 +1,5 @@
+#include "wrap/submit_info.hpp"
+
 #include "cmdline.h"
 
 template<typename T>
@@ -76,6 +78,13 @@ FrameResource ApplicationThreaded<T>::createFrameResource() {
   auto res = T::createFrameResource();
   res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
   return res;
+}
+
+template<typename T>
+SubmitInfo ApplicationThreaded<T>::createDrawSubmitInfo(FrameResource const& res) const {
+  SubmitInfo info = T::createDrawSubmitInfo(res);
+  info.addCommandBuffer(res.command_buffers.at("transfer").get());
+  return info;
 }
 
 template<typename T>

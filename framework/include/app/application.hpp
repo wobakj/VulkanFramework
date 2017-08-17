@@ -43,11 +43,12 @@ class Application {
   inline virtual void mouseButtonCallback(int button, int action, int mods) {};
   // reload shader source and recreate pipeline
   void updateShaderPrograms();
-  // draw all objects
+  // frame step
   void frame();
+  // overwritten by win/worker app classes
   virtual void resize(std::size_t width, std::size_t height);
 
-  // render remaining recorded frames before pipeline rebuild
+  // render remaining recorded frames before pipeline is rebuilt
   // required for multithreaded rendering
   virtual void emptyDrawQueue() = 0;
   // default parser without arguments
@@ -60,7 +61,7 @@ class Application {
   void createRenderResources();
   void recreatePipeline();
   void submitDraw(FrameResource& res);
-  // call at shader reload/pipeline config change
+  // initialisation methods
   virtual void createMemoryPools();
   virtual void createCommandPools();
   virtual void createDescriptorPools() {};
@@ -68,24 +69,22 @@ class Application {
   virtual void createFramebuffers() {};
   virtual void createFramebufferAttachments() {};
   virtual void createRenderPasses() {};
-  virtual void updatePipelines() {};
-  // callbacks
-  virtual void onResize(std::size_t width, std::size_t height);
+  virtual FrameResource createFrameResource();
+  // overwritten by abstract apps
   virtual void onFrameBegin() {};
   virtual void onFrameEnd() {};
-
-  virtual void logic() {};
-  virtual void render() = 0;
-  virtual void updateView() {};
-
-  virtual FrameResource createFrameResource();
-  virtual void updateDescriptors() {};
-  virtual void updateResourceDescriptors(FrameResource& resource) {};
-  // cannot be pure due to template argiment
-  virtual void updateResourceCommandBuffers(FrameResource& res) {};
-
-  virtual void recordDrawBuffer(FrameResource& res) = 0;
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const;
+  virtual void render() = 0;
+  // update methods
+  virtual void updateDescriptors() {};
+  virtual void updatePipelines() {};
+  virtual void updateResourceDescriptors(FrameResource& resource) {};
+  // cannot be pure due to template argument
+  virtual void updateResourceCommandBuffers(FrameResource& res) {};
+  // overwritten by actual apps
+  virtual void onResize(std::size_t width, std::size_t height);
+  virtual void logic() {};
+  virtual void recordDrawBuffer(FrameResource& res) = 0;
 
   std::string m_resource_path; 
   Device& m_device;
