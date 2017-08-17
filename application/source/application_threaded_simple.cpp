@@ -29,7 +29,7 @@ struct UniformBufferObject {
 
 struct light_t {
   glm::fvec3 position;
-  float pad = 0;
+  float intensity;
   glm::fvec3 color;
   float radius;
 };
@@ -303,6 +303,7 @@ void ApplicationThreadedSimple::createLights() {
     light.position = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)} * 25.0f - 12.5f;
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
+    light.intensity = float(rand()) / float(RAND_MAX);
     buff_l.lights[i] = light;
   }
   m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));

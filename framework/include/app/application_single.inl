@@ -24,8 +24,7 @@ ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device
 
 template<typename T>
 void ApplicationSingle<T>::shutDown() {
-  // must wait on queue before waiting on fences, otherwise device is lost
-  this->m_device.getQueue("graphics").waitIdle();
+  this->m_device.getQueue("present").waitIdle();
   this->m_frame_resources.front().waitFences();
 }
 

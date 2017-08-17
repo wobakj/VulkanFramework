@@ -23,7 +23,7 @@ struct UniformBufferObject {
 
 struct light_t {
   glm::fvec3 position;
-  float pad = 0.0f;
+  float intensity;
   glm::fvec3 color;
   float radius;
 };
@@ -126,15 +126,9 @@ void ApplicationVulkan::recordDrawBuffer(FrameResource& res) {
   // make sure rendering to image is done before blitting
   // barrier is now performed through renderpass dependency
 
-  vk::ImageBlit blit{};
-  blit.srcSubresource = m_images.at("color_2").view().layer();
-  blit.dstSubresource = res.target_view->layer();
-  blit.srcOffsets[1] = offset_3d(res.target_view->extent());
-  blit.dstOffsets[1] = offset_3d(res.target_view->extent());
-
-  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw")->blitImage(m_images.at("color_2").get(), vk::ImageLayout::eTransferDstOptimal, m_swap_chain.image(res.image), vk::ImageLayout::eTransferDstOptimal, {blit}, vk::Filter::eNearest);
-  res.target_view->layoutTransitionCommand(res.command_buffers.at("draw").get(), vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").copyImage(this->m_images.at("color_2").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
 }
@@ -260,6 +254,7 @@ void ApplicationVulkan::createLights() {
     light.color = glm::fvec3{float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX)};
     // light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f * 100.0f;
     light.radius = float(rand()) / float(RAND_MAX) * 5.0f + 5.0f;
+    light.intensity = float(rand()) / float(RAND_MAX);
     buff_l.lights[i] = light;
   }
   m_transferrer.uploadBufferData(&buff_l, m_buffer_views.at("light"));
