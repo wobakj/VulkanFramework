@@ -49,7 +49,6 @@ cmdline::parser ApplicationLod<T>::getParser() {
   cmdline::parser cmd_parse{T::getParser()};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
-  cmd_parse.add<int>("threads", 't', "number of threads, default 3", false, 3, cmdline::range(1, 3));
   return cmd_parse;
 }
 

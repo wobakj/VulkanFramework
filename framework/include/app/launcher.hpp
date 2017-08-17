@@ -37,8 +37,9 @@ class Launcher {
   
   template<typename T>
   static cmdline::parser getParser() {
-    auto cmd_parse = T::getParser();
+    cmdline::parser cmd_parse = T::getParser();
     cmd_parse.add("debug", 'd', "debug with validation layers");
+    cmd_parse.add<int>("threads", 't', "number of threads, default 3", false, 3, cmdline::range(1, 3));
     return cmd_parse;
   }
 

@@ -93,9 +93,9 @@ target_link_libraries(scenegraph ${VULKAN_LIBRARY} framework)
 include_directories(application/include)
 
 # output executables
-add_executable(vulkan_test application/source/application_vulkan.cpp)
-target_link_libraries(vulkan_test framework)
-install(TARGETS vulkan_test DESTINATION .)
+add_executable(vulkan_simple application/source/application_simple.cpp)
+target_link_libraries(vulkan_simple framework)
+install(TARGETS vulkan_simple DESTINATION .)
 
 # add_executable(vulkan_present application/source/application_present.cpp)
 # target_link_libraries(vulkan_present framework ${MPI_CXX_LIBRARIES})

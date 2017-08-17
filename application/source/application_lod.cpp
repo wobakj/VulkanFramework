@@ -6,12 +6,10 @@
 #include "app/application_single.hpp"
 
 #include "application_lod.hpp"
-#include <iostream>
 
 int main(int argc, char* argv[]) {
 	for(int i = 1; i < argc; ++i) {
     std::string arg{argv[i]};
-    std::cout << arg << std::endl;
     if (arg == "-t") {
       std::string arg1{argv[(i + 1) % argc]};
       if (arg1 == "1") {
