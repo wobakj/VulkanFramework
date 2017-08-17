@@ -1,6 +1,3 @@
-#include "application_present.hpp"
-
-#include "app/launcher_win.hpp"
 #include "wrap/descriptor_pool_info.hpp"
 #include "texture_loader.hpp"
 #include "geometry_loader.hpp"
@@ -21,15 +18,17 @@
 #include <iostream>
 #include <chrono>
 
-cmdline::parser ApplicationPresent::getParser() {
-  cmdline::parser cmd_parse{ApplicationSingle::getParser()};
+template<typename T>
+cmdline::parser ApplicationPresent<T>::getParser() {
+  cmdline::parser cmd_parse{T::getParser()};
   cmd_parse.add<int>("cut", 'c', "cut size in MB, 0 - fourth of leaf level size", false, 0, cmdline::range(0, 1024 * 64));
   cmd_parse.add<int>("upload", 'u', "upload size in MB, 0 - 1/16 of leaf size", false, 0, cmdline::range(0, 1500));
   return cmd_parse;
 }
 
-ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
- :ApplicationSingle{resource_path, device, surf, cmd_parse}
+template<typename T>
+ApplicationPresent<T>::ApplicationPresent(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
+ :T{resource_path, device, surf, cmd_parse}
  ,m_ptr_buff_transfer{nullptr}
  ,m_frustum_cells{0}
 {  
@@ -38,23 +37,25 @@ ApplicationPresent::ApplicationPresent(std::string const& resource_path, Device&
   }
 
   createFrustra();
-  glm::uvec2 cell_resolution{m_resolution / m_frustum_cells};
+  glm::uvec2 cell_resolution{this->m_resolution / m_frustum_cells};
   MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
 
   createReceiveBuffer();
 
-  createRenderResources();
+  this->createRenderResources();
 }
 
-ApplicationPresent::~ApplicationPresent() {
-  m_buffers.at("transfer").unmap();
+template<typename T>
+ApplicationPresent<T>::~ApplicationPresent<T>() {
+  this->m_buffers.at("transfer").unmap();
 
-  shutDown();
+  this->shutDown();
 }
 
-void ApplicationPresent::createFrustra() {
-  m_frustra.clear();
-  glm::fmat4 const& projection = m_camera.projectionMatrix();
+template<typename T>
+void ApplicationPresent<T>::createFrustra() {
+  this->m_frustra.clear();
+  glm::fmat4 const& projection = this->m_camera.projectionMatrix();
 
   // general case
   Frustum2 frustum{};
@@ -71,7 +72,7 @@ void ApplicationPresent::createFrustra() {
   unsigned num_workers = MPI::COMM_WORLD.Get_size() - 1;
   m_frustum_cells = glm::uvec2{1, 1};
   if (num_workers == 1) {
-    m_frustra.emplace_back(test);
+    this->m_frustra.emplace_back(test);
   }
   else {
     float l2 = float(log2(num_workers));
@@ -94,11 +95,11 @@ void ApplicationPresent::createFrustra() {
       glm::uvec2 cell_coord{i % m_frustum_cells.x, i / m_frustum_cells.x};
 
       glm::fvec2 base_coord = glm::fvec2{base} + glm::fvec2{cell_coord} * cell_dims; 
-      m_frustra.emplace_back(glm::frustum(base_coord.x, base_coord.x + cell_dims.x, base_coord.y, base_coord.y + cell_dims.y, -base.z, -back.z));
+      this->m_frustra.emplace_back(glm::frustum(base_coord.x, base_coord.x + cell_dims.x, base_coord.y, base_coord.y + cell_dims.y, -base.z, -back.z));
     }
   }
   // send resolution to workers
-  glm::uvec2 cell_resolution{m_resolution / m_frustum_cells};
+  glm::uvec2 cell_resolution{this->m_resolution / m_frustum_cells};
   // generate copy regions for runtime
   vk::ImageSubresourceLayers subresource;
   subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -106,7 +107,7 @@ void ApplicationPresent::createFrustra() {
   subresource.baseArrayLayer = 0; 
   subresource.layerCount = 1; 
 
-  m_copy_regions.clear();
+  this->m_copy_regions.clear();
   int size_chunk = int(cell_resolution.x * cell_resolution.y * 4);
   for (unsigned i = 0; i < num_workers; ++i) {
     vk::BufferImageCopy region{};
@@ -116,18 +117,20 @@ void ApplicationPresent::createFrustra() {
     region.imageSubresource = subresource;
     region.imageOffset = vk::Offset3D{int32_t(i % m_frustum_cells.x * cell_resolution.x), int32_t(i / m_frustum_cells.x * cell_resolution.x), 0};
     region.imageExtent = vk::Extent3D{cell_resolution.x, cell_resolution.y, 1};
-    m_copy_regions.emplace_back(region);
+    this->m_copy_regions.emplace_back(region);
   }
 }
 
-void ApplicationPresent::receiveData() {
-  glm::uvec2 res_worker = m_resolution / m_frustum_cells;
+template<typename T>
+void ApplicationPresent<T>::receiveData() {
+  glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
   int size_chunk = int(res_worker.x * res_worker.y * 4);
   // copy chunk from process [1] to beginning
   MPI::COMM_WORLD.Gather(MPI::IN_PLACE, size_chunk, MPI::BYTE, m_ptr_buff_transfer - size_chunk, size_chunk, MPI::BYTE, 0);
 }
 
-void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
+template<typename T>
+void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
   receiveData();
 
   res.command_buffers.at("draw")->reset({});
@@ -136,42 +139,46 @@ void ApplicationPresent::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 
-  res.command_buffers.at("draw").copyBufferToImage(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferDstOptimal, m_copy_regions);
+  res.command_buffers.at("draw").copyBufferToImage(this->m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferDstOptimal, this->m_copy_regions);
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.command_buffers.at("draw")->end();
 }
 
-void ApplicationPresent::createReceiveBuffer() {
-  auto extent = extent_3d(m_swap_chain.extent()); 
+template<typename T>
+void ApplicationPresent<T>::createReceiveBuffer() {
+  auto extent = extent_3d(this->m_swap_chain.extent()); 
 
-  m_buffers["transfer"] = Buffer{m_device, extent.width * extent.height * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferSrc};
+  this->m_buffers["transfer"] = Buffer{this->m_device, extent.width * extent.height * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferSrc};
 
-  m_memory_image = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
-  m_buffers.at("transfer").bindTo(m_memory_image, 0);
-  m_ptr_buff_transfer = (uint8_t*)m_buffers.at("transfer").map();
+  this->m_memory_image = Memory{this->m_device, this->m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, this->m_buffers.at("transfer").size()};
+  this->m_buffers.at("transfer").bindTo(this->m_memory_image, 0);
+  m_ptr_buff_transfer = (uint8_t*)this->m_buffers.at("transfer").map();
 }
 
-void ApplicationPresent::logic() {
-  glm::uvec2 res_worker = m_resolution / m_frustum_cells;
+template<typename T>
+void ApplicationPresent<T>::logic() {
+  glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
   MPI::COMM_WORLD.Bcast((void*)&res_worker, 2, MPI::UNSIGNED, 0);
   // update camera
-  ApplicationSingle::logic();
+  T::logic();
   // broadcast matrices
   // identical view
-  MPI::COMM_WORLD.Bcast((void*)&m_camera.viewMatrix(), 16, MPI::FLOAT, 0);
+  MPI::COMM_WORLD.Bcast((void*)&this->m_camera.viewMatrix(), 16, MPI::FLOAT, 0);
   //different projection for each, copy frustra[0] to process 1 
-  MPI::COMM_WORLD.Scatter(m_frustra.data() - 1, 16, MPI::FLOAT, MPI::IN_PLACE, 16, MPI::FLOAT, 0);
+  MPI::COMM_WORLD.Scatter(this->m_frustra.data() - 1, 16, MPI::FLOAT, MPI::IN_PLACE, 16, MPI::FLOAT, 0);
 }
 
-void ApplicationPresent::onResize(std::size_t width, std::size_t height) {
+template<typename T>
+void ApplicationPresent<T>::onResize(std::size_t width, std::size_t height) {
   createFrustra();
   createReceiveBuffer();
 }
 
 // broadcast if shutdown
-void ApplicationPresent::onFrameEnd() {
-  uint8_t flag = shouldClose() ? 1 : 0;
+template<typename T>
+void ApplicationPresent<T>::onFrameEnd() {
+  uint8_t flag = this->shouldClose() ? 1 : 0;
   MPI::COMM_WORLD.Bcast(&flag, 1, MPI_BYTE, 0);
 }

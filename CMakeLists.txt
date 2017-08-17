@@ -109,7 +109,7 @@ add_executable(vulkan_lod application/source/application_lod.cpp)
 target_link_libraries(vulkan_lod framework)
 install(TARGETS vulkan_lod DESTINATION .)
 
-add_executable(vulkan_lod_mpi application/source/application_lod_mpi.cpp application/source/application_present.cpp)
+add_executable(vulkan_lod_mpi application/source/application_lod_mpi.cpp)
 target_link_libraries(vulkan_lod_mpi framework ${MPI_CXX_LIBRARIES})
 install(TARGETS vulkan_lod_mpi DESTINATION .)
 
