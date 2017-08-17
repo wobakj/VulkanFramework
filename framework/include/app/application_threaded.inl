@@ -14,6 +14,7 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
  ,m_semaphore_present{0}
  ,m_should_draw{true}
 {
+  std::cout << "using 2 threads" << std::endl;
 
   this->m_statistics.addTimer("sema_present");
   this->m_statistics.addTimer("sema_draw");
@@ -77,13 +78,20 @@ template<typename T>
 FrameResource ApplicationThreaded<T>::createFrameResource() {
   auto res = T::createFrameResource();
   res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+  res.addSemaphore("transfer");
   return res;
 }
 
 template<typename T>
 SubmitInfo ApplicationThreaded<T>::createDrawSubmitInfo(FrameResource const& res) const {
+  SubmitInfo info2{};
+  info2.addCommandBuffer(res.command_buffers.at("transfer").get());
+  info2.addSignalSemaphore(res.semaphore("transfer"));
+  this->m_device.getQueue("graphics").submit({info2}, {});
+  
   SubmitInfo info = T::createDrawSubmitInfo(res);
-  info.addCommandBuffer(res.command_buffers.at("transfer").get());
+  info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
+  // info.addCommandBuffer(res.command_buffers.at("transfer").get());
   return info;
 }
 

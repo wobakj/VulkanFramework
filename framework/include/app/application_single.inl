@@ -15,6 +15,7 @@ template<typename T>
 ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
  :T{resource_path, device, surf, 2, cmd_parse}
 {
+  std::cout << "using 1 thread" << std::endl;
   this->m_statistics.addTimer("gpu_draw");
   this->m_statistics.addTimer("render");
   this->m_statistics.addTimer("fence_acquire");
@@ -67,8 +68,14 @@ void ApplicationSingle<T>::render() {
 
 template<typename T>
 SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) const {
+  SubmitInfo info2{};
+  info2.addCommandBuffer(res.command_buffers.at("transfer").get());
+  info2.addSignalSemaphore(res.semaphore("transfer"));
+  this->m_device.getQueue("graphics").submit({info2}, {});
+  
   SubmitInfo info = T::createDrawSubmitInfo(res);
-  info.addCommandBuffer(res.command_buffers.at("transfer").get());
+  info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
+  // info.addCommandBuffer(res.command_buffers.at("transfer").get());
   return info;
 }
 
