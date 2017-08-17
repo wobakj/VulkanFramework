@@ -71,7 +71,7 @@ void ApplicationVulkan::logic() {
 }
 
 void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer")->reset({});
+  res.commandBuffer("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
@@ -79,58 +79,56 @@ void ApplicationVulkan::updateResourceCommandBuffers(FrameResource& res) {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
+  res.commandBuffer("gbuffer").bindPipeline(m_pipelines.at("scene"));
+  res.commandBuffer("gbuffer").bindDescriptorSets(0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("textures")}, {});
   // glm::fvec3 test{0.0f, 1.0f, 0.0f};
-  // res.command_buffers.at("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
-  res.command_buffers.at("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
-  res.command_buffers.at("gbuffer").bindGeometry(m_model_2);
+  // res.commandBuffer("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
+  res.commandBuffer("gbuffer")->setViewport(0, {m_swap_chain.asViewport()});
+  res.commandBuffer("gbuffer")->setScissor(0, {m_swap_chain.asRect()});
+  res.commandBuffer("gbuffer").bindGeometry(m_model_2);
 
-  res.command_buffers.at("gbuffer").drawGeometry();
+  res.commandBuffer("gbuffer").drawGeometry();
 
-  res.command_buffers.at("gbuffer").end();
+  res.commandBuffer("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
-  res.command_buffers.at("lighting")->reset({});
-  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("lighting")->reset({});
+  res.commandBuffer("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting").bindPipeline(m_pipelines.at("lights"));
-  res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("lighting")->setViewport(0, {m_swap_chain.asViewport()});
-  res.command_buffers.at("lighting")->setScissor(0, {m_swap_chain.asRect()});
+  res.commandBuffer("lighting").bindPipeline(m_pipelines.at("lights"));
+  res.commandBuffer("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipelines.at("lights").layout(), 0, {m_descriptor_sets.at("matrix"), m_descriptor_sets.at("lighting")}, {});
+  res.commandBuffer("lighting")->setViewport(0, {m_swap_chain.asViewport()});
+  res.commandBuffer("lighting")->setScissor(0, {m_swap_chain.asRect()});
 
-  res.command_buffers.at("lighting").bindGeometry(m_model);
+  res.commandBuffer("lighting").bindGeometry(m_model);
 
-  res.command_buffers.at("lighting").drawGeometry(NUM_LIGHTS);
+  res.commandBuffer("lighting").drawGeometry(NUM_LIGHTS);
 
-  res.command_buffers.at("lighting").end();
+  res.commandBuffer("lighting").end();
 }
 
 void ApplicationVulkan::recordDrawBuffer(FrameResource& res) {
-  res.command_buffers.at("draw")->reset({});
+  res.commandBuffer("draw")->reset({});
 
-  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.commandBuffer("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
+  res.commandBuffer("draw")->executeCommands({res.commandBuffer("gbuffer")});
   
-  res.command_buffers.at("draw")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("draw")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("lighting")});
+  res.commandBuffer("draw")->executeCommands({res.commandBuffer("lighting")});
 
-  res.command_buffers.at("draw")->endRenderPass();
-  // make sure rendering to image is done before blitting
-  // barrier is now performed through renderpass dependency
+  res.commandBuffer("draw")->endRenderPass();
 
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(this->m_images.at("color_2").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.commandBuffer("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.commandBuffer("draw").copyImage(this->m_images.at("color_2").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.commandBuffer("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-  res.command_buffers.at("draw")->end();
+  res.commandBuffer("draw")->end();
 }
 
 void ApplicationVulkan::createFramebuffers() {
