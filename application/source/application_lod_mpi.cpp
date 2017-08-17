@@ -6,11 +6,13 @@
 #include "app/application_worker.hpp"
 #include "app/application_win.hpp"
 
+#include "app/application_single.hpp"
 #include "app/application_threaded.hpp"
 #include "app/application_threaded_transfer.hpp"
 
 #include "application_present.hpp"
-#include "application_lod.hpp"
+// #include "application_lod.hpp"
+#include "application_simple.hpp"
 
 #include <mpi.h>
 
@@ -34,10 +36,10 @@ int main(int argc, char* argv[]) {
   double time_start = MPI::Wtime();
   std::cout << "Hello World, my rank is " << MPI::COMM_WORLD.Get_rank() << " of " << MPI::COMM_WORLD.Get_size() <<", response time "<< MPI::Wtime() - time_start << std::endl;
   if (MPI::COMM_WORLD.Get_rank() == 0) {
-    LauncherWin::run<ApplicationPresent<ApplicationThreaded<ApplicationWin>>>(argc, argv);
+    LauncherWin::run<ApplicationPresent<ApplicationSingle<ApplicationWin>>>(argc, argv);
   }
   else {
-    Launcher::run<ApplicationLod<ApplicationThreadedTransfer<ApplicationWorker>>>(argc, argv);
+    Launcher::run<ApplicationSimple<ApplicationThreadedTransfer<ApplicationWorker>>>(argc, argv);
   }
 
   MPI::Finalize();

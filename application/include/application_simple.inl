@@ -68,9 +68,9 @@ FrameResource ApplicationSimple<T>::createFrameResource() {
 
 template<typename T>
 void ApplicationSimple<T>::logic() {
-  if (this->m_camera.changed()) {
+  // if (this->m_camera.changed()) {
     updateView();
-  }
+  // }
 }
 
 template<typename T>
@@ -89,8 +89,8 @@ void ApplicationSimple<T>::updateResourceCommandBuffers(FrameResource& res) {
   res.commandBuffer("gbuffer").bindDescriptorSets(0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("textures")}, {});
   // glm::fvec3 test{0.0f, 1.0f, 0.0f};
   // res.commandBuffer("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
-  res.commandBuffer("gbuffer")->setViewport(0, {this->m_swap_chain.asViewport()});
-  res.commandBuffer("gbuffer")->setScissor(0, {this->m_swap_chain.asRect()});
+  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->m_resolution));
+  res.commandBuffer("gbuffer")->setScissor(0, rect(this->m_resolution));
   res.commandBuffer("gbuffer").bindGeometry(m_model_2);
 
   res.commandBuffer("gbuffer").drawGeometry();
@@ -103,8 +103,8 @@ void ApplicationSimple<T>::updateResourceCommandBuffers(FrameResource& res) {
 
   res.commandBuffer("lighting").bindPipeline(this->m_pipelines.at("lights"));
   res.commandBuffer("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("lights").layout(), 0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
-  res.commandBuffer("lighting")->setViewport(0, {this->m_swap_chain.asViewport()});
-  res.commandBuffer("lighting")->setScissor(0, {this->m_swap_chain.asRect()});
+  res.commandBuffer("lighting")->setViewport(0, viewport(this->m_resolution));
+  res.commandBuffer("lighting")->setScissor(0, rect(this->m_resolution));
 
   res.commandBuffer("lighting").bindGeometry(this->m_model);
 
@@ -168,7 +168,7 @@ void ApplicationSimple<T>::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
 
-  info_pipe.setResolution(this->m_swap_chain.extent());
+  info_pipe.setResolution(extent_2d(this->m_resolution));
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -199,7 +199,7 @@ void ApplicationSimple<T>::createPipelines() {
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
   info_pipe.setDepthStencil(depthStencil);
 
-  info_pipe2.setResolution(this->m_swap_chain.extent());
+  info_pipe2.setResolution(extent_2d(this->m_resolution));
   info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
@@ -277,12 +277,12 @@ void ApplicationSimple<T>::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = extent_3d(this->m_swap_chain.extent()); 
+  auto extent = extent_3d(this->m_resolution); 
   this->m_images["depth"] = ImageRes{this->m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("depth"));
 
-  this->m_images["color"] = ImageRes{this->m_device, extent, this->m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  this->m_images["color"] = ImageRes{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("color"));
 
@@ -294,7 +294,7 @@ void ApplicationSimple<T>::createFramebufferAttachments() {
   this->m_transferrer.transitionToLayout(this->m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("normal"));
 
-  this->m_images["color_2"] = ImageRes{this->m_device, extent, this->m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  this->m_images["color_2"] = ImageRes{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   this->m_transferrer.transitionToLayout(this->m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("color_2"));
 }
@@ -353,9 +353,8 @@ void ApplicationSimple<T>::createUniformBuffers() {
 template<typename T>
 void ApplicationSimple<T>::updateView() {
   UniformBufferObject ubo{};
-  ubo.view = this->m_camera.viewMatrix();
-  ubo.proj = this->m_camera.projectionMatrix();
-  ubo.model = glm::fmat4{1.0f};
+  ubo.view = this->matrixView();
+  ubo.proj = this->matrixFrustum();
   ubo.model = glm::scale(glm::fmat4{1.0f}, glm::fvec3{0.005f});
   ubo.normal = glm::inverseTranspose(ubo.view * ubo.model);
 
