@@ -13,6 +13,7 @@ namespace cmdline {
 }
 
 class Surface;
+class SubmitInfo;
 class Device;
 
 template<typename T>
