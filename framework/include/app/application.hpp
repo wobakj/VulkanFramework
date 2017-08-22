@@ -29,6 +29,7 @@ namespace cmdline {
 class FrameResource;
 class SubmitInfo;
 
+// TODO: check if memory copies of buffers use required device mem or data size
 class Application {
  public:
   // allocate and initialize objects
