@@ -26,7 +26,7 @@ class ApplicationWorker : public Application {
  protected:
   void acquireImage(FrameResource& res);
   void presentFrame(FrameResource& res);
-  virtual void onResize(std::size_t width, std::size_t height) override;
+  virtual void onResize() override;
 
   glm::fmat4 const& matrixView() const;
   glm::fmat4 const& matrixFrustum() const;

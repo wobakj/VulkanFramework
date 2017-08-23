@@ -35,7 +35,7 @@ class ApplicationScenegraphClustered : public ApplicationSingle<ApplicationWin> 
   void updateDescriptors() override;
 
   void createVertexBuffer();
-  void onResize(std::size_t width, std::size_t height) override;
+  void onResize() override;
   void createTextureSamplers();
 
   void updateLightGrid();

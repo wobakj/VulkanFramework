@@ -90,7 +90,7 @@ void ApplicationWorker::presentFrame(FrameResource& res) {
   pushImageToDraw(res.image);
 }
 
-void ApplicationWorker::onResize(std::size_t width, std::size_t height) {
+void ApplicationWorker::onResize() {
   while(!m_queue_images.empty()){
     m_queue_images.pop();
   }

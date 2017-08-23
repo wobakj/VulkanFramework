@@ -83,7 +83,7 @@ class Application {
   // cannot be pure due to template argument
   virtual void updateResourceCommandBuffers(FrameResource& res) {};
   // overwritten by actual apps
-  virtual void onResize(std::size_t width, std::size_t height);
+  virtual void onResize() {};
   virtual void logic() {};
   virtual void recordDrawBuffer(FrameResource& res) = 0;
 

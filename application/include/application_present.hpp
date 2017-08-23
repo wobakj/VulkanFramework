@@ -27,7 +27,7 @@ class ApplicationPresent : public T {
   void receiveData();
   // send out whether workers should stop
   virtual void onFrameEnd() override final;
-  virtual void onResize(std::size_t width, std::size_t height) override;
+  virtual void onResize() override;
 
   Memory m_memory_image;
   RenderPass m_render_pass;

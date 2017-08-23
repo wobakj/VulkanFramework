@@ -11,16 +11,18 @@
 #include "app/application_threaded_transfer.hpp"
 
 #include "application_present.hpp"
-// #include "application_lod.hpp"
-#include "application_simple.hpp"
+#include "application_lod.hpp"
+// #include "application_simple.hpp"
 
 #include <mpi.h>
 
 int main(int argc, char* argv[]) {
   // MPI::Init (argc, argv);
   int provided;
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-  bool threads_ok = provided >= MPI_THREAD_FUNNELED;
+  // auto thread_type = MPI_THREAD_FUNNELED;
+  auto thread_type = MPI_THREAD_SERIALIZED;
+  MPI_Init_thread(&argc, &argv, thread_type, &provided);
+  bool threads_ok = provided >= thread_type;
   assert(threads_ok);
 
   MPI::COMM_WORLD.Set_errhandler(MPI::ERRORS_THROW_EXCEPTIONS);
@@ -39,7 +41,7 @@ int main(int argc, char* argv[]) {
     LauncherWin::run<ApplicationPresent<ApplicationSingle<ApplicationWin>>>(argc, argv);
   }
   else {
-    Launcher::run<ApplicationSimple<ApplicationThreadedTransfer<ApplicationWorker>>>(argc, argv);
+    Launcher::run<ApplicationLod<ApplicationThreadedTransfer<ApplicationWorker>>>(argc, argv);
   }
 
   MPI::Finalize();

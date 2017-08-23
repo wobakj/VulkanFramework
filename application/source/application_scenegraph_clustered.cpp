@@ -625,9 +625,9 @@ void ApplicationScenegraphClustered::createUniformBuffers() {
   // m_buffer_views.at("uniform").bindTo(m_buffers.at("uniforms"));
 }
 
-void ApplicationScenegraphClustered::onResize(std::size_t width, std::size_t height) {
+void ApplicationScenegraphClustered::onResize() {
   auto cam = m_instance.dbCamera().get("cam");
-  cam.setAspect(float(width) /  float(height));
+  cam.setAspect(float(m_resolution.x) /  float(m_resolution.y));
   m_instance.dbCamera().set("cam", std::move(cam));
 }
 

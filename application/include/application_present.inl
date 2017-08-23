@@ -159,6 +159,7 @@ void ApplicationPresent<T>::createReceiveBuffer() {
 
 template<typename T>
 void ApplicationPresent<T>::logic() {
+  // resolution
   glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
   MPI::COMM_WORLD.Bcast((void*)&res_worker, 2, MPI::UNSIGNED, 0);
   // update camera
@@ -171,7 +172,7 @@ void ApplicationPresent<T>::logic() {
 }
 
 template<typename T>
-void ApplicationPresent<T>::onResize(std::size_t width, std::size_t height) {
+void ApplicationPresent<T>::onResize() {
   createFrustra();
   createReceiveBuffer();
 }

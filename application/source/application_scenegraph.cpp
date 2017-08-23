@@ -462,9 +462,9 @@ void ApplicationScenegraph::createDescriptorPools() {
   m_descriptor_sets["tonemapping"] = m_descriptor_pool.allocate(m_shaders.at("tonemapping").setLayout(0));
 }
 
-void ApplicationScenegraph::onResize(std::size_t width, std::size_t height) {
+void ApplicationScenegraph::onResize() {
   auto cam = m_instance.dbCamera().get("cam");
-  cam.setAspect(float(width) / float(height));
+  cam.setAspect(float(m_resolution.x) / float(m_resolution.x));
   m_instance.dbCamera().set("cam", std::move(cam));
 }
 
