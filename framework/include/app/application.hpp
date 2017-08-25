@@ -79,6 +79,7 @@ class Application {
   // update methods
   virtual void updateDescriptors() {};
   virtual void updatePipelines() {};
+  virtual void updateFrameResources();
   virtual void updateResourceDescriptors(FrameResource& resource) {};
   // cannot be pure due to template argument
   virtual void updateResourceCommandBuffers(FrameResource& res) {};
@@ -112,8 +113,6 @@ class Application {
   std::vector<FrameResource> m_frame_resources;
 
  private:
-  void updateCommandBuffers();
-  void updateResourcesDescriptors();
   void createFrameResources();
 };
 

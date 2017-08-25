@@ -73,16 +73,13 @@ void Application::updateShaderPrograms() {
   recreatePipeline();
 }
 
-void Application::updateCommandBuffers() {
+void Application::updateFrameResources() {
   for (auto& res : m_frame_resources) {
+    updateResourceDescriptors(res);
     updateResourceCommandBuffers(res);
   }
 }
-void Application::updateResourcesDescriptors() {
-  for (auto& res : m_frame_resources) {
-    updateResourceDescriptors(res);
-  }
-}
+
 void Application::resize(std::size_t width, std::size_t height) {
   m_resolution = glm::uvec2{width, height};
   // draw queue is emptied in launcher::resize
@@ -90,8 +87,7 @@ void Application::resize(std::size_t width, std::size_t height) {
   createFramebuffers();
   onResize();
   updateDescriptors();
-  updateResourcesDescriptors();
-  updateCommandBuffers();
+  updateFrameResources();
 }
 
 void Application::recreatePipeline() {
@@ -101,8 +97,7 @@ void Application::recreatePipeline() {
   updatePipelines();
   createDescriptorPools();
   updateDescriptors();
-  updateResourcesDescriptors();
-  updateCommandBuffers();
+  updateFrameResources();
 }
 
 void Application::createRenderResources() {
@@ -113,8 +108,7 @@ void Application::createRenderResources() {
   createPipelines();
   createDescriptorPools();
   updateDescriptors();
-  updateResourcesDescriptors();
-  updateCommandBuffers();
+  updateFrameResources();
 }
 
 void Application::createMemoryPools() {

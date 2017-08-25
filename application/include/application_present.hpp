@@ -7,7 +7,7 @@
 #include "wrap/sampler.hpp"
 
 #include <vector>
-#include <atomic>
+
 
 template<typename T>
 class ApplicationPresent : public T {
@@ -20,14 +20,19 @@ class ApplicationPresent : public T {
  private:
   virtual void logic() override final;
   virtual void recordDrawBuffer(FrameResource& res) override;
+  virtual void updateFrameResources() override;
   
   void createReceiveBuffer();
+  virtual FrameResource createFrameResource() override;
 
   void createFrustra();
-  void receiveData();
+  void receiveData(FrameResource& res);
   // send out whether workers should stop
   virtual void onFrameEnd() override final;
   virtual void onResize() override;
+
+  void pushForCopy(uint32_t frame);
+  uint32_t pullForCopy();
 
   Memory m_memory_image;
   RenderPass m_render_pass;
@@ -36,7 +41,7 @@ class ApplicationPresent : public T {
   Sampler m_sampler;
   uint8_t* m_ptr_buff_transfer;
   std::vector<glm::fmat4> m_frustra;
-  std::vector<vk::BufferImageCopy> m_copy_regions;
+  std::vector<std::vector<vk::BufferImageCopy>> m_copy_regions;
   glm::uvec2 m_frustum_cells;
 };
 

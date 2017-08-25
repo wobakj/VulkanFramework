@@ -53,6 +53,23 @@ ApplicationPresent<T>::~ApplicationPresent<T>() {
 }
 
 template<typename T>
+FrameResource ApplicationPresent<T>::createFrameResource() {
+  auto res = T::createFrameResource();
+  return res;
+}
+
+template<typename T>
+void ApplicationPresent<T>::updateFrameResources() {
+  for (auto& res : this->m_frame_resources) {
+    this->updateResourceDescriptors(res);
+    this->updateResourceCommandBuffers(res);
+    auto extent = extent_3d(this->m_resolution); 
+    res.buffer_views["transfer"] = BufferView{extent.width * extent.height * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferSrc};
+    res.buffer_views.at("transfer").bindTo(this->m_buffers.at("transfer"));
+  }
+}
+
+template<typename T>
 void ApplicationPresent<T>::createFrustra() {
   this->m_frustra.clear();
   glm::fmat4 const& projection = this->m_camera.projectionMatrix();
@@ -107,31 +124,40 @@ void ApplicationPresent<T>::createFrustra() {
   subresource.baseArrayLayer = 0; 
   subresource.layerCount = 1; 
 
-  this->m_copy_regions.clear();
+  this->m_copy_regions = std::vector<std::vector<vk::BufferImageCopy>>{this->m_frame_resources.size(), std::vector<vk::BufferImageCopy>{}};
   int size_chunk = int(cell_resolution.x * cell_resolution.y * 4);
-  for (unsigned i = 0; i < num_workers; ++i) {
-    vk::BufferImageCopy region{};
-    region.bufferOffset = size_chunk * i;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource = subresource;
-    region.imageOffset = vk::Offset3D{int32_t(i % m_frustum_cells.x * cell_resolution.x), int32_t(i / m_frustum_cells.x * cell_resolution.x), 0};
-    region.imageExtent = vk::Extent3D{cell_resolution.x, cell_resolution.y, 1};
-    this->m_copy_regions.emplace_back(region);
+  int size_image = int(this->m_resolution.x * this->m_resolution.y * 4);
+  // for each frame resource
+  for (unsigned i = 0; i < this->m_frame_resources.size(); ++i) {
+    // for each worker
+    for (unsigned j = 0; j < num_workers; ++j) {
+      vk::BufferImageCopy region{};
+      region.bufferOffset = size_image * i + size_chunk * j;
+      region.bufferRowLength = 0;
+      region.bufferImageHeight = 0;
+      region.imageSubresource = subresource;
+      region.imageOffset = vk::Offset3D{int32_t(j % m_frustum_cells.x * cell_resolution.x), int32_t(j / m_frustum_cells.x * cell_resolution.x), 0};
+      region.imageExtent = vk::Extent3D{cell_resolution.x, cell_resolution.y, 1};
+      this->m_copy_regions[i].emplace_back(region);
+    }
   }
 }
 
 template<typename T>
-void ApplicationPresent<T>::receiveData() {
+void ApplicationPresent<T>::receiveData(FrameResource& res) {
   glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
   int size_chunk = int(res_worker.x * res_worker.y * 4);
+  // int size_image = int(this->m_resolution.x * this->m_resolution.y * 4);
+  // copy into current subregion
+  size_t offset = res.buffer_views.at("transfer").offset();
   // copy chunk from process [1] to beginning
-  MPI::COMM_WORLD.Gather(MPI::IN_PLACE, size_chunk, MPI::BYTE, m_ptr_buff_transfer - size_chunk, size_chunk, MPI::BYTE, 0);
+  offset -= size_chunk; 
+  MPI::COMM_WORLD.Gather(MPI::IN_PLACE, size_chunk, MPI::BYTE, m_ptr_buff_transfer + offset, size_chunk, MPI::BYTE, 0);
 }
 
 template<typename T>
 void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
-  receiveData();
+  receiveData(res);
 
   res.command_buffers.at("draw")->reset({});
 
@@ -139,7 +165,7 @@ void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 
-  res.command_buffers.at("draw").copyBufferToImage(this->m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferDstOptimal, this->m_copy_regions);
+  res.command_buffers.at("draw").copyBufferToImage(this->m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferDstOptimal, m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
@@ -148,12 +174,13 @@ void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
 
 template<typename T>
 void ApplicationPresent<T>::createReceiveBuffer() {
-  auto extent = extent_3d(this->m_swap_chain.extent()); 
+  auto extent = extent_3d(this->m_resolution); 
 
-  this->m_buffers["transfer"] = Buffer{this->m_device, extent.width * extent.height * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferSrc};
+  this->m_buffers["transfer"] = Buffer{this->m_device, extent.width * extent.height * sizeof(glm::u8vec4) * this->m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferSrc};
 
   this->m_memory_image = Memory{this->m_device, this->m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, this->m_buffers.at("transfer").size()};
   this->m_buffers.at("transfer").bindTo(this->m_memory_image, 0);
+
   m_ptr_buff_transfer = (uint8_t*)this->m_buffers.at("transfer").map();
 }
 
