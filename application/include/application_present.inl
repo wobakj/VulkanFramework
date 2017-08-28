@@ -32,8 +32,8 @@ ApplicationPresent<T>::ApplicationPresent(std::string const& resource_path, Devi
  ,m_ptr_buff_transfer{nullptr}
  ,m_frustum_cells{0}
 {  
-  if (MPI::COMM_WORLD.Get_size() < 1) {
-    std::cerr << "Error - only one thread!" << std::endl;
+  if (MPI::COMM_WORLD.Get_size() < 2) {
+    throw std::runtime_error{"Error - only one thread!"};
   }
 
   createFrustra();

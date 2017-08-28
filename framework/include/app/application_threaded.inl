@@ -78,6 +78,9 @@ template<typename T>
 FrameResource ApplicationThreaded<T>::createFrameResource() {
   auto res = T::createFrameResource();
   res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+    // record once to prevent validation error when not used 
+  res.commandBuffer("transfer")->begin(vk::CommandBufferBeginInfo{});
+  res.commandBuffer("transfer")->end();
   res.addSemaphore("transfer");
   return res;
 }
