@@ -1,6 +1,7 @@
 #include "app/application_worker.hpp"
 
 #include "wrap/surface.hpp"
+#include "wrap/conversions.hpp"
 #include "wrap/submit_info.hpp"
 
 #include "frame_resource.hpp"
@@ -29,7 +30,6 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
   MPI::COMM_WORLD.Bcast(&m_resolution, 2, MPI::UNSIGNED, 0);
   std::cout << "resolution " << m_resolution.x << ", " << m_resolution.y << std::endl;
   
-  createImages(image_count);
   createSendBuffer();
 
   // m_statistics.addTimer("fence_acquire");
@@ -43,48 +43,51 @@ ApplicationWorker::~ApplicationWorker() {
   std::cout << "Present time: " << m_statistics.get("present") << " milliseconds " << std::endl;
 }
 
-void ApplicationWorker::createImages(uint32_t image_count) {
-  m_images_draw.clear();
-  for(uint32_t i = 0; i< image_count; ++i) {
-    m_images_draw.emplace_back(m_device, vk::Extent3D{m_resolution.x, m_resolution.y, 1}, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
-                                                                                                                          | vk::ImageUsageFlagBits::eTransferDst
-                                                                                                                          | vk::ImageUsageFlagBits::eColorAttachment);
-    m_allocators.at("images").allocate(m_images_draw.at(i));
-    m_transferrer.transitionToLayout(m_images_draw.at(i), vk::ImageLayout::eColorAttachmentOptimal);
-    m_queue_images.push(uint32_t(m_queue_images.size()));
-  }
-}
-
 void ApplicationWorker::createSendBuffer() {
-
-  auto extent = m_images_draw.front().extent();
-  std::vector<glm::u8vec4> color_data{extent.width * extent.height, glm::u8vec4{0, 255, 0, 255}};
-  for(unsigned x = 0; x < extent.width; ++x) {
-    for(unsigned y = 0; y < extent.height; ++y) {
-      color_data[y * extent.width + x] = glm::u8vec4{uint8_t(float(MPI::COMM_WORLD.Get_rank()) / float(MPI::COMM_WORLD.Get_size()) * 255), uint8_t(float(y) / float(extent.height) * 255), uint8_t(float(x) / float(extent.width) * 255), 255};
-    }
-  }
   // create upload buffer;
-  m_buffers["transfer"] = Buffer{m_device, color_data.size() * sizeof(color_data.front()), vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["transfer"] = Buffer{m_device, m_resolution.x * m_resolution.y * sizeof(glm::u8vec4) * m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferDst};
   m_memory_transfer = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
   m_buffers.at("transfer").bindTo(m_memory_transfer, 0);
   // std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
-  m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
+  // m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
 
-  m_ptr_buff_transfer = m_buffers.at("transfer").map();
+  m_ptr_buff_transfer = (uint8_t*)m_buffers.at("transfer").map();
+}
 
+void ApplicationWorker::updateFrameResources() {
+  this->m_copy_regions.clear();
+  vk::ImageSubresourceLayers subresource;
+  subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+  subresource.mipLevel = 0; 
+  subresource.baseArrayLayer = 0; 
+  subresource.layerCount = 1; 
+  
+  for (auto& res : this->m_frame_resources) {
+    this->updateResourceDescriptors(res);
+    this->updateResourceCommandBuffers(res);
+    // create view
+    res.buffer_views["transfer"] = BufferView{m_resolution.x * m_resolution.y * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferDst};
+    res.buffer_views.at("transfer").bindTo(this->m_buffers.at("transfer"));
+    // create copy region for this view
+    vk::BufferImageCopy region{};
+    region.bufferOffset = res.buffer_views.at("transfer").offset();
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource = subresource;
+    region.imageOffset = vk::Offset3D{};
+    region.imageExtent = extent_3d(m_resolution);
+    this->m_copy_regions.emplace_back(region);
+  }
 }
 
 void ApplicationWorker::acquireImage(FrameResource& res) {
-  uint32_t index = pullImageToDraw();
-  res.image = index;
-  res.target_view = &m_images_draw.at(index).view();
+  // uint32_t index = pullImageToDraw();
+  // res.image = index;
+  // res.target_view = &m_images_draw.at(index).view();
 }
 
 void ApplicationWorker::presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) {
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImageToBuffer(m_buffers.at("transfer"), view, layout);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.command_buffers.at("draw").copyImageToBuffer(view, layout, m_buffers.at("transfer"), m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
 }
 
 void ApplicationWorker::presentFrame(FrameResource& res) {
@@ -94,29 +97,13 @@ void ApplicationWorker::presentFrame(FrameResource& res) {
   this->m_statistics.stop("fence_draw");
   this->m_statistics.start("present");
   // write data to presenter
-  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, int(m_buffers.at("transfer").size()), MPI::BYTE, nullptr, int(m_buffers.at("transfer").size()), MPI::BYTE, 0);
-  pushImageToDraw(res.image);
+  int size = int(res.buffer_views.at("transfer").size());
+  MPI::COMM_WORLD.Gather(m_ptr_buff_transfer + res.buffer_views.at("transfer").offset(), size, MPI::BYTE, nullptr, size, MPI::BYTE, 0);
   this->m_statistics.stop("present");
 }
 
 void ApplicationWorker::onResize() {
-  while(!m_queue_images.empty()){
-    m_queue_images.pop();
-  }
-  createImages(uint32_t(m_images_draw.size()));
   createSendBuffer();
-}
-
-void ApplicationWorker::pushImageToDraw(uint32_t frame) {
-  m_queue_images.push(frame);
-}
-
-uint32_t ApplicationWorker::pullImageToDraw() {
-  assert(!m_queue_images.empty());
-  // get frame to draw
-  uint32_t frame_draw = m_queue_images.front();
-  m_queue_images.pop();
-  return frame_draw;
 }
 
 glm::fmat4 const& ApplicationWorker::matrixView() const {

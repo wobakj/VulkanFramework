@@ -142,7 +142,7 @@ void ApplicationPresent<T>::createFrustra() {
       region.bufferImageHeight = 0;
       region.imageSubresource = subresource;
       region.imageOffset = vk::Offset3D{int32_t(j % m_frustum_cells.x * cell_resolution.x), int32_t(j / m_frustum_cells.x * cell_resolution.x), 0};
-      region.imageExtent = vk::Extent3D{cell_resolution.x, cell_resolution.y, 1};
+      region.imageExtent = extent_3d(cell_resolution);
       this->m_copy_regions[i].emplace_back(region);
     }
   }
@@ -180,9 +180,8 @@ void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
 
 template<typename T>
 void ApplicationPresent<T>::createReceiveBuffer() {
-  auto extent = extent_3d(this->m_resolution); 
 
-  this->m_buffers["transfer"] = Buffer{this->m_device, extent.width * extent.height * sizeof(glm::u8vec4) * this->m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferSrc};
+  this->m_buffers["transfer"] = Buffer{this->m_device, this->m_resolution.x * this->m_resolution.y * sizeof(glm::u8vec4) * this->m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferSrc};
 
   this->m_memory_image = Memory{this->m_device, this->m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, this->m_buffers.at("transfer").size()};
   this->m_buffers.at("transfer").bindTo(this->m_memory_image, 0);

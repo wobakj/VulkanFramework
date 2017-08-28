@@ -5,8 +5,6 @@
 #include "wrap/image_res.hpp"
 #include "wrap/memory.hpp"
 
-#include <queue>
-
 class FrameResource;
 class Surface;
 
@@ -27,6 +25,7 @@ class ApplicationWorker : public Application {
   void acquireImage(FrameResource& res);
   void presentFrame(FrameResource& res);
   virtual void onResize() override;
+  virtual void updateFrameResources() override;
 
   glm::fmat4 const& matrixView() const;
   glm::fmat4 const& matrixFrustum() const;
@@ -43,10 +42,9 @@ class ApplicationWorker : public Application {
   uint32_t pullImageToDraw();
 
  private:
-  std::queue<uint32_t> m_queue_images;
   Memory m_memory_transfer;
-  void* m_ptr_buff_transfer;
-  std::vector<ImageRes> m_images_draw;
+  uint8_t* m_ptr_buff_transfer;
+  std::vector<vk::BufferImageCopy> m_copy_regions;
   bool m_should_close;
   glm::fmat4 m_mat_view;
   glm::fmat4 m_mat_frustum;

@@ -4,7 +4,6 @@
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
 #include "wrap/pipeline.hpp"
-#include "wrap/sampler.hpp"
 
 #include <vector>
 
@@ -38,7 +37,6 @@ class ApplicationPresent : public T {
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;
-  Sampler m_sampler;
   uint8_t* m_ptr_buff_transfer;
   std::vector<glm::fmat4> m_frustra;
   std::vector<std::vector<vk::BufferImageCopy>> m_copy_regions;

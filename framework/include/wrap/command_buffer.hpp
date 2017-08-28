@@ -55,6 +55,7 @@ class CommandBuffer : public WrapperCommandBuffer {
   void copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
   void copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, vk::ArrayProxy<vk::BufferImageCopy> const& regions) const;
   void copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
+  void copyImageToBuffer(ImageView const& image, vk::ImageLayout layout, Buffer const& buffer, vk::ArrayProxy<vk::BufferImageCopy> const& regions) const;
   
   void transitionLayout(ImageView const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
   void bufferBarrier(vk::Buffer const& buffer, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const;
