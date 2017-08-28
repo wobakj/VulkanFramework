@@ -49,7 +49,6 @@ FrameResource ApplicationSingle<T>::createFrameResource() {
 
 template<typename T>
 void ApplicationSingle<T>::render() { 
-
   this->acquireImage(this->m_frame_resources.front());
   this->m_statistics.start("record");
   // make sure no command buffer is in use

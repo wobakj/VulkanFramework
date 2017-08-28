@@ -35,7 +35,6 @@ class ApplicationThreaded : public ApplicationSingle<T> {
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_present_queue;
 
-  // std::vector<FrameResource> m_frame_resources;
   std::queue<uint32_t> m_queue_draw_frames;
   std::queue<uint32_t> m_queue_record_frames;
   std::queue<uint32_t> m_queue_present_frames;
@@ -51,7 +50,7 @@ class ApplicationThreaded : public ApplicationSingle<T> {
  private:
   void pushForPresent(uint32_t frame);
   uint32_t pullForDraw();
-  int64_t pullForPresent();
+  uint32_t pullForPresent();
   void startRenderThread();
   virtual void render() override;
   virtual void drawLoop();

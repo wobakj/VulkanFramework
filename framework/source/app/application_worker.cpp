@@ -39,6 +39,7 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
 ApplicationWorker::~ApplicationWorker() {
   m_buffers.at("transfer").unmap();
   std::cout << std::endl;
+  std::cout << "Worker" << std::endl;
   // std::cout << "Acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
   std::cout << "Present time: " << m_statistics.get("present") << " milliseconds " << std::endl;
 }
@@ -48,8 +49,6 @@ void ApplicationWorker::createSendBuffer() {
   m_buffers["transfer"] = Buffer{m_device, m_resolution.x * m_resolution.y * sizeof(glm::u8vec4) * m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferDst};
   m_memory_transfer = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
   m_buffers.at("transfer").bindTo(m_memory_transfer, 0);
-  // std::cout << "vector " << color_data.size() * sizeof(color_data.front()) << ",  buffer " << m_buffers.at("transfer").size() << std::endl;
-  // m_buffers.at("transfer").setData(color_data.data(), color_data.size() * sizeof(color_data.front()), 0);
 
   m_ptr_buff_transfer = (uint8_t*)m_buffers.at("transfer").map();
 }
@@ -81,9 +80,7 @@ void ApplicationWorker::updateFrameResources() {
 }
 
 void ApplicationWorker::acquireImage(FrameResource& res) {
-  // uint32_t index = pullImageToDraw();
-  // res.image = index;
-  // res.target_view = &m_images_draw.at(index).view();
+  //do nothing 
 }
 
 void ApplicationWorker::presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) {

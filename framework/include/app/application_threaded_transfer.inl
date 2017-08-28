@@ -89,12 +89,7 @@ void ApplicationThreadedTransfer<T>::render() {
 
 template<typename T> 
 void ApplicationThreadedTransfer<T>::transfer() {
-  this->m_statistics.start("sema_transfer");
-  m_semaphore_transfer.wait();
-  this->m_statistics.stop("sema_transfer");
   this->m_statistics.start("frame_transfer");
-  // allow closing of application
-  if (!m_should_transfer) return;
   static std::uint64_t frame = 0;
   ++frame;
   // get frame to transfer
@@ -150,7 +145,12 @@ SubmitInfo ApplicationThreadedTransfer<T>::createDrawSubmitInfo(FrameResource co
 
 template<typename T> 
 void ApplicationThreadedTransfer<T>::transferLoop() {
+  // wait for first frame
+  m_semaphore_transfer.wait();
   while (m_should_transfer) {
     transfer();
+    this->m_statistics.start("sema_transfer");
+    m_semaphore_transfer.wait();
+    this->m_statistics.stop("sema_transfer");
   }
 }

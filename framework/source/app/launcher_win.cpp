@@ -104,7 +104,6 @@ static std::string resourcePath(std::vector<std::string> const& args) {
 }
  
 void LauncherWin::mainLoop() {
-  // resize(m_window, m_window_width, m_window_height);
   m_device->waitIdle();
 
   // rendering loop
