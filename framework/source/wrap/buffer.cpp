@@ -22,7 +22,7 @@ Buffer::Buffer(Buffer && buffer)
 Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsageFlags const& usage)
  :Buffer{}
 {
-  m_device = &device;
+  m_device = device.get();
 
   m_info.size = size;
   m_info.usage = usage;
@@ -47,7 +47,7 @@ Buffer::~Buffer() {
 }
 
 void Buffer::destroy() {
-  (*m_device)->destroyBuffer(get());
+  m_device.destroyBuffer(get());
 }
 
 Buffer& Buffer::operator=(Buffer&& buffer) {
@@ -56,7 +56,7 @@ Buffer& Buffer::operator=(Buffer&& buffer) {
 }
 
 vk::MemoryRequirements Buffer::requirements() const {
-  return (*m_device)->getBufferMemoryRequirements(get());
+  return m_device.getBufferMemoryRequirements(get());
 }
 
 void Buffer::swap(Buffer& buffer) {
@@ -87,7 +87,7 @@ vk::DeviceSize Buffer::space() const {
 
 void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceBuffer::bindTo(mem, offst);
-  (*m_device)->bindBufferMemory(get(), mem, offst);
+  m_device.bindBufferMemory(get(), mem, offst);
 }
 
 void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
@@ -98,5 +98,5 @@ void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descriptor
   descriptorWrite.descriptorType = type;
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pBufferInfo = &m_desc_info;
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  m_device.updateDescriptorSets({descriptorWrite}, 0);
 }

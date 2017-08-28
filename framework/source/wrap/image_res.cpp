@@ -21,7 +21,7 @@ ImageRes::ImageRes(ImageRes && dev)
 ImageRes::ImageRes(Device const& device,  vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
  :ImageRes{}
 {  
-  m_device = &device;
+  m_device = device.get();
 
   if (extent.height > 1) {
     if (extent.depth > 1) {
@@ -68,7 +68,7 @@ ImageRes::~ImageRes() {
 
 void ImageRes::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceImage::bindTo(mem, offst);
-  (*m_device)->bindImageMemory(get(), mem, offst);
+  m_device.bindImageMemory(get(), mem, offst);
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
       (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&
@@ -78,7 +78,7 @@ void ImageRes::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) 
 }
 
 void ImageRes::destroy() {
-  (*m_device)->destroyImage(get());
+  m_device.destroyImage(get());
 }
 
 ImageRes& ImageRes::operator=(ImageRes&& dev) {
@@ -99,10 +99,10 @@ vk::Image const& ImageRes::obj() const {
   return get();
 }
 
-Device const& ImageRes::device() const {
-  return *m_device;
+vk::Device const& ImageRes::device() const {
+  return m_device;
 }
 
 vk::MemoryRequirements ImageRes::requirements() const {
-  return (*m_device)->getImageMemoryRequirements(get());
+  return m_device.getImageMemoryRequirements(get());
 }

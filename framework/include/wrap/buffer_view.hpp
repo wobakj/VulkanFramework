@@ -30,7 +30,7 @@ class BufferView {
  private:
   void swap(BufferView& dev);
 
-  Device const* m_device;
+  vk::Device m_device;
   vk::DescriptorBufferInfo m_desc_info;
   vk::BufferUsageFlagBits m_usage;
 };

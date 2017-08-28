@@ -34,7 +34,7 @@ class ImageRes : public ResourceImage, public Image {
   vk::ImageCreateInfo const& info() const override;
  private:
   vk::Image const& obj() const override;
-  Device const& device() const override;
+  vk::Device const& device() const override;
 
   void destroy() override;
 

@@ -138,31 +138,31 @@ ImageView::ImageView(ImageView && rhs)
 ImageView::ImageView(ImageRes const& rhs)
  :ImageView{}
 {
-  m_device = &rhs.device();
+  m_device = rhs.device();
   m_image = rhs.get();
   m_image_info = rhs.info();
   m_info = img_to_view(m_image, m_image_info); 
-  m_object = (*m_device)->createImageView(m_info);  
+  m_object = m_device.createImageView(m_info);  
 }
 
 ImageView::ImageView(Device const& dev, vk::Image const& rhs, vk::ImageCreateInfo const& img_info)
  :ImageView{}
 {
-  m_device = &dev;
+  m_device = dev.get();
   m_image = rhs;
   m_image_info = img_info;
   m_info = img_to_view(m_image, m_image_info); 
-  m_object = (*m_device)->createImageView(m_info);  
+  m_object = m_device.createImageView(m_info);  
 }
 
 ImageView::ImageView(Image const& rhs)
  :ImageView{}
 {
-  m_device = &rhs.device();
+  m_device = rhs.device();
   m_image = rhs.obj();
   m_image_info = rhs.info();
   m_info = img_to_view(m_image, m_image_info); 
-  m_object = (*m_device)->createImageView(m_info);  
+  m_object = m_device.createImageView(m_info);  
 }
 
 // ImageView::ImageView(Device const& dev, vk::Image )
@@ -172,7 +172,7 @@ ImageView::ImageView(Image const& rhs)
 //   m_image = rhs.get();
 //   m_image_info = rhs.info();
 //   m_info = img_to_view(m_image, m_image_info); 
-//   m_object = (*m_device)->createImageView(m_info);  
+//   m_object = m_device.createImageView(m_info);  
 // }
 
 ImageView::~ImageView() {
@@ -180,7 +180,7 @@ ImageView::~ImageView() {
 }
 
 void ImageView::destroy() {
-  (*m_device)->destroyImageView(get());
+  m_device.destroyImageView(get());
 }
 
 ImageView& ImageView::operator=(ImageView&& rhs) {
@@ -264,7 +264,7 @@ void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Im
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &imageInfo;
 
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
 void ImageView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index) const {
@@ -280,7 +280,7 @@ void ImageView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLa
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &imageInfo;
 
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
 void ImageView::swap(ImageView& rhs) {

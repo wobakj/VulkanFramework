@@ -53,7 +53,7 @@ class MemoryResource {
   virtual res_handle_t handle() const = 0;
 
  protected:
-  Device const* m_device;
+  vk::Device m_device;
   Allocator* m_alloc;
 };
 // for directly backed resources (buffer, image)

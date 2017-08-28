@@ -55,7 +55,7 @@ class ImageView : public WrapperImageView {
  protected:
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
 
   vk::Image m_image;
   vk::ImageCreateInfo m_image_info;

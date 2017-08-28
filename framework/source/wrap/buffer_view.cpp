@@ -6,7 +6,7 @@
 #include <iostream>
 
 BufferView::BufferView()
- :m_device{nullptr}
+ :m_device{}
  ,m_desc_info{}
 {}
 
@@ -37,7 +37,7 @@ void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descri
   descriptorWrite.descriptorType = type;
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pBufferInfo = &m_desc_info;
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
 void BufferView::swap(BufferView& rhs) {

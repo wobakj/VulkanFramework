@@ -44,7 +44,7 @@ bool operator<(res_handle_t const& a, res_handle_t const& b) {
 ///////////////////////////////////////////////////////////
 
 MemoryResource::MemoryResource()
- :m_device{nullptr}
+ :m_device{}
  ,m_alloc{nullptr}
 {}
 

@@ -41,7 +41,7 @@ class Image {
  protected:
   // virtual vk::ImageCreateInfo& info() = 0;
   virtual vk::Image const& obj() const = 0;
-  virtual Device const& device() const = 0;
+  virtual vk::Device const& device() const = 0;
   virtual void createView();
 
   ImageView m_view;
