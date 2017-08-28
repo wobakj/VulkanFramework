@@ -64,10 +64,18 @@ void ApplicationThreadedTransfer<T>::render() {
   auto frame_record = this->pullForRecord();
   // get resource to record
   auto& resource_record = this->m_frame_resources.at(frame_record);
+  // wait for previous transfer completion
+  this->m_statistics.start("fence_transfer");
+  resource_record.fence("transfer").wait();
+  this->m_statistics.stop("fence_transfer");
   // transfer doesnt need to know about image
   this->recordTransferBuffer(resource_record);
-  this->acquireImage(resource_record);
   // draw needs image
+  this->acquireImage(resource_record);
+  // wait for previous draw completion
+  this->m_statistics.start("fence_draw");
+  resource_record.fence("draw").wait();
+  this->m_statistics.stop("fence_draw");
   this->recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
   pushForTransfer(frame_record);
@@ -94,10 +102,7 @@ void ApplicationThreadedTransfer<T>::transfer() {
   // get resource to transfer
   auto& resource_transfer = this->m_frame_resources.at(frame_transfer);
   submitTransfer(resource_transfer);
-  // wait for transfering finish until rerecording
-  this->m_statistics.start("fence_transfer");
-  resource_transfer.fence("transfer").wait();
-  this->m_statistics.stop("fence_transfer");
+  // do not wait here for finishing anymore
   // make frame avaible for rerecording
   this->pushForDraw(frame_transfer);
   this->m_statistics.stop("frame_transfer");

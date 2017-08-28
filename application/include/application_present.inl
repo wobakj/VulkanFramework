@@ -36,6 +36,8 @@ ApplicationPresent<T>::ApplicationPresent(std::string const& resource_path, Devi
     throw std::runtime_error{"Error - only one thread!"};
   }
 
+  this->m_statistics.addTimer("receive");
+
   createFrustra();
   glm::uvec2 cell_resolution{this->m_resolution / m_frustum_cells};
   MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
@@ -50,6 +52,9 @@ ApplicationPresent<T>::~ApplicationPresent<T>() {
   this->m_buffers.at("transfer").unmap();
 
   this->shutDown();
+
+  std::cout << "Presenter" << std::endl;
+  std::cout << "Receive time: " << this->m_statistics.get("receive") << " milliseconds " << std::endl;
 }
 
 template<typename T>
@@ -145,6 +150,7 @@ void ApplicationPresent<T>::createFrustra() {
 
 template<typename T>
 void ApplicationPresent<T>::receiveData(FrameResource& res) {
+  this->m_statistics.start("receive");
   glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
   int size_chunk = int(res_worker.x * res_worker.y * 4);
   // int size_image = int(this->m_resolution.x * this->m_resolution.y * 4);
@@ -153,6 +159,7 @@ void ApplicationPresent<T>::receiveData(FrameResource& res) {
   // copy chunk from process [1] to beginning
   offset -= size_chunk; 
   MPI::COMM_WORLD.Gather(MPI::IN_PLACE, size_chunk, MPI::BYTE, m_ptr_buff_transfer + offset, size_chunk, MPI::BYTE, 0);
+  this->m_statistics.stop("receive");
 }
 
 template<typename T>

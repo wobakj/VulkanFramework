@@ -27,16 +27,6 @@ void ApplicationSingle<T>::shutDown() {
 }
 
 template<typename T>
-void ApplicationSingle<T>::emptyDrawQueue() {
-  // MUST wait after every present or everything freezes
-  this->m_device.getQueue("present").waitIdle();
-  // wait until draw resources are avaible before recallocation
-  for (auto const& res : this->m_frame_resources) {
-    res.waitFences();
-  }
-}
-
-template<typename T>
 ApplicationSingle<T>::~ApplicationSingle() {
   std::cout << std::endl;
   std::cout << "Base Thread" << std::endl;
@@ -88,4 +78,14 @@ SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) 
   info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
   // info.addCommandBuffer(res.command_buffers.at("transfer").get());
   return info;
+}
+
+template<typename T>
+void ApplicationSingle<T>::emptyDrawQueue() {
+  // MUST wait after every present or everything freezes
+  this->m_device.getQueue("present").waitIdle();
+  // wait until draw resources are avaible before recallocation
+  for (auto const& res : this->m_frame_resources) {
+    res.waitFences();
+  }
 }

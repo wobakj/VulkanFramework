@@ -68,6 +68,7 @@ void ApplicationThreaded<T>::present() {
     this->presentFrame(this->m_frame_resources.at(frame_present));
     m_queue_record_frames.push(uint32_t(frame_present));
   }  
+  //TODO: is the if necessary? 
 }
 
 template<typename T>
@@ -79,6 +80,10 @@ void ApplicationThreaded<T>::render() {
   auto frame_record = pullForRecord();
   // get resource to record
   auto& resource_record = this->m_frame_resources.at(frame_record);
+  // make sure no command buffer is in use
+  this->m_statistics.start("fence_draw");
+  resource_record.fence("draw").wait();
+  this->m_statistics.stop("fence_draw");
   // transfer doesnt need to know about image
   this->recordTransferBuffer(resource_record);
   // draw needs image
@@ -110,10 +115,7 @@ void ApplicationThreaded<T>::draw() {
   // get resource to draw
   auto& resource_draw = this->m_frame_resources.at(frame_draw);
   this->submitDraw(resource_draw);
-  // wait for drawing finish until rerecording
-  this->m_statistics.start("fence_draw");
-  resource_draw.fence("draw").wait();
-  this->m_statistics.stop("fence_draw");
+  // do not wait here for finishing anymore
   // make frame avaible for rerecording
   pushForPresent(frame_draw);
   this->m_statistics.stop("frame_draw");

@@ -32,15 +32,15 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
   createImages(image_count);
   createSendBuffer();
 
-  m_statistics.addTimer("fence_acquire");
-  m_statistics.addTimer("queue_present");
+  // m_statistics.addTimer("fence_acquire");
+  m_statistics.addTimer("present");
 }
 
 ApplicationWorker::~ApplicationWorker() {
   m_buffers.at("transfer").unmap();
   std::cout << std::endl;
-  std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
-  std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
+  // std::cout << "Acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
+  std::cout << "Present time: " << m_statistics.get("present") << " milliseconds " << std::endl;
 }
 
 void ApplicationWorker::createImages(uint32_t image_count) {
@@ -82,12 +82,17 @@ void ApplicationWorker::acquireImage(FrameResource& res) {
 }
 
 void ApplicationWorker::presentFrame(FrameResource& res) {
+  // make sure drawing is done
+  this->m_statistics.start("fence_draw");
   res.fence("draw").wait();
+  this->m_statistics.stop("fence_draw");
+  this->m_statistics.start("present");
   m_transferrer.transitionToLayout(*res.target_view, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferSrcOptimal);
   m_transferrer.copyImageToBuffer(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferSrcOptimal);
   // write data to presenter
   MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, int(m_buffers.at("transfer").size()), MPI::BYTE, nullptr, int(m_buffers.at("transfer").size()), MPI::BYTE, 0);
   pushImageToDraw(res.image);
+  this->m_statistics.stop("present");
 }
 
 void ApplicationWorker::onResize() {
