@@ -13,6 +13,7 @@ BlockAllocator::BlockAllocator()
  ,m_block_bytes{0}
  ,m_free_ranges{}
  ,m_used_ranges{}
+ ,m_ptrs{}
 {}
 
 BlockAllocator::BlockAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes)
@@ -20,6 +21,7 @@ BlockAllocator::BlockAllocator(Device const& device, uint32_t type_index, uint32
  ,m_block_bytes{block_bytes}
  ,m_free_ranges{}
  ,m_used_ranges{}
+ ,m_ptrs{}
 {}
 
 BlockAllocator::BlockAllocator(BlockAllocator && rhs)
@@ -28,6 +30,15 @@ BlockAllocator::BlockAllocator(BlockAllocator && rhs)
   swap(rhs);
 }
 
+BlockAllocator::~BlockAllocator() {
+  uint32_t idx_block = 0;
+  for(auto& block : m_blocks) {
+    if (m_ptrs[idx_block] != nullptr) {
+      block.unmap();
+    }
+    ++idx_block;
+  }
+}
 
 BlockAllocator& BlockAllocator::operator=(BlockAllocator&& rhs) {
   swap(rhs);
@@ -40,6 +51,7 @@ void BlockAllocator::swap(BlockAllocator& rhs) {
   std::swap(m_blocks, rhs.m_blocks);
   std::swap(m_free_ranges, rhs.m_free_ranges);
   std::swap(m_used_ranges, rhs.m_used_ranges);
+  std::swap(m_ptrs, rhs.m_ptrs);
 }
 
 void BlockAllocator::addResource(MemoryResource& resource, range_t const& range) {
@@ -64,6 +76,7 @@ BlockAllocator::iterator_t BlockAllocator::findMatchingRange(vk::MemoryRequireme
 void BlockAllocator::addBlock() {
   m_free_ranges.emplace_back(range_t{uint32_t(m_blocks.size()), 0u, m_block_bytes});
   m_blocks.emplace_back(Memory(*m_device, m_type_index, m_block_bytes));
+  m_ptrs.emplace_back(nullptr);
 }
 
 void BlockAllocator::allocate(MemoryResource& resource) {
@@ -159,4 +172,19 @@ void BlockAllocator::free(MemoryResource& resource) {
   }
   // remove object from used list
   m_used_ranges.erase(iter_object);
+}
+
+uint8_t* BlockAllocator::map(MemoryResource& resource) {
+  auto handle = res_handle_t{resource.handle()};
+  auto iter_object = m_used_ranges.find(handle);
+  if (iter_object == m_used_ranges.end()) {
+    throw std::runtime_error{"resource not found"};
+  }
+  // map block if not yet mapped
+  uint32_t idx_block = iter_object->second.block; 
+  if (m_ptrs[idx_block] == nullptr) {
+    m_ptrs[idx_block] = (uint8_t*)std::next(m_blocks.begin(), idx_block)->map(m_block_bytes, 0);
+  }
+
+  return m_ptrs[idx_block] + iter_object->second.offset;
 }

@@ -34,7 +34,7 @@ TransformDatabase::TransformDatabase(Device const& device)
   m_allocator_stage = StaticAllocator(*m_device, mem_type, m_buffer_stage.requirements().size);
   m_allocator_stage.allocate(m_buffer_stage);
 
-  m_ptr_mem_stage = static_cast<uint8_t*>(m_buffer_stage.map());
+  m_ptr_mem_stage = m_allocator_stage.map(m_buffer_stage);
 }
 
 TransformDatabase& TransformDatabase::operator=(TransformDatabase&& rhs) {

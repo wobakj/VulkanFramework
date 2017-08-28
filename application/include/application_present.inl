@@ -49,7 +49,6 @@ ApplicationPresent<T>::ApplicationPresent(std::string const& resource_path, Devi
 
 template<typename T>
 ApplicationPresent<T>::~ApplicationPresent<T>() {
-  this->m_buffers.at("transfer").unmap();
   // delete buffer before allocator
   this->m_buffers.erase("transfer");
 
@@ -189,7 +188,7 @@ void ApplicationPresent<T>::createReceiveBuffer() {
   m_allocator = StaticAllocator(this->m_device, mem_type, this->m_buffers.at("transfer").requirements().size);
   m_allocator.allocate(this->m_buffers.at("transfer"));
 
-  m_ptr_buff_transfer = (uint8_t*)this->m_buffers.at("transfer").map();
+  m_ptr_buff_transfer = m_allocator.map(this->m_buffers.at("transfer"));
 }
 
 template<typename T>

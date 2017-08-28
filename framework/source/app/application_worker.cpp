@@ -37,7 +37,6 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
 }
 
 ApplicationWorker::~ApplicationWorker() {
-  m_buffers.at("transfer").unmap();
   // delete buffer before allocator
   m_buffers.erase("transfer");
   std::cout << std::endl;
@@ -55,7 +54,7 @@ void ApplicationWorker::createSendBuffer() {
   m_allocator = StaticAllocator(this->m_device, mem_type, this->m_buffers.at("transfer").requirements().size);
   m_allocator.allocate(this->m_buffers.at("transfer"));
 
-  m_ptr_buff_transfer = (uint8_t*)m_buffers.at("transfer").map();
+  m_ptr_buff_transfer = m_allocator.map(m_buffers.at("transfer"));
 }
 
 void ApplicationWorker::updateFrameResources() {

@@ -33,15 +33,18 @@ class BlockAllocator : public Allocator {
 	BlockAllocator(Device const& device, uint32_t type_index, uint32_t block_bytes);
   BlockAllocator(BlockAllocator && rhs);
   BlockAllocator(BlockAllocator const&) = delete;
+  ~BlockAllocator();
 
   BlockAllocator& operator=(BlockAllocator&& rhs);
   BlockAllocator& operator=(BlockAllocator const&) = delete;
 
   void swap(BlockAllocator& rhs);
 
-  void allocate(MemoryResource& resource);
+  virtual void allocate(MemoryResource& resource) override;
 
-  void free(MemoryResource& resource);
+  virtual void free(MemoryResource& resource) override;
+
+  virtual uint8_t* map(MemoryResource& resource) override;
 
  private:
   void addBlock();
@@ -56,6 +59,8 @@ class BlockAllocator : public Allocator {
   // list of per-block free ranges with offset and size
   std::list<range_t> m_free_ranges;
   std::map<res_handle_t, range_t> m_used_ranges;
+  // for mapping
+  std::vector<uint8_t*> m_ptrs;
 };
 
 #endif

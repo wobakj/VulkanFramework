@@ -108,7 +108,7 @@ void GeometryLod::createStagingBuffers() {
     m_db_views_stage.back().back().bindTo(m_buffer_stage);
   } 
   // map staging memory once
-  m_ptr_mem_stage = (uint8_t*)(m_buffer_stage.map());
+  m_ptr_mem_stage = m_allocator_stage.map(m_buffer_stage);
 }
 
 void GeometryLod::createDrawingBuffers() {
@@ -143,7 +143,6 @@ void GeometryLod::createDrawingBuffers() {
 
 void GeometryLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   // get next staging slot
-  // m_db_views_stage.back()[0].setData(m_nodes[idx_node].data(), m_size_node, 0);
   std::memcpy(m_ptr_mem_stage + m_db_views_stage.back()[0].offset(), m_nodes[idx_node].data(), m_size_node);
   m_transferrer->copyBuffer(m_db_views_stage.back()[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_db_views_stage.back()[0].offset(), m_buffer_views[idx_slot].offset());
   // update slot occupation

@@ -16,7 +16,8 @@ class Allocator {
   virtual void allocate(MemoryResource& resource) = 0;
 
   virtual void free(MemoryResource& resource) = 0;
-
+  // get ptr to virtual address
+  virtual uint8_t* map(MemoryResource& resource) = 0;
  protected:
   Device const* m_device;
   uint32_t m_type_index;

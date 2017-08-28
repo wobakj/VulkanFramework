@@ -10,6 +10,7 @@ StaticAllocator::StaticAllocator()
  ,m_block_bytes{0}
  ,m_free_ranges{}
  ,m_used_ranges{}
+ ,m_ptr{nullptr}
 {}
 
 StaticAllocator::StaticAllocator(Device const& device, uint32_t type_index, size_t block_bytes)
@@ -18,12 +19,19 @@ StaticAllocator::StaticAllocator(Device const& device, uint32_t type_index, size
  ,m_block{device, m_type_index, m_block_bytes}
  ,m_free_ranges(1, range_t{0u, m_block_bytes})
  ,m_used_ranges{}
+ ,m_ptr{nullptr}
 {}
 
 StaticAllocator::StaticAllocator(StaticAllocator && rhs)
  :StaticAllocator{}
 {
   swap(rhs);
+}
+
+StaticAllocator::~StaticAllocator() {
+  if (m_ptr) {
+    m_block.unmap();
+  }
 }
 
 StaticAllocator& StaticAllocator::operator=(StaticAllocator&& rhs) {
@@ -37,6 +45,7 @@ void StaticAllocator::swap(StaticAllocator& rhs) {
   std::swap(m_block, rhs.m_block);
   std::swap(m_free_ranges, rhs.m_free_ranges);
   std::swap(m_used_ranges, rhs.m_used_ranges);
+  std::swap(m_ptr, rhs.m_ptr);
 }
 
 void StaticAllocator::addResource(MemoryResource& resource, range_t const& range) {
@@ -144,4 +153,22 @@ void StaticAllocator::free(MemoryResource& resource) {
   }
   // remove object from used list
   m_used_ranges.erase(iter_object);
+}
+
+
+void StaticAllocator::map() {
+  assert(!m_ptr);
+  m_ptr = (uint8_t*)m_block.map(m_block_bytes, 0);
+}
+
+uint8_t* StaticAllocator::map(MemoryResource& resource) {
+  if (!m_ptr) map();
+
+  auto handle = res_handle_t{resource.handle()};
+  auto iter_object = m_used_ranges.find(handle);
+  if (iter_object == m_used_ranges.end()) {
+    throw std::runtime_error{"resource not found"};
+  }
+
+  return m_ptr + iter_object->second.offset;
 }

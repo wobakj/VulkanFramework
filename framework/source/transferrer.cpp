@@ -58,7 +58,7 @@ void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image, vk::Ima
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(image.size());
-    m_buffer_stage->setData(data_ptr, image.size(), 0);
+    std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, image.size());
     transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal);
     copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height, image.info().extent.depth);
   }
@@ -70,7 +70,7 @@ void Transferrer::uploadBufferData(void const* data_ptr, BufferView& buffer_view
   { //lock staging memory and buffer
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(buffer_view.size());
-    m_buffer_stage->setData(data_ptr, buffer_view.size(), 0);
+    std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, buffer_view.size());
 
     copyBuffer(m_buffer_stage->get(), buffer_view.buffer(), buffer_view.size(), 0, buffer_view.offset());
   }
@@ -84,8 +84,7 @@ void Transferrer::uploadBufferData(void const* data_ptr, vk::DeviceSize const& s
   { //lock staging memory and buffer
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(size);
-    m_buffer_stage->setData(data_ptr, size, 0);
-
+    std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, size);
     copyBuffer(m_buffer_stage->get(), buffer.get(), size, 0, dst_offset);
   }
 }
