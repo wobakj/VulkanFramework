@@ -7,6 +7,7 @@
 #include "wrap/buffer_view.hpp"
 #include "wrap/command_pool.hpp"
 #include "wrap/command_buffer.hpp"
+#include "allocator_static.hpp"
 
 #include <iostream>
 
@@ -38,15 +39,18 @@ void Transferrer::swap(Transferrer& dev) {
   std::swap(m_device, dev.m_device);
   std::swap(m_command_buffer_help, dev.m_command_buffer_help);
   std::swap(m_buffer_stage, dev.m_buffer_stage);
-  std::swap(m_memory_stage, dev.m_memory_stage);
+  std::swap(m_allocator_stage, dev.m_allocator_stage);
 }
 
 void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
-  if (!m_memory_stage || m_memory_stage->size() < size) {
+  if (!m_buffer_stage || m_buffer_stage->size() < size) {
     // create new staging buffer
     m_buffer_stage = std::unique_ptr<Buffer>{new Buffer{*m_device, size, vk::BufferUsageFlagBits::eTransferSrc}};
-    m_memory_stage = std::unique_ptr<Memory>{new Memory{*m_device, m_buffer_stage->memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffer_stage->size()}};
-    m_buffer_stage->bindTo(*m_memory_stage, 0);
+    
+    auto mem_type = m_device->findMemoryType(m_buffer_stage->requirements().memoryTypeBits 
+                                , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    m_allocator_stage = std::unique_ptr<StaticAllocator>{new StaticAllocator{*m_device, mem_type, m_buffer_stage->requirements().size}};
+    m_allocator_stage->allocate(*m_buffer_stage);
   }
 }
 
@@ -263,7 +267,7 @@ void Transferrer::endSingleTimeCommands() const {
 
 void Transferrer::deallocate() {
   m_buffer_stage.reset();
-  m_memory_stage.reset();
+  m_allocator_stage.reset();
 }
 
 Device const& Transferrer::device() const {

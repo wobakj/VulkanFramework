@@ -17,7 +17,7 @@
 
 cmdline::parser ApplicationWorker::getParser() {
   cmdline::parser cmd_parse{Application::getParser()};
-  // cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
+  cmd_parse.add("present", 'p', "present mode", false, std::string{"fifo"}, cmdline::oneof<std::string>("fifo", "mailbox", "immediate"));
   return cmd_parse;
 }
 
@@ -38,6 +38,8 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
 
 ApplicationWorker::~ApplicationWorker() {
   m_buffers.at("transfer").unmap();
+  // delete buffer before allocator
+  m_buffers.erase("transfer");
   std::cout << std::endl;
   std::cout << "Worker" << std::endl;
   // std::cout << "Acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
@@ -47,8 +49,11 @@ ApplicationWorker::~ApplicationWorker() {
 void ApplicationWorker::createSendBuffer() {
   // create upload buffer;
   m_buffers["transfer"] = Buffer{m_device, m_resolution.x * m_resolution.y * sizeof(glm::u8vec4) * m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferDst};
-  m_memory_transfer = Memory{m_device, m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, m_buffers.at("transfer").size()};
-  m_buffers.at("transfer").bindTo(m_memory_transfer, 0);
+  
+  auto mem_type = this->m_device.findMemoryType(this->m_buffers.at("transfer").requirements().memoryTypeBits 
+                              , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  m_allocator = StaticAllocator(this->m_device, mem_type, this->m_buffers.at("transfer").requirements().size);
+  m_allocator.allocate(this->m_buffers.at("transfer"));
 
   m_ptr_buff_transfer = (uint8_t*)m_buffers.at("transfer").map();
 }

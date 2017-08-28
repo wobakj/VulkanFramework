@@ -3,6 +3,7 @@
 
 #include "wrap/command_buffer.hpp"
 
+#include "allocator_static.hpp"
 #include <vulkan/vulkan.hpp>
 
 #include <mutex>
@@ -61,8 +62,8 @@ class Transferrer {
 
   Device const* m_device;
   CommandBuffer m_command_buffer_help;
+  std::unique_ptr<StaticAllocator> m_allocator_stage;
   std::unique_ptr<Buffer> m_buffer_stage;
-  std::unique_ptr<Memory> m_memory_stage;
   mutable std::mutex m_mutex_single_command;
   mutable std::mutex m_mutex_staging;
 };

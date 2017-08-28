@@ -4,9 +4,9 @@
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
 #include "wrap/pipeline.hpp"
+#include "allocator_static.hpp"
 
 #include <vector>
-
 
 template<typename T>
 class ApplicationPresent : public T {
@@ -33,7 +33,7 @@ class ApplicationPresent : public T {
   void pushForCopy(uint32_t frame);
   uint32_t pullForCopy();
 
-  Memory m_memory_image;
+  StaticAllocator m_allocator;
   RenderPass m_render_pass;
   FrameBuffer m_framebuffer;
   ComputePipeline m_pipeline_compute;

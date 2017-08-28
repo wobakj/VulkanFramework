@@ -3,7 +3,8 @@
 
 #include "app/application.hpp"
 #include "wrap/image_res.hpp"
-#include "wrap/memory.hpp"
+
+#include "allocator_static.hpp"
 
 class FrameResource;
 class Surface;
@@ -42,7 +43,7 @@ class ApplicationWorker : public Application {
   uint32_t pullImageToDraw();
 
  private:
-  Memory m_memory_transfer;
+  StaticAllocator m_allocator;
   uint8_t* m_ptr_buff_transfer;
   std::vector<vk::BufferImageCopy> m_copy_regions;
   bool m_should_close;

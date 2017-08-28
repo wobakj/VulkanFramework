@@ -50,6 +50,8 @@ ApplicationPresent<T>::ApplicationPresent(std::string const& resource_path, Devi
 template<typename T>
 ApplicationPresent<T>::~ApplicationPresent<T>() {
   this->m_buffers.at("transfer").unmap();
+  // delete buffer before allocator
+  this->m_buffers.erase("transfer");
 
   this->shutDown();
 
@@ -182,9 +184,10 @@ template<typename T>
 void ApplicationPresent<T>::createReceiveBuffer() {
 
   this->m_buffers["transfer"] = Buffer{this->m_device, this->m_resolution.x * this->m_resolution.y * sizeof(glm::u8vec4) * this->m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferSrc};
-
-  this->m_memory_image = Memory{this->m_device, this->m_buffers.at("transfer").memoryTypeBits(), vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, this->m_buffers.at("transfer").size()};
-  this->m_buffers.at("transfer").bindTo(this->m_memory_image, 0);
+  auto mem_type = this->m_device.findMemoryType(this->m_buffers.at("transfer").requirements().memoryTypeBits 
+                              , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+  m_allocator = StaticAllocator(this->m_device, mem_type, this->m_buffers.at("transfer").requirements().size);
+  m_allocator.allocate(this->m_buffers.at("transfer"));
 
   m_ptr_buff_transfer = (uint8_t*)this->m_buffers.at("transfer").map();
 }
