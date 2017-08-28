@@ -51,7 +51,7 @@ class Application {
 
   // render remaining recorded frames before pipeline is rebuilt
   // required for multithreaded rendering
-  virtual void emptyDrawQueue() {};
+  virtual void emptyDrawQueue() = 0;
   // default parser without arguments
   static cmdline::parser getParser();
 
@@ -88,6 +88,8 @@ class Application {
   virtual void logic() {};
   // not pure, presenter only records transfer buffer
   virtual void recordDrawBuffer(FrameResource& res) {};
+  // MUST be called by high-level app before destruction -> wait on queues
+  virtual void shutDown() = 0;
 
   std::string m_resource_path; 
   Device& m_device;

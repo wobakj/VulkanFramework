@@ -18,7 +18,6 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
 
   this->m_statistics.addTimer("sema_present");
   this->m_statistics.addTimer("sema_draw");
-  this->m_statistics.addTimer("record");
   this->m_statistics.addTimer("frame_draw");
 
   // fill record queue with references to all frame resources
@@ -33,11 +32,9 @@ template<typename T>
 ApplicationThreaded<T>::~ApplicationThreaded() {
   std::cout << std::endl;
   std::cout << "Drawing Thread" << std::endl;
-  std::cout << "Average present semaphore time: " << this->m_statistics.get("sema_present") << " milliseconds " << std::endl;
-  std::cout << "Average record time: " << this->m_statistics.get("record") << " milliseconds " << std::endl;
-  std::cout << std::endl;
-  std::cout << "Average draw semaphore time: " << this->m_statistics.get("sema_draw") << " milliseconds " << std::endl;
-  std::cout << "Average draw frame time: " << this->m_statistics.get("frame_draw") << " milliseconds " << std::endl;
+  std::cout << "Draw semaphore time: " << this->m_statistics.get("sema_draw") << " milliseconds " << std::endl;
+  std::cout << "Draw frame time: " << this->m_statistics.get("frame_draw") << " milliseconds " << std::endl;
+  std::cout << "Present semaphore time: " << this->m_statistics.get("sema_present") << " milliseconds " << std::endl;
 }
 
 template<typename T>
@@ -49,7 +46,7 @@ void ApplicationThreaded<T>::startRenderThread() {
 template<typename T>
 void ApplicationThreaded<T>::shutDown() {
   emptyDrawQueue();
-  // shut down render thread
+  // shut down drawing thread
   m_should_draw = false;
   m_semaphore_draw.shutDown();
   m_thread_draw.join();

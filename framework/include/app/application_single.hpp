@@ -16,6 +16,7 @@ class ApplicationSingle : public T {
   ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames = 1);
   virtual ~ApplicationSingle();
   
+  virtual void emptyDrawQueue() override;
   // default parser without arguments
   static cmdline::parser getParser();
   

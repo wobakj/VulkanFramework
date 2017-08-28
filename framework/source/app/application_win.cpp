@@ -36,8 +36,8 @@ ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device,
 ApplicationWin::~ApplicationWin() {
   std::cout << std::endl;
   std::cout << "Swap Chain" << std::endl;
-  std::cout << "Average acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
-  std::cout << "Average present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
+  std::cout << "Acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
+  std::cout << "Present queue time: " << m_statistics.get("queue_present") << " milliseconds " << std::endl;
 }
 
 void ApplicationWin::createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t image_count) {

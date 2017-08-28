@@ -24,9 +24,9 @@ template<typename T>
 ApplicationThreadedTransfer<T>::~ApplicationThreadedTransfer() {
   std::cout << std::endl;
   std::cout << "Transfer Thread" << std::endl;
-  std::cout << "Average transfer semaphore time: " << this->m_statistics.get("sema_transfer") << " milliseconds " << std::endl;
-  std::cout << "Average transfer fence time: " << this->m_statistics.get("fence_transfer") << " milliseconds " << std::endl;
-  std::cout << "Average transfer frame time: " << this->m_statistics.get("frame_transfer") << " milliseconds " << std::endl;
+  std::cout << "Transfer semaphore time: " << this->m_statistics.get("sema_transfer") << " milliseconds " << std::endl;
+  std::cout << "Transfer fence time: " << this->m_statistics.get("fence_transfer") << " milliseconds " << std::endl;
+  std::cout << "Transfer frame time: " << this->m_statistics.get("frame_transfer") << " milliseconds " << std::endl;
 }
 
 template<typename T> 

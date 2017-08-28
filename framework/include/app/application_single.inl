@@ -17,12 +17,17 @@ ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device
 {
   std::cout << "using 1 thread" << std::endl;
   this->m_statistics.addTimer("gpu_draw");
-  this->m_statistics.addTimer("render");
+  this->m_statistics.addTimer("record");
   this->m_statistics.addTimer("fence_draw");
 }
 
 template<typename T>
 void ApplicationSingle<T>::shutDown() {
+  emptyDrawQueue();
+}
+
+template<typename T>
+void ApplicationSingle<T>::emptyDrawQueue() {
   // MUST wait after every present or everything freezes
   this->m_device.getQueue("present").waitIdle();
   // wait until draw resources are avaible before recallocation
@@ -33,10 +38,11 @@ void ApplicationSingle<T>::shutDown() {
 
 template<typename T>
 ApplicationSingle<T>::~ApplicationSingle() {
-  std::cout << "Average GPU draw time: " << this->m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << std::endl;
-  std::cout << "Average render time: " << this->m_statistics.get("render") << " milliseconds" << std::endl;
-  std::cout << "Average draw fence time: " << this->m_statistics.get("fence_draw") << " milliseconds" << std::endl;
+  std::cout << "Base Thread" << std::endl;
+  std::cout << "Record time: " << this->m_statistics.get("record") << " milliseconds" << std::endl;
+  std::cout << "Draw fence time: " << this->m_statistics.get("fence_draw") << " milliseconds" << std::endl;
+  std::cout << "GPU draw time: " << this->m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
 }
 
 template<typename T>
@@ -55,7 +61,7 @@ template<typename T>
 void ApplicationSingle<T>::render() { 
 
   this->acquireImage(this->m_frame_resources.front());
-  this->m_statistics.start("render");
+  this->m_statistics.start("record");
   // make sure no command buffer is in use
   this->m_statistics.start("fence_draw");
   this->m_frame_resources.front().fence("draw").wait();
@@ -66,9 +72,9 @@ void ApplicationSingle<T>::render() {
   this->recordDrawBuffer(this->m_frame_resources.front());
   
   this->submitDraw(this->m_frame_resources.front());
+  this->m_statistics.stop("record");
 
   this->presentFrame(this->m_frame_resources.front());
-  this->m_statistics.stop("render");
 }
 
 template<typename T>
