@@ -68,7 +68,7 @@ ImageRes::~ImageRes() {
 
 void ImageRes::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceImage::bindTo(mem, offst);
-  (*m_device)->bindImageMemory(get(), memory(), offset());
+  (*m_device)->bindImageMemory(get(), mem, offst);
 
   if ((info().usage ^ vk::ImageUsageFlagBits::eTransferSrc) &&
       (info().usage ^ vk::ImageUsageFlagBits::eTransferDst) &&

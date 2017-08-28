@@ -31,36 +31,8 @@ bool operator==(res_handle_t const& a, res_handle_t const& b);
 bool operator!=(res_handle_t const& a, res_handle_t const& b);
 bool operator<(res_handle_t const& a, res_handle_t const& b);
 
-// for directly backed resources (buffer, imeage) and subresources (buffer view)
-class MappableResource {
- public:
-  MappableResource();
-  virtual ~MappableResource();
-
-  virtual void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset);
-
-  void swap(MappableResource& rhs);
-
-  virtual vk::DeviceSize size() const = 0;
-
-  virtual void* map();
-  virtual void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
-  virtual void unmap();
-  virtual void setData(void const* data);
-  virtual void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset);
-
- protected:
-  vk::DeviceSize const& offset() const;
-  vk::DeviceMemory const& memory() const;
-
-  Device const* m_device;
-  vk::DeviceMemory m_memory;
- private:
-  vk::DeviceSize m_offset;
-  bool m_mapped;
-};
 // for allocator interface
-class MemoryResource :public MappableResource {
+class MemoryResource {
  public:
   MemoryResource();
   virtual ~MemoryResource() {};
@@ -71,15 +43,17 @@ class MemoryResource :public MappableResource {
 
   void swap(MemoryResource& rhs);
 
+  virtual void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) {};
   virtual vk::MemoryRequirements requirements() const = 0;
 
   vk::DeviceSize alignment() const;
-  vk::DeviceSize size() const override;
+  vk::DeviceSize size() const;
   uint32_t memoryTypeBits() const;
 
   virtual res_handle_t handle() const = 0;
 
  protected:
+  Device const* m_device;
   Allocator* m_alloc;
 };
 // for directly backed resources (buffer, image)

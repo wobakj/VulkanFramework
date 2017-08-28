@@ -87,7 +87,7 @@ vk::DeviceSize Buffer::space() const {
 
 void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceBuffer::bindTo(mem, offst);
-  (*m_device)->bindBufferMemory(get(), memory(), offset());
+  (*m_device)->bindBufferMemory(get(), mem, offst);
 }
 
 void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {

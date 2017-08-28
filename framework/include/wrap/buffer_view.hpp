@@ -7,7 +7,7 @@
 
 class Buffer;
 // class to divide buffer into subresources which can be bound to a drescriptor set
-class BufferView : public MappableResource {
+class BufferView {
  public:
   
   BufferView();
@@ -30,6 +30,7 @@ class BufferView : public MappableResource {
  private:
   void swap(BufferView& dev);
 
+  Device const* m_device;
   vk::DescriptorBufferInfo m_desc_info;
   vk::BufferUsageFlagBits m_usage;
 };
