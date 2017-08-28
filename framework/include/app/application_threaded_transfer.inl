@@ -15,7 +15,7 @@ ApplicationThreadedTransfer<T>::ApplicationThreadedTransfer(std::string const& r
 
   this->m_statistics.addTimer("fence_transfer");
   this->m_statistics.addTimer("sema_transfer");
-  this->m_statistics.addTimer("transfer");
+  this->m_statistics.addTimer("frame_transfer");
 
   startTransferThread();
 }
@@ -23,29 +23,23 @@ ApplicationThreadedTransfer<T>::ApplicationThreadedTransfer(std::string const& r
 template<typename T> 
 ApplicationThreadedTransfer<T>::~ApplicationThreadedTransfer() {
   std::cout << std::endl;
+  std::cout << "Transfer Thread" << std::endl;
   std::cout << "Average transfer semaphore time: " << this->m_statistics.get("sema_transfer") << " milliseconds " << std::endl;
   std::cout << "Average transfer fence time: " << this->m_statistics.get("fence_transfer") << " milliseconds " << std::endl;
-  std::cout << "Average transfer time: " << this->m_statistics.get("transfer") << " milliseconds " << std::endl;
+  std::cout << "Average transfer frame time: " << this->m_statistics.get("frame_transfer") << " milliseconds " << std::endl;
 }
 
 template<typename T> 
 void ApplicationThreadedTransfer<T>::startTransferThread() {
-  if (!m_thread_transfer.joinable()) { 
-    m_thread_transfer = std::thread(&ApplicationThreadedTransfer<T>::transferLoop, this);
-  }
+  m_thread_transfer = std::thread(&ApplicationThreadedTransfer<T>::transferLoop, this);
 }
 
 template<typename T> 
 void ApplicationThreadedTransfer<T>::shutDown() {
   // shut down transfer thread
   m_should_transfer = false;
-  if(m_thread_transfer.joinable()) {
-    m_semaphore_transfer.shutDown();
-    m_thread_transfer.join();
-  }
-  else {
-    throw std::runtime_error{"could not join transfer thread"};
-  }
+  m_semaphore_transfer.shutDown();
+  m_thread_transfer.join();
   this->m_device.getQueue("transfer").waitIdle();
   // shut down drawing thread
  ApplicationThreaded<T>::shutDown();
@@ -90,7 +84,7 @@ void ApplicationThreadedTransfer<T>::transfer() {
   this->m_statistics.start("sema_transfer");
   m_semaphore_transfer.wait();
   this->m_statistics.stop("sema_transfer");
-  this->m_statistics.start("transfer");
+  this->m_statistics.start("frame_transfer");
   // allow closing of application
   if (!m_should_transfer) return;
   static std::uint64_t frame = 0;
@@ -106,7 +100,7 @@ void ApplicationThreadedTransfer<T>::transfer() {
   this->m_statistics.stop("fence_transfer");
   // make frame avaible for rerecording
   this->pushForDraw(frame_transfer);
-  this->m_statistics.stop("transfer");
+  this->m_statistics.stop("frame_transfer");
 }
 
 template<typename T> 

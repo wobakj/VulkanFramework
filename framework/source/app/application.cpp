@@ -32,6 +32,9 @@ FrameResource Application::createFrameResource() {
   auto res = FrameResource{m_device};
   res.addFence("draw");
   res.setCommandBuffer("draw", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+  // record once to prevent validation error when not recorded later
+  res.commandBuffer("draw")->begin(vk::CommandBufferBeginInfo{});
+  res.commandBuffer("draw")->end();
   return res;
 }
 

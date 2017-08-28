@@ -86,7 +86,8 @@ class Application {
   // overwritten by actual apps
   virtual void onResize() {};
   virtual void logic() {};
-  virtual void recordDrawBuffer(FrameResource& res) = 0;
+  // not pure, presenter only records transfer buffer
+  virtual void recordDrawBuffer(FrameResource& res) {};
 
   std::string m_resource_path; 
   Device& m_device;

@@ -19,11 +19,8 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
   this->m_statistics.addTimer("sema_present");
   this->m_statistics.addTimer("sema_draw");
   this->m_statistics.addTimer("fence_draw");
-  this->m_statistics.addTimer("fence_draw2");
-  this->m_statistics.addTimer("fence_acquire");
-  this->m_statistics.addTimer("queue_present");
   this->m_statistics.addTimer("record");
-  this->m_statistics.addTimer("draw");
+  this->m_statistics.addTimer("frame_draw");
 
   // fill record queue with references to all frame resources
   for (uint32_t i = 0; i < this->m_frame_resources.size(); ++i) {
@@ -36,21 +33,18 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
 template<typename T>
 ApplicationThreaded<T>::~ApplicationThreaded() {
   std::cout << std::endl;
+  std::cout << "Drawing Thread" << std::endl;
   std::cout << "Average present semaphore time: " << this->m_statistics.get("sema_present") << " milliseconds " << std::endl;
-  // std::cout << "Average present queue time: " << this->m_statistics.get("queue_present") << " milliseconds " << std::endl;
-  std::cout << "Average acquire fence time: " << this->m_statistics.get("fence_acquire") << " milliseconds " << std::endl;
   std::cout << "Average record time: " << this->m_statistics.get("record") << " milliseconds " << std::endl;
   std::cout << std::endl;
   std::cout << "Average draw semaphore time: " << this->m_statistics.get("sema_draw") << " milliseconds " << std::endl;
   std::cout << "Average draw fence time: " << this->m_statistics.get("fence_draw") << " milliseconds " << std::endl;
-  std::cout << "Average CPU draw time: " << this->m_statistics.get("draw") << " milliseconds " << std::endl;
+  std::cout << "Average draw frame time: " << this->m_statistics.get("frame_draw") << " milliseconds " << std::endl;
 }
 
 template<typename T>
 void ApplicationThreaded<T>::startRenderThread() {
-  if (!m_thread_draw.joinable()) {
-    m_thread_draw = std::thread(&ApplicationThreaded<T>::drawLoop, this);
-  }
+  m_thread_draw = std::thread(&ApplicationThreaded<T>::drawLoop, this);
 }
 
 template<typename T>
@@ -58,13 +52,8 @@ void ApplicationThreaded<T>::shutDown() {
   emptyDrawQueue();
   // shut down render thread
   m_should_draw = false;
-  if(m_thread_draw.joinable()) {
-    m_semaphore_draw.shutDown();
-    m_thread_draw.join();
-  }
-  else {
-    throw std::runtime_error{"could not join drawing thread"};
-  }
+  m_semaphore_draw.shutDown();
+  m_thread_draw.join();
   for (auto const& res : this->m_frame_resources) {
     // reset command buffers because the draw indirect buffer counts as reference to memory
     // must be destroyed before memory is freed
@@ -78,7 +67,7 @@ template<typename T>
 FrameResource ApplicationThreaded<T>::createFrameResource() {
   auto res = T::createFrameResource();
   res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
-    // record once to prevent validation error when not used 
+  // record once to prevent validation error when not recorded later
   res.commandBuffer("transfer")->begin(vk::CommandBufferBeginInfo{});
   res.commandBuffer("transfer")->end();
   res.addSemaphore("transfer");
@@ -139,7 +128,7 @@ void ApplicationThreaded<T>::draw() {
   this->m_statistics.start("sema_draw");
   m_semaphore_draw.wait();
   this->m_statistics.stop("sema_draw");
-  this->m_statistics.start("draw");
+  this->m_statistics.start("frame_draw");
   // allow closing of application
   if (!m_should_draw) return;
   static std::uint64_t frame = 0;
@@ -155,7 +144,7 @@ void ApplicationThreaded<T>::draw() {
   this->m_statistics.stop("fence_draw");
   // make frame avaible for rerecording
   pushForPresent(frame_draw);
-  this->m_statistics.stop("draw");
+  this->m_statistics.stop("frame_draw");
 }
 
 template<typename T>

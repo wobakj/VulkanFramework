@@ -18,14 +18,12 @@ ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device
   std::cout << "using 1 thread" << std::endl;
   this->m_statistics.addTimer("gpu_draw");
   this->m_statistics.addTimer("render");
-  this->m_statistics.addTimer("fence_acquire");
   this->m_statistics.addTimer("fence_draw");
 }
 
 template<typename T>
 void ApplicationSingle<T>::shutDown() {
-  this->m_device.getQueue("present").waitIdle();
-  this->m_frame_resources.front().waitFences();
+  emptyDrawQueue();
 }
 
 template<typename T>
@@ -33,7 +31,6 @@ ApplicationSingle<T>::~ApplicationSingle() {
   std::cout << "Average GPU draw time: " << this->m_statistics.get("gpu_draw") << " milliseconds " << std::endl;
   std::cout << std::endl;
   std::cout << "Average render time: " << this->m_statistics.get("render") << " milliseconds" << std::endl;
-  std::cout << "Average acquire fence time: " << this->m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
   std::cout << "Average draw fence time: " << this->m_statistics.get("fence_draw") << " milliseconds" << std::endl;
 }
 
@@ -84,6 +81,10 @@ SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) 
 
 template<typename T>
 void ApplicationSingle<T>::emptyDrawQueue() {
-  // no draw queue exists, just wait for current draw
-  this->m_frame_resources.front().waitFences();
+  // MUST wait after every present or everything freezes
+  this->m_device.getQueue("present").waitIdle();
+  // wait until draw resources are avaible before recallocation
+  for (auto const& res : this->m_frame_resources) {
+    res.waitFences();
+  }
 }
