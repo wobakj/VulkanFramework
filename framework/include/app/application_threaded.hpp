@@ -1,6 +1,7 @@
 #ifndef APPLICATION_THREADED_HPP
 #define APPLICATION_THREADED_HPP
 
+#include "app/application_single.hpp"
 #include "semaphore.hpp"
 
 #include <vector>
@@ -17,21 +18,19 @@ class SubmitInfo;
 class Device;
 
 template<typename T>
-class ApplicationThreaded : public T {
+class ApplicationThreaded : public ApplicationSingle<T> {
  public:
   // possibly override number of frames in abstract child classes
   ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames = 2);
   virtual ~ApplicationThreaded();
 
-  void emptyDrawQueue() override;
+  virtual void emptyDrawQueue() override;
   // default parser without arguments
   static cmdline::parser getParser();
   
  protected:
-  virtual FrameResource createFrameResource() override;
-  virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
-  
-  virtual void shutDown();
+  // replace shutdown of single thread app
+  virtual void shutDown() override;
 
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_present_queue;

@@ -12,17 +12,17 @@ class FrameResource;
 template<typename T>
 class ApplicationSingle : public T {
  public:
-  ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
+  // if used as parent fo end-user app, use 1 frame resource
+  ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames = 1);
   virtual ~ApplicationSingle();
   
-  void emptyDrawQueue() override;
   // default parser without arguments
   static cmdline::parser getParser();
   
  protected:
   virtual FrameResource createFrameResource() override;
 
-  void shutDown();
+  virtual void shutDown();
 
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
 

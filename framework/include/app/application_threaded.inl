@@ -4,12 +4,12 @@
 
 template<typename T>
 cmdline::parser ApplicationThreaded<T>::getParser() {
-  return T::getParser();
+  return ApplicationSingle<T>::getParser();
 }
 
 template<typename T>
 ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
- :T{resource_path, device, surf, num_frames + 1, cmd_parse}
+ :ApplicationSingle<T>{resource_path, device, surf, cmd_parse, num_frames + 1}
  ,m_semaphore_draw{0}
  ,m_semaphore_present{0}
  ,m_should_draw{true}
@@ -18,7 +18,6 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
 
   this->m_statistics.addTimer("sema_present");
   this->m_statistics.addTimer("sema_draw");
-  this->m_statistics.addTimer("fence_draw");
   this->m_statistics.addTimer("record");
   this->m_statistics.addTimer("frame_draw");
 
@@ -38,7 +37,6 @@ ApplicationThreaded<T>::~ApplicationThreaded() {
   std::cout << "Average record time: " << this->m_statistics.get("record") << " milliseconds " << std::endl;
   std::cout << std::endl;
   std::cout << "Average draw semaphore time: " << this->m_statistics.get("sema_draw") << " milliseconds " << std::endl;
-  std::cout << "Average draw fence time: " << this->m_statistics.get("fence_draw") << " milliseconds " << std::endl;
   std::cout << "Average draw frame time: " << this->m_statistics.get("frame_draw") << " milliseconds " << std::endl;
 }
 
@@ -47,6 +45,7 @@ void ApplicationThreaded<T>::startRenderThread() {
   m_thread_draw = std::thread(&ApplicationThreaded<T>::drawLoop, this);
 }
 
+// replace shutdown of single thread app
 template<typename T>
 void ApplicationThreaded<T>::shutDown() {
   emptyDrawQueue();
@@ -61,30 +60,6 @@ void ApplicationThreaded<T>::shutDown() {
       command_buffer.second->reset({});    
     }
   }
-}
-
-template<typename T>
-FrameResource ApplicationThreaded<T>::createFrameResource() {
-  auto res = T::createFrameResource();
-  res.setCommandBuffer("transfer", std::move(this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
-  // record once to prevent validation error when not recorded later
-  res.commandBuffer("transfer")->begin(vk::CommandBufferBeginInfo{});
-  res.commandBuffer("transfer")->end();
-  res.addSemaphore("transfer");
-  return res;
-}
-
-template<typename T>
-SubmitInfo ApplicationThreaded<T>::createDrawSubmitInfo(FrameResource const& res) const {
-  SubmitInfo info2{};
-  info2.addCommandBuffer(res.command_buffers.at("transfer").get());
-  info2.addSignalSemaphore(res.semaphore("transfer"));
-  this->m_device.getQueue("graphics").submit({info2}, {});
-  
-  SubmitInfo info = T::createDrawSubmitInfo(res);
-  info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
-  // info.addCommandBuffer(res.command_buffers.at("transfer").get());
-  return info;
 }
 
 template<typename T>

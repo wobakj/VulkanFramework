@@ -12,8 +12,8 @@ cmdline::parser ApplicationSingle<T>::getParser() {
 }
 
 template<typename T>
-ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
- :T{resource_path, device, surf, 2, cmd_parse}
+ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
+ :T{resource_path, device, surf, num_frames + 1, cmd_parse}
 {
   std::cout << "using 1 thread" << std::endl;
   this->m_statistics.addTimer("gpu_draw");
@@ -23,7 +23,12 @@ ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device
 
 template<typename T>
 void ApplicationSingle<T>::shutDown() {
-  emptyDrawQueue();
+  // MUST wait after every present or everything freezes
+  this->m_device.getQueue("present").waitIdle();
+  // wait until draw resources are avaible before recallocation
+  for (auto const& res : this->m_frame_resources) {
+    res.waitFences();
+  }
 }
 
 template<typename T>
@@ -77,14 +82,4 @@ SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) 
   info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
   // info.addCommandBuffer(res.command_buffers.at("transfer").get());
   return info;
-}
-
-template<typename T>
-void ApplicationSingle<T>::emptyDrawQueue() {
-  // MUST wait after every present or everything freezes
-  this->m_device.getQueue("present").waitIdle();
-  // wait until draw resources are avaible before recallocation
-  for (auto const& res : this->m_frame_resources) {
-    res.waitFences();
-  }
 }
