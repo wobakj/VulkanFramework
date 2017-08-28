@@ -219,12 +219,8 @@ void ApplicationLod<T>::recordDrawBuffer(FrameResource& res) {
   res.commandBuffer("draw")->executeCommands({res.commandBuffer("gbuffer")});
 
   res.commandBuffer("draw")->endRenderPass();
-  // make sure rendering to image is done before blitting
-  // barrier is now performed through renderpass dependency
 
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(this->m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  this->presentCommands(res, this->m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal);
 
   res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);
   res.commandBuffer("draw")->end();

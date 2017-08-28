@@ -36,6 +36,7 @@ class ApplicationWin : public Application {
 
   virtual FrameResource createFrameResource() override;
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;
+  virtual void presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) override;
 
   Camera m_camera;
   SwapChain m_swap_chain;

@@ -72,12 +72,8 @@ void ApplicationMinimal<T>::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
   
   res.command_buffers.at("draw")->endRenderPass();
-  // make sure rendering to image is done before blitting
-  // barrier is now performed through renderpass dependency
 
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(this->m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  this->presentCommands(res, this->m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal);
 
   res.command_buffers.at("draw")->end();
 }

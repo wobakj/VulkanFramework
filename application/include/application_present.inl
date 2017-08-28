@@ -153,7 +153,6 @@ void ApplicationPresent<T>::receiveData(FrameResource& res) {
   this->m_statistics.start("receive");
   glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
   int size_chunk = int(res_worker.x * res_worker.y * 4);
-  // int size_image = int(this->m_resolution.x * this->m_resolution.y * 4);
   // copy into current subregion
   size_t offset = res.buffer_views.at("transfer").offset();
   // copy chunk from process [1] to beginning

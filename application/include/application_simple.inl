@@ -129,9 +129,7 @@ void ApplicationSimple<T>::recordDrawBuffer(FrameResource& res) {
 
   res.commandBuffer("draw")->endRenderPass();
 
-  res.commandBuffer("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.commandBuffer("draw").copyImage(this->m_images.at("color_2").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.commandBuffer("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  this->presentCommands(res, this->m_images.at("color_2").view(), vk::ImageLayout::eTransferSrcOptimal);
 
   res.commandBuffer("draw")->end();
 }

@@ -260,12 +260,8 @@ void ApplicationScenegraph::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("tonemapping")});
 
   res.command_buffers.at("draw")->endRenderPass();
-  // make sure rendering to image is done before blitting
-  // barrier is now performed through renderpass dependency
 
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(m_images.at("tonemapping_result").view(), vk::ImageLayout::eTransferSrcOptimal, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  this->presentCommands(res, this->m_images.at("tonemapping_result").view(), vk::ImageLayout::eTransferSrcOptimal);
 
   res.command_buffers.at("draw")->end();
 }

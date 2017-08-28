@@ -34,6 +34,8 @@ class ApplicationWorker : public Application {
   virtual void onFrameEnd() override final;
   virtual void onFrameBegin() override final;
 
+  virtual void presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) override;
+
  private:
   void createImages(uint32_t image_count);
   void createSendBuffer();

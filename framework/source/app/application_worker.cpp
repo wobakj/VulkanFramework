@@ -81,14 +81,18 @@ void ApplicationWorker::acquireImage(FrameResource& res) {
   res.target_view = &m_images_draw.at(index).view();
 }
 
+void ApplicationWorker::presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) {
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").copyImageToBuffer(m_buffers.at("transfer"), view, layout);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+}
+
 void ApplicationWorker::presentFrame(FrameResource& res) {
   // make sure drawing is done
   this->m_statistics.start("fence_draw");
   res.fence("draw").wait();
   this->m_statistics.stop("fence_draw");
   this->m_statistics.start("present");
-  m_transferrer.transitionToLayout(*res.target_view, vk::ImageLayout::ePresentSrcKHR, vk::ImageLayout::eTransferSrcOptimal);
-  m_transferrer.copyImageToBuffer(m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferSrcOptimal);
   // write data to presenter
   MPI::COMM_WORLD.Gather(m_ptr_buff_transfer, int(m_buffers.at("transfer").size()), MPI::BYTE, nullptr, int(m_buffers.at("transfer").size()), MPI::BYTE, 0);
   pushImageToDraw(res.image);

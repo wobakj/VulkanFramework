@@ -142,6 +142,12 @@ SubmitInfo ApplicationWin::createDrawSubmitInfo(FrameResource const& res) const 
   return info;
 }
 
+void ApplicationWin::presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) {
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").copyImage(view, layout, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+}
+
 void ApplicationWin::keyCallbackSelf(int key, int scancode, int action, int mods) {
   if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(&m_surface->window(), 1);

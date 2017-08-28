@@ -70,13 +70,8 @@ void ApplicationCompute<T>::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("compute")});
 
-  // make sure rendering to image is done before blitting
-  // barrier is now performed through renderpass dependency
-
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(this->m_images.at("texture").view(), vk::ImageLayout::eGeneral, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
-
+  this->presentCommands(res, this->m_images.at("texture").view(), vk::ImageLayout::eGeneral);
+  
   res.command_buffers.at("draw")->end();
 }
 
