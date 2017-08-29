@@ -106,3 +106,21 @@ vk::Device const& BackedImage::device() const {
 vk::MemoryRequirements BackedImage::requirements() const {
   return m_device.getImageMemoryRequirements(get());
 }
+
+BackedImage::operator ImageRange() const {
+  return range();
+}
+
+ImageRange BackedImage::range() const {
+  vk::ImageSubresourceRange range{img_to_range(info())};
+  return ImageRange{get(), range, extent()};
+}
+
+BackedImage::operator ImageLayers() const {
+  return layers();
+}
+
+ImageLayers BackedImage::layers(uint32_t level) const {
+  ImageRange range{get(), img_to_range(info()), extent()};
+  return range.layers(level);
+}

@@ -54,13 +54,17 @@ void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, BackedImage& image, vk::ImageLayout const& newLayout) {
+void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers&& image, vk::ImageLayout const& newLayout) {
+  uploadImageData(data_ptr, data_size, image, newLayout);
+}
+
+void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers const& image, vk::ImageLayout const& newLayout) {
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(data_size);
     std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, data_size);
     transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal);
-    copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height, image.info().extent.depth);
+    copyBufferToImage(*m_buffer_stage, image, vk::ImageLayout::eTransferDstOptimal);
   }
 
   transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal, newLayout);
@@ -75,6 +79,7 @@ void Transferrer::uploadBufferData(void const* data_ptr, BufferRegion& buffer_vi
     copyBuffer(BufferSubresource{m_buffer_stage->get(), buffer_view.size()}, buffer_view);
   }
 }
+
 
 void Transferrer::copyBuffer(BufferRegion const& src, BufferRegion const& dst) const {
   CommandBuffer const& commandBuffer = beginSingleTimeCommands();
@@ -96,93 +101,14 @@ void Transferrer::copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout
   endSingleTimeCommands();
 }
 
-void Transferrer::copyBufferToImage(Buffer const& srcBuffer, BackedImage& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
-  vk::ImageSubresourceLayers subResource{};
-  if (is_depth(dstImage.view().format())) {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
 
-    if (has_stencil(dstImage.view().format())) {
-      subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-  subResource.baseArrayLayer = 0;
-  subResource.mipLevel = 0;
-  subResource.layerCount = dstImage.info().arrayLayers;
-
-
-  vk::BufferImageCopy region{};
-  region.bufferOffset = 0;
-  region.bufferRowLength = width;
-  region.bufferImageHeight = height;
-  region.imageSubresource = subResource;
-  region.imageOffset = vk::Offset3D{0, 0, 0};
-  region.imageExtent.width = width;
-  region.imageExtent.height = height;
-  region.imageExtent.depth = depth;
-
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-  commandBuffer.copyBufferToImage(
-    srcBuffer,
-    dstImage, vk::ImageLayout::eTransferDstOptimal,
-    1, &region
-  );
-  endSingleTimeCommands();
+void Transferrer::transitionToLayout(ImageRange const& img, vk::ImageLayout const& newLayout) const {
+  transitionToLayout(img, vk::ImageLayout::eUndefined, newLayout);
 }
 
-void Transferrer::transitionToLayout(BackedImage& img, vk::ImageLayout const& newLayout) const {
-  transitionToLayout(img.get(), img.info(), vk::ImageLayout::eUndefined, newLayout);
-}
-
-void Transferrer::transitionToLayout(ImageView const& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
+void Transferrer::transitionToLayout(ImageRange const& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
   auto const& commandBuffer = beginSingleTimeCommands();
   commandBuffer.transitionLayout(img, oldLayout, newLayout);
-  endSingleTimeCommands();
-}
-
-void Transferrer::transitionToLayout(BackedImage& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
-  transitionToLayout(img.get(), img.info(), oldLayout, newLayout);
-}
-
-void Transferrer::transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-  vk::ImageMemoryBarrier barrier{};
-  barrier.oldLayout = oldLayout;
-  barrier.newLayout = newLayout;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  barrier.image = img;
-
-  if (is_depth(info.format)) {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-
-    if (has_stencil(info.format)) {
-      barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = info.mipLevels;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = info.arrayLayers;
-
-  barrier.srcAccessMask = layout_to_access(oldLayout);
-  barrier.dstAccessMask = layout_to_access(newLayout);
-
-  commandBuffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier}
-  );
   endSingleTimeCommands();
 }
 
@@ -195,7 +121,6 @@ CommandBuffer const& Transferrer::beginSingleTimeCommands() const {
 
   return m_command_buffer_help;
 }
-
 
 void Transferrer::endSingleTimeCommands() const {
   m_command_buffer_help->end();

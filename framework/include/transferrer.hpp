@@ -16,6 +16,7 @@ class Device;
 class BufferView;
 class BackedImage;
 class ImageView;
+class ImageRange;
 class ImageLayers;
 class CommandPool;
 class CommandBuffer;
@@ -37,15 +38,14 @@ class Transferrer {
   void copyBuffer(BufferRegion const& srcBuffer, BufferRegion const& dstBuffer) const;
 
   // image functions
-  void uploadImageData(void const* data_ptr, vk::DeviceSize data_size, BackedImage& image, vk::ImageLayout const& newLayout);
-  void copyBufferToImage(Buffer const& srcBuffer, BackedImage& dstImage, uint32_t width, uint32_t height, uint32_t depth = 1) const;
+  void uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers const& image, vk::ImageLayout const& newLayout);
+  void uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers&& image, vk::ImageLayout const& newLayout);
+
   void copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers const& dstImage, vk::ImageLayout imageLayout) const;
   void copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const;
 
-  void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const;
-  void transitionToLayout(BackedImage& img, vk::ImageLayout const& newLayout) const;
-  void transitionToLayout(BackedImage& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const;
-  void transitionToLayout(ImageView const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
+  void transitionToLayout(ImageRange const& img, vk::ImageLayout const& newLayout) const;
+  void transitionToLayout(ImageRange const& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const;
 
   // helper functions to create commandbuffer for staging an formating
   CommandBuffer const& beginSingleTimeCommands() const;

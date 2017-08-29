@@ -189,7 +189,7 @@ void ApplicationLod<T>::recordDrawBuffer(FrameResource& res) {
     &ubo_cam
   );
   // make matrices visible to vertex shader
-  res.command_buffers.at("draw").bufferBarrier(res.buffer_views.at("uniform").buffer(), 
+  res.command_buffers.at("draw").bufferBarrier(res.buffer_views.at("uniform"), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eVertexShader, vk::AccessFlagBits::eUniformRead
   );
@@ -197,7 +197,7 @@ void ApplicationLod<T>::recordDrawBuffer(FrameResource& res) {
   res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
 
   // make draw commands visible to drawindirect
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewDrawCommands().buffer(), 
+  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewDrawCommands(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eDrawIndirect, vk::AccessFlagBits::eIndirectCommandRead
   );
@@ -209,7 +209,7 @@ void ApplicationLod<T>::recordDrawBuffer(FrameResource& res) {
   );
 
   // make node level data visible to fragment shader
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewNodeLevels().buffer(), 
+  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewNodeLevels(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
   );

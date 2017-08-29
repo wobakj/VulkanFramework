@@ -46,7 +46,7 @@ class GeometryLod {
   std::size_t numNodes() const;
 
   BufferView const& bufferView(std::size_t i = 0) const;
-  vk::Buffer const& buffer() const;
+  Buffer const& buffer() const;
   std::uint32_t numVertices() const;
   std::size_t numUploads() const;
   std::size_t sizeNode() const;

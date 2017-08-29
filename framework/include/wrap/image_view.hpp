@@ -112,6 +112,7 @@ class ImageSubresource : public ImageRegion {
 ///////////////////////////////////////////////////////////////////////////////
 
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
+vk::ImageSubresourceRange img_to_range(vk::ImageCreateInfo const& img_info);
 
 // the view of an ImageRange to bind to a descriptor
 using WrapperImageView = Wrapper<vk::ImageView, vk::ImageViewCreateInfo>;

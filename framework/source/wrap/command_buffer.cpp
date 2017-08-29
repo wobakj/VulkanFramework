@@ -141,14 +141,15 @@ void CommandBuffer::copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayo
   );
 }
 
-
-void CommandBuffer::transitionLayout(ImageView const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
+void CommandBuffer::transitionLayout(ImageRange const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
   view.layoutTransitionCommand(get(), layout_old, layout_new);
 }
 
-void CommandBuffer::bufferBarrier(vk::Buffer const& buffer, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const {
+void CommandBuffer::bufferBarrier(BufferRegion const& region, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const {
   vk::BufferMemoryBarrier barrier{};
-  barrier.buffer = buffer;
+  barrier.buffer = region.buffer();
+  barrier.size = region.size();
+  barrier.offset = region.offset();
   barrier.srcAccessMask = acc_src;
   barrier.dstAccessMask = acc_dst;
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

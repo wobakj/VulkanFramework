@@ -30,6 +30,12 @@ class Image {
 
   void swap(Image& dev);
 
+  virtual ImageRange range() const = 0;
+  virtual operator ImageRange() const = 0;
+
+  virtual ImageLayers layers(uint32_t level = 0) const = 0;
+  virtual operator ImageLayers() const = 0;
+
   virtual vk::AttachmentDescription toAttachment(bool clear = true) const;
   virtual vk::Format const& format() const;
   virtual ImageView const& view() const;

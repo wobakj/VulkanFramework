@@ -7,6 +7,26 @@
 
 #include <iostream>
 
+vk::ImageSubresourceRange img_to_range(vk::ImageCreateInfo const& img_info) {
+  vk::ImageSubresourceRange resource_range{};
+
+  if(is_depth(img_info.format)) {
+    resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    if(has_stencil(img_info.format)) {
+      resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+    }
+  }
+  else {
+    resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
+  }
+  resource_range.baseMipLevel = 0;
+  resource_range.levelCount = img_info.mipLevels;
+  resource_range.baseArrayLayer = 0;
+  resource_range.layerCount = img_info.arrayLayers;
+
+  return resource_range;
+}
+
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
   vk::ImageViewCreateInfo view_info{};
   view_info.image = image;
@@ -28,23 +48,7 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
   view_info.components.b = vk::ComponentSwizzle::eIdentity;
   view_info.components.a = vk::ComponentSwizzle::eIdentity;
 
-  vk::ImageSubresourceRange resource_range{};
-  if(is_depth(img_info.format)) {
-    resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
-    if(has_stencil(img_info.format)) {
-      resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  }
-  else {
-    resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-  resource_range.baseMipLevel = 0;
-  resource_range.levelCount = img_info.mipLevels;
-  resource_range.baseArrayLayer = 0;
-  resource_range.layerCount = img_info.arrayLayers;
-
-
-  view_info.subresourceRange = resource_range;
+  view_info.subresourceRange = img_to_range(img_info);
   return view_info;
 }
 

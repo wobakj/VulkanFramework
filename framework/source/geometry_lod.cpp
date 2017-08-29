@@ -307,7 +307,7 @@ BufferView const& GeometryLod::viewNodeLevels() const {
   return m_view_levels;
 }
 
-vk::Buffer const& GeometryLod::buffer() const {
+Buffer const& GeometryLod::buffer() const {
   return m_buffer;
 }
 
