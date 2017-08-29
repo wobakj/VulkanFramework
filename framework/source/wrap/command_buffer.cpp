@@ -98,26 +98,6 @@ void CommandBuffer::copyBuffer(BufferRegion const& src, BufferRegion const& dst)
   get().copyBuffer(src.buffer(), dst.buffer(), {copyRegion});
 }
 
-void CommandBuffer::copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ArrayProxy<const vk::ImageCopy> regions) const {
-  get().copyImage(srcImage, srcImageLayout, dstImage, dstImageLayout, regions);
-}
-
-void CommandBuffer::copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const {
-  get().copyImage(srcImage, srcImageLayout, dstImage, dstImageLayout, {region});
-}
-
-void CommandBuffer::copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const {
-  get().copyImage(srcImage.image(), srcImageLayout, dstImage.image(), dstImageLayout, {region});
-}
-
-void CommandBuffer::copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, uint32_t level) const {
-  vk::ImageCopy copy{};
-  copy.srcSubresource = srcImage.layers();
-  copy.dstSubresource = dstImage.layers();
-  copy.extent = dstImage.extent();
-  get().copyImage(srcImage.image(), srcImageLayout, dstImage.image(), dstImageLayout, {copy});
-}
-
 void CommandBuffer::copyImage(ImageLayers const& srcImage, vk::ImageLayout srcImageLayout, ImageLayers const& dstImage, vk::ImageLayout dstImageLayout) const {
   vk::ImageCopy copy{};
   copy.srcSubresource = srcImage;
@@ -126,48 +106,37 @@ void CommandBuffer::copyImage(ImageLayers const& srcImage, vk::ImageLayout srcIm
   get().copyImage(srcImage.image(), srcImageLayout, dstImage.image(), dstImageLayout, {copy});
 }
 
-void CommandBuffer::copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
+void CommandBuffer::copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers const& dstImage, vk::ImageLayout imageLayout) const {
   vk::BufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = dstImage.extent().width;
   region.bufferImageHeight = dstImage.extent().height;
-  region.imageSubresource = dstImage.layers(layer, 1);
-  region.imageOffset = vk::Offset3D{0, 0, 0};
+  region.imageSubresource = dstImage;
   region.imageExtent = dstImage.extent();
-  copyBufferToImage(srcBuffer, dstImage, imageLayout, region);  
-}
+  region.imageOffset = dstImage.offset();
 
-void CommandBuffer::copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, vk::ArrayProxy<vk::BufferImageCopy> const& regions) const {
   get().copyBufferToImage(
-    srcBuffer,
+    srcBuffer.buffer(),
     dstImage.image(),
     imageLayout,
-    regions.size(), regions.data()
+    1, &region
   );
 }
 
-void CommandBuffer::copyImageToBuffer(ImageView const& dstImage, vk::ImageLayout imageLayout, Buffer const& buffer, vk::ArrayProxy<vk::BufferImageCopy> const& regions) const {
-  get().copyImageToBuffer(
-    dstImage.image(),
-    imageLayout,
-    buffer,
-    regions.size(), regions.data()
-  );
-}
 
-void CommandBuffer::copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
+void CommandBuffer::copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const {
   vk::BufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = dstImage.extent().width;
   region.bufferImageHeight = dstImage.extent().height;
-  region.imageSubresource = dstImage.layers(layer, 1);
-  region.imageOffset = vk::Offset3D{0, 0, 0};
+  region.imageSubresource = dstImage;
   region.imageExtent = dstImage.extent();
+  region.imageOffset = dstImage.offset();
 
   get().copyImageToBuffer(
     dstImage.image(),
     imageLayout,
-    srcBuffer,
+    srcBuffer.buffer(),
     1, &region
   );
 }

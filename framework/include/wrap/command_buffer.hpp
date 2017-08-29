@@ -51,16 +51,9 @@ class CommandBuffer : public WrapperCommandBuffer {
   void bindDescriptorSets(uint32_t first_set, vk::ArrayProxy<const vk::DescriptorSet> sets, vk::ArrayProxy<const uint32_t> dynamic_offsets);
 
   void copyBuffer(BufferRegion const& reg_src, BufferRegion const& reg_dst) const;
-  void copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ArrayProxy<const vk::ImageCopy> regions) const;
-  void copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;
-  void copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;
-  void copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, uint32_t level = 0) const;
-  
   void copyImage(ImageLayers const& srcImage, vk::ImageLayout srcImageLayout, ImageLayers const& dstImage, vk::ImageLayout dstImageLayout) const;
-  void copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
-  void copyBufferToImage(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, vk::ArrayProxy<vk::BufferImageCopy> const& regions) const;
-  void copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
-  void copyImageToBuffer(ImageView const& image, vk::ImageLayout layout, Buffer const& buffer, vk::ArrayProxy<vk::BufferImageCopy> const& regions) const;
+  void copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers const& dstImage, vk::ImageLayout imageLayout) const;
+  void copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const;
   
   void transitionLayout(ImageView const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
   void bufferBarrier(vk::Buffer const& buffer, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const;

@@ -172,7 +172,7 @@ void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 
-  res.command_buffers.at("draw").copyBufferToImage(this->m_buffers.at("transfer"), *res.target_view, vk::ImageLayout::eTransferDstOptimal, m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
+  res.command_buffers.at("draw")->copyBufferToImage(this->m_buffers.at("transfer").buffer(), res.target_view->image(), vk::ImageLayout::eTransferDstOptimal, m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
 
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 

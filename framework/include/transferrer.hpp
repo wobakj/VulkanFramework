@@ -16,6 +16,7 @@ class Device;
 class BufferView;
 class BackedImage;
 class ImageView;
+class ImageLayers;
 class CommandPool;
 class CommandBuffer;
 
@@ -38,10 +39,9 @@ class Transferrer {
   // image functions
   void uploadImageData(void const* data_ptr, vk::DeviceSize data_size, BackedImage& image, vk::ImageLayout const& newLayout);
   void copyBufferToImage(Buffer const& srcBuffer, BackedImage& dstImage, uint32_t width, uint32_t height, uint32_t depth = 1) const;
-  void copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
-  void copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
+  void copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers const& dstImage, vk::ImageLayout imageLayout) const;
+  void copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const;
 
-  void copyImage(BackedImage const& srcImage, BackedImage& dstImage, uint32_t width, uint32_t height) const;
   void transitionToLayout(vk::Image const& img, vk::ImageCreateInfo const& info, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const;
   void transitionToLayout(BackedImage& img, vk::ImageLayout const& newLayout) const;
   void transitionToLayout(BackedImage& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const;

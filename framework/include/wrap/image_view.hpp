@@ -35,6 +35,7 @@ class ImageRegion {
 
  private:
   vk::Image m_image;
+  // TODO: extent& offset only required for copy, remove from wrapper?
   vk::Extent3D m_extent;
   vk::Offset3D m_offset;
 };

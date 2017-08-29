@@ -84,51 +84,15 @@ void Transferrer::copyBuffer(BufferRegion const& src, BufferRegion const& dst) c
   endSingleTimeCommands();
 }
 
-void Transferrer::copyImage(BackedImage const& srcImage, BackedImage& dstImage, uint32_t width, uint32_t height) const {
-  vk::ImageSubresourceLayers subResource{};
-  if (is_depth(srcImage.view().format())) {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
-
-    if (has_stencil(srcImage.view().format())) {
-      subResource.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  } 
-  else {
-    subResource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
-  subResource.baseArrayLayer = 0;
-  subResource.mipLevel = 0;
-  subResource.layerCount = srcImage.info().arrayLayers;
-
-
-  vk::ImageCopy region{};
-  region.srcSubresource = subResource;
-  region.dstSubresource = subResource;
-  region.srcOffset = vk::Offset3D{0, 0, 0};
-  region.dstOffset = vk::Offset3D{0, 0, 0};
-  region.extent.width = width;
-  region.extent.height = height;
-  region.extent.depth = 1;
-
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-  commandBuffer.copyImage(
-    srcImage, vk::ImageLayout::eTransferSrcOptimal,
-    dstImage, vk::ImageLayout::eTransferDstOptimal,
-    1, &region
-  );
+void Transferrer::copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers const& dstImage, vk::ImageLayout imageLayout) const {
+  auto const& commandBuffer = beginSingleTimeCommands();
+  commandBuffer.copyBufferToImage(srcBuffer, dstImage, imageLayout);
   endSingleTimeCommands();
 }
 
-
-void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
+void Transferrer::copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const {
   auto const& commandBuffer = beginSingleTimeCommands();
-  commandBuffer.copyBufferToImage(srcBuffer, dstImage, imageLayout, layer);
-  endSingleTimeCommands();
-}
-
-void Transferrer::copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer) const {
-  auto const& commandBuffer = beginSingleTimeCommands();
-  commandBuffer.copyImageToBuffer(srcBuffer, dstImage, imageLayout, layer);
+  commandBuffer.copyImageToBuffer(dstImage, imageLayout, srcBuffer);
   endSingleTimeCommands();
 }
 
