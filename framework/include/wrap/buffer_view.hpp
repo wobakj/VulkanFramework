@@ -2,12 +2,13 @@
 #define BUFFER_VIEW_HPP
 
 #include "wrap/memory_resource.hpp"
+#include "wrap/buffer.hpp"
 
 #include <vulkan/vulkan.hpp>
 
-class Buffer;
+// class Buffer;
 // class to divide buffer into subresources which can be bound to a drescriptor set
-class BufferView {
+class BufferView : public BufferRegion {
  public:
   
   BufferView();
@@ -21,9 +22,9 @@ class BufferView {
   virtual void bindTo(Buffer& buffer);
   virtual void bindTo(Buffer& buffer, vk::DeviceSize const& offset);
 
-  vk::DeviceSize size() const;
-  vk::DeviceSize offset() const;
-  vk::Buffer const& buffer() const;
+  virtual vk::Buffer const& buffer() const override;
+  virtual vk::DeviceSize size() const override;
+  virtual vk::DeviceSize offset() const override;
   
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
 

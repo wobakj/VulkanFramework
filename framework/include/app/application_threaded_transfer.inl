@@ -48,10 +48,12 @@ void ApplicationThreadedTransfer<T>::shutDown() {
 template<typename T> 
 FrameResource ApplicationThreadedTransfer<T>::createFrameResource() {
   auto res = ApplicationThreaded<T>::createFrameResource();
-  // separate transfer
-  res.setCommandBuffer("transfer", this->m_command_pools.at("transfer").createBuffer(vk::CommandBufferLevel::ePrimary));
-  res.addSemaphore("transfer");
+  // overwrite transfer cb from ApplicationSingle, to use different queue
+  res.setCommandBuffer("transfer", this->m_command_pools.at("transfer").createBuffer(vk::CommandBufferLevel::ePrimary));  
   res.addFence("transfer");
+  // record once to prevent validation error when not used 
+  res.commandBuffer("transfer")->begin(vk::CommandBufferBeginInfo{});
+  res.commandBuffer("transfer")->end();
   return res;
 }
 

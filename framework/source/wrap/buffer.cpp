@@ -9,7 +9,7 @@
 
 Buffer::Buffer()
  :ResourceBuffer{}
- ,m_desc_info{}
+ ,BufferRegion{}
  ,m_offset_view{0}
 {}
 
@@ -36,10 +36,6 @@ Buffer::Buffer(Device const& device, vk::DeviceSize const& size, vk::BufferUsage
     m_info.sharingMode = vk::SharingMode::eExclusive;
   }
   m_object = device->createBuffer(info());
-
-  m_desc_info.buffer = get();
-  m_desc_info.offset = 0;
-  m_desc_info.range = size;
 }
 
 Buffer::~Buffer() {
@@ -61,7 +57,7 @@ vk::MemoryRequirements Buffer::requirements() const {
 
 void Buffer::swap(Buffer& buffer) {
   ResourceBuffer::swap(buffer);
-  std::swap(m_desc_info, buffer.m_desc_info);
+  // BufferRegion::swap(buffer);
   std::swap(m_offset_view, buffer.m_offset_view);
  }
 
@@ -91,12 +87,26 @@ void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
 }
 
 void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = set;
-  descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = index;
-  descriptorWrite.descriptorType = type;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pBufferInfo = &m_desc_info;
-  m_device.updateDescriptorSets({descriptorWrite}, 0);
+  vk::DescriptorBufferInfo info_buffer{get(), 0, size()};
+
+  vk::WriteDescriptorSet info_write{};
+  info_write.dstSet = set;
+  info_write.dstBinding = binding;
+  info_write.dstArrayElement = index;
+  info_write.descriptorType = type;
+  info_write.descriptorCount = 1;
+  info_write.pBufferInfo = &info_buffer;
+  m_device.updateDescriptorSets({info_write}, 0);
+}
+
+vk::DeviceSize Buffer::size() const {
+  return info().size;
+}
+
+vk::DeviceSize Buffer::offset() const {
+  return 0;
+}
+
+vk::Buffer const& Buffer::buffer() const {
+  return get();
 }

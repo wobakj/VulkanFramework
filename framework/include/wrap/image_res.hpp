@@ -32,6 +32,9 @@ class ImageRes : public ResourceImage, public Image {
   void swap(ImageRes& dev);
 
   vk::ImageCreateInfo const& info() const override;
+  // find a better interface, is not payload size
+  vk::DeviceSize size() const;
+
  private:
   vk::Image const& obj() const override;
   vk::Device const& device() const override;

@@ -91,13 +91,14 @@ void GeometryLod::createStagingBuffers() {
   auto requirements_stage = m_buffer_stage.requirements();
   // per-buffer offset
   auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_stage.alignment)));
-  requirements_stage.size = m_size_node + offset_stage * ((m_num_uploads - 1) * 2 + 1);
+  
+  requirements_stage.size = offset_stage * m_num_uploads * 2;
   std::cout << "LOD staging buffer size is " << requirements_stage.size / 1024 / 1024 << " MB for " << m_num_uploads << " nodes" << std::endl;
   m_buffer_stage = Buffer{*m_device, requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc};
   
   auto mem_type = m_device->findMemoryType(m_buffer_stage.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-  m_allocator_stage = StaticAllocator{*m_device, mem_type, m_buffer_stage.size()};
+  m_allocator_stage = StaticAllocator{*m_device, mem_type, m_buffer_stage.footprint()};
   m_allocator_stage.allocate(m_buffer_stage);
 
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
@@ -127,7 +128,7 @@ void GeometryLod::createDrawingBuffers() {
 
   auto mem_type = m_device->findMemoryType(m_buffer.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eDeviceLocal);
-  m_allocator_draw = StaticAllocator{*m_device, mem_type, m_buffer.size()};
+  m_allocator_draw = StaticAllocator{*m_device, mem_type, m_buffer.footprint()};
   m_allocator_draw.allocate(m_buffer);
 
   for(std::size_t i = 0; i < m_num_slots; ++i) {

@@ -91,7 +91,6 @@ void ApplicationCompute<T>::updatePipelines() {
 
 template<typename T>
 void ApplicationCompute<T>::createTextureImages() {
-  // auto extent = extent_3d(this->m_swap_chain.extent()); 
     auto extent = vk::Extent3D{1280, 720, 1}; 
   this->m_images["texture"] = ImageRes{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
                                                                                                    | vk::ImageUsageFlagBits::eStorage};

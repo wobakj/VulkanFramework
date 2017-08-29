@@ -63,7 +63,7 @@ void MemoryResource::swap(MemoryResource& rhs) {
   std::swap(m_alloc, rhs.m_alloc);
 }
 
-vk::DeviceSize MemoryResource::size() const {
+vk::DeviceSize MemoryResource::footprint() const {
   return requirements().size;
 }
 

@@ -6,13 +6,21 @@
 
 #include <vulkan/vulkan.hpp>
 
+// interface to represent a buffer subresource
+class BufferRegion {
+ public:
+  virtual vk::Buffer const& buffer() const = 0;
+  virtual vk::DeviceSize size() const = 0;
+  virtual vk::DeviceSize offset() const = 0;
+};
+
 class SwapChain;
 class Device;
 class Memory;
 class BufferView;
 
 using ResourceBuffer = MemoryResourceT<vk::Buffer, vk::BufferCreateInfo>;
-class Buffer : public ResourceBuffer {
+class Buffer : public ResourceBuffer, public BufferRegion {
  public:
   
   Buffer();
@@ -36,10 +44,14 @@ class Buffer : public ResourceBuffer {
   virtual res_handle_t handle() const override {
     return res_handle_t{m_object};
   }
+
+  virtual vk::Buffer const& buffer() const override;
+  virtual vk::DeviceSize size() const override;
+  virtual vk::DeviceSize offset() const override;
+
  private:
   void destroy() override;
 
-  vk::DescriptorBufferInfo m_desc_info;
   vk::DeviceSize m_offset_view;
   friend class BufferView;
 };

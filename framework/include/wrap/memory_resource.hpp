@@ -47,7 +47,8 @@ class MemoryResource {
   virtual vk::MemoryRequirements requirements() const = 0;
 
   vk::DeviceSize alignment() const;
-  vk::DeviceSize size() const;
+  // the size required from memory, not the payload size
+  vk::DeviceSize footprint() const;
   uint32_t memoryTypeBits() const;
 
   virtual res_handle_t handle() const = 0;

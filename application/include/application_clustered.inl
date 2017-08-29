@@ -453,7 +453,7 @@ void ApplicationClustered<T>::createTextureImages() {
   // bind and upload test texture data
   this->m_allocators.at("images").allocate(this->m_images.at("texture"));
 
-  this->m_transferrer.uploadImageData(pix_data.ptr(), this->m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
+  this->m_transferrer.uploadImageData(pix_data.ptr(), pix_data.size(), this->m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 template<typename T>
