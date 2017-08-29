@@ -52,53 +52,6 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
   return view_info;
 }
 
-// vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
-//   if (layout == vk::ImageLayout::ePreinitialized) {
-//     return vk::AccessFlagBits::eHostWrite;
-//   }
-//   else if (layout == vk::ImageLayout::eUndefined) {
-//     return vk::AccessFlags{};
-//   }
-//   else if (layout == vk::ImageLayout::eTransferDstOptimal) {
-//     return vk::AccessFlagBits::eTransferWrite;
-//   }
-//   else if (layout == vk::ImageLayout::eTransferSrcOptimal) {
-//     return vk::AccessFlagBits::eTransferRead;
-//   } 
-//   else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-//     return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-//   } 
-//   else if (layout == vk::ImageLayout::eColorAttachmentOptimal) {
-//     return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-//   } 
-//   else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-//     // read but not from input attachment
-//     return vk::AccessFlagBits::eShaderRead;
-//   } 
-//   else if (layout == vk::ImageLayout::ePresentSrcKHR) {
-//     return vk::AccessFlagBits::eMemoryRead;
-//   } 
-//   else if (layout == vk::ImageLayout::eGeneral) {
-//     return vk::AccessFlagBits::eInputAttachmentRead
-//          | vk::AccessFlagBits::eShaderRead
-//          | vk::AccessFlagBits::eShaderWrite
-//          | vk::AccessFlagBits::eColorAttachmentRead
-//          | vk::AccessFlagBits::eColorAttachmentWrite
-//          | vk::AccessFlagBits::eDepthStencilAttachmentRead
-//          | vk::AccessFlagBits::eDepthStencilAttachmentWrite
-//          | vk::AccessFlagBits::eTransferRead
-//          | vk::AccessFlagBits::eTransferWrite
-//          | vk::AccessFlagBits::eHostRead
-//          | vk::AccessFlagBits::eHostWrite
-//          | vk::AccessFlagBits::eMemoryRead
-//          | vk::AccessFlagBits::eMemoryWrite;
-//   } 
-//   else {
-//     throw std::invalid_argument("unsupported layout for access mask!");
-//     return vk::AccessFlags{};
-//   }
-// }
-
 ///////////////////////////////////////////////////////////////////////////////
 ImageRegion::~ImageRegion() {}
 
@@ -179,28 +132,6 @@ ImageSubresource ImageRange::layer(unsigned layer, unsigned mip_level) const {
   return ImageSubresource{image(), subres, extent(), offset()};
 }
 
-void ImageRange::layoutTransitionCommand(vk::CommandBuffer const& command_buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
-  vk::ImageMemoryBarrier barrier{};
-  barrier.oldLayout = layout_old;
-  barrier.newLayout = layout_new;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  barrier.image = image();
-  barrier.subresourceRange = range();
-
-  barrier.srcAccessMask = layout_to_access(layout_old);
-  barrier.dstAccessMask = layout_to_access(layout_new);
-
-  command_buffer.pipelineBarrier(
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::PipelineStageFlagBits::eTopOfPipe,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier}
-  );
-}
 ///////////////////////////////////////////////////////////////////////////////
 
 ImageLayers::ImageLayers()
@@ -287,24 +218,21 @@ ImageView::ImageView(ImageView && rhs)
 
 ImageView::ImageView(Device const& dev, vk::Image const& rhs, vk::ImageCreateInfo const& img_info)
  :WrapperImageView{}
- ,ImageRange{rhs, img_to_view(rhs, img_info).subresourceRange, img_info.extent}
+ ,ImageRange{rhs, img_to_range(img_info), img_info.extent}
+ ,m_device{dev.get()}
 {
-  m_device = dev.get();
-  m_image_info = img_info;
-  m_info = img_to_view(image(), m_image_info); 
+  m_info = img_to_view(image(), img_info); 
   m_object = m_device.createImageView(m_info);  
 }
 
 ImageView::ImageView(Image const& rhs)
  :WrapperImageView{}
- ,ImageRange{rhs.obj(), img_to_view(rhs.obj(), rhs.info()).subresourceRange, rhs.info().extent}
+ ,ImageRange{rhs.obj(), img_to_range(rhs.info()), rhs.info().extent}
+ ,m_device{rhs.device()}
 {
-  m_device = rhs.device();
-  m_image_info = rhs.info();
-  m_info = img_to_view(image(), m_image_info); 
+  m_info = img_to_view(image(), rhs.info()); 
   m_object = m_device.createImageView(m_info);  
 }
-
 
 ImageView::~ImageView() {
   cleanup();
@@ -321,14 +249,6 @@ ImageView& ImageView::operator=(ImageView&& rhs) {
 
 vk::Format const& ImageView::format() const {
   return info().format;
-}
-
-vk::Extent3D const& ImageView::extent() const {
-  return m_image_info.extent;
-}
-
-vk::AttachmentDescription ImageView::toAttachment(bool clear) const {
-  return img_to_attachment(m_image_info, clear);
 }
 
 void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
@@ -392,5 +312,4 @@ void ImageView::swap(ImageView& rhs) {
   WrapperImageView::swap(rhs);
   ImageRange::swap(rhs);
   std::swap(m_device, rhs.m_device);
-  std::swap(m_image_info, rhs.m_image_info);
 }

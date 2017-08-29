@@ -18,54 +18,6 @@ bool has_stencil(vk::Format const& format) {
   return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
 }
 
-vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
-  if (layout == vk::ImageLayout::ePreinitialized) {
-    return vk::AccessFlagBits::eHostWrite;
-  }
-  else if (layout == vk::ImageLayout::eUndefined) {
-    return vk::AccessFlags{};
-  }
-  else if (layout == vk::ImageLayout::eTransferDstOptimal) {
-    return vk::AccessFlagBits::eTransferWrite;
-  }
-  else if (layout == vk::ImageLayout::eTransferSrcOptimal) {
-    return vk::AccessFlagBits::eTransferRead;
-  } 
-  else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
-    return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
-  } 
-  else if (layout == vk::ImageLayout::eColorAttachmentOptimal) {
-    return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-  } 
-  else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
-    // read but not from input attachment
-    return vk::AccessFlagBits::eShaderRead;
-  } 
-  else if (layout == vk::ImageLayout::ePresentSrcKHR) {
-    return vk::AccessFlagBits::eMemoryRead;
-  } 
-  else if (layout == vk::ImageLayout::eGeneral) {
-    return vk::AccessFlagBits::eInputAttachmentRead
-         | vk::AccessFlagBits::eShaderRead
-         | vk::AccessFlagBits::eShaderWrite
-         | vk::AccessFlagBits::eColorAttachmentRead
-         | vk::AccessFlagBits::eColorAttachmentWrite
-         | vk::AccessFlagBits::eDepthStencilAttachmentRead
-         | vk::AccessFlagBits::eDepthStencilAttachmentWrite
-         | vk::AccessFlagBits::eTransferRead
-         | vk::AccessFlagBits::eTransferWrite
-         | vk::AccessFlagBits::eHostRead
-         | vk::AccessFlagBits::eHostWrite
-         | vk::AccessFlagBits::eMemoryRead
-         | vk::AccessFlagBits::eMemoryWrite;
-  } 
-  else {
-    throw std::invalid_argument("unsupported layout for access mask!");
-    return vk::AccessFlags{};
-  }
-}
-
-
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features) {
   // prefer optimal tiling
   for (auto const& format : candidates) {
@@ -109,10 +61,6 @@ vk::Format const& Image::format() const {
 
 vk::Extent3D const& Image::extent() const {
   return info().extent;
-}
-
-vk::AttachmentDescription Image::toAttachment(bool clear) const {
-  return img_to_attachment(info(), clear);
 }
 
 void Image::createView() {

@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
+
 CommandBuffer::CommandBuffer()
  :WrapperCommandBuffer{}
  ,m_device{nullptr}
@@ -142,7 +144,26 @@ void CommandBuffer::copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayo
 }
 
 void CommandBuffer::transitionLayout(ImageRange const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const {
-  view.layoutTransitionCommand(get(), layout_old, layout_new);
+ vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = layout_old;
+  barrier.newLayout = layout_new;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  barrier.image = view.image();
+  barrier.subresourceRange = view;
+
+  barrier.srcAccessMask = layout_to_access(layout_old);
+  barrier.dstAccessMask = layout_to_access(layout_new);
+
+  get().pipelineBarrier(
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::PipelineStageFlagBits::eTopOfPipe,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier}
+  );
 }
 
 void CommandBuffer::bufferBarrier(BufferRegion const& region, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const {
@@ -182,4 +203,52 @@ void CommandBuffer::end() {
   get().end();
   m_recording = false;
   m_session = session_t{};
+}
+
+
+vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
+  if (layout == vk::ImageLayout::ePreinitialized) {
+    return vk::AccessFlagBits::eHostWrite;
+  }
+  else if (layout == vk::ImageLayout::eUndefined) {
+    return vk::AccessFlags{};
+  }
+  else if (layout == vk::ImageLayout::eTransferDstOptimal) {
+    return vk::AccessFlagBits::eTransferWrite;
+  }
+  else if (layout == vk::ImageLayout::eTransferSrcOptimal) {
+    return vk::AccessFlagBits::eTransferRead;
+  } 
+  else if (layout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+    return vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  } 
+  else if (layout == vk::ImageLayout::eColorAttachmentOptimal) {
+    return vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+  } 
+  else if (layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+    // read but not from input attachment
+    return vk::AccessFlagBits::eShaderRead;
+  } 
+  else if (layout == vk::ImageLayout::ePresentSrcKHR) {
+    return vk::AccessFlagBits::eMemoryRead;
+  } 
+  else if (layout == vk::ImageLayout::eGeneral) {
+    return vk::AccessFlagBits::eInputAttachmentRead
+         | vk::AccessFlagBits::eShaderRead
+         | vk::AccessFlagBits::eShaderWrite
+         | vk::AccessFlagBits::eColorAttachmentRead
+         | vk::AccessFlagBits::eColorAttachmentWrite
+         | vk::AccessFlagBits::eDepthStencilAttachmentRead
+         | vk::AccessFlagBits::eDepthStencilAttachmentWrite
+         | vk::AccessFlagBits::eTransferRead
+         | vk::AccessFlagBits::eTransferWrite
+         | vk::AccessFlagBits::eHostRead
+         | vk::AccessFlagBits::eHostWrite
+         | vk::AccessFlagBits::eMemoryRead
+         | vk::AccessFlagBits::eMemoryWrite;
+  } 
+  else {
+    throw std::invalid_argument("unsupported layout for access mask!");
+    return vk::AccessFlags{};
+  }
 }

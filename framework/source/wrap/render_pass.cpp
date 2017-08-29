@@ -79,38 +79,6 @@ vk::SubpassDependency img_to_dependency(vk::ImageLayout const& src_layout, vk::I
   return dependency;
 }
 
-vk::AttachmentDescription img_to_attachment(vk::ImageCreateInfo const& img_info, bool clear) {
-  vk::AttachmentDescription attachment{};
-  attachment.format = img_info.format;
-  // if image is cleared, initial layout doesnt matter as data is deleted 
-  if(clear) {
-    attachment.loadOp = vk::AttachmentLoadOp::eClear;    
-    attachment.stencilLoadOp = vk::AttachmentLoadOp::eClear;
-    attachment.initialLayout = vk::ImageLayout::eUndefined;
-  }
-  else {
-    attachment.loadOp = vk::AttachmentLoadOp::eLoad;
-    attachment.stencilLoadOp = vk::AttachmentLoadOp::eLoad;
-    attachment.initialLayout = img_info.initialLayout;
-  }
-  // store data only when it is used afterwards
-  if (img_info.initialLayout == vk::ImageLayout::eShaderReadOnlyOptimal
-   || img_info.initialLayout == vk::ImageLayout::eDepthStencilReadOnlyOptimal
-   || img_info.initialLayout == vk::ImageLayout::eTransferSrcOptimal
-   || img_info.initialLayout == vk::ImageLayout::ePresentSrcKHR) {
-    attachment.storeOp = vk::AttachmentStoreOp::eStore;
-    attachment.stencilStoreOp = vk::AttachmentStoreOp::eStore;
-  }
-  else {
-    attachment.storeOp = vk::AttachmentStoreOp::eDontCare;
-    attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  }
-  // layout should be preserved, so go back to original after pass
-  attachment.finalLayout = img_info.initialLayout;
-
-  return attachment;
-}
-
 sub_pass_t::sub_pass_t()
 {}   
 

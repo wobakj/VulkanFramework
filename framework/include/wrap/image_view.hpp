@@ -58,8 +58,6 @@ class ImageRange : public ImageRegion {
   ImageLayers layers(unsigned layer, unsigned count, unsigned mip_level = 0) const;
   ImageSubresource layer(unsigned layer = 0, unsigned mip_level = 0) const;
 
-  void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
-
  protected:
   vk::ImageSubresourceRange const& range() const;
   void swap(ImageRange& rhs);
@@ -134,9 +132,7 @@ class ImageView : public WrapperImageView, public ImageRange {
 
   void swap(ImageView& dev);
 
-  vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
-  vk::Extent3D const& extent() const;
 
   // write as combined sampler
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
@@ -150,8 +146,6 @@ class ImageView : public WrapperImageView, public ImageRange {
 
   vk::Device m_device;
 
-  vk::ImageCreateInfo m_image_info;
-  
   friend class Transferrer;
 };
 

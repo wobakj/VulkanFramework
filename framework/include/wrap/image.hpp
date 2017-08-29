@@ -11,7 +11,6 @@ class Memory;
 bool is_depth(vk::Format const& format);
 bool has_stencil(vk::Format const& format);
 
-vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 // vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 
@@ -36,7 +35,6 @@ class Image {
   virtual ImageLayers layers(uint32_t level = 0) const = 0;
   virtual operator ImageLayers() const = 0;
 
-  virtual vk::AttachmentDescription toAttachment(bool clear = true) const;
   virtual vk::Format const& format() const;
   virtual ImageView const& view() const;
   virtual vk::Extent3D const& extent() const;
