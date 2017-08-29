@@ -9,6 +9,7 @@
 class Device;
 class Memory;
 
+// an image that is backed with memory
 using ResourceImage = MemoryResourceT<vk::Image, vk::ImageCreateInfo>;
 class BackedImage : public ResourceImage, public Image {
  public:

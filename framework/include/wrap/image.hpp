@@ -1,7 +1,6 @@
 #ifndef IMAGE_HPP
 #define IMAGE_HPP
 
-#include "wrap/memory_resource.hpp"
 #include "wrap/image_view.hpp"
 
 #include <vulkan/vulkan.hpp>

@@ -2,7 +2,6 @@
 #define IMAGE_VIEW_HPP
 
 #include "wrap/wrapper.hpp"
-#include "wrap/memory_resource.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -18,10 +17,82 @@ class BackedImage;
 // subreslayers - 1 miplevel --transfer
 // subres - 1 layer - linear memory layout & sparse
 
+class ImageLayers;
+class ImageSubresource;
+
+// subresourcerange
+class ImageRange {
+ public:
+  ImageRange();
+  ImageRange(vk::Image const& image, vk::ImageSubresourceRange const& range);
+
+  operator vk::ImageSubresourceRange const&() const;
+
+  vk::Image const& image() const;
+  // per default, return all layers of base level
+  ImageLayers layers(uint32_t mip_level = 0) const; 
+  ImageLayers layers(unsigned layer, unsigned count, unsigned mip_level = 0) const;
+  ImageSubresource layer(unsigned layer = 0, unsigned mip_level = 0) const;
+
+  vk::ImageSubresourceRange const& range() const;
+
+ protected:
+  void swap(ImageRange& rhs);
+
+ private:
+  vk::Image m_image;
+  vk::ImageSubresourceRange m_range;
+};
+
+class ImageLayers {
+ public:
+  ImageLayers();
+  ImageLayers(vk::Image const& image, vk::ImageSubresourceLayers const& layers);
+
+  operator vk::ImageSubresourceLayers const&() const;
+  operator ImageRange() const;
+
+  vk::Image const& image() const;
+  vk::ImageSubresource layer(unsigned layer = 0) const;
+  ImageRange range() const;
+
+ protected:
+  vk::ImageSubresourceLayers const& get() const;
+
+ private:
+  vk::Image m_image;
+  vk::ImageSubresourceLayers m_layers;
+};
+
+
+class ImageSubresource {
+ public:
+  ImageSubresource();
+  ImageSubresource(vk::Image const& image, vk::ImageSubresource const& layers);
+
+  operator vk::ImageSubresource const&() const;
+  operator ImageLayers() const;
+  operator ImageRange() const;
+
+  vk::Image const& image() const;
+
+  ImageLayers layers() const;
+  ImageRange range() const;
+
+ protected:
+  vk::ImageSubresource const& get() const;
+
+ private:
+  vk::Image m_image;
+  vk::ImageSubresource m_subres;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 
 using WrapperImageView = Wrapper<vk::ImageView, vk::ImageViewCreateInfo>;
-class ImageView : public WrapperImageView {
+class ImageView : public WrapperImageView, public ImageRange {
  public:
   
   ImageView();
@@ -37,20 +108,13 @@ class ImageView : public WrapperImageView {
   ImageView& operator=(ImageView const&) = delete;
   ImageView& operator=(ImageView&& dev);
 
-  operator vk::ImageSubresourceRange const&() const;
-
   void layoutTransitionCommand(vk::CommandBuffer const& buffer, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
 
   void swap(ImageView& dev);
 
-  vk::Image const& image() const;
   vk::AttachmentDescription toAttachment(bool clear = true) const;
   vk::Format const& format() const;
   vk::Extent3D const& extent() const;
-  // per default, return all layers of base level
-  vk::ImageSubresourceLayers layers(uint32_t mip_level = 0) const; 
-  vk::ImageSubresourceLayers layers(unsigned layer, unsigned count, unsigned mip_level) const;
-  vk::ImageSubresourceLayers layer(unsigned layer = 0, unsigned mip_level = 0) const;
 
   // write as combined sampler
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
@@ -64,7 +128,6 @@ class ImageView : public WrapperImageView {
 
   vk::Device m_device;
 
-  vk::Image m_image;
   vk::ImageCreateInfo m_image_info;
   
   friend class Transferrer;

@@ -7,36 +7,6 @@
 
 #include <iostream>
 
-// vk::ImageSubresourceRange img_to_resource_range(vk::ImageCreateInfo const& img_info) {
-//   vk::ImageSubresourceRange resource_range{};
-
-//   if(is_depth(img_info.format)) {
-//     resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
-//     if(has_stencil(img_info.format)) {
-//       resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-//     }
-//   }
-//   else {
-//     resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
-//   }
-//   resource_range.baseMipLevel = 0;
-//   resource_range.levelCount = img_info.mipLevels;
-//   resource_range.baseArrayLayer = 0;
-//   resource_range.layerCount = img_info.arrayLayers;
-
-//   return resource_range;
-// }
-
-// vk::ImageSubresourceLayers img_to_resource_layer(vk::ImageCreateInfo const img_info, unsigned mip_level) {
-//   vk::ImageSubresourceLayers layer{};
-//   auto range = img_to_resource_range(img_info);
-//   layer.aspectMask = range.aspectMask;
-//   layer.layerCount = range.layerCount;
-//   layer.baseArrayLayer = range.baseArrayLayer;
-//   layer.mipLevel = mip_level;
-//   return layer;
-// }
-
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info) {
   vk::ImageViewCreateInfo view_info{};
   view_info.image = image;
@@ -125,8 +95,138 @@ vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo 
 //   }
 // }
 
+///////////////////////////////////////////////////////////////////////////////
+
+ImageRange::ImageRange()
+ :m_image{}
+ ,m_range{}
+{}
+
+ImageRange::ImageRange(vk::Image const& image, vk::ImageSubresourceRange const& range)
+ :m_image{image}
+ ,m_range{range}
+{}
+
+ImageRange::operator vk::ImageSubresourceRange const&() const {
+  return range();
+}
+
+vk::Image const& ImageRange::image() const {
+  return m_image;
+}
+
+vk::ImageSubresourceRange const& ImageRange::range() const {
+  return m_range;
+}
+
+void ImageRange::swap(ImageRange& rhs) {
+  std::swap(m_image, rhs.m_image);
+  std::swap(m_range, rhs.m_range);
+}
+
+ImageLayers ImageRange::layers(unsigned layer_base, unsigned count_layers, unsigned mip_level) const {
+  vk::ImageSubresourceLayers layers{};
+  layers.aspectMask = m_range.aspectMask;
+  layers.layerCount = count_layers;
+  // layer and level relative to base values covered by view
+  layers.baseArrayLayer = m_range.baseArrayLayer + layer_base;
+  layers.mipLevel = m_range.baseMipLevel + mip_level;
+  return ImageLayers{m_image, layers};
+}
+
+ImageLayers ImageRange::layers(unsigned mip_level) const {
+  return layers(0, m_range.layerCount, mip_level);
+}
+
+ImageSubresource ImageRange::layer(unsigned layer, unsigned mip_level) const {
+  vk::ImageSubresource subres{m_range.aspectMask, m_range.baseArrayLayer + layer, m_range.baseMipLevel + mip_level};  
+  return ImageSubresource{m_image, subres};
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ImageLayers::ImageLayers()
+ :m_image{}
+ ,m_layers{}
+{}
+
+ImageLayers::ImageLayers(vk::Image const& image, vk::ImageSubresourceLayers const& range)
+ :m_image{image}
+ ,m_layers{range}
+{}
+
+ImageLayers::operator vk::ImageSubresourceLayers const&() const {
+  return get();
+}
+
+ImageLayers::operator ImageRange() const {
+  return range();
+}
+
+vk::Image const& ImageLayers::image() const {
+  return m_image;
+}
+
+vk::ImageSubresourceLayers const& ImageLayers::get() const {
+  return m_layers;
+}
+
+ImageRange ImageLayers::range() const {
+  vk::ImageSubresourceRange range{m_layers.aspectMask, m_layers.mipLevel, 1, m_layers.baseArrayLayer, m_layers.layerCount};
+  return ImageRange{m_image, range};
+}
+
+vk::ImageSubresource ImageLayers::layer(unsigned layer) const {
+  return vk::ImageSubresource{m_layers.aspectMask, m_layers.baseArrayLayer + layer, m_layers.mipLevel};
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+ImageSubresource::ImageSubresource()
+ :m_image{}
+ ,m_subres{}
+{}
+
+ImageSubresource::ImageSubresource(vk::Image const& image, vk::ImageSubresource const& subres)
+ :m_image{image}
+ ,m_subres{subres}
+{}
+
+ImageSubresource::operator vk::ImageSubresource const&() const {
+  return get();
+}
+
+ImageSubresource::operator ImageLayers() const {
+  return layers();
+}
+
+ImageSubresource::operator ImageRange() const {
+  return range();
+}
+
+vk::Image const& ImageSubresource::image() const {
+  return m_image;
+}
+
+vk::ImageSubresource const& ImageSubresource::get() const {
+  return m_subres;
+}
+
+ImageRange ImageSubresource::range() const {
+  vk::ImageSubresourceRange range{m_subres.aspectMask, m_subres.mipLevel, 1, m_subres.arrayLayer, 1};
+  return ImageRange{m_image, range};
+}
+
+ImageLayers ImageSubresource::layers() const {
+  vk::ImageSubresourceLayers layers{m_subres.aspectMask, m_subres.mipLevel, m_subres.arrayLayer, 1};
+  return ImageLayers{m_image, layers};
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 ImageView::ImageView()
  :WrapperImageView{}
+ ,ImageRange{}
 {}
 
 ImageView::ImageView(ImageView && rhs)
@@ -136,32 +236,39 @@ ImageView::ImageView(ImageView && rhs)
 }
 
 ImageView::ImageView(BackedImage const& rhs)
- :ImageView{}
+ :WrapperImageView{}
+ ,ImageRange{rhs.get(), img_to_view(rhs.get(), rhs.info()).subresourceRange}
 {
   m_device = rhs.device();
-  m_image = rhs.get();
+  // m_image = rhs.get();
   m_image_info = rhs.info();
-  m_info = img_to_view(m_image, m_image_info); 
+  m_info = img_to_view(image(), m_image_info); 
+  // m_range = info().subresourceRange;
   m_object = m_device.createImageView(m_info);  
 }
 
 ImageView::ImageView(Device const& dev, vk::Image const& rhs, vk::ImageCreateInfo const& img_info)
- :ImageView{}
+ :WrapperImageView{}
+ ,ImageRange{rhs, img_to_view(rhs, img_info).subresourceRange}
+ // :ImageView{}
 {
   m_device = dev.get();
-  m_image = rhs;
+  // m_image = rhs;
   m_image_info = img_info;
-  m_info = img_to_view(m_image, m_image_info); 
+  m_info = img_to_view(image(), m_image_info); 
+  // m_range = info().subresourceRange;
   m_object = m_device.createImageView(m_info);  
 }
 
 ImageView::ImageView(Image const& rhs)
- :ImageView{}
+ :WrapperImageView{}
+ ,ImageRange{rhs.obj(), img_to_view(rhs.obj(), rhs.info()).subresourceRange}
 {
   m_device = rhs.device();
-  m_image = rhs.obj();
+  // m_image = rhs.obj();
   m_image_info = rhs.info();
-  m_info = img_to_view(m_image, m_image_info); 
+  m_info = img_to_view(image(), m_image_info); 
+  // m_range = info().subresourceRange;
   m_object = m_device.createImageView(m_info);  
 }
 
@@ -188,14 +295,6 @@ ImageView& ImageView::operator=(ImageView&& rhs) {
   return *this;
 }
 
-ImageView::operator vk::ImageSubresourceRange const&() const {
-  return info().subresourceRange;
-}
-
-vk::Image const& ImageView::image() const {
-  return m_image;
-}
-
 vk::Format const& ImageView::format() const {
   return info().format;
 }
@@ -206,24 +305,6 @@ vk::Extent3D const& ImageView::extent() const {
 
 vk::AttachmentDescription ImageView::toAttachment(bool clear) const {
   return img_to_attachment(m_image_info, clear);
-}
-
-vk::ImageSubresourceLayers ImageView::layers(unsigned layer, unsigned count, unsigned mip_level) const {
-  vk::ImageSubresourceLayers layers{};
-  auto range = info().subresourceRange;
-  layers.aspectMask = range.aspectMask;
-  layers.layerCount = count;
-  // layer and level relative to base values covered by view
-  layers.baseArrayLayer = range.baseArrayLayer + layer;
-  layers.mipLevel =range.baseMipLevel + mip_level;
-  return layers;
-}
-vk::ImageSubresourceLayers ImageView::layer(unsigned layer, unsigned mip_level) const {
-  return layers(layer, 1, mip_level);
-}
-
-vk::ImageSubresourceLayers ImageView::layers(unsigned mip_level) const {
-  return layers(0, info().subresourceRange.layerCount, mip_level);
 }
 
 void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
@@ -285,8 +366,8 @@ void ImageView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLa
 
 void ImageView::swap(ImageView& rhs) {
   WrapperImageView::swap(rhs);
+  ImageRange::swap(rhs);
   std::swap(m_device, rhs.m_device);
-  std::swap(m_image, rhs.m_image);
   std::swap(m_image_info, rhs.m_image_info);
 }
 
@@ -297,8 +378,8 @@ void ImageView::layoutTransitionCommand(vk::CommandBuffer const& command_buffer,
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-  barrier.image = m_image;
-  barrier.subresourceRange = info().subresourceRange;
+  barrier.image = image();
+  barrier.subresourceRange = range();
 
   barrier.srcAccessMask = layout_to_access(layout_old);
   barrier.dstAccessMask = layout_to_access(layout_new);
