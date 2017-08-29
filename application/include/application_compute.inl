@@ -92,7 +92,7 @@ void ApplicationCompute<T>::updatePipelines() {
 template<typename T>
 void ApplicationCompute<T>::createTextureImages() {
     auto extent = vk::Extent3D{1280, 720, 1}; 
-  this->m_images["texture"] = ImageRes{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
+  this->m_images["texture"] = BackedImage{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferSrc
                                                                                                    | vk::ImageUsageFlagBits::eStorage};
   this->m_allocators.at("images").allocate(this->m_images.at("texture"));
   this->m_transferrer.transitionToLayout(this->m_images.at("texture"), vk::ImageLayout::eGeneral);

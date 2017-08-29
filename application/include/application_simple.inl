@@ -276,23 +276,23 @@ void ApplicationSimple<T>::createFramebufferAttachments() {
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
   auto extent = extent_3d(this->m_resolution); 
-  this->m_images["depth"] = ImageRes{this->m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
+  this->m_images["depth"] = BackedImage{this->m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("depth"));
 
-  this->m_images["color"] = ImageRes{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  this->m_images["color"] = BackedImage{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("color"), vk::ImageLayout::eColorAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("color"));
 
-  this->m_images["pos"] = ImageRes{this->m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  this->m_images["pos"] = BackedImage{this->m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("pos"), vk::ImageLayout::eColorAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("pos"));
 
-  this->m_images["normal"] = ImageRes{this->m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
+  this->m_images["normal"] = BackedImage{this->m_device, extent, vk::Format::eR32G32B32A32Sfloat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eInputAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("normal"), vk::ImageLayout::eColorAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("normal"));
 
-  this->m_images["color_2"] = ImageRes{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  this->m_images["color_2"] = BackedImage{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   this->m_transferrer.transitionToLayout(this->m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("color_2"));
 }
@@ -301,7 +301,7 @@ template<typename T>
 void ApplicationSimple<T>::createTextureImage() {
   pixel_data pix_data = texture_loader::file(this->m_resource_path + "textures/test.tga");
 
-  this->m_images["texture"] = ImageRes{this->m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  this->m_images["texture"] = BackedImage{this->m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   this->m_allocators.at("images").allocate(this->m_images.at("texture"));
  
   this->m_transferrer.uploadImageData(pix_data.ptr(), pix_data.size(), this->m_images.at("texture"), vk::ImageLayout::eShaderReadOnlyOptimal);

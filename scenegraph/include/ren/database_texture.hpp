@@ -13,7 +13,7 @@
 class Device;
 class Transferrer;
 
-class TextureDatabase : public Database<ImageRes> {
+class TextureDatabase : public Database<BackedImage> {
  public:
   TextureDatabase();
   TextureDatabase(Transferrer& transferrer);
@@ -25,7 +25,7 @@ class TextureDatabase : public Database<ImageRes> {
 
   void swap(TextureDatabase& dev);
 
-  void store(std::string const& tex_path, ImageRes&& texture) override;
+  void store(std::string const& tex_path, BackedImage&& texture) override;
   void store(std::string const& tex_path);
   
   size_t index(std::string const& name) const;

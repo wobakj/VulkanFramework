@@ -103,7 +103,7 @@ class Application {
   std::map<std::string, Shader> m_shaders;
   std::map<std::string, GraphicsPipeline> m_pipelines;
   std::map<std::string, BlockAllocator> m_allocators;
-  std::map<std::string, ImageRes> m_images;
+  std::map<std::string, BackedImage> m_images;
   std::map<std::string, Buffer> m_buffers;
   std::map<std::string, BufferView> m_buffer_views;
   std::map<std::string, CommandPool> m_command_pools;

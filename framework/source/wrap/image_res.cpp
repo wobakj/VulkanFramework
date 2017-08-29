@@ -6,20 +6,20 @@
 
 #include <iostream>
 
-ImageRes::ImageRes()
+BackedImage::BackedImage()
  :ResourceImage{}
  ,Image{}
  // ,m_view{}
 {}
 
-ImageRes::ImageRes(ImageRes && dev)
- :ImageRes{}
+BackedImage::BackedImage(BackedImage && dev)
+ :BackedImage{}
 {
   swap(dev);
 }
 
-ImageRes::ImageRes(Device const& device,  vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
- :ImageRes{}
+BackedImage::BackedImage(Device const& device,  vk::Extent3D const& extent, vk::Format const& format, vk::ImageTiling const& tiling, vk::ImageUsageFlags const& usage) 
+ :BackedImage{}
 {  
   m_device = device.get();
 
@@ -62,11 +62,11 @@ ImageRes::ImageRes(Device const& device,  vk::Extent3D const& extent, vk::Format
   m_object = device->createImage(info());
 }
 
-ImageRes::~ImageRes() {
+BackedImage::~BackedImage() {
   cleanup();
 }
 
-void ImageRes::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
+void BackedImage::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceImage::bindTo(mem, offst);
   m_device.bindImageMemory(get(), mem, offst);
 
@@ -77,32 +77,32 @@ void ImageRes::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) 
   }
 }
 
-void ImageRes::destroy() {
+void BackedImage::destroy() {
   m_device.destroyImage(get());
 }
 
-ImageRes& ImageRes::operator=(ImageRes&& dev) {
+BackedImage& BackedImage::operator=(BackedImage&& dev) {
   swap(dev);
   return *this;
 }
 
-void ImageRes::swap(ImageRes& dev) {
+void BackedImage::swap(BackedImage& dev) {
   ResourceImage::swap(dev);
   std::swap(m_view, dev.m_view);
 }
 
-vk::ImageCreateInfo const& ImageRes::info() const {
+vk::ImageCreateInfo const& BackedImage::info() const {
   return ResourceImage::info();
 }
 
-vk::Image const& ImageRes::obj() const {
+vk::Image const& BackedImage::obj() const {
   return get();
 }
 
-vk::Device const& ImageRes::device() const {
+vk::Device const& BackedImage::device() const {
   return m_device;
 }
 
-vk::MemoryRequirements ImageRes::requirements() const {
+vk::MemoryRequirements BackedImage::requirements() const {
   return m_device.getImageMemoryRequirements(get());
 }

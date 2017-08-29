@@ -54,7 +54,7 @@ void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageRes& image, vk::ImageLayout const& newLayout) {
+void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, BackedImage& image, vk::ImageLayout const& newLayout) {
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(data_size);
@@ -84,7 +84,7 @@ void Transferrer::copyBuffer(BufferRegion const& src, BufferRegion const& dst) c
   endSingleTimeCommands();
 }
 
-void Transferrer::copyImage(ImageRes const& srcImage, ImageRes& dstImage, uint32_t width, uint32_t height) const {
+void Transferrer::copyImage(BackedImage const& srcImage, BackedImage& dstImage, uint32_t width, uint32_t height) const {
   vk::ImageSubresourceLayers subResource{};
   if (is_depth(srcImage.view().format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
@@ -132,7 +132,7 @@ void Transferrer::copyImageToBuffer(Buffer const& srcBuffer, ImageView const& ds
   endSingleTimeCommands();
 }
 
-void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
+void Transferrer::copyBufferToImage(Buffer const& srcBuffer, BackedImage& dstImage, uint32_t width, uint32_t height, uint32_t depth) const {
   vk::ImageSubresourceLayers subResource{};
   if (is_depth(dstImage.view().format())) {
     subResource.aspectMask = vk::ImageAspectFlagBits::eDepth;
@@ -168,7 +168,7 @@ void Transferrer::copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage,
   endSingleTimeCommands();
 }
 
-void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& newLayout) const {
+void Transferrer::transitionToLayout(BackedImage& img, vk::ImageLayout const& newLayout) const {
   transitionToLayout(img.get(), img.info(), vk::ImageLayout::eUndefined, newLayout);
 }
 
@@ -178,7 +178,7 @@ void Transferrer::transitionToLayout(ImageView const& img, vk::ImageLayout const
   endSingleTimeCommands();
 }
 
-void Transferrer::transitionToLayout(ImageRes& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
+void Transferrer::transitionToLayout(BackedImage& img, vk::ImageLayout const& oldLayout, vk::ImageLayout const& newLayout) const {
   transitionToLayout(img.get(), img.info(), oldLayout, newLayout);
 }
 

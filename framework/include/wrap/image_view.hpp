@@ -9,7 +9,14 @@
 class Device;
 class Memory;
 class Image;
-class ImageRes;
+class BackedImage;
+
+// +extent & offset
+// create info - format, levels, layers, extent
+// view        - range + img + type -- descriptor
+// subresrange - mult miplevels --barrier
+// subreslayers - 1 miplevel --transfer
+// subres - 1 layer - linear memory layout & sparse
 
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 
@@ -18,7 +25,7 @@ class ImageView : public WrapperImageView {
  public:
   
   ImageView();
-  ImageView(ImageRes const& rhs); 
+  ImageView(BackedImage const& rhs); 
   ImageView(Image const& rhs); 
   ImageView(Device const& dev, vk::Image const& rhs, vk::ImageCreateInfo const& img_info);
 

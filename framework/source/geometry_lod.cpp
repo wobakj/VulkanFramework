@@ -10,7 +10,7 @@
 #include <queue>
 #include <set>
 
-// #define FULL_UPLOAD
+#define FULL_UPLOAD
 
 template<typename T, typename U>
 bool contains(T const& container, U const& element) {
@@ -87,26 +87,16 @@ GeometryLod::GeometryLod(Transferrer& transferrer, std::string const& path, std:
 }
 
 void GeometryLod::createStagingBuffers() {
-  m_buffer_stage = Buffer{*m_device, m_size_node * m_num_uploads, vk::BufferUsageFlagBits::eTransferSrc};
-  auto requirements_stage = m_buffer_stage.requirements();
-  // per-buffer offset
-  auto offset_stage = requirements_stage.alignment * vk::DeviceSize(std::ceil(float(m_size_node) / float(requirements_stage.alignment)));
-  
-  requirements_stage.size = offset_stage * m_num_uploads * 2;
-  std::cout << "LOD staging buffer size is " << requirements_stage.size / 1024 / 1024 << " MB for " << m_num_uploads << " nodes" << std::endl;
-  m_buffer_stage = Buffer{*m_device, requirements_stage.size, vk::BufferUsageFlagBits::eTransferSrc};
-  
+  m_buffer_stage = Buffer{*m_device, m_size_node * m_num_uploads * 2, vk::BufferUsageFlagBits::eTransferSrc};
+
   auto mem_type = m_device->findMemoryType(m_buffer_stage.requirements().memoryTypeBits 
                                            , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
   m_allocator_stage = StaticAllocator{*m_device, mem_type, m_buffer_stage.footprint()};
   m_allocator_stage.allocate(m_buffer_stage);
 
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
-    m_db_views_stage.front().emplace_back(BufferView{m_size_node, vk::BufferUsageFlagBits::eVertexBuffer});
-    m_db_views_stage.front().back().bindTo(m_buffer_stage);
-
-    m_db_views_stage.back().emplace_back(BufferView{m_size_node, vk::BufferUsageFlagBits::eVertexBuffer});
-    m_db_views_stage.back().back().bindTo(m_buffer_stage);
+    m_db_views_stage.front().emplace_back(BufferSubresource{m_buffer_stage, m_size_node, i * m_size_node});
+    m_db_views_stage.back().emplace_back(BufferSubresource{m_buffer_stage, m_size_node, m_size_node * m_num_uploads + i * m_size_node});
   } 
   // map staging memory once
   m_ptr_mem_stage = m_allocator_stage.map(m_buffer_stage);

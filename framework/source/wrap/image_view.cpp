@@ -135,7 +135,7 @@ ImageView::ImageView(ImageView && rhs)
   swap(rhs);
 }
 
-ImageView::ImageView(ImageRes const& rhs)
+ImageView::ImageView(BackedImage const& rhs)
  :ImageView{}
 {
   m_device = rhs.device();

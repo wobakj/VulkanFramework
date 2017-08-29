@@ -106,7 +106,7 @@ class GeometryLod {
   std::vector<std::size_t> m_active_slots;
   std::vector<std::pair<std::size_t, std::size_t>> m_node_uploads;
   std::vector<vk::DrawIndirectCommand> m_commands_draw;
-  DoubleBuffer<std::vector<BufferView>> m_db_views_stage;
+  DoubleBuffer<std::vector<BufferSubresource>> m_db_views_stage;
   uint8_t* m_ptr_mem_stage;
 };
 

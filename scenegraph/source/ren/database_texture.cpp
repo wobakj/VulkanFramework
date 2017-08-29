@@ -35,7 +35,7 @@ void TextureDatabase::swap(TextureDatabase& rhs) {
   std::swap(m_sampler, m_sampler);
 }
 
-void TextureDatabase::store(std::string const& tex_path, ImageRes&& texture) {
+void TextureDatabase::store(std::string const& tex_path, BackedImage&& texture) {
   m_indices.emplace(tex_path, m_indices.size());
   Database::store(tex_path, std::move(texture));  
 }
@@ -43,7 +43,7 @@ void TextureDatabase::store(std::string const& tex_path, ImageRes&& texture) {
 void TextureDatabase::store(std::string const& tex_path) {
   auto pix_data = texture_loader::file(tex_path);
 
-  ImageRes img_new{*m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
+  BackedImage img_new{*m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocator.allocate(img_new);
  
   m_transferrer->uploadImageData(pix_data.ptr(), pix_data.size(), img_new, vk::ImageLayout::eShaderReadOnlyOptimal);

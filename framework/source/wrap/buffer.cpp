@@ -69,7 +69,7 @@ vk::DeviceSize Buffer::bindOffset(BufferView const& view, vk::DeviceSize offset)
   if (offset + view.size() > size()) {
     throw std::out_of_range{"View size " + std::to_string(view.size()) + " too large for buffer " + std::to_string(space()) + " from " + std::to_string(size())};
   }
-  // fulfill allignment requirements of object
+  // fulfill alignment requirements of object
   auto alignmnt = alignment();
   offset = alignmnt * vk::DeviceSize(std::ceil(float(offset) / float(alignmnt)));
   // store new offset
