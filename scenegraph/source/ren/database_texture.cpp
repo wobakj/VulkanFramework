@@ -46,7 +46,7 @@ void TextureDatabase::store(std::string const& tex_path) {
   ImageRes img_new{*m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   m_allocator.allocate(img_new);
  
-  m_transferrer->uploadImageData(pix_data.ptr(), img_new, vk::ImageLayout::eShaderReadOnlyOptimal);
+  m_transferrer->uploadImageData(pix_data.ptr(), pix_data.size(), img_new, vk::ImageLayout::eShaderReadOnlyOptimal);
 
   store(tex_path, std::move(img_new));  
 }

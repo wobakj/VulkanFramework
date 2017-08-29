@@ -5,9 +5,34 @@
 
 #include <iostream>
 
+BufferSubresource::BufferSubresource()
+ :m_info{}
+{}
+
+BufferSubresource::BufferSubresource(vk::Buffer const& buffer, vk::DeviceSize size, vk::DeviceSize offset)
+ :m_info{buffer, offset, size}
+{}
+
+vk::DeviceSize BufferSubresource::size() const {
+  return m_info.range;
+}
+
+vk::DeviceSize BufferSubresource::offset() const {
+  return m_info.offset;
+}
+
+vk::Buffer const& BufferSubresource::buffer() const {
+  return m_info.buffer;
+}
+
+void BufferSubresource::swap(BufferSubresource& rhs) {
+  std::swap(m_info, rhs.m_info);
+ }
+
+
 BufferView::BufferView()
- :m_device{}
- ,m_desc_info{}
+ :BufferSubresource{}
+ ,m_device{}
 {}
 
 BufferView::BufferView(BufferView && rhs)
@@ -19,7 +44,7 @@ BufferView::BufferView(BufferView && rhs)
 BufferView::BufferView(vk::DeviceSize const& size, vk::BufferUsageFlagBits const& usage)
  :BufferView{}
 {
-  m_desc_info.range = size;
+  m_info.range = size;
   m_usage = usage;
 }
 
@@ -36,36 +61,24 @@ void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descri
   descriptorWrite.dstArrayElement = index;
   descriptorWrite.descriptorType = type;
   descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pBufferInfo = &m_desc_info;
+  descriptorWrite.pBufferInfo = &m_info;
   m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
 void BufferView::swap(BufferView& rhs) {
+  BufferSubresource::swap(rhs);
   std::swap(m_device, rhs.m_device);
-  std::swap(m_desc_info, rhs.m_desc_info);
   std::swap(m_usage, rhs.m_usage);
  }
 
 void BufferView::bindTo(Buffer& buffer) {
-  m_desc_info.buffer = buffer.get();
-  m_desc_info.offset = buffer.bindOffset(*this);
+  m_info.buffer = buffer.get();
+  m_info.offset = buffer.bindOffset(*this);
   m_device = buffer.m_device;
 }
 
 void BufferView::bindTo(Buffer& buffer, vk::DeviceSize const& offset) {
-  m_desc_info.buffer = buffer.get();
-  m_desc_info.offset = buffer.bindOffset(*this, offset);
+  m_info.buffer = buffer.get();
+  m_info.offset = buffer.bindOffset(*this, offset);
   m_device = buffer.m_device;
-}
-
-vk::DeviceSize BufferView::size() const {
-  return m_desc_info.range;
-}
-
-vk::DeviceSize BufferView::offset() const {
-  return m_desc_info.offset;
-}
-
-vk::Buffer const& BufferView::buffer() const {
-  return m_desc_info.buffer;
 }

@@ -145,7 +145,7 @@ void GeometryLod::createDrawingBuffers() {
 void GeometryLod::nodeToSlotImmediate(std::size_t idx_node, std::size_t idx_slot) {
   // get next staging slot
   std::memcpy(m_ptr_mem_stage + m_db_views_stage.back()[0].offset(), m_nodes[idx_node].data(), m_size_node);
-  m_transferrer->copyBuffer(m_db_views_stage.back()[0].buffer(), m_buffer_views[idx_slot].buffer(), m_size_node, m_db_views_stage.back()[0].offset(), m_buffer_views[idx_slot].offset());
+  m_transferrer->copyBuffer(m_db_views_stage.back()[0], m_buffer_views[idx_slot]);
   // update slot occupation
   m_slots[idx_slot] = idx_node;
 }

@@ -6,7 +6,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-// interface to represent a buffer subresource
+// abstract interface to represent a buffer subresource
 class BufferRegion {
  public:
   virtual vk::Buffer const& buffer() const = 0;

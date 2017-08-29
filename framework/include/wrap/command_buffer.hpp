@@ -11,6 +11,7 @@ class CommandPool;
 class Geometry;
 class ImageView;
 class Buffer;
+class BufferRegion;
 
 struct session_t {
   session_t()
@@ -48,6 +49,7 @@ class CommandBuffer : public WrapperCommandBuffer {
 
   void bindDescriptorSets(uint32_t first_set, vk::ArrayProxy<const vk::DescriptorSet> sets, vk::ArrayProxy<const uint32_t> dynamic_offsets);
 
+  void copyBuffer(BufferRegion const& reg_src, BufferRegion const& reg_dst) const;
   void copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ArrayProxy<const vk::ImageCopy> regions) const;
   void copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;
   void copyImage(ImageView const& srcImage, vk::ImageLayout srcImageLayout, ImageView const& dstImage, vk::ImageLayout dstImageLayout, vk::ImageCopy region) const;

@@ -43,7 +43,11 @@ struct pixel_data {
     return pixels.data();
   }
 
-  std::vector<std::uint8_t> pixels;
+  size_t size() const {
+    return pixels.size();
+  }
+
+  std::vector<uint8_t> pixels;
   vk::Extent3D extent;
 
   // channel format

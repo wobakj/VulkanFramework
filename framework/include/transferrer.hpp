@@ -10,6 +10,7 @@
 #include <memory>
 
 class Buffer;
+class BufferRegion;
 class Memory;
 class Device;
 class BufferView;
@@ -31,14 +32,11 @@ class Transferrer {
   void swap(Transferrer& dev);
 
   // buffer functions
-  void uploadBufferData(void const* data_ptr, BufferView& buffer);
-  void uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& offset = 0);
-  void uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& offset = 0);
-  void copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset = 0, vk::DeviceSize const& dst_offset = 0) const;
+  void uploadBufferData(void const* data_ptr, BufferRegion& buffer);
+  void copyBuffer(BufferRegion const& srcBuffer, BufferRegion const& dstBuffer) const;
 
   // image functions
-  void uploadImageData(void const* data_ptr, ImageRes& image);
-  void uploadImageData(void const* data_ptr, ImageRes& image, vk::ImageLayout const& newLayout);
+  void uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageRes& image, vk::ImageLayout const& newLayout);
   void copyBufferToImage(Buffer const& srcBuffer, ImageRes& dstImage, uint32_t width, uint32_t height, uint32_t depth = 1) const;
   void copyBufferToImage(Buffer const& srcBuffer, ImageView& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;
   void copyImageToBuffer(Buffer const& srcBuffer, ImageView const& dstImage, vk::ImageLayout imageLayout, uint32_t layer = 0) const;

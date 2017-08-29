@@ -106,7 +106,3 @@ vk::Device const& ImageRes::device() const {
 vk::MemoryRequirements ImageRes::requirements() const {
   return m_device.getImageMemoryRequirements(get());
 }
-
-vk::DeviceSize ImageRes::size() const {
-  return requirements().size;  
-}

@@ -54,11 +54,11 @@ void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image, vk::ImageLayout const& newLayout) {
+void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageRes& image, vk::ImageLayout const& newLayout) {
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
-    adjustStagingPool(image.size());
-    std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, image.size());
+    adjustStagingPool(data_size);
+    std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, data_size);
     transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal);
     copyBufferToImage(*m_buffer_stage, image, image.info().extent.width, image.info().extent.height, image.info().extent.depth);
   }
@@ -66,37 +66,20 @@ void Transferrer::uploadImageData(void const* data_ptr, ImageRes& image, vk::Ima
   transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal, newLayout);
 }
 
-void Transferrer::uploadBufferData(void const* data_ptr, BufferView& buffer_view) {
+void Transferrer::uploadBufferData(void const* data_ptr, BufferRegion& buffer_view) {
   { //lock staging memory and buffer
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(buffer_view.size());
     std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, buffer_view.size());
 
-    copyBuffer(m_buffer_stage->get(), buffer_view.buffer(), buffer_view.size(), 0, buffer_view.offset());
+    copyBuffer(BufferSubresource{m_buffer_stage->get(), buffer_view.size()}, buffer_view);
   }
 }
 
-void Transferrer::uploadBufferData(void const* data_ptr, Buffer& buffer, vk::DeviceSize const& dst_offset) {
-  uploadBufferData(data_ptr, buffer.size(), buffer, dst_offset);
-}
+void Transferrer::copyBuffer(BufferRegion const& src, BufferRegion const& dst) const {
+  CommandBuffer const& commandBuffer = beginSingleTimeCommands();
 
-void Transferrer::uploadBufferData(void const* data_ptr, vk::DeviceSize const& size, Buffer& buffer, vk::DeviceSize const& dst_offset) {
-  { //lock staging memory and buffer
-    std::lock_guard<std::mutex> lock{m_mutex_staging};
-    adjustStagingPool(size);
-    std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, size);
-    copyBuffer(m_buffer_stage->get(), buffer.get(), size, 0, dst_offset);
-  }
-}
-
-void Transferrer::copyBuffer(vk::Buffer const& srcBuffer, vk::Buffer const& dstBuffer, vk::DeviceSize const& size, vk::DeviceSize const& src_offset, vk::DeviceSize const& dst_offset) const {
-  vk::CommandBuffer const& commandBuffer = beginSingleTimeCommands();
-
-  vk::BufferCopy copyRegion{};
-  copyRegion.size = size;
-  copyRegion.srcOffset = src_offset;
-  copyRegion.dstOffset = dst_offset;
-  commandBuffer.copyBuffer(srcBuffer, dstBuffer, {copyRegion});
+  commandBuffer.copyBuffer(src, dst);
 
   endSingleTimeCommands();
 }

@@ -90,6 +90,14 @@ void CommandBuffer::drawGeometry(uint32_t instanceCount, uint32_t firstInstance)
   }
 }
 
+void CommandBuffer::copyBuffer(BufferRegion const& src, BufferRegion const& dst) const {
+  vk::BufferCopy copyRegion{};
+  copyRegion.size = src.size();
+  copyRegion.srcOffset = src.offset();
+  copyRegion.dstOffset = dst.offset();
+  get().copyBuffer(src.buffer(), dst.buffer(), {copyRegion});
+}
+
 void CommandBuffer::copyImage(vk::Image srcImage, vk::ImageLayout srcImageLayout, vk::Image dstImage, vk::ImageLayout dstImageLayout, vk::ArrayProxy<const vk::ImageCopy> regions) const {
   get().copyImage(srcImage, srcImageLayout, dstImage, dstImageLayout, regions);
 }
