@@ -73,7 +73,7 @@ void ApplicationMinimal<T>::recordDrawBuffer(FrameResource& res) {
   
   res.command_buffers.at("draw")->endRenderPass();
 
-  this->presentCommands(res, this->m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal);
+  this->presentCommands(res, this->m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
 
   res.command_buffers.at("draw")->end();
 }

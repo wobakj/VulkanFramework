@@ -166,6 +166,7 @@ void CommandBuffer::transitionLayout(ImageRange const& view, vk::ImageLayout con
   );
 }
 
+// TODO: check if validation allows region size of 0
 void CommandBuffer::bufferBarrier(BufferRegion const& region, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const {
   vk::BufferMemoryBarrier barrier{};
   barrier.buffer = region.buffer();

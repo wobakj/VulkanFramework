@@ -129,7 +129,7 @@ void ApplicationSimple<T>::recordDrawBuffer(FrameResource& res) {
 
   res.commandBuffer("draw")->endRenderPass();
 
-  this->presentCommands(res, this->m_images.at("color_2").view(), vk::ImageLayout::eTransferSrcOptimal);
+  this->presentCommands(res, this->m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
 
   res.commandBuffer("draw")->end();
 }

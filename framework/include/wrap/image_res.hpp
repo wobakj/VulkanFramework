@@ -37,7 +37,7 @@ class BackedImage : public ResourceImage, public Image {
   virtual ImageRange range() const override;
   virtual operator ImageRange() const override;
 
-  virtual ImageLayers layers(uint32_t level = 0) const override;
+  virtual ImageLayers layers(uint32_t level) const override;
   virtual operator ImageLayers() const override;
 
  private:

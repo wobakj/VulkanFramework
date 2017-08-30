@@ -261,7 +261,7 @@ void ApplicationScenegraph::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->endRenderPass();
 
-  this->presentCommands(res, this->m_images.at("tonemapping_result").view(), vk::ImageLayout::eTransferSrcOptimal);
+  this->presentCommands(res, this->m_images.at("tonemapping_result"), vk::ImageLayout::eTransferSrcOptimal);
 
   res.command_buffers.at("draw")->end();
 }

@@ -113,14 +113,17 @@ BackedImage::operator ImageRange() const {
 
 ImageRange BackedImage::range() const {
   vk::ImageSubresourceRange range{img_to_range(info())};
-  return ImageRange{get(), range, extent()};
+  return ImageRange{get(), range};
 }
 
 BackedImage::operator ImageLayers() const {
-  return layers();
+  if (m_info.mipLevels > 1) {
+    throw std::runtime_error{"multiple mip levels, cannot produce ImageLayers"};
+  }
+  return layers(0);
 }
 
 ImageLayers BackedImage::layers(uint32_t level) const {
-  ImageRange range{get(), img_to_range(info()), extent()};
-  return range.layers(level);
+  vk::ImageSubresourceLayers layers{format_to_aspect(format()), level, 0, m_info.arrayLayers};
+  return ImageLayers{get(), layers, extent()};
 }

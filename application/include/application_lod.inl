@@ -220,7 +220,7 @@ void ApplicationLod<T>::recordDrawBuffer(FrameResource& res) {
 
   res.commandBuffer("draw")->endRenderPass();
 
-  this->presentCommands(res, this->m_images.at("color").view(), vk::ImageLayout::eTransferSrcOptimal);
+  this->presentCommands(res, this->m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
 
   res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);
   res.commandBuffer("draw")->end();

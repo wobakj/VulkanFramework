@@ -70,7 +70,7 @@ void ApplicationCompute<T>::recordDrawBuffer(FrameResource& res) {
 
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("compute")});
 
-  this->presentCommands(res, this->m_images.at("texture").view(), vk::ImageLayout::eGeneral);
+  this->presentCommands(res, this->m_images.at("texture"), vk::ImageLayout::eGeneral);
   
   res.command_buffers.at("draw")->end();
 }

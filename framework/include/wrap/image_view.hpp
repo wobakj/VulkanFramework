@@ -43,25 +43,23 @@ class ImageLayers;
 class ImageSubresource;
 
 // a range, multiple layers and mip levels, for barriers 
-class ImageRange : public ImageRegion {
+// is not a region since it can contain multiple mip levels 
+class ImageRange {
  public:
   ImageRange();
-  ImageRange(vk::Image const& image, vk::ImageSubresourceRange const& range, vk::Extent3D const& extent, vk::Offset3D const& offset = vk::Offset3D{});
+  ImageRange(vk::Image const& image, vk::ImageSubresourceRange const& range);
 
   operator vk::ImageSubresourceRange const&() const;
-  // assume mip level 0 for convenience
-  operator ImageLayers() const;
-
-  // per default, return all layers of base level
-  ImageLayers layers(uint32_t mip_level = 0) const; 
-  ImageLayers layers(unsigned layer, unsigned count, unsigned mip_level = 0) const;
-  ImageSubresource layer(unsigned layer = 0, unsigned mip_level = 0) const;
+  // this class cannot produce an ImageLayer anymore
+  // the extent would depend on the selected mipmap level 
+  vk::Image const& image() const;
 
  protected:
   vk::ImageSubresourceRange const& range() const;
   void swap(ImageRange& rhs);
 
  private:
+  vk::Image m_image;
   vk::ImageSubresourceRange m_range;
 };
 
@@ -107,7 +105,7 @@ class ImageSubresource : public ImageRegion {
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-
+vk::ImageAspectFlags format_to_aspect(vk::Format const& format);
 vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::ImageSubresourceRange img_to_range(vk::ImageCreateInfo const& img_info);
 
@@ -117,12 +115,10 @@ class ImageView : public WrapperImageView, public ImageRange {
  public:
   
   ImageView();
-  ImageView(BackedImage const& rhs); 
   ImageView(Image const& rhs); 
   ImageView(Device const& dev, vk::Image const& rhs, vk::ImageCreateInfo const& img_info);
 
   virtual ~ImageView();
-
   ImageView(ImageView && dev);
   ImageView(ImageView const&) = delete;
   
@@ -139,11 +135,17 @@ class ImageView : public WrapperImageView, public ImageRange {
   // write as input attachment
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index = 0) const;
+
+  vk::Extent3D const& extent() const;
+
+  ImageLayers layers(uint32_t level) const;
+  operator ImageLayers() const;
  
  protected:
   void destroy() override;
 
   vk::Device m_device;
+  vk::Extent3D m_extent;
 
   friend class Transferrer;
 };
