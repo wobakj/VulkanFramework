@@ -160,6 +160,30 @@ void CommandBuffer::transitionLayout(ImageRange const& view, vk::ImageLayout con
   );
 }
 
+void CommandBuffer::imageBarrier(ImageRange const& range, vk::ImageLayout layout, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const {
+ vk::ImageMemoryBarrier barrier{};
+  barrier.oldLayout = layout;
+  barrier.newLayout = layout;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+  barrier.image = range.image();
+  barrier.subresourceRange = range;
+
+  barrier.srcAccessMask = acc_src;
+  barrier.dstAccessMask = acc_dst;
+
+  get().pipelineBarrier(
+    stage_src,
+    stage_dst,
+    vk::DependencyFlags{},
+    {},
+    {},
+    {barrier}
+  );
+}
+
+
 // TODO: check if validation allows region size of 0
 void CommandBuffer::bufferBarrier(BufferRegion const& region, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const {
   vk::BufferMemoryBarrier barrier{};

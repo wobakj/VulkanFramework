@@ -236,6 +236,13 @@ void ApplicationScenegraphClustered<T>::updateResourceCommandBuffers(FrameResour
   // light grid compute
   res.command_buffers.at("compute")->reset({});
   res.command_buffers.at("compute")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+ 
+  // barrier to make light data visible to compute shader
+  res.command_buffers.at("compute").bufferBarrier(m_instance.dbLight().buffer(), 
+    vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
+    vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eShaderRead
+  );
+
   res.command_buffers.at("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
   res.command_buffers.at("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {this->m_descriptor_sets.at("lightgrid")}, {});
 
@@ -272,23 +279,9 @@ void ApplicationScenegraphClustered<T>::updateResourceCommandBuffers(FrameResour
   res.command_buffers.at("lighting")->reset({});
   res.command_buffers.at("lighting")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  vk::ImageMemoryBarrier barrier_image{};
-  barrier_image.image = this->m_images.at("light_vol");
-  barrier_image.subresourceRange = this->m_images.at("light_vol").view();
-  barrier_image.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
-  barrier_image.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  barrier_image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_image.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_image.oldLayout = vk::ImageLayout::eGeneral;
-  barrier_image.newLayout = vk::ImageLayout::eGeneral;
-
-  res.commandBuffer("lighting")->pipelineBarrier(
-    vk::PipelineStageFlagBits::eComputeShader,
-    vk::PipelineStageFlagBits::eFragmentShader,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier_image}
+  res.command_buffers.at("lighting").imageBarrier(this->m_images.at("light_vol"), vk::ImageLayout::eGeneral, 
+    vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eShaderWrite, 
+    vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
   );
 
   res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("quad"));
@@ -322,28 +315,13 @@ void ApplicationScenegraphClustered<T>::recordDrawBuffer(FrameResource& res) {
   res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
   m_instance.dbLight().updateCommand(res.command_buffers.at("draw"));
+
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("compute")});
 
   // copy transform data
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
   m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
 
-  // barrier to make light data visible to vertex shader
-  vk::BufferMemoryBarrier barrier{};
-  barrier.buffer = m_instance.dbLight().buffer();
-  barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-  barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-  res.command_buffers.at("draw")->pipelineBarrier(
-    vk::PipelineStageFlagBits::eTransfer,
-    vk::PipelineStageFlagBits::eFragmentShader,
-    vk::DependencyFlags{},
-    {},
-    {barrier},
-    {}
-  );
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
   res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});

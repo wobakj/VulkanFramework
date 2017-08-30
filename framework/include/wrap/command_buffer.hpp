@@ -59,6 +59,7 @@ class CommandBuffer : public WrapperCommandBuffer {
   void copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const;
   
   void transitionLayout(ImageRange const& view, vk::ImageLayout const& layout_old, vk::ImageLayout const& layout_new) const;
+  void imageBarrier(ImageRange const& range, vk::ImageLayout imageLayout, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const;
   void bufferBarrier(BufferRegion const& buffer, vk::PipelineStageFlags stage_src, vk::AccessFlags const& acc_src, vk::PipelineStageFlags stage_dst, vk::AccessFlags const& acc_dst) const;
   
   void drawGeometry(uint32_t instanceCount = 1, uint32_t firstInstance = 0);

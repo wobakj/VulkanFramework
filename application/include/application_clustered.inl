@@ -170,23 +170,9 @@ void ApplicationClustered<T>::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("lighting")->reset({});
   res.command_buffers.at("lighting")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  vk::ImageMemoryBarrier barrier_image{};
-  barrier_image.image = this->m_images.at("light_vol");
-  barrier_image.subresourceRange = this->m_images.at("light_vol").view();
-  barrier_image.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
-  barrier_image.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-  barrier_image.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_image.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier_image.oldLayout = vk::ImageLayout::eGeneral;
-  barrier_image.newLayout = vk::ImageLayout::eGeneral;
-
-  res.commandBuffer("lighting")->pipelineBarrier(
-    vk::PipelineStageFlagBits::eComputeShader,
-    vk::PipelineStageFlagBits::eFragmentShader,
-    vk::DependencyFlags{},
-    {},
-    {},
-    {barrier_image}
+  res.command_buffers.at("lighting").imageBarrier(this->m_images.at("light_vol"), vk::ImageLayout::eGeneral, 
+    vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eShaderWrite, 
+    vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
   );
 
   res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("quad"));
