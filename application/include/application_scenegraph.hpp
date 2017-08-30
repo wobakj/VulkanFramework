@@ -1,25 +1,24 @@
 #ifndef APPLICATION_RENDERER_HPP
 #define APPLICATION_RENDERER_HPP
 
-#include "app/application_win.hpp"
-#include "app/application_single.hpp"
-
-#include "deleter.hpp"
 #include "geometry.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
-#include "wrap/sampler.hpp"
 #include "ren/application_instance.hpp"
 #include "ren/model_loader.hpp"
 #include "ren/renderer.hpp"
-#include "node/node_model.hpp"
 #include "scenegraph.hpp"
 #include "navigation.hpp"
 
-#include <atomic>
-#include <thread>
+class Surface;
+class FrameResource;
 
-class ApplicationScenegraph : public ApplicationSingle<ApplicationWin> {
+namespace cmdline {
+  class parser;
+}
+
+template<typename T>
+class ApplicationScenegraph : public T {
  public:
   ApplicationScenegraph(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraph();
@@ -63,6 +62,7 @@ class ApplicationScenegraph : public ApplicationSingle<ApplicationWin> {
   Renderer m_renderer;
   Scenegraph m_graph;
   std::map<std::string, ModelNode> m_nodes;
+  // interaction
   bool m_fly_phase_flag;
   bool m_selection_phase_flag;
   bool m_target_navi_phase_flag;
@@ -80,5 +80,7 @@ class ApplicationScenegraph : public ApplicationSingle<ApplicationWin> {
   glm::fvec2 m_last_rotation;
   glm::fmat4 m_offset;
 };
+
+#include "application_scenegraph.inl"
 
 #endif

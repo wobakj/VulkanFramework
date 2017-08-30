@@ -1,25 +1,24 @@
 #ifndef APPLICATION_REN_CLUSTER_HPP
 #define APPLICATION_REN_CLUSTER_HPP
 
-#include "app/application_win.hpp"
-#include "app/application_single.hpp"
-
-#include "deleter.hpp"
 #include "geometry.hpp"
 #include "wrap/render_pass.hpp"
 #include "wrap/frame_buffer.hpp"
-#include "wrap/sampler.hpp"
 #include "ren/application_instance.hpp"
 #include "ren/model_loader.hpp"
 #include "ren/renderer.hpp"
-#include "node/node_model.hpp"
 #include "scenegraph.hpp"
 #include "navigation.hpp"
 
-#include <atomic>
-#include <thread>
+class Surface;
+class FrameResource;
 
-class ApplicationScenegraphClustered : public ApplicationSingle<ApplicationWin> {
+namespace cmdline {
+  class parser;
+}
+
+template<typename T>
+class ApplicationScenegraphClustered : public T {
  public:
   ApplicationScenegraphClustered(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse);
   ~ApplicationScenegraphClustered();
@@ -92,5 +91,7 @@ class ApplicationScenegraphClustered : public ApplicationSingle<ApplicationWin> 
   glm::fvec2 m_last_rotation;
   glm::fmat4 m_offset;
 };
+
+#include "application_scenegraph_clustered.inl"
 
 #endif
