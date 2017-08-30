@@ -82,7 +82,7 @@ class Application {
   virtual void updateFrameResources();
   virtual void updateResourceDescriptors(FrameResource& res) {};
   // called in recordDrawCommands();
-  virtual void presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) = 0;
+  virtual void presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) = 0;
   // cannot be pure due to template argument
   virtual void updateResourceCommandBuffers(FrameResource& res) {};
   // overwritten by actual apps

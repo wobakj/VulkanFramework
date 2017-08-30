@@ -142,7 +142,7 @@ SubmitInfo ApplicationWin::createDrawSubmitInfo(FrameResource const& res) const 
   return info;
 }
 
-void ApplicationWin::presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) {
+void ApplicationWin::presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) {
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw").copyImage(view, layout, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
   res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);

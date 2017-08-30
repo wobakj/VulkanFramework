@@ -15,6 +15,8 @@ class ImageLayers;
 class Buffer;
 class BufferRegion;
 
+vk::BufferImageCopy buffer_image_copy(BufferRegion const& buffer, ImageLayers const& image);
+
 struct session_t {
   session_t()
   {}

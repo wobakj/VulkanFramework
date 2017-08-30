@@ -20,16 +20,7 @@ vk::ImageAspectFlags format_to_aspect(vk::Format const& format) {
 
 vk::ImageSubresourceRange img_to_range(vk::ImageCreateInfo const& img_info) {
   vk::ImageSubresourceRange resource_range{};
-
-  if(is_depth(img_info.format)) {
-    resource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
-    if(has_stencil(img_info.format)) {
-      resource_range.aspectMask |= vk::ImageAspectFlagBits::eStencil;
-    }
-  }
-  else {
-    resource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
-  }
+  resource_range.aspectMask = format_to_aspect(img_info.format);
   resource_range.baseMipLevel = 0;
   resource_range.levelCount = img_info.mipLevels;
   resource_range.baseArrayLayer = 0;

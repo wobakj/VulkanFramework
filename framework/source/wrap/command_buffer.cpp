@@ -109,14 +109,7 @@ void CommandBuffer::copyImage(ImageLayers const& srcImage, vk::ImageLayout srcIm
 }
 
 void CommandBuffer::copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers const& dstImage, vk::ImageLayout imageLayout) const {
-  vk::BufferImageCopy region{};
-  region.bufferOffset = 0;
-  region.bufferRowLength = dstImage.extent().width;
-  region.bufferImageHeight = dstImage.extent().height;
-  region.imageSubresource = dstImage;
-  region.imageExtent = dstImage.extent();
-  region.imageOffset = dstImage.offset();
-
+  vk::BufferImageCopy region = buffer_image_copy(srcBuffer, dstImage);
   get().copyBufferToImage(
     srcBuffer.buffer(),
     dstImage.image(),
@@ -128,9 +121,10 @@ void CommandBuffer::copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers
 
 void CommandBuffer::copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const {
   vk::BufferImageCopy region{};
-  region.bufferOffset = 0;
-  region.bufferRowLength = dstImage.extent().width;
-  region.bufferImageHeight = dstImage.extent().height;
+  region.bufferOffset = srcBuffer.offset();
+  // assume tightly packed
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
   region.imageSubresource = dstImage;
   region.imageExtent = dstImage.extent();
   region.imageOffset = dstImage.offset();
@@ -251,4 +245,16 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
     throw std::invalid_argument("unsupported layout for access mask!");
     return vk::AccessFlags{};
   }
+}
+
+vk::BufferImageCopy buffer_image_copy(BufferRegion const& buffer, ImageLayers const& image) {
+  vk::BufferImageCopy region{};
+  region.bufferOffset = buffer.offset();
+  // assume tightly packed
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource = image;
+  region.imageExtent = image.extent();
+  region.imageOffset = image.offset();
+  return region;
 }

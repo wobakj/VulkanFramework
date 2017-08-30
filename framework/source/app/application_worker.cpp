@@ -58,28 +58,12 @@ void ApplicationWorker::createSendBuffer() {
 }
 
 void ApplicationWorker::updateFrameResources() {
-  this->m_copy_regions.clear();
-  vk::ImageSubresourceLayers subresource;
-  subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-  subresource.mipLevel = 0; 
-  subresource.baseArrayLayer = 0; 
-  subresource.layerCount = 1; 
-  
   for (auto& res : this->m_frame_resources) {
     this->updateResourceDescriptors(res);
     this->updateResourceCommandBuffers(res);
-    // create view
+    // update view into transfer buffer
     res.buffer_views["transfer"] = BufferView{m_resolution.x * m_resolution.y * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferDst};
     res.buffer_views.at("transfer").bindTo(this->m_buffers.at("transfer"));
-    // create copy region for this view
-    vk::BufferImageCopy region{};
-    region.bufferOffset = res.buffer_views.at("transfer").offset();
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource = subresource;
-    region.imageOffset = vk::Offset3D{};
-    region.imageExtent = extent_3d(m_resolution);
-    this->m_copy_regions.emplace_back(region);
   }
 }
 
@@ -87,8 +71,8 @@ void ApplicationWorker::acquireImage(FrameResource& res) {
   //do nothing 
 }
 
-void ApplicationWorker::presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) {
-  res.command_buffers.at("draw")->copyImageToBuffer(view.image(), layout, m_buffers.at("transfer"), m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
+void ApplicationWorker::presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) {
+  res.command_buffers.at("draw").copyImageToBuffer(view, layout, res.buffer_views.at("transfer"));
 }
 
 void ApplicationWorker::presentFrame(FrameResource& res) {

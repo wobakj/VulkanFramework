@@ -34,7 +34,7 @@ class ApplicationWorker : public Application {
   virtual void onFrameEnd() override final;
   virtual void onFrameBegin() override final;
 
-  virtual void presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) override;
+  virtual void presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) override;
 
  private:
   void createImages(uint32_t image_count);
@@ -45,7 +45,6 @@ class ApplicationWorker : public Application {
  private:
   StaticAllocator m_allocator;
   uint8_t* m_ptr_buff_transfer;
-  std::vector<vk::BufferImageCopy> m_copy_regions;
   bool m_should_close;
   glm::fmat4 m_mat_view;
   glm::fmat4 m_mat_frustum;
