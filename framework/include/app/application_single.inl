@@ -42,8 +42,6 @@ FrameResource ApplicationSingle<T>::createFrameResource() {
   // record once to prevent validation error when not used 
   res.commandBuffer("transfer")->begin(vk::CommandBufferBeginInfo{});
   res.commandBuffer("transfer")->end();
-
-  res.addSemaphore("transfer");
   return res;
 }
 
@@ -67,15 +65,9 @@ void ApplicationSingle<T>::render() {
 }
 
 template<typename T>
-SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) const {
-  SubmitInfo info2{};
-  info2.addCommandBuffer(res.command_buffers.at("transfer").get());
-  info2.addSignalSemaphore(res.semaphore("transfer"));
-  this->m_device.getQueue("graphics").submit({info2}, {});
-  
+SubmitInfo ApplicationSingle<T>::createDrawSubmitInfo(FrameResource const& res) const {  
   SubmitInfo info = T::createDrawSubmitInfo(res);
-  info.addWaitSemaphore(res.semaphore("transfer"), vk::PipelineStageFlagBits::eDrawIndirect);
-  // info.addCommandBuffer(res.command_buffers.at("transfer").get());
+  info.addCommandBuffer(res.command_buffers.at("transfer").get());
   return info;
 }
 

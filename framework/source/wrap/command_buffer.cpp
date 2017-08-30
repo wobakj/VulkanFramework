@@ -205,7 +205,6 @@ void CommandBuffer::end() {
   m_session = session_t{};
 }
 
-
 vk::AccessFlags layout_to_access(vk::ImageLayout const& layout) {
   if (layout == vk::ImageLayout::ePreinitialized) {
     return vk::AccessFlagBits::eHostWrite;

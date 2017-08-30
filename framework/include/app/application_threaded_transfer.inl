@@ -50,6 +50,7 @@ FrameResource ApplicationThreadedTransfer<T>::createFrameResource() {
   auto res = ApplicationThreaded<T>::createFrameResource();
   // overwrite transfer cb from ApplicationSingle, to use different queue
   res.setCommandBuffer("transfer", this->m_command_pools.at("transfer").createBuffer(vk::CommandBufferLevel::ePrimary));  
+  res.addSemaphore("transfer");
   res.addFence("transfer");
   // record once to prevent validation error when not used 
   res.commandBuffer("transfer")->begin(vk::CommandBufferBeginInfo{});
