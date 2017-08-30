@@ -34,12 +34,11 @@ class Transferrer {
   void swap(Transferrer& dev);
 
   // buffer functions
-  void uploadBufferData(void const* data_ptr, BufferRegion& buffer);
+  void uploadBufferData(void const* data_ptr, BufferRegion const& buffer);
   void copyBuffer(BufferRegion const& srcBuffer, BufferRegion const& dstBuffer) const;
 
   // image functions
   void uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers const& image, vk::ImageLayout const& newLayout);
-  void uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers&& image, vk::ImageLayout const& newLayout);
 
   void copyBufferToImage(BufferRegion const& srcBuffer, ImageLayers const& dstImage, vk::ImageLayout imageLayout) const;
   void copyImageToBuffer(ImageLayers const& dstImage, vk::ImageLayout imageLayout, BufferRegion const& srcBuffer) const;

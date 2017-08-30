@@ -6,21 +6,30 @@
 
 #include <vulkan/vulkan.hpp>
 
-// abstract interface to represent a buffer subresource
+// a buffer subresource
 class BufferRegion {
  public:
-  virtual vk::Buffer const& buffer() const = 0;
-  virtual vk::DeviceSize size() const = 0;
-  virtual vk::DeviceSize offset() const = 0;
+  BufferRegion();
+  BufferRegion(vk::Buffer const& buffer, vk::DeviceSize size, vk::DeviceSize offset = 0);
+
+  vk::Buffer const& buffer() const;
+  vk::DeviceSize size() const;
+  vk::DeviceSize offset() const;
+
+ protected:
+  void swap(BufferRegion& dev);
+
+  vk::DescriptorBufferInfo m_info;
 };
 
 class SwapChain;
 class Device;
 class Memory;
 class BufferView;
+class BufferRegion;
 
 using ResourceBuffer = MemoryResourceT<vk::Buffer, vk::BufferCreateInfo>;
-class Buffer : public ResourceBuffer, public BufferRegion {
+class Buffer : public ResourceBuffer{
  public:
   
   Buffer();
@@ -38,6 +47,7 @@ class Buffer : public ResourceBuffer, public BufferRegion {
   vk::DeviceSize bindOffset(BufferView const&);
   vk::DeviceSize bindOffset(BufferView const&, vk::DeviceSize offset);
   vk::DeviceSize space() const;
+  vk::DeviceSize size() const;
 
   void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) override;
   void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
@@ -45,9 +55,7 @@ class Buffer : public ResourceBuffer, public BufferRegion {
     return res_handle_t{m_object};
   }
 
-  virtual vk::Buffer const& buffer() const override;
-  virtual vk::DeviceSize size() const override;
-  virtual vk::DeviceSize offset() const override;
+  operator BufferRegion const() const; 
 
  private:
   void destroy() override;

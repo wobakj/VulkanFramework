@@ -7,9 +7,34 @@
 #include <iostream>
 #include <cmath>
 
+BufferRegion::BufferRegion()
+ :m_info{}
+{}
+
+BufferRegion::BufferRegion(vk::Buffer const& buffer, vk::DeviceSize size, vk::DeviceSize offset)
+ :m_info{buffer, offset, size}
+{}
+
+vk::DeviceSize BufferRegion::size() const {
+  return m_info.range;
+}
+
+vk::DeviceSize BufferRegion::offset() const {
+  return m_info.offset;
+}
+
+vk::Buffer const& BufferRegion::buffer() const {
+  return m_info.buffer;
+}
+
+void BufferRegion::swap(BufferRegion& rhs) {
+  std::swap(m_info, rhs.m_info);
+ }
+
+///////////////////////////////////////////////////////////////////////////////
+
 Buffer::Buffer()
  :ResourceBuffer{}
- ,BufferRegion{}
  ,m_offset_view{0}
 {}
 
@@ -81,6 +106,11 @@ vk::DeviceSize Buffer::space() const {
   return size() - m_offset_view;
 }
 
+
+vk::DeviceSize Buffer::size() const {
+  return info().size;
+}
+
 void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceBuffer::bindTo(mem, offst);
   m_device.bindBufferMemory(get(), mem, offst);
@@ -99,14 +129,6 @@ void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descriptor
   m_device.updateDescriptorSets({info_write}, 0);
 }
 
-vk::DeviceSize Buffer::size() const {
-  return info().size;
-}
-
-vk::DeviceSize Buffer::offset() const {
-  return 0;
-}
-
-vk::Buffer const& Buffer::buffer() const {
-  return get();
+Buffer::operator BufferRegion const() const {
+  return BufferRegion{get(), size(), 0};
 }

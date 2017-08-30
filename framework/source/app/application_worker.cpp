@@ -88,7 +88,7 @@ void ApplicationWorker::acquireImage(FrameResource& res) {
 }
 
 void ApplicationWorker::presentCommands(FrameResource& res, ImageView const& view, vk::ImageLayout const& layout) {
-  res.command_buffers.at("draw")->copyImageToBuffer(view.image(), layout, m_buffers.at("transfer").buffer(), m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
+  res.command_buffers.at("draw")->copyImageToBuffer(view.image(), layout, m_buffers.at("transfer"), m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
 }
 
 void ApplicationWorker::presentFrame(FrameResource& res) {

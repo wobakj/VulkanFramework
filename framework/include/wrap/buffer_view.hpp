@@ -6,24 +6,8 @@
 
 #include <vulkan/vulkan.hpp>
 
-// actual instance of a subresource
-class BufferSubresource : public BufferRegion {
- public:
-  BufferSubresource();
-  BufferSubresource(vk::Buffer const& buffer, vk::DeviceSize size, vk::DeviceSize offset = 0);
-
-  virtual vk::Buffer const& buffer() const override;
-  virtual vk::DeviceSize size() const override;
-  virtual vk::DeviceSize offset() const override;
-
- protected:
-  void swap(BufferSubresource& dev);
-
-  vk::DescriptorBufferInfo m_info;
-};
-
 // subresources which can be bound to a buffer and adescriptor set
-class BufferView : public BufferSubresource {
+class BufferView : public BufferRegion {
  public:
   
   BufferView();

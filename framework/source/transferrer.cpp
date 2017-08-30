@@ -54,10 +54,6 @@ void Transferrer::adjustStagingPool(vk::DeviceSize const& size) {
   }
 }
 
-void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers&& image, vk::ImageLayout const& newLayout) {
-  uploadImageData(data_ptr, data_size, image, newLayout);
-}
-
 void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size, ImageLayers const& image, vk::ImageLayout const& newLayout) {
   { //lock staging memory
     std::lock_guard<std::mutex> lock{m_mutex_staging};
@@ -70,16 +66,15 @@ void Transferrer::uploadImageData(void const* data_ptr, vk::DeviceSize data_size
   transitionToLayout(image, vk::ImageLayout::eTransferDstOptimal, newLayout);
 }
 
-void Transferrer::uploadBufferData(void const* data_ptr, BufferRegion& buffer_view) {
+void Transferrer::uploadBufferData(void const* data_ptr, BufferRegion const& buffer_view) {
   { //lock staging memory and buffer
     std::lock_guard<std::mutex> lock{m_mutex_staging};
     adjustStagingPool(buffer_view.size());
     std::memcpy(m_allocator_stage->map(*m_buffer_stage), data_ptr, buffer_view.size());
 
-    copyBuffer(BufferSubresource{m_buffer_stage->get(), buffer_view.size()}, buffer_view);
+    copyBuffer(BufferRegion{m_buffer_stage->get(), buffer_view.size()}, buffer_view);
   }
 }
-
 
 void Transferrer::copyBuffer(BufferRegion const& src, BufferRegion const& dst) const {
   CommandBuffer const& commandBuffer = beginSingleTimeCommands();

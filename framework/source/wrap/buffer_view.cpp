@@ -5,33 +5,9 @@
 
 #include <iostream>
 
-BufferSubresource::BufferSubresource()
- :m_info{}
-{}
-
-BufferSubresource::BufferSubresource(vk::Buffer const& buffer, vk::DeviceSize size, vk::DeviceSize offset)
- :m_info{buffer, offset, size}
-{}
-
-vk::DeviceSize BufferSubresource::size() const {
-  return m_info.range;
-}
-
-vk::DeviceSize BufferSubresource::offset() const {
-  return m_info.offset;
-}
-
-vk::Buffer const& BufferSubresource::buffer() const {
-  return m_info.buffer;
-}
-
-void BufferSubresource::swap(BufferSubresource& rhs) {
-  std::swap(m_info, rhs.m_info);
- }
-
 
 BufferView::BufferView()
- :BufferSubresource{}
+ :BufferRegion{}
  ,m_device{}
 {}
 
@@ -66,7 +42,7 @@ void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descri
 }
 
 void BufferView::swap(BufferView& rhs) {
-  BufferSubresource::swap(rhs);
+  BufferRegion::swap(rhs);
   std::swap(m_device, rhs.m_device);
   std::swap(m_usage, rhs.m_usage);
  }

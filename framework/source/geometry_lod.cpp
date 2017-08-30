@@ -95,8 +95,8 @@ void GeometryLod::createStagingBuffers() {
   m_allocator_stage.allocate(m_buffer_stage);
 
   for(std::size_t i = 0; i < m_num_uploads; ++i) {
-    m_db_views_stage.front().emplace_back(BufferSubresource{m_buffer_stage, m_size_node, i * m_size_node});
-    m_db_views_stage.back().emplace_back(BufferSubresource{m_buffer_stage, m_size_node, m_size_node * m_num_uploads + i * m_size_node});
+    m_db_views_stage.front().emplace_back(BufferRegion{m_buffer_stage, m_size_node, i * m_size_node});
+    m_db_views_stage.back().emplace_back(BufferRegion{m_buffer_stage, m_size_node, m_size_node * m_num_uploads + i * m_size_node});
   } 
   // map staging memory once
   m_ptr_mem_stage = m_allocator_stage.map(m_buffer_stage);

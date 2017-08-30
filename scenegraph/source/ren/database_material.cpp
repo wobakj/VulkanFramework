@@ -75,7 +75,7 @@ void MaterialDatabase::store(std::string const& name, material_t&& resource) {
   // }
   m_indices.emplace(name, m_indices.size());
   // storge gpu representation
-  BufferSubresource region{m_buffer, sizeof(gpu_mat_t), (m_indices.size() - 1) * sizeof(gpu_mat_t)};
+  BufferRegion region{m_buffer, sizeof(gpu_mat_t), (m_indices.size() - 1) * sizeof(gpu_mat_t)};
   m_transferrer->uploadBufferData(&gpu_mat, region);
 
   // store cpu representation
