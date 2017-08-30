@@ -50,12 +50,6 @@ Memory::Memory(Device const& device, vk::MemoryRequirements const& requirements,
  :Memory{device, findMemoryType(device.physical(), requirements.memoryTypeBits, properties), requirements.size}
 {}
 
-Memory::Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& properties) 
- :Memory{device, requirements, properties}
-{
-  setData(data, requirements.size);
-}
-
 Memory::~Memory() {
   cleanup();
 }
@@ -66,12 +60,6 @@ void* Memory::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
 
 void Memory::unmap() {
   (*m_device)->unmapMemory(get());
-}
-
-void Memory::setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  void* ptr = map(size, offset);
-  std::memcpy(ptr, data, size_t(size));
-  unmap();
 }
 
 void Memory::destroy() {

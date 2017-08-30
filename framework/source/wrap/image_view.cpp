@@ -85,6 +85,7 @@ vk::Offset3D const&  ImageRegion::offset() const {
   return m_offset;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 
 ImageRange::ImageRange()
  :ImageRegion{}

@@ -10,12 +10,11 @@ class Memory;
 class Image;
 class BackedImage;
 
-// +extent & offset
 // create info - format, levels, layers, extent
-// view        - range + img + type -- descriptor
+// view        - range, img, type -- descriptor
 // subresrange - mult miplevels --barrier
 // subreslayers - 1 miplevel --transfer
-// subres - 1 layer - linear memory layout & sparse
+// subres       - 1 layer -- linear memory layout & sparse
 
 // base class ob subresource classes
 // representing a certain region of a certain image

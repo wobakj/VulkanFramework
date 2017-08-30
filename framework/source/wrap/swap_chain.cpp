@@ -170,7 +170,6 @@ void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkEx
   m_info.clipped = VK_TRUE;
 
   recreate(extent);
-
 }
 
 void SwapChain::recreate(vk::Extent2D const& extent) {

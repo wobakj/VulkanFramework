@@ -15,7 +15,6 @@ class Memory : public WrapperMemory {
   Memory(Device const& dev, uint32_t type_index, vk::DeviceSize const& size);
   Memory(Device const& device, uint32_t type_bits, vk::MemoryPropertyFlags const& properties, vk::DeviceSize const& size);
   Memory(Device const& dev, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& memProperties);
-  Memory(Device const& device, void* data, vk::MemoryRequirements const& requirements, vk::MemoryPropertyFlags const& memProperties);
   Memory(Memory && dev);
   Memory(Memory const&) = delete;
   ~Memory();
@@ -25,7 +24,6 @@ class Memory : public WrapperMemory {
 
   void* map(vk::DeviceSize const& size, vk::DeviceSize const& offset);
   void unmap();
-  void setData(void const* data, vk::DeviceSize const& size, vk::DeviceSize const& offset = 0);
 
   vk::DeviceSize size() const;
   uint32_t memoryType() const;

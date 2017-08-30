@@ -11,7 +11,6 @@ class Memory;
 bool is_depth(vk::Format const& format);
 bool has_stencil(vk::Format const& format);
 
-// vk::ImageViewCreateInfo img_to_view(vk::Image const& image, vk::ImageCreateInfo const& img_info);
 vk::Format findSupportedFormat(vk::PhysicalDevice const& physicalDevice, std::vector<vk::Format> const& candidates, vk::ImageTiling const& tiling, vk::FormatFeatureFlags const& features);
 
 class Image {
