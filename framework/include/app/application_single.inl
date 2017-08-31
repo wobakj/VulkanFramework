@@ -15,7 +15,6 @@ template<typename T>
 ApplicationSingle<T>::ApplicationSingle(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse, uint32_t num_frames) 
  :T{resource_path, device, surf, num_frames + 1, cmd_parse}
 {
-  std::cout << "using 1 thread" << std::endl;
   this->m_statistics.addTimer("gpu_draw");
   this->m_statistics.addTimer("record");
   this->m_statistics.addTimer("fence_draw");

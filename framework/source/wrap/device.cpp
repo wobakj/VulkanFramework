@@ -66,7 +66,9 @@ Device::Device(vk::PhysicalDevice const& phys_dev, QueueFamilyIndices const& que
     queueCreateInfo.queueCount = num;
     queueCreateInfo.pQueuePriorities = queue_priorities.data();
     queueCreateInfos.push_back(queueCreateInfo);
-    std::cout << "creating " << num << " queues from family " << queueFamily << std::endl;
+    #ifndef NDEBUG
+      std::cout << "creating " << num << " queues from family " << queueFamily << std::endl;
+    #endif
   }
   
   vk::PhysicalDeviceFeatures deviceFeatures{};

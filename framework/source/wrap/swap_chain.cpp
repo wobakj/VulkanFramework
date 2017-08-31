@@ -144,12 +144,16 @@ void SwapChain::create(Device const& device, vk::SurfaceKHR const& surface, VkEx
   if (swapChainSupport.capabilities.maxImageCount > 0 && num_images > swapChainSupport.capabilities.maxImageCount) {
     num_images = swapChainSupport.capabilities.maxImageCount;
   }
+
+  #ifndef NDEBUG
   std::cout << "swapchain has " << num_images << " images, format "<< to_string(surfaceFormat.format) << ", preset mode is " << to_string(m_info.presentMode) << std::endl;
+  #endif
+
   m_info.minImageCount = num_images;
   m_info.imageFormat = surfaceFormat.format;
   m_info.imageColorSpace = surfaceFormat.colorSpace;
   m_info.imageArrayLayers = 1;
-  // m_info.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+  // render directly or transfer to
   m_info.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 
   QueueFamilyIndices indices = findQueueFamilies(device.physical(), m_info.surface);

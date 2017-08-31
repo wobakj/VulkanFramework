@@ -27,15 +27,14 @@ Launcher::Launcher(std::string const& path_exe, bool debug)
   
   auto extensions = vk::enumerateInstanceExtensionProperties(nullptr);
 
-  std::cout << "available extensions:" << std::endl;
-
-  for (const auto& extension : extensions) {
-    std::cout << "\t" << extension.extensionName << std::endl;
-  }
-
   bool validate = true;
   #ifdef NDEBUG
     validate = debug;
+  #else
+    std::cout << "available extensions:" << std::endl;
+    for (const auto& extension : extensions) {
+      std::cout << " " << extension.extensionName << std::endl;
+    }
   #endif
   m_instance.create(validate);
 

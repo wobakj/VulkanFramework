@@ -14,7 +14,7 @@ ApplicationThreaded<T>::ApplicationThreaded(std::string const& resource_path, De
  ,m_semaphore_present{0}
  ,m_should_draw{true}
 {
-  std::cout << "using 2 threads" << std::endl;
+  std::cout << "using drawing thread" << std::endl;
 
   this->m_statistics.addTimer("sema_present");
   this->m_statistics.addTimer("sema_draw");

@@ -18,11 +18,12 @@ std::vector<const char*> getRequiredExtensions(bool enableValidationLayers) {
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
   for (unsigned int i = 0; i < glfwExtensionCount; i++) {
-      extensions.push_back(glfwExtensions[i]);
+    extensions.push_back(glfwExtensions[i]);
   }
 
   if (enableValidationLayers) {
-      extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+    std::cout << "running validation layers" << std::endl;
   }
 
   return extensions;
@@ -34,10 +35,9 @@ bool checkValidationLayerSupport(std::vector<std::string> const& validationLayer
   for (auto const& layerName : validationLayers) {
     bool layerFound = false;
     for (const auto& layerProperties : availableLayers) {
-      std::cout << layerProperties.layerName << std::endl;
+      // std::cout << layerProperties.layerName << std::endl;
       if (layerName == layerProperties.layerName) {
         layerFound = true;
-        std::cout << "found" << std::endl;
         break;
       }
     }
@@ -95,7 +95,7 @@ Instance::Instance()
 
 void Instance::create(bool validate) {
   vk::ApplicationInfo appInfo = {};
-  appInfo.pApplicationName = "Hello Triangle";
+  appInfo.pApplicationName = "VulkanFramework";
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName = "No Engine";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -137,11 +137,15 @@ void Instance::create(bool validate) {
 vk::PhysicalDevice Instance::pickPhysicalDevice(std::vector<const char*> const& deviceExtensions, vk::SurfaceKHR const& surface) {
   vk::PhysicalDevice phys_device{};
   auto devices = get().enumeratePhysicalDevices();
-  std::cout << "devices:" << std::endl;
+  #ifndef NDEBUG
+  std::cout << "available extensions:" << std::endl;
+  #endif
   for (const auto& device : devices) {
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
-    std::cout << "  " << deviceProperties.deviceName << std::endl;
+    #ifndef NDEBUG
+    std::cout << " " << deviceProperties.deviceName << std::endl;
+    #endif
   }
   for (const auto& device : devices) {
     if (isDeviceSuitable(device, surface, deviceExtensions)) {

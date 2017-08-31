@@ -11,7 +11,7 @@ ApplicationThreadedTransfer<T>::ApplicationThreadedTransfer(std::string const& r
  ,m_semaphore_transfer{0}
  ,m_should_transfer{true}
 {
-  std::cout << "using 3 threads" << std::endl;
+  std::cout << "using transfer thread" << std::endl;
 
   this->m_statistics.addTimer("fence_transfer");
   this->m_statistics.addTimer("sema_transfer");

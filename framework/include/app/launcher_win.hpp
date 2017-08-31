@@ -27,7 +27,7 @@ class LauncherWin {
     auto cmd_parse = getParser<ApplicationWin>();
     cmd_parse.parse(argc, argv);
 
-    LauncherWin launcher{argv[0], cmd_parse.exist("threads")};
+    LauncherWin launcher{argv[0], cmd_parse.exist("debug")};
 
     if (cmd_parse.exist("threads")) {
       int threads = cmd_parse.get<int>("threads");
