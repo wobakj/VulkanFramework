@@ -42,7 +42,7 @@ FrameResource ApplicationMinimal<T>::createFrameResource() {
 
 template<typename T>
 void ApplicationMinimal<T>::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer")->reset({});
+  res.commandBuffer("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = this->m_render_pass;
@@ -50,32 +50,32 @@ void ApplicationMinimal<T>::updateResourceCommandBuffers(FrameResource& res) {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer")->setViewport(0, viewport(this->resolution()));
-  res.command_buffers.at("gbuffer")->setScissor(0, rect(this->resolution()));
+  res.commandBuffer("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("scene"));
+  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("gbuffer")->setScissor(0, rect(this->resolution()));
 
-  res.command_buffers.at("gbuffer")->draw(3, 1, 0, 0);
+  res.commandBuffer("gbuffer")->draw(3, 1, 0, 0);
 
-  res.command_buffers.at("gbuffer")->end();
+  res.commandBuffer("gbuffer")->end();
 }
 
 template<typename T>
 void ApplicationMinimal<T>::recordDrawBuffer(FrameResource& res) {
 
-  res.command_buffers.at("draw")->reset({});
+  res.commandBuffer("primary")->reset({});
 
-  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-  res.command_buffers.at("draw")->beginRenderPass(this->m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.commandBuffer("primary")->beginRenderPass(this->m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("gbuffer")});
   
-  res.command_buffers.at("draw")->endRenderPass();
+  res.commandBuffer("primary")->endRenderPass();
 
   this->presentCommands(res, this->m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
 
-  res.command_buffers.at("draw")->end();
+  res.commandBuffer("primary")->end();
 }
 
 template<typename T>
@@ -125,7 +125,7 @@ void ApplicationMinimal<T>::updatePipelines() {
 
 template<typename T>
 void ApplicationMinimal<T>::createFramebufferAttachments() {
-  auto extent = extent_3d(extent_2d(this->resolution())); 
+  auto extent = extent_3d(this->resolution()); 
  
   this->m_images["color"] = BackedImage{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   this->m_allocators.at("images").allocate(this->m_images.at("color"));

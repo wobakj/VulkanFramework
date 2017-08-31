@@ -47,32 +47,32 @@ FrameResource ApplicationCompute<T>::createFrameResource() {
 template<typename T>
 void ApplicationCompute<T>::updateResourceCommandBuffers(FrameResource& res) {
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
-  res.command_buffers.at("compute")->reset({});
-  res.command_buffers.at("compute")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
-  res.command_buffers.at("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
-  res.command_buffers.at("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {this->m_descriptor_sets.at("storage")}, {});
+  res.commandBuffer("compute")->reset({});
+  res.commandBuffer("compute")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
+  res.commandBuffer("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {this->m_descriptor_sets.at("storage")}, {});
 
   glm::uvec3 dims{this->m_images.at("texture").extent().width, this->m_images.at("texture").extent().height, this->m_images.at("texture").extent().depth};
   glm::uvec3 workers{16, 16, 1};
   // 512^2 threads in blocks of 16^2
-  res.command_buffers.at("compute")->dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
+  res.commandBuffer("compute")->dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
 
-  res.command_buffers.at("compute")->end();
+  res.commandBuffer("compute")->end();
 }
 
 template<typename T>
 void ApplicationCompute<T>::recordDrawBuffer(FrameResource& res) {
   updateUniformBuffers();
 
-  res.command_buffers.at("draw")->reset({});
+  res.commandBuffer("primary")->reset({});
 
-  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("compute")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("compute")});
 
   this->presentCommands(res, this->m_images.at("texture"), vk::ImageLayout::eGeneral);
   
-  res.command_buffers.at("draw")->end();
+  res.commandBuffer("primary")->end();
 }
 
 template<typename T>

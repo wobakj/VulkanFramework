@@ -115,23 +115,23 @@ void ApplicationSimple<T>::updateResourceCommandBuffers(FrameResource& res) {
 
 template<typename T>
 void ApplicationSimple<T>::recordDrawBuffer(FrameResource& res) {
-  res.commandBuffer("draw")->reset({});
+  res.commandBuffer("primary")->reset({});
 
-  res.commandBuffer("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.commandBuffer("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("primary")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.commandBuffer("draw")->executeCommands({res.commandBuffer("gbuffer")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("gbuffer")});
   
-  res.commandBuffer("draw")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("primary")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  res.commandBuffer("draw")->executeCommands({res.commandBuffer("lighting")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("lighting")});
 
-  res.commandBuffer("draw")->endRenderPass();
+  res.commandBuffer("primary")->endRenderPass();
 
   this->presentCommands(res, this->m_images.at("color_2"), vk::ImageLayout::eTransferSrcOptimal);
 
-  res.commandBuffer("draw")->end();
+  res.commandBuffer("primary")->end();
 }
 
 template<typename T>

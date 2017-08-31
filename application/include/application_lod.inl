@@ -177,53 +177,53 @@ void ApplicationLod<T>::recordTransferBuffer(FrameResource& res) {
 template<typename T>
 void ApplicationLod<T>::recordDrawBuffer(FrameResource& res) {
 
-  res.commandBuffer("draw")->reset({});
+  res.commandBuffer("primary")->reset({});
 
-  res.commandBuffer("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // always update, because last update could have been to other frame
   updateView();
-  res.commandBuffer("draw")->updateBuffer(
+  res.commandBuffer("primary")->updateBuffer(
     res.buffer_views.at("uniform").buffer(),
     res.buffer_views.at("uniform").offset(),
     sizeof(ubo_cam),
     &ubo_cam
   );
   // make matrices visible to vertex shader
-  res.command_buffers.at("draw").bufferBarrier(res.buffer_views.at("uniform"), 
+  res.commandBuffer("primary").bufferBarrier(res.buffer_views.at("uniform"), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eVertexShader, vk::AccessFlagBits::eUniformRead
   );
 
-  res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
+  res.query_pools.at("timers").timestamp(res.commandBuffer("primary"), 2, vk::PipelineStageFlagBits::eTopOfPipe);
 
   // make draw commands visible to drawindirect
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewDrawCommands(), 
+  res.commandBuffer("primary").bufferBarrier(m_model_lod.viewDrawCommands(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eDrawIndirect, vk::AccessFlagBits::eIndirectCommandRead
   );
 
   // make node data visible to vertex shader
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.buffer(), 
+  res.commandBuffer("primary").bufferBarrier(m_model_lod.buffer(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eVertexInput, vk::AccessFlagBits::eVertexAttributeRead
   );
 
   // make node level data visible to fragment shader
-  res.command_buffers.at("draw").bufferBarrier(m_model_lod.viewNodeLevels(), 
+  res.commandBuffer("primary").bufferBarrier(m_model_lod.viewNodeLevels(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
   );
 
-  res.commandBuffer("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("primary")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.commandBuffer("draw")->executeCommands({res.commandBuffer("gbuffer")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("gbuffer")});
 
-  res.commandBuffer("draw")->endRenderPass();
+  res.commandBuffer("primary")->endRenderPass();
 
   this->presentCommands(res, this->m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
 
-  res.query_pools.at("timers").timestamp(res.commandBuffer("draw"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);
-  res.commandBuffer("draw")->end();
+  res.query_pools.at("timers").timestamp(res.commandBuffer("primary"), 3, vk::PipelineStageFlagBits::eBottomOfPipe);
+  res.commandBuffer("primary")->end();
 }
 
 template<typename T>

@@ -166,17 +166,17 @@ template<typename T>
 void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
   receiveData(res);
 
-  res.command_buffers.at("draw")->reset({});
+  res.commandBuffer("primary")->reset({});
 
-  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.commandBuffer("primary").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 
-  res.command_buffers.at("draw")->copyBufferToImage(this->m_buffers.at("transfer"), res.target_view->image(), vk::ImageLayout::eTransferDstOptimal, m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
+  res.commandBuffer("primary")->copyBufferToImage(this->m_buffers.at("transfer"), res.target_view->image(), vk::ImageLayout::eTransferDstOptimal, m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
 
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.commandBuffer("primary").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
-  res.command_buffers.at("draw")->end();
+  res.commandBuffer("primary")->end();
 }
 
 template<typename T>

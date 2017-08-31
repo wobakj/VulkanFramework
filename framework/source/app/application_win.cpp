@@ -144,9 +144,9 @@ SubmitInfo ApplicationWin::createDrawSubmitInfo(FrameResource const& res) const 
 }
 
 void ApplicationWin::presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) {
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").copyImage(view, layout, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("draw").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.command_buffers.at("primary").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("primary").copyImage(view, layout, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("primary").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 }
 
 void ApplicationWin::keyCallbackSelf(int key, int scancode, int action, int mods) {

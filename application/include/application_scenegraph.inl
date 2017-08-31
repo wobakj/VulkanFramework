@@ -188,7 +188,7 @@ void ApplicationScenegraph<T>::logic() {
 
 template<typename T>
 void ApplicationScenegraph<T>::updateResourceCommandBuffers(FrameResource& res) {
-  res.command_buffers.at("gbuffer")->reset({});
+  res.commandBuffer("gbuffer")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = m_render_pass;
@@ -196,83 +196,83 @@ void ApplicationScenegraph<T>::updateResourceCommandBuffers(FrameResource& res) 
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.command_buffers.at("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("gbuffer").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("gbuffer").bindPipeline(this->m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer").bindDescriptorSets(0, {this->m_descriptor_sets.at("camera"), this->m_descriptor_sets.at("transform"), this->m_descriptor_sets.at("material")}, {});
-  res.command_buffers.at("gbuffer")->setViewport(0, viewport(this->resolution()));
-  res.command_buffers.at("gbuffer")->setScissor(0, rect(this->resolution()));
+  res.commandBuffer("gbuffer").bindPipeline(this->m_pipelines.at("scene"));
+  res.commandBuffer("gbuffer").bindDescriptorSets(0, {this->m_descriptor_sets.at("camera"), this->m_descriptor_sets.at("transform"), this->m_descriptor_sets.at("material")}, {});
+  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("gbuffer")->setScissor(0, rect(this->resolution()));
 
   RenderVisitor render_visitor{};
   m_graph.accept(render_visitor);
   // draw collected models
-  m_renderer.draw(res.command_buffers.at("gbuffer"), render_visitor.visibleNodes());
+  m_renderer.draw(res.commandBuffer("gbuffer"), render_visitor.visibleNodes());
 
-  res.command_buffers.at("gbuffer").end();
+  res.commandBuffer("gbuffer").end();
   //deferred shading pass 
   inheritanceInfo.subpass = 1;
-  res.command_buffers.at("lighting")->reset({});
-  res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("lighting")->reset({});
+  res.commandBuffer("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
   
-  res.command_buffers.at("lighting").bindPipeline(this->m_pipelines.at("lights"));
-  res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("lights").layout(), 0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("lighting")->setViewport(0, viewport(this->resolution()));
-  res.command_buffers.at("lighting")->setScissor(0, rect(this->resolution()));
+  res.commandBuffer("lighting").bindPipeline(this->m_pipelines.at("lights"));
+  res.commandBuffer("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("lights").layout(), 0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
+  res.commandBuffer("lighting")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("lighting")->setScissor(0, rect(this->resolution()));
 
-  res.command_buffers.at("lighting").bindGeometry(m_model);
+  res.commandBuffer("lighting").bindGeometry(m_model);
 
-  res.command_buffers.at("lighting").drawGeometry(uint32_t(m_instance.dbLight().size()));
+  res.commandBuffer("lighting").drawGeometry(uint32_t(m_instance.dbLight().size()));
 
-  res.command_buffers.at("lighting").end();
+  res.commandBuffer("lighting").end();
 
   // tonemapping
   inheritanceInfo.subpass = 2;
-  res.command_buffers.at("tonemapping")->reset({});
-  res.command_buffers.at("tonemapping")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("tonemapping")->reset({});
+  res.commandBuffer("tonemapping")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("tonemapping")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("tonemapping"));
-  res.command_buffers.at("tonemapping")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("tonemapping").layout(), 0, {this->m_descriptor_sets.at("tonemapping")}, {});
-  res.command_buffers.at("tonemapping")->setViewport(0, viewport(this->resolution()));
-  res.command_buffers.at("tonemapping")->setScissor(0, rect(this->resolution()));
+  res.commandBuffer("tonemapping")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("tonemapping"));
+  res.commandBuffer("tonemapping")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("tonemapping").layout(), 0, {this->m_descriptor_sets.at("tonemapping")}, {});
+  res.commandBuffer("tonemapping")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("tonemapping")->setScissor(0, rect(this->resolution()));
 
-  res.command_buffers.at("tonemapping")->draw(3, 1, 0, 0);
+  res.commandBuffer("tonemapping")->draw(3, 1, 0, 0);
 
-  res.command_buffers.at("tonemapping")->end();
+  res.commandBuffer("tonemapping")->end();
 }
 
 template<typename T>
 void ApplicationScenegraph<T>::recordDrawBuffer(FrameResource& res) {
-  res.command_buffers.at("draw")->reset({});
+  res.commandBuffer("primary")->reset({});
 
-  res.command_buffers.at("draw")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+  res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   // copy transform data
-  m_instance.dbLight().updateCommand(res.command_buffers.at("draw"));
-  m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
-  m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
+  m_instance.dbLight().updateCommand(res.commandBuffer("primary"));
+  m_instance.dbTransform().updateCommand(res.commandBuffer("primary"));
+  m_instance.dbCamera().updateCommand(res.commandBuffer("primary"));
 
   // barrier to make light data visible to vertex shader
-  res.command_buffers.at("draw").bufferBarrier(m_instance.dbLight().buffer(), 
+  res.commandBuffer("primary").bufferBarrier(m_instance.dbLight().buffer(), 
     vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
     vk::PipelineStageFlagBits::eVertexShader, vk::AccessFlagBits::eShaderRead
   );
 
-  res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("primary")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("gbuffer")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("gbuffer")});
   
-  res.command_buffers.at("draw")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("primary")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute lighting buffer
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("lighting")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("lighting")});
 
-  res.command_buffers.at("draw")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
+  res.commandBuffer("primary")->nextSubpass(vk::SubpassContents::eSecondaryCommandBuffers);
   // execute tonemapping buffer
-  res.command_buffers.at("draw")->executeCommands({res.command_buffers.at("tonemapping")});
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("tonemapping")});
 
-  res.command_buffers.at("draw")->endRenderPass();
+  res.commandBuffer("primary")->endRenderPass();
 
   this->presentCommands(res, this->m_images.at("tonemapping_result"), vk::ImageLayout::eTransferSrcOptimal);
 
-  res.command_buffers.at("draw")->end();
+  res.commandBuffer("primary")->end();
 }
 
 template<typename T>
@@ -416,7 +416,7 @@ void ApplicationScenegraph<T>::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = extent_3d(extent_2d(this->resolution())); 
+  auto extent = extent_3d(this->resolution()); 
   this->m_images["depth"] = BackedImage{this->m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("depth"));

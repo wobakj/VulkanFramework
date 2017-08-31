@@ -31,10 +31,10 @@ Application::Application(std::string const& resource_path, Device& device, uint3
 FrameResource Application::createFrameResource() {
   auto res = FrameResource{m_device};
   res.addFence("draw");
-  res.setCommandBuffer("draw", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
+  res.setCommandBuffer("primary", std::move(m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::ePrimary)));
   // record once to prevent validation error when not recorded later
-  res.commandBuffer("draw")->begin(vk::CommandBufferBeginInfo{});
-  res.commandBuffer("draw")->end();
+  res.commandBuffer("primary")->begin(vk::CommandBufferBeginInfo{});
+  res.commandBuffer("primary")->end();
   return res;
 }
 
@@ -51,7 +51,7 @@ void Application::frame() {
 
 SubmitInfo Application::createDrawSubmitInfo(FrameResource const& res) const {
   SubmitInfo info{};
-  info.addCommandBuffer(res.command_buffers.at("draw").get());
+  info.addCommandBuffer(res.command_buffers.at("primary").get());
   return info;
 }
 
