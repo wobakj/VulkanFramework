@@ -18,7 +18,7 @@ Application::Application(std::string const& resource_path, Device& device, uint3
  :m_device(device)
  ,m_pipeline_cache{m_device}
  ,m_resource_path{resource_path}
- ,m_resolution{0, 0}
+ ,m_resolution{0,0}
 {
   // cannot initialize in lst, otherwise deleted copy constructor is invoked
   m_frame_resources.resize(num_frames);

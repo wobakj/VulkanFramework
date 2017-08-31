@@ -36,13 +36,13 @@ ApplicationMinimal<T>::~ApplicationMinimal<T>() {
 template<typename T>
 FrameResource ApplicationMinimal<T>::createFrameResource() {
   auto res = T::createFrameResource();
-  res.command_buffers.emplace("gbuffer", this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
+  res.command_buffers.emplace("draw", this->m_command_pools.at("graphics").createBuffer(vk::CommandBufferLevel::eSecondary));
   return res;
 }
 
 template<typename T>
 void ApplicationMinimal<T>::updateResourceCommandBuffers(FrameResource& res) {
-  res.commandBuffer("gbuffer")->reset({});
+  res.commandBuffer("draw")->reset({});
 
   vk::CommandBufferInheritanceInfo inheritanceInfo{};
   inheritanceInfo.renderPass = this->m_render_pass;
@@ -50,15 +50,15 @@ void ApplicationMinimal<T>::updateResourceCommandBuffers(FrameResource& res) {
   inheritanceInfo.subpass = 0;
 
   // first pass
-  res.commandBuffer("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
+  res.commandBuffer("draw")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.commandBuffer("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("scene"));
-  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->resolution()));
-  res.commandBuffer("gbuffer")->setScissor(0, rect(this->resolution()));
+  res.commandBuffer("draw")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("scene"));
+  res.commandBuffer("draw")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("draw")->setScissor(0, rect(this->resolution()));
 
-  res.commandBuffer("gbuffer")->draw(3, 1, 0, 0);
+  res.commandBuffer("draw")->draw(3, 1, 0, 0);
 
-  res.commandBuffer("gbuffer")->end();
+  res.commandBuffer("draw")->end();
 }
 
 template<typename T>
@@ -68,8 +68,8 @@ void ApplicationMinimal<T>::recordDrawBuffer(FrameResource& res) {
 
   res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
   res.commandBuffer("primary")->beginRenderPass(this->m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
-  // execute gbuffer creation buffer
-  res.commandBuffer("primary")->executeCommands({res.commandBuffer("gbuffer")});
+  // execute draw buffer
+  res.commandBuffer("primary")->executeCommands({res.commandBuffer("draw")});
   
   res.commandBuffer("primary")->endRenderPass();
 

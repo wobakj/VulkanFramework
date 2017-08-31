@@ -33,6 +33,7 @@ class ApplicationWin : public Application {
   glm::fmat4 const& matrixFrustum() const;
   
   virtual void onFrameBegin() override final;
+  virtual glm::u32vec2 queryResolution() const override final;
 
   virtual FrameResource createFrameResource() override;
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const override;

@@ -33,6 +33,7 @@ class ApplicationWorker : public Application {
 
   virtual void onFrameEnd() override final;
   virtual void onFrameBegin() override final;
+  virtual glm::u32vec2 queryResolution() const override final;
 
   virtual void presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) override;
 

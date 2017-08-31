@@ -27,12 +27,11 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
  ,m_should_close{false}
 {
   // receive resolution
-  MPI::COMM_WORLD.Bcast(&m_resolution, 2, MPI::UNSIGNED, 0);
+  m_resolution = queryResolution();
   std::cout << "resolution " << resolution().x << ", " << resolution().y << std::endl;
   
   createSendBuffer();
 
-  // m_statistics.addTimer("fence_acquire");
   m_statistics.addTimer("present");
 }
 
@@ -41,7 +40,6 @@ ApplicationWorker::~ApplicationWorker() {
   m_buffers.erase("transfer");
   std::cout << std::endl;
   std::cout << "Worker" << std::endl;
-  // std::cout << "Acquire fence time: " << m_statistics.get("fence_acquire") << " milliseconds" << std::endl;
   std::cout << "Present time: " << m_statistics.get("present") << " milliseconds " << std::endl;
 }
 
@@ -101,8 +99,8 @@ glm::fmat4 const& ApplicationWorker::matrixFrustum() const {
 
 void ApplicationWorker::onFrameBegin() {
   // get resolution
-  glm::u32vec2 res_new;
-  MPI::COMM_WORLD.Bcast((void*)&res_new, 2, MPI::UNSIGNED, 0);
+  glm::u32vec2 res_new = queryResolution();
+  // MPI::COMM_WORLD.Bcast((void*)&res_new, 2, MPI::UNSIGNED, 0);
   if (res_new != resolution()) {
     resize(res_new.x, res_new.y);
   }
@@ -123,4 +121,10 @@ void ApplicationWorker::onFrameEnd() {
 
 bool ApplicationWorker::shouldClose() const{
   return m_should_close;
+}
+
+glm::u32vec2 ApplicationWorker::queryResolution() const {
+  glm::u32vec2 resolution{0,0};
+  MPI::COMM_WORLD.Bcast(&resolution, 2, MPI::UNSIGNED, 0);
+  return resolution;
 }

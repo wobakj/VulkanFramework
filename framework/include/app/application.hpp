@@ -74,6 +74,7 @@ class Application {
   virtual void onFrameEnd() {};
   virtual SubmitInfo createDrawSubmitInfo(FrameResource const& res) const;
   virtual void render() = 0;
+  virtual glm::u32vec2 queryResolution() const = 0;
   // update methods
   virtual void updateDescriptors() {};
   virtual void updatePipelines() {};

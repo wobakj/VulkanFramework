@@ -24,9 +24,8 @@ ApplicationWin::ApplicationWin(std::string const& resource_path, Device& device,
  ,m_camera{45.0f, 1.0f, 0.1f, 500.0f, &surf.window()}
  ,m_surface{&surf}
 {
-  int width, height = -1;
-  glfwGetWindowSize(&surf.window(), &width, &height);
-  m_resolution = glm::uvec2{width, height};
+  m_resolution = queryResolution();
+  m_camera.setAspect(aspect(resolution()));
 
   createSwapChain(surf, cmd_parse, image_count);
 
@@ -134,6 +133,12 @@ glm::fmat4 const& ApplicationWin::matrixFrustum() const {
 
 bool ApplicationWin::shouldClose() const{
   return glfwWindowShouldClose(&m_surface->window());
+}
+
+glm::u32vec2 ApplicationWin::queryResolution() const {
+  int width, height = -1;
+  glfwGetWindowSize(&m_surface->window(), &width, &height);
+  return glm::u32vec2{width, height};
 }
 
 SubmitInfo ApplicationWin::createDrawSubmitInfo(FrameResource const& res) const {
