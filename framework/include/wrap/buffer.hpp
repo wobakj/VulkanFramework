@@ -50,7 +50,7 @@ class Buffer : public ResourceBuffer{
   vk::DeviceSize size() const;
 
   void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) override;
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
+  void writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
   virtual res_handle_t handle() const override {
     return res_handle_t{m_object};
   }

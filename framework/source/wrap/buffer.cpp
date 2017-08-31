@@ -116,7 +116,7 @@ void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   m_device.bindBufferMemory(get(), mem, offst);
 }
 
-void Buffer::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+void Buffer::writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
   vk::DescriptorBufferInfo info_buffer{get(), 0, size()};
 
   vk::WriteDescriptorSet info_write{};

@@ -30,7 +30,7 @@ BufferView& BufferView::operator=(BufferView&& rhs) {
 }
 
 // todo: write descriptor set wrapper to allow automatic type detection
-void BufferView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+void BufferView::writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;

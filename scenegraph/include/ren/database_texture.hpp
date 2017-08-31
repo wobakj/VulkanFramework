@@ -30,8 +30,8 @@ class TextureDatabase : public Database<BackedImage> {
   
   size_t index(std::string const& name) const;
 
-  void writeToSet(vk::DescriptorSet& set, uint32_t binding) const;
-  void writeToSet(vk::DescriptorSet& set, uint32_t first_binding, std::map<std::string, std::map<std::string, int32_t>> const& mapping) const;
+  void writeToSet(vk::DescriptorSet const& set, uint32_t binding) const;
+  void writeToSet(vk::DescriptorSet const& set, uint32_t first_binding, std::map<std::string, std::map<std::string, int32_t>> const& mapping) const;
  private:
   std::map<std::string, uint32_t> m_indices;
   Sampler m_sampler;

@@ -3,6 +3,7 @@
 
 #include "wrap/wrapper.hpp"
 #include "wrap/descriptor_pool_info.hpp"
+#include "wrap/descriptor_set.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -20,8 +21,8 @@ class DescriptorPool : public WrapperDescriptorPool {
   DescriptorPool(DescriptorPool const&) = delete;
   ~DescriptorPool();
  
-  std::vector<vk::DescriptorSet> allocate(std::vector<DescriptorSetLayout> const& layouts) const;
-  vk::DescriptorSet allocate(DescriptorSetLayout const& layout) const;
+  std::vector<DescriptorSet> allocate(std::vector<DescriptorSetLayout> const& layouts) const;
+  DescriptorSet allocate(DescriptorSetLayout const& layout) const;
 
   DescriptorPool& operator=(DescriptorPool const&) = delete;
   DescriptorPool& operator=(DescriptorPool&& dev);

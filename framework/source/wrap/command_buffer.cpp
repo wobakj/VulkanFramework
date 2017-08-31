@@ -25,16 +25,6 @@ CommandBuffer::CommandBuffer(CommandBuffer && rhs)
   swap(rhs);
 }
 
-CommandBuffer::CommandBuffer(CommandPool const& pool, uint32_t idx_queue, vk::CommandBufferLevel const& level)
- :CommandBuffer{}
-{
-  m_device = &pool.device();
-  m_info.setCommandPool(pool);
-  m_info.setLevel(level);
-  m_info.setCommandBufferCount(1);
-  m_object = (*m_device)->allocateCommandBuffers(m_info)[0];
-}
-
 CommandBuffer::CommandBuffer(Device const& device, vk::CommandBuffer&& buffer, vk::CommandBufferAllocateInfo const& info)
  :CommandBuffer{}
 {

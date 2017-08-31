@@ -29,6 +29,7 @@ using WrapperCommandBuffer = Wrapper<vk::CommandBuffer, vk::CommandBufferAllocat
 class CommandBuffer : public WrapperCommandBuffer {
  public:
   CommandBuffer();
+  // take ownership
   CommandBuffer(Device const& device, vk::CommandBuffer&& buffer, vk::CommandBufferAllocateInfo const& info);
   CommandBuffer(CommandBuffer && rhs);
   CommandBuffer(CommandBuffer const&) = delete;

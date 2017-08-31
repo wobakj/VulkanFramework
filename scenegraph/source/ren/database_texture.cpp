@@ -51,7 +51,7 @@ void TextureDatabase::store(std::string const& tex_path) {
   store(tex_path, std::move(img_new));  
 }
 
-void TextureDatabase::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) const {
+void TextureDatabase::writeToSet(vk::DescriptorSet const& set, std::uint32_t binding) const {
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = set;
   descriptorWrite.dstBinding = binding;
@@ -77,7 +77,7 @@ void TextureDatabase::writeToSet(vk::DescriptorSet& set, std::uint32_t binding) 
   }
 }
 
-void TextureDatabase::writeToSet(vk::DescriptorSet& set, uint32_t first_binding, std::map<std::string, std::map<std::string, int32_t>> const& mapping) const {
+void TextureDatabase::writeToSet(vk::DescriptorSet const& set, uint32_t first_binding, std::map<std::string, std::map<std::string, int32_t>> const& mapping) const {
   std::vector<vk::WriteDescriptorSet> set_writes{};
   // infos for all bindings
   std::vector<std::vector<vk::DescriptorImageInfo>> image_infos{}; 

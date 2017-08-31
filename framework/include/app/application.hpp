@@ -11,6 +11,7 @@
 #include "wrap/device.hpp"
 #include "wrap/swap_chain.hpp"
 #include "wrap/descriptor_pool.hpp"
+#include "wrap/descriptor_set.hpp"
 #include "wrap/command_pool.hpp"
 
 #include "allocator_block.hpp"
@@ -103,7 +104,7 @@ class Application {
   PipelineCache m_pipeline_cache;
   DescriptorPool m_descriptor_pool;
 
-  std::map<std::string, vk::DescriptorSet> m_descriptor_sets;
+  std::map<std::string, DescriptorSet> m_descriptor_sets;
   std::map<std::string, Shader> m_shaders;
   std::map<std::string, GraphicsPipeline> m_pipelines;
   std::map<std::string, BlockAllocator> m_allocators;

@@ -260,11 +260,11 @@ vk::Format const& ImageView::format() const {
   return info().format;
 }
 
-void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
+void ImageView::writeToSet(vk::DescriptorSet const& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
   writeToSet(set, binding, is_depth(format()) ? vk::ImageLayout::eDepthStencilReadOnlyOptimal : vk::ImageLayout::eShaderReadOnlyOptimal, sampler, index);
 }
 
-void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
+void ImageView::writeToSet(vk::DescriptorSet const& set, std::uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
   vk::ImageLayout layout = vk::ImageLayout::eUndefined;
   // general layout is required for storage images
   if (type == vk::DescriptorType::eStorageImage) {
@@ -284,7 +284,7 @@ void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::De
   writeToSet(set, binding, layout, type, index);
 }
 
-void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::ImageLayout const& layout, vk::Sampler const& sampler, uint32_t index) const {
+void ImageView::writeToSet(vk::DescriptorSet const& set, std::uint32_t binding, vk::ImageLayout const& layout, vk::Sampler const& sampler, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = layout;
   imageInfo.imageView = get();
@@ -301,7 +301,7 @@ void ImageView::writeToSet(vk::DescriptorSet& set, std::uint32_t binding, vk::Im
   m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
-void ImageView::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index) const {
+void ImageView::writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index) const {
   vk::DescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = layout;
   imageInfo.imageView = get();
