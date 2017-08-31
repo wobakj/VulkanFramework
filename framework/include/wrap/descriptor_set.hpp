@@ -29,13 +29,13 @@ class DescriptorSet : public WrapperDescriptorSet {
   void reset();
 
   // write buffer
-  void bind(uint32_t binding, uint32_t index, Buffer const& view, vk::DescriptorType const& type) const;
-  void bind(uint32_t binding, uint32_t index, BufferView const& view, vk::DescriptorType const& type) const;
+  void bind(uint32_t binding, uint32_t index_base, vk::ArrayProxy<Buffer const> const& view, vk::DescriptorType const& type) const;
+  void bind(uint32_t binding, uint32_t index_base, vk::ArrayProxy<BufferView const> const& view, vk::DescriptorType const& type) const;
   // convenience
-  void bind(uint32_t binding, Buffer const& view, vk::DescriptorType const& type) const {
+  void bind(uint32_t binding, vk::ArrayProxy<Buffer const> const& view, vk::DescriptorType const& type) const {
     bind(binding, 0, view, type);
   }
-  void bind(uint32_t binding, BufferView const& view, vk::DescriptorType const& type) const {
+  void bind(uint32_t binding, vk::ArrayProxy<BufferView const> const& view, vk::DescriptorType const& type) const {
     bind(binding, 0, view, type);
   }
 
@@ -61,6 +61,7 @@ class DescriptorSet : public WrapperDescriptorSet {
   }
 
  private:
+  void check(uint32_t binding, uint32_t index_base, uint32_t count);
   void destroy() override;
 
   vk::Device m_device;

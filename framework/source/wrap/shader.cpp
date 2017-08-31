@@ -330,9 +330,6 @@ vk::PipelineLayout const& Shader::pipelineLayout() const {
   return get();
 }
 
-// std::vector<vk::ShaderModule> const& Shader::shaderModules() const {
-//   return m_pipe;
-// }
 DescriptorSetLayout const& Shader::setLayout(std::size_t index) const {
   return m_set_layouts[index];
 }
@@ -343,17 +340,6 @@ std::vector<DescriptorSetLayout> const& Shader::setLayouts() const {
 
 std::vector<vk::PipelineShaderStageCreateInfo> const& Shader::shaderStages() const {
   return m_shader_stages;
-}
-
-vk::DescriptorPool Shader::createPool(uint32_t times) const {
-  auto pool_sizes = to_pool_sizes(info(), times);
-  vk::DescriptorPoolCreateInfo poolInfo{};
-  poolInfo.poolSizeCount = std::uint32_t(pool_sizes.size());
-  poolInfo.pPoolSizes = pool_sizes.data();
-  // each set can be allocated times
-  poolInfo.maxSets = times * uint32_t(info().sets.size());
-
-  return (*m_device)->createDescriptorPool(poolInfo);
 }
 
 vk::GraphicsPipelineCreateInfo Shader::startPipelineInfo() const {

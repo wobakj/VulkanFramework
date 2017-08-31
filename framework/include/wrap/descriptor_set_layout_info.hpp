@@ -27,6 +27,7 @@ class DescriptorSetLayoutInfo {
   operator vk::DescriptorPoolCreateInfo const&() const;
 
  private:
+  friend class DescriptorSet;
   void updateReference();
   
   vk::DescriptorSetLayoutCreateInfo m_info;

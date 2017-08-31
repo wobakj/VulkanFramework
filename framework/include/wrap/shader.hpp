@@ -63,7 +63,6 @@ class Shader : public WrapperShader {
   DescriptorSetLayout const& setLayout(std::size_t index) const;
   std::vector<DescriptorSetLayout> const& setLayouts() const;
 
-  vk::DescriptorPool createPool(uint32_t times = 1) const;
   vk::GraphicsPipelineCreateInfo startPipelineInfo() const;
 
   std::vector<std::string> const& paths() const;

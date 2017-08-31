@@ -43,29 +43,35 @@ void DescriptorSet::swap(DescriptorSet& rhs) {
   std::swap(m_pool, rhs.m_pool);
 }
 
-void DescriptorSet::bind(uint32_t binding, uint32_t index, Buffer const& buffer, vk::DescriptorType const& type) const {
-  vk::DescriptorBufferInfo info_buffer{buffer, 0, buffer.size()};
+void DescriptorSet::bind(uint32_t binding, uint32_t index_base, vk::ArrayProxy<Buffer const> const& buffers, vk::DescriptorType const& type) const {
+  std::vector<vk::DescriptorBufferInfo> infos{};
+  for(auto const& buffer : buffers) {
+    infos.emplace_back(buffer, 0, buffer.size());
+  }
 
   vk::WriteDescriptorSet info_write{};
   info_write.dstSet = get();
   info_write.dstBinding = binding;
-  info_write.dstArrayElement = index;
+  info_write.dstArrayElement = index_base;
   info_write.descriptorType = type;
-  info_write.descriptorCount = 1;
-  info_write.pBufferInfo = &info_buffer;
+  info_write.descriptorCount = uint32_t(infos.size());
+  info_write.pBufferInfo = infos.data();
   m_device.updateDescriptorSets({info_write}, 0);
 }
 
-void DescriptorSet::bind(uint32_t binding, uint32_t index, BufferView const& view, vk::DescriptorType const& type) const {
-  vk::DescriptorBufferInfo info_buffer{view.buffer(), view.offset(), view.size()};
+void DescriptorSet::bind(uint32_t binding, uint32_t index_base, vk::ArrayProxy<BufferView const> const& views, vk::DescriptorType const& type) const {
+  std::vector<vk::DescriptorBufferInfo> infos{};
+  for(auto const& view : views) {
+    infos.emplace_back(view.buffer(), view.offset(), view.size());
+  }
 
   vk::WriteDescriptorSet descriptorWrite{};
   descriptorWrite.dstSet = get();
   descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = index;
+  descriptorWrite.dstArrayElement = index_base;
   descriptorWrite.descriptorType = type;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pBufferInfo = &info_buffer;
+  descriptorWrite.descriptorCount = uint32_t(infos.size());
+  descriptorWrite.pBufferInfo = infos.data();
   m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
@@ -126,4 +132,16 @@ void DescriptorSet::bind(uint32_t binding, uint32_t index, ImageView const& view
   descriptorWrite.pImageInfo = &imageInfo;
 
   m_device.updateDescriptorSets({descriptorWrite}, 0);
+}
+
+void DescriptorSet::check(uint32_t binding, uint32_t index_base, uint32_t count) {
+  if (binding > m_info.m_info.bindingCount) {
+    throw std::runtime_error{"binding out of range"};
+  }
+  if (index_base > m_info.m_bindings[binding].descriptorCount) {
+    throw std::runtime_error{"base index out of range"};
+  }
+  if (index_base + count > m_info.m_bindings[binding].descriptorCount) {
+    throw std::runtime_error{"count out of range"};
+  }
 }
