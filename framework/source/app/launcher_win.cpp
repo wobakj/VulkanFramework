@@ -27,8 +27,6 @@ LauncherWin::LauncherWin(std::string const& path_exe, bool debug)
  ,m_application{}
  ,m_instance{}
  ,m_device{}
- // ,m_swap_chain{}
- // ,m_surface{m_instance, vkDestroySurfaceKHR}
  ,m_validation_layers{{"VK_LAYER_LUNARG_standard_validation"}}
 {
   glfwSetErrorCallback(glfw_error);

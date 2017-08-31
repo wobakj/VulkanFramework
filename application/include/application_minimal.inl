@@ -21,7 +21,7 @@ template<typename T>
 ApplicationMinimal<T>::ApplicationMinimal(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
  :T{resource_path, device, surf, cmd_parse}
 {  
-  this->m_shaders.emplace("scene", Shader{this->m_device, {this->m_resource_path + "shaders/quad_vert.spv", this->m_resource_path + "shaders/solid_frag.spv"}});
+  this->m_shaders.emplace("scene", Shader{this->m_device, {this->resourcePath() + "shaders/quad_vert.spv", this->resourcePath() + "shaders/solid_frag.spv"}});
 
   this->createDescriptorPools();
 
@@ -53,8 +53,8 @@ void ApplicationMinimal<T>::updateResourceCommandBuffers(FrameResource& res) {
   res.command_buffers.at("gbuffer")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
   res.command_buffers.at("gbuffer")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("scene"));
-  res.command_buffers.at("gbuffer")->setViewport(0, {this->m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer")->setScissor(0, {this->m_swap_chain.asRect()});
+  res.command_buffers.at("gbuffer")->setViewport(0, viewport(this->resolution()));
+  res.command_buffers.at("gbuffer")->setScissor(0, rect(this->resolution()));
 
   res.command_buffers.at("gbuffer")->draw(3, 1, 0, 0);
 

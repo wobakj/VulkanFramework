@@ -71,14 +71,14 @@ ApplicationScenegraph<T>::ApplicationScenegraph(std::string const& resource_path
     }
     exit(0);
   }
-  scene_loader::json(cmd_parse.rest()[0], this->m_resource_path, &m_graph);
+  scene_loader::json(cmd_parse.rest()[0], this->resourcePath(), &m_graph);
 
-  this->m_shaders.emplace("scene", Shader{this->m_device, {this->m_resource_path + "shaders/graph_renderer_vert.spv", this->m_resource_path + "shaders/graph_renderer_frag.spv"}});
-  this->m_shaders.emplace("lights", Shader{this->m_device, {this->m_resource_path + "shaders/lighting_vert.spv", this->m_resource_path + "shaders/deferred_pbr_frag.spv"}});
-  this->m_shaders.emplace("tonemapping", Shader{this->m_device, {this->m_resource_path + "shaders/fullscreen_vert.spv", this->m_resource_path + "shaders/tone_mapping_frag.spv"}});
+  this->m_shaders.emplace("scene", Shader{this->m_device, {this->resourcePath() + "shaders/graph_renderer_vert.spv", this->resourcePath() + "shaders/graph_renderer_frag.spv"}});
+  this->m_shaders.emplace("lights", Shader{this->m_device, {this->resourcePath() + "shaders/lighting_vert.spv", this->resourcePath() + "shaders/deferred_pbr_frag.spv"}});
+  this->m_shaders.emplace("tonemapping", Shader{this->m_device, {this->resourcePath() + "shaders/fullscreen_vert.spv", this->resourcePath() + "shaders/tone_mapping_frag.spv"}});
 
   auto cam = m_graph.createCameraNode("cam", Camera{45.0f, this->m_swap_chain.aspect(), 0.1f, 500.0f, &surf.window()});
-  auto geo = m_graph.createGeometryNode("ray_geo", this->m_resource_path + "/models/sphere.obj");
+  auto geo = m_graph.createGeometryNode("ray_geo", this->resourcePath() + "/models/sphere.obj");
   geo->scale(glm::fvec3{.01f, 0.01f, 10.0f});
   geo->translate(glm::fvec3{0.0f, 0.00f, -3.0f});
   auto ray = std::unique_ptr<Node>{new RayNode{"ray"}};
@@ -404,7 +404,7 @@ void ApplicationScenegraph<T>::updatePipelines() {
 
 template<typename T>
 void ApplicationScenegraph<T>::createVertexBuffer() {
-  vertex_data tri = geometry_loader::obj(this->m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(this->resourcePath() + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{this->m_transferrer, tri};
 }
 
@@ -478,7 +478,7 @@ void ApplicationScenegraph<T>::createDescriptorPools() {
 template<typename T>
 void ApplicationScenegraph<T>::onResize() {
   auto cam = m_instance.dbCamera().get("cam");
-  cam.setAspect(float(this->m_resolution.x) / float(this->m_resolution.x));
+  cam.setAspect(float(this->resolution().x) / float(this->resolution().x));
   m_instance.dbCamera().set("cam", std::move(cam));
 }
 

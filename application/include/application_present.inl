@@ -39,7 +39,7 @@ ApplicationPresent<T>::ApplicationPresent(std::string const& resource_path, Devi
   this->m_statistics.addTimer("receive");
 
   createFrustra();
-  glm::uvec2 cell_resolution{this->m_resolution / m_frustum_cells};
+  glm::uvec2 cell_resolution{this->resolution() / m_frustum_cells};
   MPI::COMM_WORLD.Bcast((void*)&cell_resolution, 2, MPI::UNSIGNED, 0);
 
   createReceiveBuffer();
@@ -69,7 +69,7 @@ void ApplicationPresent<T>::updateFrameResources() {
   for (auto& res : this->m_frame_resources) {
     this->updateResourceDescriptors(res);
     this->updateResourceCommandBuffers(res);
-    auto extent = extent_3d(this->m_resolution); 
+    auto extent = extent_3d(this->resolution()); 
     res.buffer_views["transfer"] = BufferView{extent.width * extent.height * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferSrc};
     res.buffer_views.at("transfer").bindTo(this->m_buffers.at("transfer"));
   }
@@ -122,7 +122,7 @@ void ApplicationPresent<T>::createFrustra() {
     }
   }
   // send resolution to workers
-  glm::uvec2 cell_resolution{this->m_resolution / m_frustum_cells};
+  glm::uvec2 cell_resolution{this->resolution() / m_frustum_cells};
   // generate copy regions for runtime
   vk::ImageSubresourceLayers subresource;
   subresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -132,7 +132,7 @@ void ApplicationPresent<T>::createFrustra() {
 
   this->m_copy_regions = std::vector<std::vector<vk::BufferImageCopy>>{this->m_frame_resources.size(), std::vector<vk::BufferImageCopy>{}};
   int size_chunk = int(cell_resolution.x * cell_resolution.y * 4);
-  int size_image = int(this->m_resolution.x * this->m_resolution.y * 4);
+  int size_image = int(this->resolution().x * this->resolution().y * 4);
   // for each frame resource
   for (unsigned i = 0; i < this->m_frame_resources.size(); ++i) {
     // for each worker
@@ -152,7 +152,7 @@ void ApplicationPresent<T>::createFrustra() {
 template<typename T>
 void ApplicationPresent<T>::receiveData(FrameResource& res) {
   this->m_statistics.start("receive");
-  glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
+  glm::uvec2 res_worker = this->resolution() / m_frustum_cells;
   int size_chunk = int(res_worker.x * res_worker.y * 4);
   // copy into current subregion
   size_t offset = res.buffer_views.at("transfer").offset();
@@ -182,7 +182,7 @@ void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
 template<typename T>
 void ApplicationPresent<T>::createReceiveBuffer() {
 
-  this->m_buffers["transfer"] = Buffer{this->m_device, this->m_resolution.x * this->m_resolution.y * sizeof(glm::u8vec4) * this->m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferSrc};
+  this->m_buffers["transfer"] = Buffer{this->m_device, this->resolution().x * this->resolution().y * sizeof(glm::u8vec4) * this->m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferSrc};
   auto mem_type = this->m_device.findMemoryType(this->m_buffers.at("transfer").requirements().memoryTypeBits 
                               , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
   m_allocator = StaticAllocator(this->m_device, mem_type, this->m_buffers.at("transfer").requirements().size);
@@ -194,7 +194,7 @@ void ApplicationPresent<T>::createReceiveBuffer() {
 template<typename T>
 void ApplicationPresent<T>::logic() {
   // resolution
-  glm::uvec2 res_worker = this->m_resolution / m_frustum_cells;
+  glm::uvec2 res_worker = this->resolution() / m_frustum_cells;
   MPI::COMM_WORLD.Bcast((void*)&res_worker, 2, MPI::UNSIGNED, 0);
   // update camera
   T::logic();

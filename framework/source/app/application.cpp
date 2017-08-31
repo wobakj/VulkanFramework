@@ -85,7 +85,6 @@ void Application::updateFrameResources() {
 
 void Application::resize(std::size_t width, std::size_t height) {
   m_resolution = glm::uvec2{width, height};
-  // draw queue is emptied in launcher::resize
   createFramebufferAttachments();
   createFramebuffers();
   onResize();
@@ -130,4 +129,12 @@ void Application::createMemoryPools() {
 void Application::createCommandPools() {
   m_command_pools.emplace("graphics", CommandPool{m_device, m_device.getQueueIndex("graphics"), vk::CommandPoolCreateFlagBits::eResetCommandBuffer});
   m_command_pools.emplace("transfer", CommandPool{m_device, m_device.getQueueIndex("transfer"), vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer});
+}
+
+glm::u32vec2 const& Application::resolution() const {
+  return m_resolution;
+}
+
+std::string const& Application::resourcePath() const {
+  return m_resource_path;
 }

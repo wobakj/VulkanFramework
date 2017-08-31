@@ -2,6 +2,7 @@
 
 #include "wrap/surface.hpp"
 #include "wrap/submit_info.hpp"
+#include "wrap/conversions.hpp"
 
 #include "frame_resource.hpp"
 
@@ -52,7 +53,7 @@ void ApplicationWin::createSwapChain(Surface const& surf, cmdline::parser const&
   else if (mode == "immediate") {
     present_mode = vk::PresentModeKHR::eImmediate;
   }
-  m_swap_chain.create(m_device, surf, vk::Extent2D{m_resolution.x, m_resolution.y}, present_mode, image_count);
+  m_swap_chain.create(m_device, surf, extent_2d(resolution()), present_mode, image_count);
 }
 
 FrameResource ApplicationWin::createFrameResource() {

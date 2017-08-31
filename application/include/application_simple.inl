@@ -41,8 +41,8 @@ ApplicationSimple<T>::ApplicationSimple(std::string const& resource_path, Device
  :T{resource_path, device, surf, cmd_parse}
 {
 
-  this->m_shaders.emplace("scene", Shader{this->m_device, {this->m_resource_path + "shaders/simple_vert.spv", this->m_resource_path + "shaders/simple_frag.spv"}});
-  this->m_shaders.emplace("lights", Shader{this->m_device, {this->m_resource_path + "shaders/lighting_vert.spv", this->m_resource_path + "shaders/deferred_blinn_frag.spv"}});
+  this->m_shaders.emplace("scene", Shader{this->m_device, {this->resourcePath() + "shaders/simple_vert.spv", this->resourcePath() + "shaders/simple_frag.spv"}});
+  this->m_shaders.emplace("lights", Shader{this->m_device, {this->resourcePath() + "shaders/lighting_vert.spv", this->resourcePath() + "shaders/deferred_blinn_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -89,8 +89,8 @@ void ApplicationSimple<T>::updateResourceCommandBuffers(FrameResource& res) {
   res.commandBuffer("gbuffer").bindDescriptorSets(0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("textures")}, {});
   // glm::fvec3 test{0.0f, 1.0f, 0.0f};
   // res.commandBuffer("gbuffer").pushConstants(vk::ShaderStageFlagBits::eFragment, 0, test);
-  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->m_resolution));
-  res.commandBuffer("gbuffer")->setScissor(0, rect(this->m_resolution));
+  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("gbuffer")->setScissor(0, rect(this->resolution()));
   res.commandBuffer("gbuffer").bindGeometry(m_model_2);
 
   res.commandBuffer("gbuffer").drawGeometry();
@@ -103,8 +103,8 @@ void ApplicationSimple<T>::updateResourceCommandBuffers(FrameResource& res) {
 
   res.commandBuffer("lighting").bindPipeline(this->m_pipelines.at("lights"));
   res.commandBuffer("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("lights").layout(), 0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
-  res.commandBuffer("lighting")->setViewport(0, viewport(this->m_resolution));
-  res.commandBuffer("lighting")->setScissor(0, rect(this->m_resolution));
+  res.commandBuffer("lighting")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("lighting")->setScissor(0, rect(this->resolution()));
 
   res.commandBuffer("lighting").bindGeometry(this->m_model);
 
@@ -166,7 +166,7 @@ void ApplicationSimple<T>::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
 
-  info_pipe.setResolution(extent_2d(this->m_resolution));
+  info_pipe.setResolution(extent_2d(this->resolution()));
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -197,7 +197,7 @@ void ApplicationSimple<T>::createPipelines() {
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
   info_pipe.setDepthStencil(depthStencil);
 
-  info_pipe2.setResolution(extent_2d(this->m_resolution));
+  info_pipe2.setResolution(extent_2d(this->resolution()));
   info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
@@ -245,10 +245,10 @@ void ApplicationSimple<T>::updatePipelines() {
 
 template<typename T>
 void ApplicationSimple<T>::createVertexBuffer() {
-  vertex_data tri = geometry_loader::obj(this->m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(this->resourcePath() + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   this->m_model = Geometry{this->m_transferrer, tri};
 
-  tri = geometry_loader::obj(this->m_resource_path + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  tri = geometry_loader::obj(this->resourcePath() + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_2 = Geometry{this->m_transferrer, tri};
 }
 
@@ -275,7 +275,7 @@ void ApplicationSimple<T>::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = extent_3d(this->m_resolution); 
+  auto extent = extent_3d(this->resolution()); 
   this->m_images["depth"] = BackedImage{this->m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("depth"));
@@ -299,7 +299,7 @@ void ApplicationSimple<T>::createFramebufferAttachments() {
 
 template<typename T>
 void ApplicationSimple<T>::createTextureImage() {
-  pixel_data pix_data = texture_loader::file(this->m_resource_path + "textures/test.tga");
+  pixel_data pix_data = texture_loader::file(this->resourcePath() + "textures/test.tga");
 
   this->m_images["texture"] = BackedImage{this->m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   this->m_allocators.at("images").allocate(this->m_images.at("texture"));

@@ -93,7 +93,10 @@ class Application {
   // MUST be called by high-level app before destruction -> wait on queues
   virtual void shutDown() = 0;
 
-  std::string m_resource_path; 
+  // make immutable for children classes
+  std::string const& resourcePath() const;
+  glm::u32vec2 const& resolution() const;
+
   Device& m_device;
 
   PipelineCache m_pipeline_cache;
@@ -110,14 +113,17 @@ class Application {
   // below command pools so that it is destroyed before
   Transferrer m_transferrer;
 
-  glm::u32vec2 m_resolution;
   Statistics m_statistics;
-
   // workaround so multithreaded apps can be run with single thread
   virtual void recordTransferBuffer(FrameResource& res) {};
   std::vector<FrameResource> m_frame_resources;
 
  private:
+  std::string m_resource_path;
+  glm::u32vec2 m_resolution;
+  // these two classes can change the resolution
+  friend class ApplicationWorker;
+  friend class ApplicationWin;
   void createFrameResources();
 };
 

@@ -72,7 +72,7 @@ ApplicationLod<T>::ApplicationLod(std::string const& resource_path, Device& devi
 
   createVertexBuffer(cmd_parse.rest()[0], cmd_parse.get<int>("cut"), cmd_parse.get<int>("upload"));
 
-  this->m_shaders.emplace("lod", Shader{this->m_device, {this->m_resource_path + "shaders/lod_vert.spv", this->m_resource_path + "shaders/forward_lod_frag.spv"}});
+  this->m_shaders.emplace("lod", Shader{this->m_device, {this->resourcePath() + "shaders/lod_vert.spv", this->resourcePath() + "shaders/forward_lod_frag.spv"}});
 
   createUniformBuffers();
   createLights();  
@@ -130,8 +130,8 @@ void ApplicationLod<T>::updateResourceCommandBuffers(FrameResource& res) {
 
   res.commandBuffer("gbuffer")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("scene").layout(), 0, {res.descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
 
-  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->m_resolution));
-  res.commandBuffer("gbuffer")->setScissor(0, rect(this->m_resolution));
+  res.commandBuffer("gbuffer")->setViewport(0, viewport(this->resolution()));
+  res.commandBuffer("gbuffer")->setScissor(0, rect(this->resolution()));
 
   res.commandBuffer("gbuffer")->bindVertexBuffers(0, {m_model_lod.buffer()}, {0});
 
@@ -247,7 +247,7 @@ void ApplicationLod<T>::createPipelines() {
   GraphicsPipelineInfo info_pipe;
   GraphicsPipelineInfo info_pipe2;
   // overwritten during recording
-  info_pipe.setResolution(extent_2d(this->m_resolution));
+  info_pipe.setResolution(extent_2d(this->resolution()));
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -345,7 +345,7 @@ template<typename T>
 void ApplicationLod<T>::createVertexBuffer(std::string const& lod_path, std::size_t cut_budget, std::size_t upload_budget) {
   m_model_lod = GeometryLod{this->m_transferrer, lod_path, cut_budget, upload_budget};
 
-  vertex_data tri = geometry_loader::obj(this->m_resource_path + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(this->resourcePath() + "models/sphere.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model_light = Geometry{this->m_transferrer, tri};
 }
 
@@ -370,7 +370,7 @@ void ApplicationLod<T>::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = extent_3d(this->m_resolution);
+  auto extent = extent_3d(this->resolution());
   this->m_images["depth"] = BackedImage{this->m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("depth"));
@@ -382,7 +382,7 @@ void ApplicationLod<T>::createFramebufferAttachments() {
 
 template<typename T>
 void ApplicationLod<T>::createTextureImage() {
-  pixel_data pix_data = texture_loader::file(this->m_resource_path + "textures/test.tga");
+  pixel_data pix_data = texture_loader::file(this->resourcePath() + "textures/test.tga");
 
   this->m_images["texture"] = BackedImage{this->m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   this->m_allocators.at("images").allocate(this->m_images.at("texture"));

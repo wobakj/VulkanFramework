@@ -24,7 +24,7 @@ template<typename T>
 ApplicationCompute<T>::ApplicationCompute(std::string const& resource_path, Device& device, Surface const& surf, cmdline::parser const& cmd_parse) 
  :T{resource_path, device, surf, cmd_parse}
 {  
-  this->m_shaders.emplace("compute", Shader{this->m_device, {this->m_resource_path + "shaders/pattern_comp.spv"}});
+  this->m_shaders.emplace("compute", Shader{this->m_device, {this->resourcePath() + "shaders/pattern_comp.spv"}});
 
   createTextureImages();
   createUniformBuffers();

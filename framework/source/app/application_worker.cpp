@@ -28,7 +28,7 @@ ApplicationWorker::ApplicationWorker(std::string const& resource_path, Device& d
 {
   // receive resolution
   MPI::COMM_WORLD.Bcast(&m_resolution, 2, MPI::UNSIGNED, 0);
-  std::cout << "resolution " << m_resolution.x << ", " << m_resolution.y << std::endl;
+  std::cout << "resolution " << resolution().x << ", " << resolution().y << std::endl;
   
   createSendBuffer();
 
@@ -47,7 +47,7 @@ ApplicationWorker::~ApplicationWorker() {
 
 void ApplicationWorker::createSendBuffer() {
   // create upload buffer;
-  m_buffers["transfer"] = Buffer{m_device, m_resolution.x * m_resolution.y * sizeof(glm::u8vec4) * m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferDst};
+  m_buffers["transfer"] = Buffer{m_device, resolution().x * resolution().y * sizeof(glm::u8vec4) * m_frame_resources.size(), vk::BufferUsageFlagBits::eTransferDst};
   
   auto mem_type = this->m_device.findMemoryType(this->m_buffers.at("transfer").requirements().memoryTypeBits 
                               , vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -62,7 +62,7 @@ void ApplicationWorker::updateFrameResources() {
     this->updateResourceDescriptors(res);
     this->updateResourceCommandBuffers(res);
     // update view into transfer buffer
-    res.buffer_views["transfer"] = BufferView{m_resolution.x * m_resolution.y * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferDst};
+    res.buffer_views["transfer"] = BufferView{resolution().x * resolution().y * sizeof(glm::u8vec4), vk::BufferUsageFlagBits::eTransferDst};
     res.buffer_views.at("transfer").bindTo(this->m_buffers.at("transfer"));
   }
 }
@@ -103,7 +103,7 @@ void ApplicationWorker::onFrameBegin() {
   // get resolution
   glm::u32vec2 res_new;
   MPI::COMM_WORLD.Bcast((void*)&res_new, 2, MPI::UNSIGNED, 0);
-  if (res_new != m_resolution) {
+  if (res_new != resolution()) {
     resize(res_new.x, res_new.y);
   }
   // get camera matrices

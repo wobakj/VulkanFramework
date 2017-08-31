@@ -62,10 +62,10 @@ ApplicationClustered<T>::ApplicationClustered(std::string const& resource_path, 
           glm::vec4(+1.0f, -1.0f, 0.0f, 1.0f),  // top right
           glm::vec4(-1.0f, -1.0f, 0.0f, 1.0f)   // top left
       } {
-  this->m_shaders.emplace("compute", Shader{this->m_device, {this->m_resource_path + "shaders/light_grid_comp.spv"}});
-  this->m_shaders.emplace("simple", Shader{this->m_device, {this->m_resource_path + "shaders/simple_world_space_vert.spv", this->m_resource_path + "shaders/simple_frag.spv"}});
-  this->m_shaders.emplace("quad", Shader{this->m_device, {this->m_resource_path + "shaders/quad_vert.spv", this->m_resource_path + "shaders/deferred_clustered_pbr_frag.spv"}});
-  this->m_shaders.emplace("tonemapping", Shader{this->m_device, {this->m_resource_path + "shaders/fullscreen_vert.spv", this->m_resource_path + "shaders/tone_mapping_frag.spv"}});
+  this->m_shaders.emplace("compute", Shader{this->m_device, {this->resourcePath() + "shaders/light_grid_comp.spv"}});
+  this->m_shaders.emplace("simple", Shader{this->m_device, {this->resourcePath() + "shaders/simple_world_space_vert.spv", this->resourcePath() + "shaders/simple_frag.spv"}});
+  this->m_shaders.emplace("quad", Shader{this->m_device, {this->resourcePath() + "shaders/quad_vert.spv", this->resourcePath() + "shaders/deferred_clustered_pbr_frag.spv"}});
+  this->m_shaders.emplace("tonemapping", Shader{this->m_device, {this->resourcePath() + "shaders/fullscreen_vert.spv", this->resourcePath() + "shaders/tone_mapping_frag.spv"}});
 
   createVertexBuffer();
   createUniformBuffers();
@@ -349,7 +349,7 @@ void ApplicationClustered<T>::updatePipelines() {
 
 template<typename T>
 void ApplicationClustered<T>::createVertexBuffer() {
-  vertex_data tri = geometry_loader::obj(this->m_resource_path + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
+  vertex_data tri = geometry_loader::obj(this->resourcePath() + "models/sponza.obj", vertex_data::NORMAL | vertex_data::TEXCOORD);
   m_model = Geometry{this->m_transferrer, tri};
 }
 
@@ -434,7 +434,7 @@ void ApplicationClustered<T>::createFramebufferAttachments() {
 template<typename T>
 void ApplicationClustered<T>::createTextureImages() {
   // test texture
-  pixel_data pix_data = texture_loader::file(this->m_resource_path + "textures/test.tga");
+  pixel_data pix_data = texture_loader::file(this->resourcePath() + "textures/test.tga");
   this->m_images["texture"] = BackedImage{this->m_device, pix_data.extent, pix_data.format, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst};
   // bind and upload test texture data
   this->m_allocators.at("images").allocate(this->m_images.at("texture"));
