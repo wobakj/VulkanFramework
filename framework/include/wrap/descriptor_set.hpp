@@ -6,6 +6,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+class Buffer;
+class BufferView;
 class ImageView;
 
 using WrapperDescriptorSet = Wrapper<vk::DescriptorSet, DescriptorSetLayoutInfo>;
@@ -25,6 +27,17 @@ class DescriptorSet : public WrapperDescriptorSet {
   
   void wait();
   void reset();
+
+  // write buffer
+  void bind(uint32_t binding, uint32_t index, Buffer const& view, vk::DescriptorType const& type) const;
+  void bind(uint32_t binding, uint32_t index, BufferView const& view, vk::DescriptorType const& type) const;
+  // convenience
+  void bind(uint32_t binding, Buffer const& view, vk::DescriptorType const& type) const {
+    bind(binding, 0, view, type);
+  }
+  void bind(uint32_t binding, BufferView const& view, vk::DescriptorType const& type) const {
+    bind(binding, 0, view, type);
+  }
 
   // write as combined sampler
   void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::Sampler const& sampler) const;

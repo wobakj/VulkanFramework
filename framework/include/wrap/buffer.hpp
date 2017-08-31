@@ -15,7 +15,8 @@ class BufferRegion {
   vk::Buffer const& buffer() const;
   vk::DeviceSize size() const;
   vk::DeviceSize offset() const;
-
+  operator vk::DescriptorBufferInfo const&() const;
+  
  protected:
   void swap(BufferRegion& dev);
 
@@ -50,7 +51,6 @@ class Buffer : public ResourceBuffer{
   vk::DeviceSize size() const;
 
   void bindTo(vk::DeviceMemory const& memory, vk::DeviceSize const& offset) override;
-  void writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
   virtual res_handle_t handle() const override {
     return res_handle_t{m_object};
   }

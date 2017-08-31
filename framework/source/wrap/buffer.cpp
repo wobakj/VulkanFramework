@@ -31,6 +31,10 @@ void BufferRegion::swap(BufferRegion& rhs) {
   std::swap(m_info, rhs.m_info);
  }
 
+BufferRegion::operator vk::DescriptorBufferInfo const&() const {
+  return m_info;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 Buffer::Buffer()
@@ -114,19 +118,6 @@ vk::DeviceSize Buffer::size() const {
 void Buffer::bindTo(vk::DeviceMemory const& mem, vk::DeviceSize const& offst) {
   ResourceBuffer::bindTo(mem, offst);
   m_device.bindBufferMemory(get(), mem, offst);
-}
-
-void Buffer::writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
-  vk::DescriptorBufferInfo info_buffer{get(), 0, size()};
-
-  vk::WriteDescriptorSet info_write{};
-  info_write.dstSet = set;
-  info_write.dstBinding = binding;
-  info_write.dstArrayElement = index;
-  info_write.descriptorType = type;
-  info_write.descriptorCount = 1;
-  info_write.pBufferInfo = &info_buffer;
-  m_device.updateDescriptorSets({info_write}, 0);
 }
 
 Buffer::operator BufferRegion const() const {

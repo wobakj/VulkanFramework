@@ -451,13 +451,13 @@ void ApplicationClustered<T>::createTextureSamplers() {
 template<typename T>
 void ApplicationClustered<T>::updateDescriptors() {
   this->m_descriptor_sets.at("lightgrid").bind(0, this->m_images.at("light_vol").view(), vk::DescriptorType::eStorageImage);
-  this->m_buffer_views.at("lightgrid").writeToSet(this->m_descriptor_sets.at("lightgrid"), 1, vk::DescriptorType::eUniformBuffer);
-  this->m_buffer_views.at("lightgrid").writeToSet(this->m_descriptor_sets.at("lighting"), 5, vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("lightgrid").bind(1, this->m_buffer_views.at("lightgrid"), vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("lighting").bind(5, this->m_buffer_views.at("lightgrid"), vk::DescriptorType::eUniformBuffer);
 
-  this->m_buffer_views.at("uniform").writeToSet(this->m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
-  this->m_buffer_views.at("light").writeToSet(this->m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
-  this->m_buffer_views.at("light").writeToSet(this->m_descriptor_sets.at("lightgrid"), 2, vk::DescriptorType::eStorageBuffer);
-  this->m_buffer_views.at("uniform").writeToSet(this->m_descriptor_sets.at("lightgrid"), 3, vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("matrix").bind(0, this->m_buffer_views.at("uniform"), vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("lighting").bind(3, this->m_buffer_views.at("light"), vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("lightgrid").bind(2, this->m_buffer_views.at("light"), vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("lightgrid").bind(3, this->m_buffer_views.at("uniform"), vk::DescriptorType::eUniformBuffer);
   
   this->m_descriptor_sets.at("textures").bind(0, this->m_images.at("texture").view(), m_sampler.get());
   this->m_descriptor_sets.at("lighting").bind(4, this->m_images.at("light_vol").view(), vk::ImageLayout::eGeneral, m_volumeSampler.get());

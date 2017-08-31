@@ -1,5 +1,7 @@
 #include "wrap/descriptor_set.hpp"
 
+#include "wrap/buffer.hpp"
+#include "wrap/buffer_view.hpp"
 #include "wrap/image.hpp"
 #include "wrap/image_view.hpp"
 
@@ -39,6 +41,32 @@ void DescriptorSet::swap(DescriptorSet& rhs) {
   WrapperDescriptorSet::swap(rhs);
   std::swap(m_device, rhs.m_device);
   std::swap(m_pool, rhs.m_pool);
+}
+
+void DescriptorSet::bind(uint32_t binding, uint32_t index, Buffer const& buffer, vk::DescriptorType const& type) const {
+  vk::DescriptorBufferInfo info_buffer{buffer, 0, buffer.size()};
+
+  vk::WriteDescriptorSet info_write{};
+  info_write.dstSet = get();
+  info_write.dstBinding = binding;
+  info_write.dstArrayElement = index;
+  info_write.descriptorType = type;
+  info_write.descriptorCount = 1;
+  info_write.pBufferInfo = &info_buffer;
+  m_device.updateDescriptorSets({info_write}, 0);
+}
+
+void DescriptorSet::bind(uint32_t binding, uint32_t index, BufferView const& view, vk::DescriptorType const& type) const {
+  vk::DescriptorBufferInfo info_buffer{view.buffer(), view.offset(), view.size()};
+
+  vk::WriteDescriptorSet descriptorWrite{};
+  descriptorWrite.dstSet = get();
+  descriptorWrite.dstBinding = binding;
+  descriptorWrite.dstArrayElement = index;
+  descriptorWrite.descriptorType = type;
+  descriptorWrite.descriptorCount = 1;
+  descriptorWrite.pBufferInfo = &info_buffer;
+  m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
 // combined sampler

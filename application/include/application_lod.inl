@@ -111,7 +111,7 @@ FrameResource ApplicationLod<T>::createFrameResource() {
 
 template<typename T>
 void ApplicationLod<T>::updateResourceDescriptors(FrameResource& res) {
-  res.buffer_views.at("uniform").writeToSet(res.descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
+  res.descriptor_sets.at("matrix").bind(0, res.buffer_views.at("uniform"), vk::DescriptorType::eUniformBuffer);
 }
 
 template<typename T>
@@ -397,9 +397,9 @@ void ApplicationLod<T>::createTextureSampler() {
 
 template<typename T>
 void ApplicationLod<T>::updateDescriptors() {
-  m_model_lod.viewNodeLevels().writeToSet(this->m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("lighting").bind(1, m_model_lod.viewNodeLevels(), vk::DescriptorType::eStorageBuffer);
   this->m_descriptor_sets.at("lighting").bind(2, this->m_images.at("texture").view(), m_sampler.get());
-  this->m_buffer_views.at("light").writeToSet(this->m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("lighting").bind(3, this->m_buffer_views.at("light"), vk::DescriptorType::eStorageBuffer);
 }
 
 template<typename T>

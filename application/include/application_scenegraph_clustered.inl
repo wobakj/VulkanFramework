@@ -528,23 +528,23 @@ void ApplicationScenegraphClustered<T>::updateDescriptors() {
   this->m_descriptor_sets.at("lighting").bind(0, this->m_images.at("color").view(), vk::DescriptorType::eInputAttachment);
   this->m_descriptor_sets.at("lighting").bind(1, this->m_images.at("pos").view(), vk::DescriptorType::eInputAttachment);
   this->m_descriptor_sets.at("lighting").bind(2, this->m_images.at("normal").view(), vk::DescriptorType::eInputAttachment);
-  m_instance.dbLight().buffer().writeToSet(this->m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("lighting").bind(3, m_instance.dbLight().buffer(), vk::DescriptorType::eStorageBuffer);
   // read
   this->m_descriptor_sets.at("lighting").bind(4, this->m_images.at("light_vol").view(), m_volumeSampler.get());
-  this->m_buffer_views.at("lightgrid").writeToSet(this->m_descriptor_sets.at("lighting"), 5, vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("lighting").bind(5, this->m_buffer_views.at("lightgrid"), vk::DescriptorType::eUniformBuffer);
 
-  m_instance.dbCamera().buffer().writeToSet(this->m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
-  m_instance.dbCamera().buffer().writeToSet(this->m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
-  m_instance.dbTransform().buffer().writeToSet(this->m_descriptor_sets.at("transform"), 0, vk::DescriptorType::eStorageBuffer);
-  m_instance.dbMaterial().buffer().writeToSet(this->m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("camera").bind(0, m_instance.dbCamera().buffer(), vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("matrix").bind(0, m_instance.dbCamera().buffer(), vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("transform").bind(0, m_instance.dbTransform().buffer(), vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("material").bind(0, m_instance.dbMaterial().buffer(), vk::DescriptorType::eStorageBuffer);
   m_instance.dbTexture().writeToSet(this->m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
 
   this->m_descriptor_sets.at("tonemapping").bind(0, this->m_images.at("color_2").view(), vk::DescriptorType::eInputAttachment);
 
   // read
-  m_instance.dbCamera().buffer().writeToSet(this->m_descriptor_sets.at("lightgrid"), 3, vk::DescriptorType::eUniformBuffer);
-  m_instance.dbLight().buffer().writeToSet(this->m_descriptor_sets.at("lightgrid"), 2, vk::DescriptorType::eStorageBuffer);
-  this->m_buffer_views.at("lightgrid").writeToSet(this->m_descriptor_sets.at("lightgrid"), 1, vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("lightgrid").bind(3, m_instance.dbCamera().buffer(), vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("lightgrid").bind(2, m_instance.dbLight().buffer(), vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("lightgrid").bind(1, this->m_buffer_views.at("lightgrid"), vk::DescriptorType::eUniformBuffer);
   // write
   this->m_descriptor_sets.at("lightgrid").bind(0, this->m_images.at("light_vol").view(), vk::DescriptorType::eStorageImage);
 }

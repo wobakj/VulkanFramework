@@ -102,7 +102,7 @@ template<typename T>
 void ApplicationCompute<T>::updateDescriptors() { 
   this->m_descriptor_sets.at("storage").bind(0, this->m_images.at("texture").view(), vk::DescriptorType::eStorageImage);
   
-  this->m_buffers.at("time").writeToSet(this->m_descriptor_sets.at("storage"), 1, vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("storage").bind(1, this->m_buffers.at("time"), vk::DescriptorType::eUniformBuffer);
 }
 
 template<typename T>

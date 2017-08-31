@@ -317,9 +317,9 @@ void ApplicationSimple<T>::updateDescriptors() {
   this->m_descriptor_sets.at("lighting").bind(0, this->m_images.at("color").view(), vk::DescriptorType::eInputAttachment);
   this->m_descriptor_sets.at("lighting").bind(1, this->m_images.at("pos").view(), vk::DescriptorType::eInputAttachment);
   this->m_descriptor_sets.at("lighting").bind(2, this->m_images.at("normal").view(), vk::DescriptorType::eInputAttachment);
-  this->m_buffer_views.at("light").writeToSet(this->m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
+  this->m_descriptor_sets.at("lighting").bind(3, this->m_buffer_views.at("light"), vk::DescriptorType::eStorageBuffer);
 
-  this->m_buffer_views.at("uniform").writeToSet(this->m_descriptor_sets.at("matrix"), 0, vk::DescriptorType::eUniformBuffer);
+  this->m_descriptor_sets.at("matrix").bind(0, this->m_buffer_views.at("uniform"), vk::DescriptorType::eUniformBuffer);
   this->m_descriptor_sets.at("textures").bind(0, this->m_images.at("texture").view(), m_sampler.get());
 }
 

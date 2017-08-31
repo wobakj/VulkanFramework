@@ -8,6 +8,7 @@
 #include "wrap/buffer_view.hpp"
 #include "wrap/image_view.hpp"
 #include "wrap/query_pool.hpp"
+#include "wrap/descriptor_set.hpp"
 #include "wrap/command_buffer.hpp"
 
 #include <vector>
@@ -104,7 +105,7 @@ class FrameResource {
   std::map<std::string, CommandBuffer> command_buffers;
   std::map<std::string, vk::Semaphore> semaphores;
   std::map<std::string, Fence> fences;
-  std::map<std::string, vk::DescriptorSet> descriptor_sets;
+  std::map<std::string, DescriptorSet> descriptor_sets;
   std::map<std::string, Buffer> buffers;
   std::map<std::string, BufferView> buffer_views;
   std::map<std::string, QueryPool> query_pools;

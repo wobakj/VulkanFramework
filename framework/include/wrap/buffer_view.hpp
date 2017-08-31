@@ -21,8 +21,6 @@ class BufferView : public BufferRegion {
   virtual void bindTo(Buffer& buffer);
   virtual void bindTo(Buffer& buffer, vk::DeviceSize const& offset);
   
-  void writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
-
  private:
   void swap(BufferView& dev);
 

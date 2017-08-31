@@ -35,7 +35,9 @@ Node* parseShape(Json::Value const& val, Scenegraph* graph, Node* node_parent, s
   parseChildren(val, graph, node.get(), resource_path);
   // attach to tree
   node_parent->addChild(std::move(node));
-  std::cout << "attaching geometry " << name << " to " << node_parent->getName() << std::endl;
+  #ifndef NDEBUG
+    std::cout << "attaching geometry " << name << " to " << node_parent->getName() << std::endl;
+  #endif
   return node_parent->getChild(name);
 }
 
@@ -56,7 +58,9 @@ Node* parseLight(Json::Value const& val, Scenegraph* graph, Node* node_parent, s
   parseChildren(val, graph, node.get(), resource_path);
   // attach to tree
   node_parent->addChild(std::move(node));
-  std::cout << "attaching light " << name << " to " << node_parent->getName() << std::endl;
+  #ifndef NDEBUG
+    std::cout << "attaching light " << name << " to " << node_parent->getName() << std::endl;
+  #endif
   return node_parent->getChild(name);
 }
 
@@ -102,7 +106,9 @@ Node* parseTransform(Json::Value const& val, Scenegraph* graph, Node* node_paren
   else {
     // attach to tree
     node_parent->addChild(std::move(node));
-    std::cout << "attaching transform " << name << " to " << node_parent->getName() << std::endl;
+    #ifndef NDEBUG
+      std::cout << "attaching transform " << name << " to " << node_parent->getName() << std::endl;
+    #endif
     return node_parent->getChild(name);
   }
 }
