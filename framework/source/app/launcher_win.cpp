@@ -13,17 +13,17 @@
 // SwapChain m_swap_chain;
 
 // helper functions
-static std::string resourcePath(std::vector<std::string> const& args);
+static std::string resourcePath(std::string const& path_exe);
 void glfw_error(int error, const char* description);
 
-LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser const& cmd_parse) 
+LauncherWin::LauncherWin(std::string const& path_exe, bool debug) 
  :m_camera_fov{glm::radians(60.0f)}
  ,m_window_width{1280}
  ,m_window_height{720}
  ,m_window{nullptr}
  ,m_last_second_time{0.0}
  ,m_frames_per_second{0u}
- ,m_resource_path{resourcePath(args)}
+ ,m_resource_path{resourcePath(path_exe)}
  ,m_application{}
  ,m_instance{}
  ,m_device{}
@@ -55,9 +55,7 @@ LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser c
 
   bool validate = true;
   #ifdef NDEBUG
-    if (!cmd_parse.exist("debug")) {
-      validate = false;
-    }
+    validate = debug;
   #endif
   m_instance.create(validate);
   m_surface = Surface{m_instance, *m_window};
@@ -95,10 +93,9 @@ LauncherWin::LauncherWin(std::vector<std::string> const& args, cmdline::parser c
 
 }
 
-static std::string resourcePath(std::vector<std::string> const& args) {
+static std::string resourcePath(std::string const& path_exe) {
   std::string resource_path{};
-  std::string exe_path{args[0]};
-  resource_path = exe_path.substr(0, exe_path.find_last_of("/\\"));
+  resource_path = path_exe.substr(0, path_exe.find_last_of("/\\"));
   resource_path += "/resources/";
   return resource_path;
 }

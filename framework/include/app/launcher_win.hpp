@@ -6,6 +6,11 @@
 #include "wrap/swap_chain.hpp"
 #include "wrap/surface.hpp"
 
+#include "app/application_threaded_transfer.hpp"
+#include "app/application_threaded.hpp"
+#include "app/application_single.hpp"
+#include "app/application_win.hpp"
+
 #include "cmdline.h"
 
 #include <string>
@@ -16,31 +21,46 @@ class GLFWwindow;
 // extern SwapChain m_swap_chain;
 class LauncherWin {
  public:
-  template<typename T>
+  template<template<typename> class T>
   static void run(int argc, char* argv[]) {
-    std::vector<std::string> args{};
-    for (int i = 0; i < argc; ++i) {
-      args.emplace_back(argv[i]);
+    // get parser without specific arguments
+    auto cmd_parse = getParser<ApplicationWin>();
+    cmd_parse.parse(argc, argv);
+
+    LauncherWin launcher{argv[0], cmd_parse.exist("threads")};
+
+    if (cmd_parse.exist("threads")) {
+      int threads = cmd_parse.get<int>("threads");
+      if (threads == 1) {
+        auto cmd_parse = getParser<T<ApplicationSingle<ApplicationWin>>>();
+        cmd_parse.parse_check(argc, argv);
+        launcher.runApp<T<ApplicationSingle<ApplicationWin>>>(cmd_parse);
+      }
+      else if (threads == 2) {
+        auto cmd_parse = getParser<T<ApplicationThreaded<ApplicationWin>>>();
+        cmd_parse.parse_check(argc, argv);
+        launcher.runApp<T<ApplicationThreaded<ApplicationWin>>>(cmd_parse);
+      }
     }
-    auto cmd_parse = getParser<T>();
-    cmd_parse.parse_check(args);
-    LauncherWin launcher{args, cmd_parse};
-    launcher.runApp<T>(cmd_parse);
+    // no value or 3
+    // must use new cmd_parse object, assignment operator fails
+    auto cmd_parse2 = getParser<T<ApplicationThreadedTransfer<ApplicationWin>>>();
+    cmd_parse2.parse_check(argc, argv);
+    launcher.runApp<T<ApplicationThreadedTransfer<ApplicationWin>>>(cmd_parse2);
   }
 
  private:
-  LauncherWin(std::vector<std::string> const& args, cmdline::parser const& cmd_parse);
+  LauncherWin(std::string const& path_exe, bool debug);
   // run application
   template<typename T>
   void runApp(cmdline::parser const& cmd_parse){
-    m_application =  std::unique_ptr<ApplicationWin>{new T{m_resource_path, m_device, m_surface, cmd_parse}};
-
+    m_application = std::unique_ptr<ApplicationWin>{new T{m_resource_path, m_device, m_surface, cmd_parse}};
     mainLoop();
   };
   
   template<typename T>
   static cmdline::parser getParser() {
-    cmdline::parser cmd_parse = T::getParser();
+    cmdline::parser cmd_parse{T::getParser()};
     cmd_parse.add<int>("threads", 't', "number of threads, default 3", false, 3, cmdline::range(1, 3));
     cmd_parse.add("debug", 'd', "debug with validation layers");
     return cmd_parse;
