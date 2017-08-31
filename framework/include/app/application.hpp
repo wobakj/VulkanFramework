@@ -58,8 +58,6 @@ class Application {
   virtual bool shouldClose() const = 0;
 
  protected:
-  // call at construction
-  void createRenderResources();
   void recreatePipeline();
   void submitDraw(FrameResource& res);
   // initialisation methods
@@ -92,6 +90,8 @@ class Application {
   virtual void recordDrawBuffer(FrameResource& res) {};
   // MUST be called by high-level app before destruction -> wait on queues
   virtual void shutDown() = 0;
+  // MUST be called by high-level app at end of constructor
+  void createRenderResources();
 
   // make immutable for children classes
   std::string const& resourcePath() const;

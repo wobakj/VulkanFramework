@@ -39,10 +39,10 @@ class ApplicationWin : public Application {
   virtual void presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) override;
 
   Camera m_camera;
-  SwapChain m_swap_chain;
-  Surface const* m_surface;
 
  private:
+  SwapChain m_swap_chain;
+  Surface const* m_surface;
   // create chain
   void createSwapChain(Surface const& surf, cmdline::parser const& cmd_parse, uint32_t img_count);
 };

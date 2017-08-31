@@ -49,5 +49,9 @@ inline vk::Extent3D extent_3d(glm::tvec2<T,P> const& vec) {
   return vk::Extent3D{vec[0], vec[1], 1};
 }
 
+template<typename T, glm::precision P>
+inline float aspect(glm::tvec2<T,P> const& vec) {
+  return float(vec[0]) / float(vec[1]);
+}
 
 #endif

@@ -94,7 +94,7 @@ ApplicationScenegraphClustered<T>::ApplicationScenegraphClustered(std::string co
   this->m_shaders.emplace("quad", Shader{this->m_device, {this->resourcePath() + "shaders/quad_vert.spv", this->resourcePath() + "shaders/deferred_clustered_pbr_frag.spv"}});
   this->m_shaders.emplace("compute", Shader{this->m_device, {this->resourcePath() + "shaders/light_grid_comp.spv"}});
 
-  auto cam = m_graph.createCameraNode("cam", Camera{45.0f, this->m_swap_chain.aspect(), 0.1f, 500.0f, &surf.window()});
+  auto cam = m_graph.createCameraNode("cam", Camera{45.0f, aspect(this->resolution()), 0.1f, 500.0f, &surf.window()});
   auto geo = m_graph.createGeometryNode("ray_geo", this->resourcePath() + "/models/sphere.obj");
   geo->scale(glm::fvec3{.01f, 0.01f, 10.0f});
   geo->translate(glm::fvec3{0.0f, 0.00f, -3.0f});
@@ -203,7 +203,7 @@ void ApplicationScenegraphClustered<T>::logic() {
 
 template<typename T>
 void ApplicationScenegraphClustered<T>::updateLightGrid() {
-  auto resolution = glm::uvec2(this->m_swap_chain.extent().width, this->m_swap_chain.extent().height);
+  auto resolution = glm::uvec2(extent_2d(this->resolution()).width, extent_2d(this->resolution()).height);
   LightGridBufferObject lightGridBuff{};
   // compute number of required screen tiles regarding the tile size and our
   // current resolution; number of depth slices is constant and needs to be
@@ -265,8 +265,8 @@ void ApplicationScenegraphClustered<T>::updateResourceCommandBuffers(FrameResour
 
   res.command_buffers.at("gbuffer").bindPipeline(this->m_pipelines.at("scene"));
   res.command_buffers.at("gbuffer").bindDescriptorSets(0, {this->m_descriptor_sets.at("camera"), this->m_descriptor_sets.at("transform"), this->m_descriptor_sets.at("material")}, {});
-  res.command_buffers.at("gbuffer")->setViewport(0, {this->m_swap_chain.asViewport()});
-  res.command_buffers.at("gbuffer")->setScissor(0, {this->m_swap_chain.asRect()});
+  res.command_buffers.at("gbuffer")->setViewport(0, viewport(this->resolution()));
+  res.command_buffers.at("gbuffer")->setScissor(0, rect(this->resolution()));
 
   RenderVisitor render_visitor{};
   m_graph.accept(render_visitor);
@@ -286,8 +286,8 @@ void ApplicationScenegraphClustered<T>::updateResourceCommandBuffers(FrameResour
 
   res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("quad"));
   res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("quad").layout(), 0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
-  res.command_buffers.at("lighting")->setViewport(0, {this->m_swap_chain.asViewport()});
-  res.command_buffers.at("lighting")->setScissor(0, {this->m_swap_chain.asRect()});
+  res.command_buffers.at("lighting")->setViewport(0, viewport(this->resolution()));
+  res.command_buffers.at("lighting")->setScissor(0, rect(this->resolution()));
 
   res.command_buffers.at("lighting")->draw(4, 1, 0, 0);
 
@@ -300,8 +300,8 @@ void ApplicationScenegraphClustered<T>::updateResourceCommandBuffers(FrameResour
 
   res.command_buffers.at("tonemapping")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("tonemapping"));
   res.command_buffers.at("tonemapping")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("tonemapping").layout(), 0, {this->m_descriptor_sets.at("tonemapping")}, {});
-  res.command_buffers.at("tonemapping")->setViewport(0, {this->m_swap_chain.asViewport()});
-  res.command_buffers.at("tonemapping")->setScissor(0, {this->m_swap_chain.asRect()});
+  res.command_buffers.at("tonemapping")->setViewport(0, viewport(this->resolution()));
+  res.command_buffers.at("tonemapping")->setScissor(0, rect(this->resolution()));
 
   res.command_buffers.at("tonemapping")->draw(3, 1, 0, 0);
 
@@ -381,7 +381,7 @@ void ApplicationScenegraphClustered<T>::createPipelines() {
   GraphicsPipelineInfo info_pipe2;
   GraphicsPipelineInfo info_pipe3;
 
-  info_pipe.setResolution(this->m_swap_chain.extent());
+  info_pipe.setResolution(extent_2d(this->resolution()));
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleList);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -411,7 +411,7 @@ void ApplicationScenegraphClustered<T>::createPipelines() {
   depthStencil.depthCompareOp = vk::CompareOp::eLess;
   info_pipe.setDepthStencil(depthStencil);
 
-  info_pipe2.setResolution(this->m_swap_chain.extent());
+  info_pipe2.setResolution(extent_2d(this->resolution()));
   info_pipe2.setTopology(vk::PrimitiveTopology::eTriangleStrip);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer2{};
@@ -427,7 +427,7 @@ void ApplicationScenegraphClustered<T>::createPipelines() {
   info_pipe2.addDynamic(vk::DynamicState::eScissor);
 
   // pipeline for tonemapping
-  info_pipe3.setResolution(this->m_swap_chain.extent());
+  info_pipe3.setResolution(extent_2d(this->resolution()));
   info_pipe3.setTopology(vk::PrimitiveTopology::eTriangleStrip);
 
   info_pipe3.setRasterizer(rasterizer2);
@@ -487,7 +487,7 @@ void ApplicationScenegraphClustered<T>::createFramebufferAttachments() {
     vk::ImageTiling::eOptimal,
     vk::FormatFeatureFlagBits::eDepthStencilAttachment
   );
-  auto extent = extent_3d(this->m_swap_chain.extent()); 
+  auto extent = extent_3d(extent_2d(this->resolution())); 
   this->m_images["depth"] = BackedImage{this->m_device, extent, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment};
   this->m_transferrer.transitionToLayout(this->m_images.at("depth"), vk::ImageLayout::eDepthStencilAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("depth"));
@@ -508,7 +508,7 @@ void ApplicationScenegraphClustered<T>::createFramebufferAttachments() {
   this->m_transferrer.transitionToLayout(this->m_images.at("color_2"), vk::ImageLayout::eColorAttachmentOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("color_2"));
 
-  this->m_images["tonemapping_result"] = BackedImage{this->m_device, extent, this->m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  this->m_images["tonemapping_result"] = BackedImage{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   this->m_transferrer.transitionToLayout(this->m_images.at("tonemapping_result"), vk::ImageLayout::eTransferSrcOptimal);
   this->m_allocators.at("images").allocate(this->m_images.at("tonemapping_result"));
 

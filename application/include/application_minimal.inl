@@ -96,7 +96,7 @@ template<typename T>
 void ApplicationMinimal<T>::createPipelines() {
   GraphicsPipelineInfo info_pipe;
 
-  info_pipe.setResolution(this->m_swap_chain.extent());
+  info_pipe.setResolution(extent_2d(this->resolution()));
   info_pipe.setTopology(vk::PrimitiveTopology::eTriangleStrip);
   
   vk::PipelineRasterizationStateCreateInfo rasterizer{};
@@ -125,9 +125,9 @@ void ApplicationMinimal<T>::updatePipelines() {
 
 template<typename T>
 void ApplicationMinimal<T>::createFramebufferAttachments() {
-  auto extent = extent_3d(this->m_swap_chain.extent()); 
+  auto extent = extent_3d(extent_2d(this->resolution())); 
  
-  this->m_images["color"] = BackedImage{this->m_device, extent, this->m_swap_chain.format(), vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
+  this->m_images["color"] = BackedImage{this->m_device, extent, vk::Format::eB8G8R8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc};
   this->m_allocators.at("images").allocate(this->m_images.at("color"));
   this->m_transferrer.transitionToLayout(this->m_images.at("color"), vk::ImageLayout::eTransferSrcOptimal);
 }
