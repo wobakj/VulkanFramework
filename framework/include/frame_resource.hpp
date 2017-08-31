@@ -84,6 +84,7 @@ class FrameResource {
   void swap(FrameResource& rhs) {
     std::swap(image, rhs.image);
     std::swap(target_view, rhs.target_view);
+    std::swap(index, rhs.index);
     std::swap(m_device, rhs.m_device);
     std::swap(command_buffers, rhs.command_buffers);
     std::swap(semaphores, rhs.semaphores);
@@ -94,9 +95,12 @@ class FrameResource {
     std::swap(query_pools, rhs.query_pools);
     std::swap(num_uploads, rhs.num_uploads);
   }
-
+  // for presenting
   uint32_t image; 
+  // for drawing
   ImageView const* target_view;
+  // for transferring between queues
+  uint32_t index;
   std::map<std::string, CommandBuffer> command_buffers;
   std::map<std::string, vk::Semaphore> semaphores;
   std::map<std::string, Fence> fences;

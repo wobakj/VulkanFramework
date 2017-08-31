@@ -61,11 +61,10 @@ void ApplicationThreaded<T>::shutDown() {
 
 template<typename T>
 void ApplicationThreaded<T>::present() {
-  // get frame to present
-  uint32_t frame_present = pullForPresent();
-  // present frame if one is avaible
-  this->presentFrame(this->m_frame_resources.at(frame_present));
-  m_queue_record_frames.push(frame_present);
+  // present next frame
+  auto& resource_present = pullForPresent();
+  this->presentFrame(resource_present);
+  m_queue_record_frames.push(resource_present.index);
 }
 
 template<typename T>
@@ -73,10 +72,8 @@ void ApplicationThreaded<T>::render() {
   this->m_statistics.start("record");
   static uint64_t frame = 0;
   ++frame;
-  // get next frame to record
-  auto frame_record = pullForRecord();
-  // get resource to record
-  auto& resource_record = this->m_frame_resources.at(frame_record);
+  // get next resource to record
+  auto& resource_record = pullForRecord();
   // make sure no command buffer is in use
   this->m_statistics.start("fence_draw");
   resource_record.fence("draw").wait();
@@ -87,7 +84,7 @@ void ApplicationThreaded<T>::render() {
   this->acquireImage(resource_record);
   this->recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
-  pushForDraw(frame_record);
+  pushForDraw(resource_record);
   this->m_statistics.stop("record");
   
   this->m_statistics.start("sema_present");
@@ -102,48 +99,46 @@ void ApplicationThreaded<T>::draw() {
   this->m_statistics.start("frame_draw");
   static std::uint64_t frame = 0;
   ++frame;
-  // get frame to draw
-  auto frame_draw = pullForDraw();
-  // get resource to draw
-  auto& resource_draw = this->m_frame_resources.at(frame_draw);
+  // get next resource to draw
+  auto& resource_draw = pullForDraw();
   this->submitDraw(resource_draw);
   // do not wait here for finishing anymore
   // make frame avaible for rerecording
-  pushForPresent(frame_draw);
+  pushForPresent(resource_draw);
   this->m_statistics.stop("frame_draw");
 }
 
 template<typename T>
-void ApplicationThreaded<T>::pushForDraw(uint32_t frame) {
+void ApplicationThreaded<T>::pushForDraw(FrameResource& resource) {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
-    m_queue_draw_frames.push(frame);
+    m_queue_draw_frames.push(resource.index);
   }
   m_semaphore_draw.signal();
 }
 
 template<typename T>
-void ApplicationThreaded<T>::pushForPresent(uint32_t frame) {
+void ApplicationThreaded<T>::pushForPresent(FrameResource& resource) {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
-    m_queue_present_frames.push(frame);
+    m_queue_present_frames.push(resource.index);
   }
   m_semaphore_present.signal();
 }
 
 template<typename T>
-uint32_t ApplicationThreaded<T>::pullForRecord() {
+FrameResource& ApplicationThreaded<T>::pullForRecord() {
   // get next frame to record
   uint32_t frame_record = 0;
   assert(!m_queue_record_frames.empty());
   frame_record = m_queue_record_frames.front();
   // std::cout << m_queue_record_frames.size() << std::endl;
   m_queue_record_frames.pop();
-  return frame_record;
+  return this->m_frame_resources[frame_record];
 }
 
 template<typename T>
-uint32_t ApplicationThreaded<T>::pullForDraw() {
+FrameResource& ApplicationThreaded<T>::pullForDraw() {
   uint32_t frame_draw = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_draw_queue};
@@ -152,11 +147,11 @@ uint32_t ApplicationThreaded<T>::pullForDraw() {
     frame_draw = m_queue_draw_frames.front();
     m_queue_draw_frames.pop();
   }
-  return frame_draw;
+  return this->m_frame_resources[frame_draw];
 }
 
 template<typename T>
-uint32_t ApplicationThreaded<T>::pullForPresent() {
+FrameResource& ApplicationThreaded<T>::pullForPresent() {
   uint32_t frame_present = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_present_queue};
@@ -165,7 +160,7 @@ uint32_t ApplicationThreaded<T>::pullForPresent() {
     frame_present = m_queue_present_frames.front();
     m_queue_present_frames.pop();
   }
-  return frame_present;
+  return this->m_frame_resources[frame_present];
 }
 
 template<typename T>
@@ -193,7 +188,7 @@ void ApplicationThreaded<T>::emptyDrawQueue() {
     // invalidate remaining frames
     while (num_present > 0) {
       m_semaphore_present.wait(); 
-      m_queue_record_frames.push(pullForPresent());
+      m_queue_record_frames.push(pullForPresent().index);
       --num_present;
     }
   }

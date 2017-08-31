@@ -279,11 +279,6 @@ void ApplicationScenegraphClustered<T>::updateResourceCommandBuffers(FrameResour
   res.command_buffers.at("lighting")->reset({});
   res.command_buffers.at("lighting")->begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
 
-  res.command_buffers.at("lighting").imageBarrier(this->m_images.at("light_vol"), vk::ImageLayout::eGeneral, 
-    vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eShaderWrite, 
-    vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
-  );
-
   res.command_buffers.at("lighting")->bindPipeline(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("quad"));
   res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("quad").layout(), 0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
   res.command_buffers.at("lighting")->setViewport(0, viewport(this->resolution()));
@@ -321,6 +316,11 @@ void ApplicationScenegraphClustered<T>::recordDrawBuffer(FrameResource& res) {
   // copy transform data
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
   m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
+
+  res.command_buffers.at("draw").imageBarrier(this->m_images.at("light_vol"), vk::ImageLayout::eGeneral, 
+    vk::PipelineStageFlagBits::eComputeShader, vk::AccessFlagBits::eShaderWrite, 
+    vk::PipelineStageFlagBits::eFragmentShader, vk::AccessFlagBits::eShaderRead
+  );
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer

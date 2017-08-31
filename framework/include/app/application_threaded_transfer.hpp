@@ -25,8 +25,8 @@ class ApplicationThreadedTransfer : public ApplicationThreaded<T> {
   void startTransferThread();
   void submitTransfer(FrameResource& res);
 
-  void pushForTransfer(uint32_t frame);
-  uint32_t pullForTransfer();
+  void pushForTransfer(FrameResource& frame);
+  FrameResource& pullForTransfer();
 
   void transfer();
   void transferLoop();

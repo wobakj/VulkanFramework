@@ -213,12 +213,6 @@ void ApplicationScenegraph<T>::updateResourceCommandBuffers(FrameResource& res) 
   inheritanceInfo.subpass = 1;
   res.command_buffers.at("lighting")->reset({});
   res.command_buffers.at("lighting").begin({vk::CommandBufferUsageFlagBits::eRenderPassContinue | vk::CommandBufferUsageFlagBits::eSimultaneousUse, &inheritanceInfo});
-
-  // barrier to make light data visible to vertex shader
-  res.command_buffers.at("lighting").bufferBarrier(m_instance.dbLight().buffer(), 
-    vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
-    vk::PipelineStageFlagBits::eVertexShader, vk::AccessFlagBits::eShaderRead
-  );
   
   res.command_buffers.at("lighting").bindPipeline(this->m_pipelines.at("lights"));
   res.command_buffers.at("lighting")->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, this->m_pipelines.at("lights").layout(), 0, {this->m_descriptor_sets.at("matrix"), this->m_descriptor_sets.at("lighting")}, {});
@@ -255,6 +249,12 @@ void ApplicationScenegraph<T>::recordDrawBuffer(FrameResource& res) {
   m_instance.dbLight().updateCommand(res.command_buffers.at("draw"));
   m_instance.dbTransform().updateCommand(res.command_buffers.at("draw"));
   m_instance.dbCamera().updateCommand(res.command_buffers.at("draw"));
+
+  // barrier to make light data visible to vertex shader
+  res.command_buffers.at("draw").bufferBarrier(m_instance.dbLight().buffer(), 
+    vk::PipelineStageFlagBits::eTransfer, vk::AccessFlagBits::eTransferWrite, 
+    vk::PipelineStageFlagBits::eVertexShader, vk::AccessFlagBits::eShaderRead
+  );
 
   res.command_buffers.at("draw")->beginRenderPass(m_framebuffer.beginInfo(), vk::SubpassContents::eSecondaryCommandBuffers);
   // execute gbuffer creation buffer

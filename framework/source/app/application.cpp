@@ -15,9 +15,9 @@ cmdline::parser Application::getParser() {
 }
 
 Application::Application(std::string const& resource_path, Device& device, uint32_t num_frames, cmdline::parser const& cmd_parse)
- :m_resource_path{resource_path}
- ,m_device(device)
+ :m_device(device)
  ,m_pipeline_cache{m_device}
+ ,m_resource_path{resource_path}
  ,m_resolution{0, 0}
 {
   // cannot initialize in lst, otherwise deleted copy constructor is invoked
@@ -64,8 +64,9 @@ void Application::submitDraw(FrameResource& res) {
 void Application::createFrameResources() {
   // create resources for one less image than swap chain
   // only numImages - 1 images can be acquired at a time
-  for (auto& res : this->m_frame_resources) {
-    res = std::move(createFrameResource());
+  for(uint32_t i = 0; i < this->m_frame_resources.size(); ++i) {
+    this->m_frame_resources[i] = std::move(createFrameResource());
+    this->m_frame_resources[i].index = i;
   }
 }
 

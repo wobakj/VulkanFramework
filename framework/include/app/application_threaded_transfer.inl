@@ -63,10 +63,8 @@ void ApplicationThreadedTransfer<T>::render() {
   this->m_statistics.start("record");
   static uint64_t frame = 0;
   ++frame;
-  // get next frame to record
-  auto frame_record = this->pullForRecord();
-  // get resource to record
-  auto& resource_record = this->m_frame_resources.at(frame_record);
+  // get next resource to record
+  auto& resource_record = this->pullForRecord();
   // wait for previous transfer completion
   this->m_statistics.start("fence_transfer");
   resource_record.fence("transfer").wait();
@@ -81,7 +79,7 @@ void ApplicationThreadedTransfer<T>::render() {
   this->m_statistics.stop("fence_draw");
   this->recordDrawBuffer(resource_record);
   // add newly recorded frame for drawing
-  pushForTransfer(frame_record);
+  pushForTransfer(resource_record);
   this->m_statistics.stop("record");
 
   this->m_statistics.start("sema_present");
@@ -96,27 +94,25 @@ void ApplicationThreadedTransfer<T>::transfer() {
   static std::uint64_t frame = 0;
   ++frame;
   // get frame to transfer
-  auto frame_transfer = pullForTransfer();
+  auto& resource_transfer = pullForTransfer();
   // get resource to transfer
-  auto& resource_transfer = this->m_frame_resources.at(frame_transfer);
   submitTransfer(resource_transfer);
-  // do not wait here for finishing anymore
   // make frame avaible for rerecording
-  this->pushForDraw(frame_transfer);
+  this->pushForDraw(resource_transfer);
   this->m_statistics.stop("frame_transfer");
 }
 
 template<typename T> 
-void ApplicationThreadedTransfer<T>::pushForTransfer(uint32_t frame) {
+void ApplicationThreadedTransfer<T>::pushForTransfer(FrameResource& resource) {
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_transfer_queue};
-    m_queue_transfer_frames.push(frame);
+    m_queue_transfer_frames.push(resource.index);
   }
   m_semaphore_transfer.signal();
 }
 
 template<typename T> 
-uint32_t ApplicationThreadedTransfer<T>::pullForTransfer() {
+FrameResource& ApplicationThreadedTransfer<T>::pullForTransfer() {
   uint32_t frame_transfer = 0;
   {
     std::lock_guard<std::mutex> queue_lock{m_mutex_transfer_queue};
@@ -125,7 +121,7 @@ uint32_t ApplicationThreadedTransfer<T>::pullForTransfer() {
     frame_transfer = m_queue_transfer_frames.front();
     m_queue_transfer_frames.pop();
   }
-  return frame_transfer;
+  return this->m_frame_resources[frame_transfer];
 }
 
 template<typename T> 

@@ -45,12 +45,12 @@ class ApplicationThreaded : public ApplicationSingle<T> {
   virtual void draw();
   std::atomic<bool> m_should_draw;
 
-  void pushForDraw(uint32_t frame);
-  uint32_t pullForRecord();
+  void pushForDraw(FrameResource& frame);
+  FrameResource& pullForRecord();
  private:
-  void pushForPresent(uint32_t frame);
-  uint32_t pullForDraw();
-  uint32_t pullForPresent();
+  void pushForPresent(FrameResource& frame);
+  FrameResource& pullForDraw();
+  FrameResource& pullForPresent();
   void startRenderThread();
   virtual void render() override;
   virtual void drawLoop();
