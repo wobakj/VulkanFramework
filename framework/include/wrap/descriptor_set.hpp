@@ -6,6 +6,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+class ImageView;
+
 using WrapperDescriptorSet = Wrapper<vk::DescriptorSet, DescriptorSetLayoutInfo>;
 class DescriptorSet : public WrapperDescriptorSet {
  public:
@@ -23,6 +25,27 @@ class DescriptorSet : public WrapperDescriptorSet {
   
   void wait();
   void reset();
+
+  // write as combined sampler
+  void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::Sampler const& sampler) const;
+  void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::ImageLayout const& layout, vk::Sampler const& sampler) const;
+  // write as input attachment
+  void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::DescriptorType const& type) const;
+  void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::ImageLayout const& layout, vk::DescriptorType const& type) const;
+  
+  // convenience methods
+  void bind(uint32_t binding, ImageView const& view, vk::Sampler const& sampler) const {
+    bind(binding, 0, view, sampler);
+  }
+  void bind(uint32_t binding, ImageView const& view, vk::ImageLayout const& layout, vk::Sampler const& sampler) const {
+    bind(binding, 0, view, layout, sampler);
+  }
+  void bind(uint32_t binding, ImageView const& view, vk::DescriptorType const& type) const {
+    bind(binding, 0, view, type);
+  }
+  void bind(uint32_t binding, ImageView const& view, vk::ImageLayout const& layout, vk::DescriptorType const& type) const {
+    bind(binding, 0, view, layout, type);
+  }
 
  private:
   void destroy() override;

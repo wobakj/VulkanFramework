@@ -444,9 +444,9 @@ void ApplicationScenegraph<T>::createFramebufferAttachments() {
 
 template<typename T>
 void ApplicationScenegraph<T>::updateDescriptors() {
-  this->m_images.at("color").view().writeToSet(this->m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  this->m_images.at("pos").view().writeToSet(this->m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  this->m_images.at("normal").view().writeToSet(this->m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("lighting").bind(0, this->m_images.at("color").view(), vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("lighting").bind(1, this->m_images.at("pos").view(), vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("lighting").bind(2, this->m_images.at("normal").view(), vk::DescriptorType::eInputAttachment);
   m_instance.dbLight().buffer().writeToSet(this->m_descriptor_sets.at("lighting"), 3, vk::DescriptorType::eStorageBuffer);
 
   m_instance.dbCamera().buffer().writeToSet(this->m_descriptor_sets.at("camera"), 0, vk::DescriptorType::eUniformBuffer);
@@ -455,7 +455,7 @@ void ApplicationScenegraph<T>::updateDescriptors() {
   m_instance.dbMaterial().buffer().writeToSet(this->m_descriptor_sets.at("material"), 0, vk::DescriptorType::eStorageBuffer);
   m_instance.dbTexture().writeToSet(this->m_descriptor_sets.at("material"), 1, m_instance.dbMaterial().mapping());
 
-  this->m_images.at("color_2").view().writeToSet(this->m_descriptor_sets.at("tonemapping"), 0, vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("tonemapping").bind(0, this->m_images.at("color_2").view(), vk::DescriptorType::eInputAttachment);
 }
 
 template<typename T>

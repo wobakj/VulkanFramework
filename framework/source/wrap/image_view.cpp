@@ -260,63 +260,6 @@ vk::Format const& ImageView::format() const {
   return info().format;
 }
 
-void ImageView::writeToSet(vk::DescriptorSet const& set, std::uint32_t binding, vk::Sampler const& sampler, uint32_t index) const {
-  writeToSet(set, binding, is_depth(format()) ? vk::ImageLayout::eDepthStencilReadOnlyOptimal : vk::ImageLayout::eShaderReadOnlyOptimal, sampler, index);
-}
-
-void ImageView::writeToSet(vk::DescriptorSet const& set, std::uint32_t binding, vk::DescriptorType const& type, uint32_t index) const {
-  vk::ImageLayout layout = vk::ImageLayout::eUndefined;
-  // general layout is required for storage images
-  if (type == vk::DescriptorType::eStorageImage) {
-    layout = vk::ImageLayout::eGeneral;
-  }
-  else if (type == vk::DescriptorType::eInputAttachment) {
-    if (is_depth(format())) {
-      layout = vk::ImageLayout::eDepthStencilReadOnlyOptimal; 
-    }
-    else {
-      layout = vk::ImageLayout::eShaderReadOnlyOptimal;
-    }
-  }
-  else {
-    throw std::runtime_error{"type not supported"};
-  }
-  writeToSet(set, binding, layout, type, index);
-}
-
-void ImageView::writeToSet(vk::DescriptorSet const& set, std::uint32_t binding, vk::ImageLayout const& layout, vk::Sampler const& sampler, uint32_t index) const {
-  vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = layout;
-  imageInfo.imageView = get();
-  imageInfo.sampler = sampler;
-
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = set;
-  descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = index;
-  descriptorWrite.descriptorType = vk::DescriptorType::eCombinedImageSampler;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pImageInfo = &imageInfo;
-
-  m_device.updateDescriptorSets({descriptorWrite}, 0);
-}
-
-void ImageView::writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index) const {
-  vk::DescriptorImageInfo imageInfo{};
-  imageInfo.imageLayout = layout;
-  imageInfo.imageView = get();
-
-  vk::WriteDescriptorSet descriptorWrite{};
-  descriptorWrite.dstSet = set;
-  descriptorWrite.dstBinding = binding;
-  descriptorWrite.dstArrayElement = index;
-  descriptorWrite.descriptorType = type;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pImageInfo = &imageInfo;
-
-  m_device.updateDescriptorSets({descriptorWrite}, 0);
-}
-
 void ImageView::swap(ImageView& rhs) {
   WrapperImageView::swap(rhs);
   ImageRange::swap(rhs);

@@ -450,7 +450,7 @@ void ApplicationClustered<T>::createTextureSamplers() {
 
 template<typename T>
 void ApplicationClustered<T>::updateDescriptors() {
-  this->m_images.at("light_vol").view().writeToSet(this->m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
+  this->m_descriptor_sets.at("lightgrid").bind(0, this->m_images.at("light_vol").view(), vk::DescriptorType::eStorageImage);
   this->m_buffer_views.at("lightgrid").writeToSet(this->m_descriptor_sets.at("lightgrid"), 1, vk::DescriptorType::eUniformBuffer);
   this->m_buffer_views.at("lightgrid").writeToSet(this->m_descriptor_sets.at("lighting"), 5, vk::DescriptorType::eUniformBuffer);
 
@@ -459,15 +459,15 @@ void ApplicationClustered<T>::updateDescriptors() {
   this->m_buffer_views.at("light").writeToSet(this->m_descriptor_sets.at("lightgrid"), 2, vk::DescriptorType::eStorageBuffer);
   this->m_buffer_views.at("uniform").writeToSet(this->m_descriptor_sets.at("lightgrid"), 3, vk::DescriptorType::eUniformBuffer);
   
-  this->m_images.at("texture").view().writeToSet(this->m_descriptor_sets.at("textures"), 0, m_sampler.get());
-  this->m_images.at("light_vol").view().writeToSet(this->m_descriptor_sets.at("lighting"), 4, vk::ImageLayout::eGeneral, m_volumeSampler.get());
-  this->m_images.at("light_vol").view().writeToSet(this->m_descriptor_sets.at("lightgrid"), 0, vk::DescriptorType::eStorageImage);
+  this->m_descriptor_sets.at("textures").bind(0, this->m_images.at("texture").view(), m_sampler.get());
+  this->m_descriptor_sets.at("lighting").bind(4, this->m_images.at("light_vol").view(), vk::ImageLayout::eGeneral, m_volumeSampler.get());
+  this->m_descriptor_sets.at("lightgrid").bind(0, this->m_images.at("light_vol").view(), vk::DescriptorType::eStorageImage);
   
-  this->m_images.at("color").view().writeToSet(this->m_descriptor_sets.at("lighting"), 0, vk::DescriptorType::eInputAttachment);
-  this->m_images.at("pos").view().writeToSet(this->m_descriptor_sets.at("lighting"), 1, vk::DescriptorType::eInputAttachment);
-  this->m_images.at("normal").view().writeToSet(this->m_descriptor_sets.at("lighting"), 2, vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("lighting").bind(0, this->m_images.at("color").view(), vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("lighting").bind(1, this->m_images.at("pos").view(), vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("lighting").bind(2, this->m_images.at("normal").view(), vk::DescriptorType::eInputAttachment);
 
-  this->m_images.at("color_2").view().writeToSet(this->m_descriptor_sets.at("tonemapping"), 0, vk::DescriptorType::eInputAttachment);
+  this->m_descriptor_sets.at("tonemapping").bind(0, this->m_images.at("color_2").view(), vk::DescriptorType::eInputAttachment);
 }
 
 template<typename T>

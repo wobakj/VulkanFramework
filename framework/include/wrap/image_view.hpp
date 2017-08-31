@@ -128,14 +128,6 @@ class ImageView : public WrapperImageView, public ImageRange {
   void swap(ImageView& dev);
 
   vk::Format const& format() const;
-
-  // write as combined sampler
-  void writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::Sampler const& sampler, uint32_t index = 0) const;
-  void writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::ImageLayout const& layout, vk::Sampler const& sampler, uint32_t index = 0) const;
-  // write as input attachment
-  void writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::DescriptorType const& type, uint32_t index = 0) const;
-  void writeToSet(vk::DescriptorSet const& set, uint32_t binding, vk::ImageLayout const& layout, vk::DescriptorType const& type, uint32_t index = 0) const;
-
   vk::Extent3D const& extent() const;
 
   ImageLayers layers(uint32_t level) const;
