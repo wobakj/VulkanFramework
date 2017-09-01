@@ -61,6 +61,10 @@ void ApplicationThreaded<T>::shutDown() {
 
 template<typename T>
 void ApplicationThreaded<T>::present() {
+  this->m_statistics.start("sema_present");
+  // only calculate new frame if previous one was rendered
+  m_semaphore_present.wait();
+  this->m_statistics.stop("sema_present");
   // present next frame
   auto& resource_present = pullForPresent();
   this->presentFrame(resource_present);
@@ -87,10 +91,6 @@ void ApplicationThreaded<T>::render() {
   pushForDraw(resource_record);
   this->m_statistics.stop("record");
   
-  this->m_statistics.start("sema_present");
-  // only calculate new frame if previous one was rendered
-  m_semaphore_present.wait();
-  this->m_statistics.stop("sema_present");
   present();
 }
 

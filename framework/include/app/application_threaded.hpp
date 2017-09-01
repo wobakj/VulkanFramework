@@ -32,6 +32,20 @@ class ApplicationThreaded : public ApplicationSingle<T> {
   // replace shutdown of single thread app
   virtual void shutDown() override;
 
+  virtual void present();
+  virtual void draw();
+
+  void pushForDraw(FrameResource& frame);
+  FrameResource& pullForRecord();
+
+ private:
+  void pushForPresent(FrameResource& frame);
+  FrameResource& pullForDraw();
+  FrameResource& pullForPresent();
+  void startRenderThread();
+  virtual void render() override;
+  virtual void drawLoop();
+
   std::mutex m_mutex_draw_queue;
   std::mutex m_mutex_present_queue;
 
@@ -41,19 +55,7 @@ class ApplicationThreaded : public ApplicationSingle<T> {
   Semaphore m_semaphore_draw;
   Semaphore m_semaphore_present;
 
-  virtual void present();
-  virtual void draw();
   std::atomic<bool> m_should_draw;
-
-  void pushForDraw(FrameResource& frame);
-  FrameResource& pullForRecord();
- private:
-  void pushForPresent(FrameResource& frame);
-  FrameResource& pullForDraw();
-  FrameResource& pullForPresent();
-  void startRenderThread();
-  virtual void render() override;
-  virtual void drawLoop();
   std::thread m_thread_draw;
 };
 

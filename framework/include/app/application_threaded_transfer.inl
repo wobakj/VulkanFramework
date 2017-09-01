@@ -82,9 +82,6 @@ void ApplicationThreadedTransfer<T>::render() {
   pushForTransfer(resource_record);
   this->m_statistics.stop("record");
 
-  this->m_statistics.start("sema_present");
-  this->m_semaphore_present.wait();
-  this->m_statistics.stop("sema_present");
   this->present();
 }
 
