@@ -12,7 +12,7 @@ class DescriptorPoolInfo {
 
   void reserve(Shader const& shader, uint32_t times);
   void reserve(Shader const& shader, uint32_t idx_set, uint32_t times);
-  void reserve(vk::DescriptorType const& type, uint32_t times);
+  void reserve(vk::DescriptorType const& type, uint32_t times = 1);
   
   operator vk::DescriptorPoolCreateInfo const&() const;
 

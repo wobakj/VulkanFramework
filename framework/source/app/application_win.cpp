@@ -83,7 +83,7 @@ void ApplicationWin::acquireImage(FrameResource& res) {
   else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
       throw std::runtime_error("failed to acquire swap chain image!");
   }
-  res.target_view = &m_swap_chain.view(res.image);
+  res.target_region = m_swap_chain.view(res.image);
 }
 
 void ApplicationWin::presentFrame(FrameResource& res) {
@@ -149,9 +149,9 @@ SubmitInfo ApplicationWin::createDrawSubmitInfo(FrameResource const& res) const 
 }
 
 void ApplicationWin::presentCommands(FrameResource& res, ImageLayers const& view, vk::ImageLayout const& layout) {
-  res.command_buffers.at("primary").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("primary").copyImage(view, layout, *res.target_view, vk::ImageLayout::eTransferDstOptimal);
-  res.command_buffers.at("primary").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.command_buffers.at("primary").transitionLayout(res.target_region, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("primary").copyImage(view, layout, res.target_region, vk::ImageLayout::eTransferDstOptimal);
+  res.command_buffers.at("primary").transitionLayout(res.target_region, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 }
 
 void ApplicationWin::keyCallbackSelf(int key, int scancode, int action, int mods) {

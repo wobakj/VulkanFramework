@@ -199,46 +199,6 @@ layout_shader_t::layout_shader_t(std::vector<layout_module_t> const& mod)
   }
 }
 
-std::vector<vk::DescriptorPoolSize> to_pool_sizes(layout_shader_t const& shader_layout, uint32_t num) {
-  std::map<vk::DescriptorType, uint32_t> size_map{};
-  // collect all descriptor types and sizes
-  for (auto const& set : shader_layout.sets) {
-    for(auto const& pair_desc : set) {
-      if (size_map.find(pair_desc.second.descriptorType) != size_map.end()) {
-        size_map.at(pair_desc.second.descriptorType) += pair_desc.second.descriptorCount * num;
-      }
-      else {
-        size_map.emplace(pair_desc.second.descriptorType, pair_desc.second.descriptorCount * num);
-      }
-    }
-  } 
-  // store sizes
-  std::vector<vk::DescriptorPoolSize> sizes{};
-  for(auto const& pair_desc : size_map) {
-    sizes.emplace_back(vk::DescriptorPoolSize{pair_desc.first, pair_desc.second});
-  }
-  return sizes;
-}
-
-std::vector<vk::DescriptorPoolSize> to_pool_sizes(std::map<std::string, vk::DescriptorSetLayoutBinding> const& set, uint32_t num) {
-  std::map<vk::DescriptorType, uint32_t> size_map{};
-  for(auto const& pair_desc : set) {
-    if (size_map.find(pair_desc.second.descriptorType) != size_map.end()) {
-      size_map.at(pair_desc.second.descriptorType) += pair_desc.second.descriptorCount * num;
-    }
-    else {
-      size_map.emplace(pair_desc.second.descriptorType, pair_desc.second.descriptorCount * num);
-    }
-  }
-  // store sizes
-  std::vector<vk::DescriptorPoolSize> sizes{};
-  for(auto const& pair_desc : size_map) {
-    sizes.emplace_back(vk::DescriptorPoolSize{pair_desc.first, pair_desc.second});
-  }
-  return sizes;
-}
-
-
 DescriptorSetLayout to_set_layout(vk::Device const& device, std::map<std::string, vk::DescriptorSetLayoutBinding> const& set) {
   DescriptorSetLayoutInfo layout_info{};
   for(auto const& pair_desc : set) {

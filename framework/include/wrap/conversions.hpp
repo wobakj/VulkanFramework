@@ -54,4 +54,12 @@ inline float aspect(glm::tvec2<T,P> const& vec) {
   return float(vec[0]) / float(vec[1]);
 }
 
+inline glm::u32vec3 vec3(vk::Extent3D const& extent) {
+  return glm::u32vec3{extent.width, extent.height, extent.depth};
+}
+
+inline glm::u32vec2 vec(vk::Extent2D const& extent) {
+  return glm::u32vec2{extent.width, extent.height};
+}
+
 #endif

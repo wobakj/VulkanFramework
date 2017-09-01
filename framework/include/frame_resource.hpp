@@ -84,7 +84,7 @@ class FrameResource {
 
   void swap(FrameResource& rhs) {
     std::swap(image, rhs.image);
-    std::swap(target_view, rhs.target_view);
+    std::swap(target_region, rhs.target_region);
     std::swap(index, rhs.index);
     std::swap(m_device, rhs.m_device);
     std::swap(command_buffers, rhs.command_buffers);
@@ -99,7 +99,7 @@ class FrameResource {
   // for presenting
   uint32_t image; 
   // for drawing
-  ImageView const* target_view;
+  ImageLayers target_region;
   // for transferring between queues
   uint32_t index;
   std::map<std::string, CommandBuffer> command_buffers;

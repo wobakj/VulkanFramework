@@ -170,11 +170,11 @@ void ApplicationPresent<T>::recordDrawBuffer(FrameResource& res) {
 
   res.commandBuffer("primary")->begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-  res.commandBuffer("primary").transitionLayout(*res.target_view, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+  res.commandBuffer("primary").transitionLayout(res.target_region, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 
-  res.commandBuffer("primary")->copyBufferToImage(this->m_buffers.at("transfer"), res.target_view->image(), vk::ImageLayout::eTransferDstOptimal, m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
+  res.commandBuffer("primary")->copyBufferToImage(this->m_buffers.at("transfer"), res.target_region.image(), vk::ImageLayout::eTransferDstOptimal, m_copy_regions[res.buffer_views.at("transfer").offset() / res.buffer_views.at("transfer").size()]);
 
-  res.commandBuffer("primary").transitionLayout(*res.target_view, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
+  res.commandBuffer("primary").transitionLayout(res.target_region, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
   res.commandBuffer("primary")->end();
 }

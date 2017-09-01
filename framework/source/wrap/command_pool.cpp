@@ -60,7 +60,3 @@ CommandBuffer CommandPool::createBuffer(vk::CommandBufferLevel const& level) con
   buffer.swap(createBuffers(level, 1)[0]); 
   return std::move(buffer);
 }
-
-vk::Device const& CommandPool::device() const {
-  return m_device;
-}

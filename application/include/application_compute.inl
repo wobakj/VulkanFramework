@@ -1,13 +1,6 @@
 #include "wrap/descriptor_pool_info.hpp"
-#include "texture_loader.hpp"
-#include "geometry_loader.hpp"
+#include "wrap/conversions.hpp"
 
-// c++ warpper
-#include <vulkan/vulkan.hpp>
-
-#include <glm/gtc/type_precision.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
 //dont load gl bindings from glfw
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -52,7 +45,7 @@ void ApplicationCompute<T>::updateResourceCommandBuffers(FrameResource& res) {
   res.commandBuffer("compute")->bindPipeline(vk::PipelineBindPoint::eCompute, m_pipeline_compute);
   res.commandBuffer("compute")->bindDescriptorSets(vk::PipelineBindPoint::eCompute, m_pipeline_compute.layout(), 0, {this->m_descriptor_sets.at("storage")}, {});
 
-  glm::uvec3 dims{this->m_images.at("texture").extent().width, this->m_images.at("texture").extent().height, this->m_images.at("texture").extent().depth};
+  glm::uvec3 dims = vec3(this->m_images.at("texture").extent());
   glm::uvec3 workers{16, 16, 1};
   // 512^2 threads in blocks of 16^2
   res.commandBuffer("compute")->dispatch(dims.x / workers.x, dims.y / workers.y, dims.z / workers.z); 
@@ -70,7 +63,9 @@ void ApplicationCompute<T>::recordDrawBuffer(FrameResource& res) {
 
   res.commandBuffer("primary")->executeCommands({res.commandBuffer("compute")});
 
-  this->presentCommands(res, this->m_images.at("texture"), vk::ImageLayout::eGeneral);
+  res.commandBuffer("primary").transitionLayout(this->m_images.at("texture"), vk::ImageLayout::eGeneral, vk::ImageLayout::eTransferSrcOptimal);
+  this->presentCommands(res, this->m_images.at("texture"), vk::ImageLayout::eTransferSrcOptimal);
+  res.commandBuffer("primary").transitionLayout(this->m_images.at("texture"), vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral);
   
   res.commandBuffer("primary")->end();
 }
@@ -101,7 +96,6 @@ void ApplicationCompute<T>::createTextureImages() {
 template<typename T>
 void ApplicationCompute<T>::updateDescriptors() { 
   this->m_descriptor_sets.at("storage").bind(0, this->m_images.at("texture").view(), vk::DescriptorType::eStorageImage);
-  
   this->m_descriptor_sets.at("storage").bind(1, this->m_buffers.at("time"), vk::DescriptorType::eUniformBuffer);
 }
 

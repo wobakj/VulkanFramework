@@ -27,8 +27,6 @@ class CommandPool : public WrapperCommandPool {
   std::vector<CommandBuffer> createBuffers(vk::CommandBufferLevel const& level, uint32_t num) const;
   CommandBuffer createBuffer(vk::CommandBufferLevel const& level) const;
 
-  vk::Device const& device() const;
-
  private:
   void destroy() override;
 
