@@ -31,13 +31,7 @@ class DescriptorSet : public WrapperDescriptorSet {
   // write buffer
   void bind(uint32_t binding, uint32_t index_base, vk::ArrayProxy<Buffer const> const& view, vk::DescriptorType const& type) const;
   void bind(uint32_t binding, uint32_t index_base, vk::ArrayProxy<BufferView const> const& view, vk::DescriptorType const& type) const;
-  // convenience
-  void bind(uint32_t binding, vk::ArrayProxy<Buffer const> const& view, vk::DescriptorType const& type) const {
-    bind(binding, 0, view, type);
-  }
-  void bind(uint32_t binding, vk::ArrayProxy<BufferView const> const& view, vk::DescriptorType const& type) const {
-    bind(binding, 0, view, type);
-  }
+
 
   // write as combined sampler
   void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::Sampler const& sampler) const;
@@ -45,27 +39,30 @@ class DescriptorSet : public WrapperDescriptorSet {
   // write as input attachment
   void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::DescriptorType const& type) const;
   void bind(uint32_t binding, uint32_t index, ImageView const& view, vk::ImageLayout const& layout, vk::DescriptorType const& type) const;
-  
-  // convenience methods
-  void bind(uint32_t binding, ImageView const& view, vk::Sampler const& sampler) const {
-    bind(binding, 0, view, sampler);
-  }
-  void bind(uint32_t binding, ImageView const& view, vk::ImageLayout const& layout, vk::Sampler const& sampler) const {
-    bind(binding, 0, view, layout, sampler);
-  }
-  void bind(uint32_t binding, ImageView const& view, vk::DescriptorType const& type) const {
-    bind(binding, 0, view, type);
-  }
-  void bind(uint32_t binding, ImageView const& view, vk::ImageLayout const& layout, vk::DescriptorType const& type) const {
-    bind(binding, 0, view, layout, type);
-  }
+
+  // convenience functions
+  template<typename T, typename S>
+  void bind(uint32_t binding, T const&, S const&) const;
+
+  template<typename T, typename S>
+  void bind(uint32_t binding, T const&, vk::ImageLayout const& layout, S const&) const;
 
  private:
-  void check(uint32_t binding, uint32_t index_base, uint32_t count);
   void destroy() override;
 
   vk::Device m_device;
   vk::DescriptorPool m_pool;
 };
+
+
+template<typename T, typename S>
+void DescriptorSet::bind(uint32_t binding, T const& object, S const& config) const {
+  bind(binding, 0, object, config);
+}
+
+template<typename T, typename S>
+void DescriptorSet::bind(uint32_t binding, T const& object, vk::ImageLayout const& layout, S const& config) const {
+  bind(binding, 0, object, layout, config);
+}
 
 #endif

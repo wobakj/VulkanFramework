@@ -134,14 +134,3 @@ void DescriptorSet::bind(uint32_t binding, uint32_t index, ImageView const& view
   m_device.updateDescriptorSets({descriptorWrite}, 0);
 }
 
-void DescriptorSet::check(uint32_t binding, uint32_t index_base, uint32_t count) {
-  if (binding > m_info.m_info.bindingCount) {
-    throw std::runtime_error{"binding out of range"};
-  }
-  if (index_base > m_info.m_bindings[binding].descriptorCount) {
-    throw std::runtime_error{"base index out of range"};
-  }
-  if (index_base + count > m_info.m_bindings[binding].descriptorCount) {
-    throw std::runtime_error{"count out of range"};
-  }
-}
