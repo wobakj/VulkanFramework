@@ -273,7 +273,7 @@ Shader::Shader()
 {}
 
 Shader::Shader(Device const& device, std::vector<std::string> const& paths)
- :m_device{&device}
+ :m_device{device}
  ,m_paths{paths}
  {
   std::vector<layout_module_t> module_layouts{};
@@ -296,9 +296,9 @@ Shader::Shader(Device const& device, std::vector<std::string> const& paths)
  }
 
 void Shader::destroy() {
-  (*m_device)->destroyPipelineLayout(get());
+  m_device.destroyPipelineLayout(get());
   for(auto const& module : m_modules) {
-    (*m_device)->destroyShaderModule(module);
+    m_device.destroyShaderModule(module);
   }
 }
 

@@ -42,7 +42,7 @@ using WrapperPipeline = Wrapper<vk::Pipeline, T>;
  private:
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
   vk::PipelineCache m_cache;
 };
 
@@ -69,7 +69,7 @@ PipelineT<T>::~PipelineT() {
 
 template<typename T>
 void PipelineT<T>::destroy() {
-  (*m_device)->destroyPipeline(WrapperPipeline::get());
+  m_device.destroyPipeline(WrapperPipeline::get());
 }
 
 template<typename T>
@@ -98,7 +98,7 @@ template<>
 inline void GraphicsPipeline::recreate(GraphicsPipelineInfo const& info) {
   m_info = info;
   m_info.setRoot(get());
-  m_object = (*m_device)->createGraphicsPipelines(m_cache, {m_info})[0];
+  m_object = m_device.createGraphicsPipelines(m_cache, {m_info})[0];
 }
 
 template<>
@@ -108,13 +108,10 @@ inline vk::PipelineBindPoint GraphicsPipeline::bindPoint() const {
 
 template<>
 inline GraphicsPipeline::PipelineT(Device const& device, GraphicsPipelineInfo const& info, vk::PipelineCache const& cache)
- :PipelineT{}
-{
-  m_device = &device;
-  m_cache = cache;
-  m_info = info;
-  m_object = (*m_device)->createGraphicsPipelines(m_cache, {m_info})[0];
-}
+ :WrapperPipeline{std::move(device->createGraphicsPipelines(cache, {info})[0]), info}
+ ,m_device{device}
+ ,m_cache{cache}
+{}
 
 template<>
 inline GraphicsPipeline::operator vk::Pipeline const&() const {
@@ -127,7 +124,7 @@ template<>
 inline void ComputePipeline::recreate(ComputePipelineInfo const& info) {
   m_info = info;
   m_info.setRoot(get());
-  m_object = (*m_device)->createComputePipelines(m_cache, {m_info})[0];
+  m_object = m_device.createComputePipelines(m_cache, {m_info})[0];
 }
 
 template<>
@@ -137,13 +134,10 @@ inline vk::PipelineBindPoint ComputePipeline::bindPoint() const {
 
 template<>
 inline ComputePipeline::PipelineT(Device const& device, ComputePipelineInfo const& info, vk::PipelineCache const& cache)
- :PipelineT{}
-{
-  m_device = &device;
-  m_cache = cache;
-  m_info = info;
-  m_object = (*m_device)->createComputePipelines(m_cache, {m_info})[0];
-}
+ :WrapperPipeline{std::move(device->createComputePipelines(cache, {info})[0]), info}
+ ,m_device{device}
+ ,m_cache{cache}
+{}
 
 template<>
 inline ComputePipeline::operator vk::Pipeline const&() const {

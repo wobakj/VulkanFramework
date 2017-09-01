@@ -17,7 +17,7 @@ QueryPool::QueryPool(QueryPool && rhs)
 QueryPool::QueryPool(Device const& device, vk::QueryType const& type, uint32_t count)
  :QueryPool{}
 {
-  m_device = &device;
+  m_device = device;
   m_info.queryType = type;
   m_info.queryCount = count;
   m_object = device->createQueryPool(info());
@@ -30,7 +30,7 @@ QueryPool::~QueryPool() {
 }
 
 void QueryPool::destroy() {
-  (*m_device)->destroyQueryPool(get());
+  m_device.destroyQueryPool(get());
 }
 
 QueryPool& QueryPool::operator=(QueryPool&& dev) {

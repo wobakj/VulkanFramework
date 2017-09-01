@@ -20,9 +20,9 @@ DescriptorPool::DescriptorPool(DescriptorPool && DescriptorPool)
 DescriptorPool::DescriptorPool(Device const& device, DescriptorPoolInfo const& info)
  :DescriptorPool{}
 {
-  m_device = &device;
+  m_device = device;
   m_info = info;
-  m_object = (*m_device)->createDescriptorPool(info);
+  m_object = m_device.createDescriptorPool(info);
 }
 
 DescriptorPool::~DescriptorPool() {
@@ -30,7 +30,7 @@ DescriptorPool::~DescriptorPool() {
 }
 
 void DescriptorPool::destroy() {
-  (*m_device)->destroyDescriptorPool(get());
+  m_device.destroyDescriptorPool(get());
 }
 
 DescriptorPool& DescriptorPool::operator=(DescriptorPool&& DescriptorPool) {
@@ -52,10 +52,10 @@ std::vector<DescriptorSet> DescriptorPool::allocate(std::vector<DescriptorSetLay
     vklayouts.emplace_back(layout.get());
   }
   info_alloc.pSetLayouts = vklayouts.data();
-  auto vk_sets = (*m_device)->allocateDescriptorSets(info_alloc);
+  auto vk_sets = m_device.allocateDescriptorSets(info_alloc);
   std::vector<DescriptorSet> sets{};
   for (size_t i = 0; i < layouts.size(); ++i) {
-    sets.emplace_back(*m_device, std::move(vk_sets[i]), layouts[i].info(), get());
+    sets.emplace_back(m_device, std::move(vk_sets[i]), layouts[i].info(), get());
   }
   return sets;
 }
@@ -64,5 +64,5 @@ DescriptorSet DescriptorPool::allocate(DescriptorSetLayout const& layout) const 
   info_alloc.descriptorPool = get();
   info_alloc.descriptorSetCount = 1;
   info_alloc.pSetLayouts = &layout.get();
-  return DescriptorSet{*m_device, std::move((*m_device)->allocateDescriptorSets(info_alloc)[0]), layout.info(), get()};
+  return DescriptorSet{m_device, std::move(m_device.allocateDescriptorSets(info_alloc)[0]), layout.info(), get()};
 }

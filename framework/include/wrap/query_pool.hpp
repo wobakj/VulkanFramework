@@ -46,7 +46,7 @@ class QueryPool : public WrapperQueryPool {
  private:
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
   float m_tick_duration;
 };
 
@@ -88,7 +88,7 @@ std::vector<T> QueryPool::getResults(uint32_t index, uint32_t num, vk::QueryResu
     results.resize(num * 2);
   }
   
-  (*m_device)->getQueryPoolResults(get(), index, num, results.size() * sizeof(T), results.data(), sizeof(T), flags);
+  m_device.getQueryPoolResults(get(), index, num, results.size() * sizeof(T), results.data(), sizeof(T), flags);
   return results;
 }
 

@@ -18,7 +18,7 @@ ApplicationInstance::ApplicationInstance(ApplicationInstance && rhs)
 
 ApplicationInstance::ApplicationInstance(Device const& device, CommandPool& pool)
  :m_device(&device)
- ,m_transferrer{new Transferrer{pool}}
+ ,m_transferrer{new Transferrer{device, pool}}
  ,m_database_geo{*m_transferrer}
  ,m_database_mat{*m_transferrer}
  ,m_database_model{}

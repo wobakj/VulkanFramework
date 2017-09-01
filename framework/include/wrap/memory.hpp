@@ -33,7 +33,7 @@ class Memory : public WrapperMemory {
  private:
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
 };
 
 #include "wrap/memory_resource.hpp"

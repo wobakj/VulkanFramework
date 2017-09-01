@@ -242,7 +242,7 @@ RenderPass::RenderPass()
 
 RenderPass::RenderPass(Device const& device, RenderPassInfo const& info)
  :WrapperRenderPass{}
- ,m_device{&device}
+ ,m_device{device}
 {
   m_info = info;
   m_object = device->createRenderPass(m_info.info(), nullptr);
@@ -253,7 +253,7 @@ RenderPass::~RenderPass() {
 }
 
 void RenderPass::destroy() {
-  (*m_device)->destroyRenderPass(m_object);
+  m_device.destroyRenderPass(m_object);
 }
 
 RenderPass::RenderPass(RenderPass && dev)

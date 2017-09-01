@@ -36,7 +36,7 @@ Memory::Memory(Memory && mem)
 Memory::Memory(Device const& device, uint32_t type_index, vk::DeviceSize const& size)
  :Memory{}
 {
-  m_device = &device;
+  m_device = device;
   m_info.allocationSize = size;
   m_info.memoryTypeIndex = type_index;
   m_object = device->allocateMemory(info());
@@ -55,15 +55,15 @@ Memory::~Memory() {
 }
 
 void* Memory::map(vk::DeviceSize const& size, vk::DeviceSize const& offset) {
-  return (*m_device)->mapMemory(get(), offset, size);
+  return m_device.mapMemory(get(), offset, size);
 }
 
 void Memory::unmap() {
-  (*m_device)->unmapMemory(get());
+  m_device.unmapMemory(get());
 }
 
 void Memory::destroy() {
-  (*m_device)->freeMemory(get());
+  m_device.freeMemory(get());
 }
 
  Memory& Memory::operator=(Memory&& dev) {

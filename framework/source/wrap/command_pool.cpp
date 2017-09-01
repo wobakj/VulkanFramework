@@ -17,7 +17,7 @@ CommandPool::CommandPool(CommandPool && CommandPool)
 CommandPool::CommandPool(Device const& device, uint32_t idx_queue, vk::CommandPoolCreateFlags const& flags)
  :CommandPool{}
 {
-  m_device = &device;
+  m_device = device;
 
   m_info.queueFamilyIndex = idx_queue;
   m_info.flags = flags;
@@ -29,7 +29,7 @@ CommandPool::~CommandPool() {
 }
 
 void CommandPool::destroy() {
-  (*m_device)->destroyCommandPool(get());
+  m_device.destroyCommandPool(get());
 }
 
 CommandPool& CommandPool::operator=(CommandPool&& CommandPool) {
@@ -47,10 +47,10 @@ std::vector<CommandBuffer> CommandPool::createBuffers(vk::CommandBufferLevel con
   allocInfo.setCommandPool(get());
   allocInfo.setLevel(level);
   allocInfo.setCommandBufferCount(num);
-  auto buffers = (*m_device)->allocateCommandBuffers(allocInfo);
+  auto buffers = m_device.allocateCommandBuffers(allocInfo);
   std::vector<CommandBuffer> buffers_out{};
   for (auto& buffer : buffers) {
-    buffers_out.emplace_back(std::move(CommandBuffer{*m_device, std::move(buffer), allocInfo}));
+    buffers_out.emplace_back(std::move(CommandBuffer{m_device, std::move(buffer), allocInfo}));
   }
   return buffers_out;
 }
@@ -61,6 +61,6 @@ CommandBuffer CommandPool::createBuffer(vk::CommandBufferLevel const& level) con
   return std::move(buffer);
 }
 
-Device const& CommandPool::device() const {
-  return *m_device;
+vk::Device const& CommandPool::device() const {
+  return m_device;
 }

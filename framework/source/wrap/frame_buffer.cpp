@@ -22,13 +22,13 @@ FrameBuffer::FrameBuffer()
 FrameBuffer::FrameBuffer(Device const& device, std::vector<Image const*> const& images, vk::RenderPass const& pass)
  :FrameBuffer{}
  {
-  m_device = &device;
+  m_device = device;
   std::vector<vk::ImageView> attachments;
   for (auto const& image : images) {
     attachments.emplace_back(image->view());
   }
   m_info = view_to_fb(attachments, images.front()->info(), pass);
-  m_object = (*m_device)->createFramebuffer(info());
+  m_object = m_device.createFramebuffer(info());
 
   for(auto const& image : images) {
     if (!is_depth(image->view().format())) {
@@ -41,7 +41,7 @@ FrameBuffer::FrameBuffer(Device const& device, std::vector<Image const*> const& 
  }
 
 void FrameBuffer::destroy() {
-  (*m_device)->destroyFramebuffer(get());
+  m_device.destroyFramebuffer(get());
 }
 
 FrameBuffer::FrameBuffer(FrameBuffer && rhs)

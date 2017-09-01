@@ -39,7 +39,7 @@ class SubmitInfo {
   std::vector<vk::CommandBuffer> m_command_buffers;
   std::vector<vk::Semaphore> m_signal_semas;
 
-  // Device const* m_device;
+  // vk::Device m_device;
 };
 
 #endif

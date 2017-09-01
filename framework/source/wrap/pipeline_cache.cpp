@@ -16,12 +16,12 @@ PipelineCache::PipelineCache(PipelineCache && PipelineCache)
 PipelineCache::PipelineCache(Device const& device, std::vector<uint8_t> const& data)
  :PipelineCache{}
 {
-  m_device = &device;
+  m_device = device;
   if (!data.empty()) {
     m_info.initialDataSize = uint32_t(data.size());
     m_info.pInitialData = data.data();
   }
-  m_object = (*m_device)->createPipelineCache(m_info);
+  m_object = m_device.createPipelineCache(m_info);
 }
 
 PipelineCache::~PipelineCache() {
@@ -29,7 +29,7 @@ PipelineCache::~PipelineCache() {
 }
 
 void PipelineCache::destroy() {
-  (*m_device)->destroyPipelineCache(get());
+  m_device.destroyPipelineCache(get());
 }
 
 PipelineCache& PipelineCache::operator=(PipelineCache&& PipelineCache) {

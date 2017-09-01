@@ -24,7 +24,7 @@ class CommandBuffer;
 class Transferrer {
  public:
   Transferrer();
-  Transferrer(CommandPool& pool);
+  Transferrer(Device const& device, CommandPool& pool);
   Transferrer(Transferrer && dev);
   Transferrer(Transferrer const&) = delete;
 

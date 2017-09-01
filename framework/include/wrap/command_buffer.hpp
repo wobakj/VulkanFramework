@@ -30,7 +30,7 @@ class CommandBuffer : public WrapperCommandBuffer {
  public:
   CommandBuffer();
   // take ownership
-  CommandBuffer(Device const& device, vk::CommandBuffer&& buffer, vk::CommandBufferAllocateInfo const& info);
+  CommandBuffer(vk::Device const& device, vk::CommandBuffer&& buffer, vk::CommandBufferAllocateInfo const& info);
   CommandBuffer(CommandBuffer && rhs);
   CommandBuffer(CommandBuffer const&) = delete;
   ~CommandBuffer();
@@ -68,7 +68,7 @@ class CommandBuffer : public WrapperCommandBuffer {
   CommandBuffer(CommandPool const& pool, uint32_t idx_queue, vk::CommandBufferLevel const& level);
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
   bool m_recording;
 
   session_t m_session;

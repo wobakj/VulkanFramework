@@ -16,7 +16,7 @@ Sampler::Sampler(Sampler && rhs)
 Sampler::Sampler(Device const& device, vk::Filter const& filter, vk::SamplerAddressMode const& address)
  :Sampler{}
 {
-  m_device = &device;
+  m_device = device;
   m_info.magFilter = filter;
   m_info.minFilter = filter;
   m_info.maxAnisotropy = 1.0;
@@ -38,7 +38,7 @@ Sampler::~Sampler() {
 }
 
 void Sampler::destroy() {
-  (*m_device)->destroySampler(get());
+  m_device.destroySampler(get());
 }
 
 Sampler& Sampler::operator=(Sampler&& rhs) {
@@ -61,5 +61,5 @@ void Sampler::writeToSet(vk::DescriptorSet& set, uint32_t binding, vk::Descripto
   descriptorWrite.descriptorType = type;
   descriptorWrite.descriptorCount = 1;
   descriptorWrite.pImageInfo = &info_img;
-  (*m_device)->updateDescriptorSets({descriptorWrite}, 0);
+  m_device.updateDescriptorSets({descriptorWrite}, 0);
 }

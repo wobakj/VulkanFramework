@@ -69,7 +69,7 @@ class Shader : public WrapperShader {
  private:
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
   std::vector<std::string> m_paths;
   std::vector<vk::ShaderModule> m_modules;
   std::vector<DescriptorSetLayout> m_set_layouts;

@@ -27,7 +27,7 @@ class PipelineCache : public WrapperPipelineCache {
  private:
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
 };
 
 #endif

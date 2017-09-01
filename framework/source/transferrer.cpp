@@ -15,10 +15,10 @@ Transferrer::Transferrer()
  :m_device{nullptr}
 {}
 
-Transferrer::Transferrer(CommandPool& pool)
+Transferrer::Transferrer(Device const& device, CommandPool& pool)
  :Transferrer{}
  {
-  m_device = &pool.device();
+  m_device = &device;
   // create buffer for onetime commands
   m_command_buffer_help = pool.createBuffer(vk::CommandBufferLevel::ePrimary);
  }

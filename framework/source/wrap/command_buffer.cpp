@@ -13,22 +13,22 @@ vk::AccessFlags layout_to_access(vk::ImageLayout const& layout);
 
 CommandBuffer::CommandBuffer()
  :WrapperCommandBuffer{}
- ,m_device{nullptr}
+ ,m_device{}
  ,m_recording{false}
 {}
 
 CommandBuffer::CommandBuffer(CommandBuffer && rhs)
  :WrapperCommandBuffer{}
- ,m_device{nullptr}
+ ,m_device{}
  ,m_recording{false}
 {
   swap(rhs);
 }
 
-CommandBuffer::CommandBuffer(Device const& device, vk::CommandBuffer&& buffer, vk::CommandBufferAllocateInfo const& info)
+CommandBuffer::CommandBuffer(vk::Device const& device, vk::CommandBuffer&& buffer, vk::CommandBufferAllocateInfo const& info)
  :CommandBuffer{}
 {
-  m_device = &device;
+  m_device = device;
   m_object = std::move(buffer);
   m_info = info;
 }
@@ -38,7 +38,7 @@ CommandBuffer::~CommandBuffer() {
 }
 
 void CommandBuffer::destroy() {
-  (*m_device)->freeCommandBuffers(m_info.commandPool, {get()});
+  m_device.freeCommandBuffers(m_info.commandPool, {get()});
 }
 
 CommandBuffer& CommandBuffer::operator=(CommandBuffer&& rhs) {

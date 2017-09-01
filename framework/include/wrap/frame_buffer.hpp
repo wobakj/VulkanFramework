@@ -32,7 +32,7 @@ class FrameBuffer : public WrapperFrameBuffer {
  private:
   void destroy() override;
 
-  Device const* m_device;
+  vk::Device m_device;
   std::vector<vk::ClearValue> m_clear_values;
 };
 
